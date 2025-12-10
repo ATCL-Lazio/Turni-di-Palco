@@ -223,6 +223,8 @@ function renderTurns() {
 
 function initMap() {
   if (!mapContainer || map) return;
+  mapContainer.style.height = `${window.innerHeight}px`;
+  mapContainer.style.width = `${window.innerWidth}px`;
   const defaultCenter = [41.9028, 12.4964] as const; // Roma
   map = L.map(mapContainer, { zoomControl: true }).setView(defaultCenter, 7);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -300,6 +302,10 @@ window.setTimeout(() => {
   map?.invalidateSize();
 }, 200);
 window.addEventListener("resize", () => {
+  if (mapContainer) {
+    mapContainer.style.height = `${window.innerHeight}px`;
+    mapContainer.style.width = `${window.innerWidth}px`;
+  }
   map?.invalidateSize();
 });
 setDrawer("events");
