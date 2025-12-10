@@ -224,8 +224,6 @@ const topStatCachet = root.querySelector<HTMLElement>('[data-top-stat="cachet"]'
 const topStatRep = root.querySelector<HTMLElement>('[data-top-stat="rep"]');
 const drawerTabs = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-drawer-tab]"));
 const drawerSections = Array.from(root.querySelectorAll<HTMLElement>("[data-section]"));
-const drawerTabs = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-drawer-tab]"));
-const drawerSections = Array.from(root.querySelectorAll<HTMLElement>("[data-section]"));
 
 let state: GameState = loadState();
 let map: LeafletMap | null = null;
