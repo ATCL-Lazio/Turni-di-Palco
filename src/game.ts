@@ -7,6 +7,8 @@ type RoleId = "attore" | "luci" | "fonico" | "attrezzista" | "palco";
 type Rewards = { xp: number; cachet: number; reputation: number };
 type Role = { id: RoleId; name: string; focus: string; stats: string[] };
 type GameEvent = { id: string; name: string; theatre: string; date: string; focusRole?: RoleId };
+type AvatarIcon = "mask" | "spot" | "gear" | "note";
+type AvatarSettings = { hue: number; icon: AvatarIcon };
 type TurnRecord = {
   id: string;
   eventId: string;
@@ -16,7 +18,7 @@ type TurnRecord = {
   roleId: RoleId;
   rewards: Rewards;
 };
-type PlayerProfile = { name: string; roleId: RoleId; xp: number; cachet: number; repAtcl: number };
+type PlayerProfile = { name: string; roleId: RoleId; xp: number; cachet: number; repAtcl: number; avatar: AvatarSettings };
 type GameState = { profile: PlayerProfile; turns: TurnRecord[] };
 
 const roles: Role[] = [
@@ -25,6 +27,13 @@ const roles: Role[] = [
   { id: "fonico", name: "Fonico", focus: "Pulizia audio", stats: ["Ascolto", "Reattivita", "Problem solving"] },
   { id: "attrezzista", name: "Attrezzista / Scenografo", focus: "Allestimento rapido", stats: ["Creativita", "Manualita", "Organizzazione"] },
   { id: "palco", name: "Assistente di palco", focus: "Coordinamento", stats: ["Coordinazione", "Leadership", "Sangue freddo"] },
+];
+
+const avatarIcons: { id: AvatarIcon; label: string; symbol: string }[] = [
+  { id: "mask", label: "Maschera", symbol: "M" },
+  { id: "spot", label: "Spot", symbol: "L" },
+  { id: "gear", label: "Tecnica", symbol: "T" },
+  { id: "note", label: "Musica", symbol: "N" },
 ];
 
 const roleMap = roles.reduce<Record<RoleId, Role>>((acc, role) => {
@@ -39,7 +48,7 @@ const mockEvents: GameEvent[] = [
 ];
 
 const defaultState: GameState = {
-  profile: { name: "", roleId: "attore", xp: 0, cachet: 0, repAtcl: 0 },
+  profile: { name: "", roleId: "attore", xp: 0, cachet: 0, repAtcl: 0, avatar: { hue: 210, icon: "mask" } },
   turns: [],
 };
 
@@ -50,8 +59,12 @@ function loadState(): GameState {
     const parsed = JSON.parse(raw) as GameState;
     if (!parsed.profile || !parsed.profile.roleId) return defaultState;
     const safeRole = parsed.profile.roleId in roleMap ? parsed.profile.roleId : defaultState.profile.roleId;
+    const safeAvatar: AvatarSettings = {
+      hue: typeof parsed.profile.avatar?.hue === "number" ? Math.max(0, Math.min(360, parsed.profile.avatar.hue)) : defaultState.profile.avatar.hue,
+      icon: avatarIcons.some((item) => item.id === parsed.profile.avatar?.icon) ? (parsed.profile.avatar?.icon as AvatarIcon) : defaultState.profile.avatar.icon,
+    };
     return {
-      profile: { ...defaultState.profile, ...parsed.profile, roleId: safeRole },
+      profile: { ...defaultState.profile, ...parsed.profile, roleId: safeRole, avatar: safeAvatar },
       turns: Array.isArray(parsed.turns) ? parsed.turns : [],
     };
   } catch {
@@ -93,6 +106,9 @@ root.innerHTML = `
       <article class="card">
         <h2>Profilo</h2>
         <p class="muted" data-profile-state>Carica i dati dal profilo principale.</p>
+        <div class="avatar-display" data-avatar="profile">
+          <span class="avatar-icon" data-avatar-label></span>
+        </div>
         <ul class="stat-list">
           <li><span>XP</span><strong data-stat="xp">0</strong></li>
           <li><span>Cachet</span><strong data-stat="cachet">0</strong></li>
@@ -134,6 +150,8 @@ const profileState = root.querySelector<HTMLElement>('[data-profile-state]');
 const quickResult = root.querySelector<HTMLElement>('[data-quick-result]');
 const eventList = root.querySelector<HTMLElement>('[data-event-list]');
 const turnLog = root.querySelector<HTMLElement>('[data-turn-log]');
+const avatarProfile = root.querySelector<HTMLElement>('[data-avatar="profile"]');
+const avatarLabel = root.querySelector<HTMLElement>('[data-avatar-label]');
 
 let state: GameState = loadState();
 
@@ -146,6 +164,13 @@ function renderProfile() {
   if (statXp) statXp.textContent = profile.xp.toString();
   if (statCachet) statCachet.textContent = profile.cachet.toString();
   if (statRep) statRep.textContent = profile.repAtcl.toString();
+  if (avatarProfile) {
+    const color = `hsl(${profile.avatar.hue}deg 75% 55%)`;
+    avatarProfile.style.setProperty("--avatar-color", color);
+    avatarProfile.style.setProperty("--avatar-hue", `${profile.avatar.hue}deg`);
+    const iconDef = avatarIcons.find((item) => item.id === profile.avatar.icon) ?? avatarIcons[0];
+    if (avatarLabel) avatarLabel.textContent = iconDef.symbol;
+  }
   if (roleTags) {
     const role = resolveRole(profile.roleId);
     roleTags.innerHTML = [
