@@ -296,6 +296,12 @@ renderProfile();
 renderEvents();
 renderTurns();
 initMap();
+window.setTimeout(() => {
+  map?.invalidateSize();
+}, 200);
+window.addEventListener("resize", () => {
+  map?.invalidateSize();
+});
 setDrawer("events");
 
 root.querySelector<HTMLButtonElement>('[data-action="sync-state"]')?.addEventListener("click", () => {
