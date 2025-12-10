@@ -246,6 +246,7 @@ const avatarProfile = root.querySelector<HTMLElement>('[data-avatar="profile"]')
 const avatarLabel = root.querySelector<HTMLElement>('[data-avatar-label]');
 const roleLabel = root.querySelector<HTMLElement>('[data-role-label]');
 const mapContainer = root.querySelector<HTMLDivElement>("#map");
+const mapSurface = root.querySelector<HTMLElement>(".map-surface");
 const avatarChip = root.querySelector<HTMLElement>('[data-avatar="profile-chip"]');
 const avatarLabelChip = root.querySelector<HTMLElement>('[data-avatar-label-chip]');
 const chipName = root.querySelector<HTMLElement>('[data-chip-name]');
@@ -356,6 +357,7 @@ function initMap() {
   }).addTo(map);
   markerLayer = L.layerGroup().addTo(map);
   renderMapMarkers();
+  mapSurface?.classList.add("ready");
 }
 
 function renderMapMarkers() {
