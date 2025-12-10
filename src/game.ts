@@ -139,6 +139,11 @@ root.innerHTML = `
             <p class="muted tiny" data-chip-role>Ruolo non impostato</p>
           </div>
         </div>
+        <div class="top-stats">
+          <div class="stat-pill"><span>XP</span><strong data-top-stat="xp">0</strong></div>
+          <div class="stat-pill"><span>Cachet</span><strong data-top-stat="cachet">0</strong></div>
+          <div class="stat-pill"><span>Rep</span><strong data-top-stat="rep">0</strong></div>
+        </div>
         <a class="button ghost" href="/">Landing</a>
         <button class="button primary" type="button" data-action="sync-state">Sincronizza</button>
       </div>
@@ -245,6 +250,9 @@ const avatarChip = root.querySelector<HTMLElement>('[data-avatar="profile-chip"]
 const avatarLabelChip = root.querySelector<HTMLElement>('[data-avatar-label-chip]');
 const chipName = root.querySelector<HTMLElement>('[data-chip-name]');
 const chipRole = root.querySelector<HTMLElement>('[data-chip-role]');
+const topStatXp = root.querySelector<HTMLElement>('[data-top-stat="xp"]');
+const topStatCachet = root.querySelector<HTMLElement>('[data-top-stat="cachet"]');
+const topStatRep = root.querySelector<HTMLElement>('[data-top-stat="rep"]');
 
 let state: GameState = loadState();
 let map: LeafletMap | null = null;
@@ -266,6 +274,9 @@ function renderProfile() {
   if (statXp) statXp.textContent = profile.xp.toString();
   if (statCachet) statCachet.textContent = profile.cachet.toString();
   if (statRep) statRep.textContent = profile.repAtcl.toString();
+  if (topStatXp) topStatXp.textContent = profile.xp.toString();
+  if (topStatCachet) topStatCachet.textContent = profile.cachet.toString();
+  if (topStatRep) topStatRep.textContent = profile.repAtcl.toString();
   const color = `hsl(${profile.avatar.hue}deg 75% 55%)`;
   const iconDef = avatarIcons.find((item) => item.id === profile.avatar.icon) ?? avatarIcons[0];
 
