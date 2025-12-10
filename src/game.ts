@@ -107,60 +107,63 @@ root.innerHTML = `
     </header>
 
     <nav class="nav-tabs">
+      <a class="chip" href="#map-panel">Mappa</a>
       <a class="chip" href="#profile">Profilo</a>
-      <a class="chip" href="#actions">Azioni</a>
       <a class="chip" href="#events">Eventi</a>
       <a class="chip" href="#turns">Turni</a>
     </nav>
 
-    <section class="app-layout">
-      <div class="column">
+    <section class="app-stage">
+      <div class="map-panel" id="map-panel">
+        <div class="map-surface">
+          <div class="map-overlay top">
+            <div class="pill-row">
+              <span class="pill ghost" data-profile-state>Carica i dati dal profilo principale.</span>
+              <span class="pill" data-role-label>Ruolo non impostato</span>
+            </div>
+            <div class="map-controls">
+              <button class="button ghost small" type="button" data-action="quick-train">Allenamento</button>
+              <button class="button ghost small" type="button" data-action="quick-scene">Scena</button>
+              <button class="button ghost small" type="button" data-action="quick-audio">Audio</button>
+            </div>
+          </div>
+          <div class="map-placeholder">
+            <div class="avatar-display large" data-avatar="profile">
+              <span class="avatar-icon" data-avatar-label></span>
+            </div>
+            <p class="muted tiny">Mappa interattiva in arrivo · usa le azioni per simulare il loop</p>
+          </div>
+          <div class="map-overlay bottom">
+            <div class="stat-board compact">
+              <div class="stat-chip">
+                <span>XP</span>
+                <strong data-stat="xp">0</strong>
+              </div>
+              <div class="stat-chip">
+                <span>Cachet</span>
+                <strong data-stat="cachet">0</strong>
+              </div>
+              <div class="stat-chip">
+                <span>Rep</span>
+                <strong data-stat="rep">0</strong>
+              </div>
+            </div>
+            <div class="result-box slim" data-quick-result>Mappa pronta.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="side-stack">
         <section class="panel profile-panel" id="profile">
           <div class="panel-header">
             <div>
               <p class="eyebrow">Profilo</p>
               <h2 class="panel-title">Stato giocatore</h2>
-              <p class="muted tiny" data-profile-state>Carica i dati dal profilo principale.</p>
-            </div>
-            <div class="avatar-display large" data-avatar="profile">
-              <span class="avatar-icon" data-avatar-label></span>
-            </div>
-          </div>
-          <div class="stat-board">
-            <div class="stat-chip">
-              <span>XP</span>
-              <strong data-stat="xp">0</strong>
-            </div>
-            <div class="stat-chip">
-              <span>Cachet</span>
-              <strong data-stat="cachet">0</strong>
-            </div>
-            <div class="stat-chip">
-              <span>Reputazione ATCL</span>
-              <strong data-stat="rep">0</strong>
             </div>
           </div>
           <div class="pill-row" data-role-tags></div>
         </section>
 
-        <section class="panel" id="actions">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Attivita</p>
-              <h2 class="panel-title">Azioni rapide</h2>
-              <p class="muted tiny">Simula un'azione veloce per testare il loop di ricompense.</p>
-            </div>
-          </div>
-          <div class="cta-row wrap">
-            <button class="button primary" type="button" data-action="quick-train">Allenamento breve</button>
-            <button class="button ghost" type="button" data-action="quick-scene">Gestione scena</button>
-            <button class="button ghost" type="button" data-action="quick-audio">Check audio</button>
-          </div>
-          <div class="result-box" data-quick-result>Nessuna attivita eseguita.</div>
-        </section>
-      </div>
-
-      <div class="column">
         <section class="panel" id="events">
           <div class="panel-header">
             <div>
@@ -177,7 +180,7 @@ root.innerHTML = `
             <div>
               <p class="eyebrow">Turni</p>
               <h2 class="panel-title">Registro recente</h2>
-              <p class="muted tiny">Mostra gli ultimi turni registrati dal prototipo principale.</p>
+              <p class="muted tiny">Ultimi turni registrati dal prototipo principale.</p>
             </div>
           </div>
           <ul class="log-list dense" data-turn-log></ul>
@@ -197,6 +200,7 @@ const eventList = root.querySelector<HTMLElement>('[data-event-list]');
 const turnLog = root.querySelector<HTMLElement>('[data-turn-log]');
 const avatarProfile = root.querySelector<HTMLElement>('[data-avatar="profile"]');
 const avatarLabel = root.querySelector<HTMLElement>('[data-avatar-label]');
+const roleLabel = root.querySelector<HTMLElement>('[data-role-label]');
 
 let state: GameState = loadState();
 
@@ -224,10 +228,15 @@ function renderProfile() {
       `<span class="pill">Focus: ${role.focus}</span>`,
     ].join("");
   }
+  const roleText = resolveRole(profile.roleId).name;
+  const profileText = profile.name ? `${profile.name} (${roleText})` : "Profilo non configurato";
   if (profileState) {
     profileState.textContent = profile.name
-      ? `Profilo: ${profile.name} (${resolveRole(profile.roleId).name})`
+      ? `Profilo: ${profileText}`
       : "Profilo non configurato: torna alla landing e salva un nome/ruolo.";
+  }
+  if (roleLabel) {
+    roleLabel.textContent = profileText;
   }
 }
 
