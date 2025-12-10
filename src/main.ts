@@ -69,6 +69,20 @@ root.innerHTML = `
         </dl>
         <p class="muted">Toggle your network to test offline behaviour. When an update is ready, use the reload button above.</p>
       </article>
+
+      <article class="card">
+        <h2>Permission check</h2>
+        <p>Richiedi i permessi comuni (notifiche, geolocalizzazione) e controlla l'esito in tempo reale.</p>
+        <div class="cta-row">
+          <button class="button primary" type="button" data-action="notify-permission">
+            Richiedi notifiche
+          </button>
+          <button class="button ghost" type="button" data-action="geo-permission">
+            Richiedi geolocalizzazione
+          </button>
+        </div>
+        <div class="result-box" data-permission-result>Pronto per i test.</div>
+      </article>
     </section>
   </main>
 `;
@@ -76,6 +90,9 @@ root.innerHTML = `
 const connectionNode = root.querySelector<HTMLElement>("[data-connection]");
 const swStatusNode = root.querySelector<HTMLElement>("[data-sw-status]");
 const reloadButton = root.querySelector<HTMLButtonElement>('[data-action="refresh"]');
+const notifyButton = root.querySelector<HTMLButtonElement>('[data-action="notify-permission"]');
+const geoButton = root.querySelector<HTMLButtonElement>('[data-action="geo-permission"]');
+const permissionOutput = root.querySelector<HTMLElement>("[data-permission-result]");
 
 function setConnectionStatus() {
   if (!connectionNode) return;
@@ -117,4 +134,52 @@ reloadButton?.addEventListener("click", () => {
 
 root.querySelector<HTMLButtonElement>('[data-action="start"]')?.addEventListener("click", () => {
   window.scrollTo({ top: root.scrollHeight, behavior: "smooth" });
+});
+
+function renderPermission(message: string, state: "info" | "ok" | "warn" | "error" = "info") {
+  if (!permissionOutput) return;
+  permissionOutput.textContent = message;
+  permissionOutput.dataset.state = state;
+}
+
+notifyButton?.addEventListener("click", async () => {
+  if (!("Notification" in window)) {
+    renderPermission("Notifiche non supportate in questo browser.", "error");
+    return;
+  }
+  try {
+    const result = await Notification.requestPermission();
+    const state = result === "granted" ? "ok" : result === "denied" ? "warn" : "info";
+    renderPermission(`Permesso notifiche: ${result}`, state);
+  } catch (error) {
+    renderPermission("Richiesta notifiche fallita.", "error");
+    console.error(error);
+  }
+});
+
+geoButton?.addEventListener("click", () => {
+  if (!("geolocation" in navigator)) {
+    renderPermission("Geolocalizzazione non supportata.", "error");
+    return;
+  }
+  renderPermission("Richiesta posizione in corso...", "info");
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      renderPermission(
+        `Permesso geo: concesso (lat ${position.coords.latitude.toFixed(4)}, lon ${position.coords.longitude.toFixed(4)})`,
+        "ok"
+      );
+    },
+    (error) => {
+      const reason =
+        error.code === error.PERMISSION_DENIED
+          ? "rifiutato"
+          : error.code === error.POSITION_UNAVAILABLE
+            ? "non disponibile"
+            : "timeout";
+      renderPermission(`Permesso geo: ${reason}`, reason === "rifiutato" ? "warn" : "error");
+    },
+    { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 }
+  );
 });
