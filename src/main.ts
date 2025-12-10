@@ -80,6 +80,9 @@ root.innerHTML = `
           <button class="button ghost" type="button" data-action="geo-permission">
             Richiedi geolocalizzazione
           </button>
+          <button class="button ghost" type="button" data-action="notify-test">
+            Notifica di prova
+          </button>
         </div>
         <div class="result-box" data-permission-result>Pronto per i test.</div>
       </article>
@@ -92,6 +95,7 @@ const swStatusNode = root.querySelector<HTMLElement>("[data-sw-status]");
 const reloadButton = root.querySelector<HTMLButtonElement>('[data-action="refresh"]');
 const notifyButton = root.querySelector<HTMLButtonElement>('[data-action="notify-permission"]');
 const geoButton = root.querySelector<HTMLButtonElement>('[data-action="geo-permission"]');
+const notifyTestButton = root.querySelector<HTMLButtonElement>('[data-action="notify-test"]');
 const permissionOutput = root.querySelector<HTMLElement>("[data-permission-result]");
 
 function setConnectionStatus() {
@@ -142,6 +146,31 @@ function renderPermission(message: string, state: "info" | "ok" | "warn" | "erro
   permissionOutput.dataset.state = state;
 }
 
+function setNotifyButtonState(permission: NotificationPermission) {
+  if (!notifyTestButton) return;
+  notifyTestButton.disabled = permission !== "granted";
+  notifyTestButton.textContent = permission === "granted" ? "Notifica di prova" : "Richiedi permesso per notifiche";
+}
+
+async function checkPermissions() {
+  if (typeof Notification !== "undefined") {
+    setNotifyButtonState(Notification.permission);
+    renderPermission(`Permesso notifiche attuale: ${Notification.permission}`, "info");
+  }
+
+  if (navigator.permissions) {
+    try {
+      const geoStatus = await navigator.permissions.query({ name: "geolocation" as PermissionName });
+      renderPermission(`Geo stato: ${geoStatus.state}`, geoStatus.state === "granted" ? "ok" : "info");
+      geoStatus.onchange = () => {
+        renderPermission(`Geo stato: ${geoStatus.state}`, geoStatus.state === "granted" ? "ok" : "info");
+      };
+    } catch {
+      // permissions API non disponibile per geolocalizzazione in alcuni browser
+    }
+  }
+}
+
 notifyButton?.addEventListener("click", async () => {
   if (!("Notification" in window)) {
     renderPermission("Notifiche non supportate in questo browser.", "error");
@@ -151,6 +180,7 @@ notifyButton?.addEventListener("click", async () => {
     const result = await Notification.requestPermission();
     const state = result === "granted" ? "ok" : result === "denied" ? "warn" : "info";
     renderPermission(`Permesso notifiche: ${result}`, state);
+    setNotifyButtonState(result);
   } catch (error) {
     renderPermission("Richiesta notifiche fallita.", "error");
     console.error(error);
@@ -183,3 +213,26 @@ geoButton?.addEventListener("click", () => {
     { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 }
   );
 });
+
+notifyTestButton?.addEventListener("click", () => {
+  if (!("Notification" in window)) {
+    renderPermission("Notifiche non supportate in questo browser.", "error");
+    return;
+  }
+  if (Notification.permission !== "granted") {
+    renderPermission(`Permesso notifiche: ${Notification.permission}. Concedi prima il permesso.`, "warn");
+    return;
+  }
+  try {
+    new Notification("Turni di Palco", {
+      body: "Questa è una notifica di prova.",
+      icon: "/icons/pwa-192.png",
+    });
+    renderPermission("Notifica di prova inviata.", "ok");
+  } catch (error) {
+    renderPermission("Invio notifica fallito.", "error");
+    console.error(error);
+  }
+});
+
+checkPermissions().catch(() => undefined);
