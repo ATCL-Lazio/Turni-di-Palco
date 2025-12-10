@@ -235,6 +235,11 @@ code {
   gap: 1rem;
 }
 
+.map-canvas {
+  width: 100%;
+  height: 100%;
+}
+
 .panel {
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -303,6 +308,7 @@ code {
   place-items: center;
   gap: 0.6rem;
   text-align: center;
+  pointer-events: none;
 }
 
 .map-overlay {

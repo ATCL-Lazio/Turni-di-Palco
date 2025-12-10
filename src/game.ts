@@ -1,12 +1,17 @@
 import "./style.css";
 import { registerServiceWorker } from "./pwa/register-sw";
+import L, { Map as LeafletMap, LayerGroup } from "leaflet";
+import "leaflet/dist/leaflet.css";
+// Leaflet asset imports for proper bundling
+import markerIconPng from "leaflet/dist/images/marker-icon.png";
+import markerShadowPng from "leaflet/dist/images/marker-shadow.png";
 
 const STORAGE_KEY = "tdp-game-state";
 
 type RoleId = "attore" | "luci" | "fonico" | "attrezzista" | "palco";
 type Rewards = { xp: number; cachet: number; reputation: number };
 type Role = { id: RoleId; name: string; focus: string; stats: string[] };
-type GameEvent = { id: string; name: string; theatre: string; date: string; focusRole?: RoleId };
+type GameEvent = { id: string; name: string; theatre: string; date: string; lat: number; lng: number; focusRole?: RoleId };
 type AvatarIcon = "mask" | "spot" | "gear" | "note";
 type AvatarSettings = { hue: number; icon: AvatarIcon };
 type TurnRecord = {
@@ -42,9 +47,33 @@ const roleMap = roles.reduce<Record<RoleId, Role>>((acc, role) => {
 }, {} as Record<RoleId, Role>);
 
 const mockEvents: GameEvent[] = [
-  { id: "ATCL-001", name: "Prova aperta - Latina", theatre: "Teatro di Latina", date: "2025-12-15", focusRole: "attrezzista" },
-  { id: "ATCL-002", name: "Festival Giovani Voci", theatre: "Teatro dell'Unione", date: "2026-01-10", focusRole: "fonico" },
-  { id: "ATCL-003", name: "Prima nazionale", theatre: "Teatro Palladium", date: "2026-02-02", focusRole: "luci" },
+  {
+    id: "ATCL-001",
+    name: "Prova aperta - Latina",
+    theatre: "Teatro di Latina",
+    date: "2025-12-15",
+    lat: 41.4676,
+    lng: 12.9037,
+    focusRole: "attrezzista",
+  },
+  {
+    id: "ATCL-002",
+    name: "Festival Giovani Voci",
+    theatre: "Teatro dell'Unione",
+    date: "2026-01-10",
+    lat: 42.419,
+    lng: 12.1077,
+    focusRole: "fonico",
+  },
+  {
+    id: "ATCL-003",
+    name: "Prima nazionale",
+    theatre: "Teatro Palladium",
+    date: "2026-02-02",
+    lat: 41.8581,
+    lng: 12.4816,
+    focusRole: "luci",
+  },
 ];
 
 const defaultState: GameState = {
@@ -131,8 +160,9 @@ root.innerHTML = `
             <div class="avatar-display large" data-avatar="profile">
               <span class="avatar-icon" data-avatar-label></span>
             </div>
-            <p class="muted tiny">Mappa interattiva in arrivo · usa le azioni per simulare il loop</p>
+            <p class="muted tiny">Mappa interattiva in arrivo - usa le azioni per simulare il loop</p>
           </div>
+          <div id="map" class="map-canvas" aria-label="Mappa eventi"></div>
           <div class="map-overlay bottom">
             <div class="stat-board compact">
               <div class="stat-chip">
@@ -201,8 +231,18 @@ const turnLog = root.querySelector<HTMLElement>('[data-turn-log]');
 const avatarProfile = root.querySelector<HTMLElement>('[data-avatar="profile"]');
 const avatarLabel = root.querySelector<HTMLElement>('[data-avatar-label]');
 const roleLabel = root.querySelector<HTMLElement>('[data-role-label]');
+const mapContainer = root.querySelector<HTMLDivElement>("#map");
 
 let state: GameState = loadState();
+let map: LeafletMap | null = null;
+let markerLayer: LayerGroup | null = null;
+const markerIcon = L.icon({
+  iconUrl: markerIconPng,
+  shadowUrl: markerShadowPng,
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -28],
+  tooltipAnchor: [12, -16],
+});
 
 function resolveRole(id: RoleId): Role {
   return roleMap[id] ?? roles[0];
@@ -252,6 +292,7 @@ function renderEvents() {
         `<li><div><strong>${item.name}</strong> - ${item.theatre}</div><div class="muted">${item.date} | Focus: ${item.focusRole ? resolveRole(item.focusRole).name : "Any"}</div></li>`
     )
     .join("");
+  renderMapMarkers();
 }
 
 function renderTurns() {
@@ -267,6 +308,37 @@ function renderTurns() {
         `<li><div><strong>${turn.eventName}</strong> - ${turn.theatre} - ${turn.date}</div><div class="muted">${resolveRole(turn.roleId).name} | ${formatRewards(turn.rewards)}</div></li>`
     )
     .join("");
+}
+
+function initMap() {
+  if (!mapContainer || map) return;
+  const defaultCenter = [41.9028, 12.4964] as const; // Roma
+  map = L.map(mapContainer, { zoomControl: true }).setView(defaultCenter, 7);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "OpenStreetMap contributors",
+  }).addTo(map);
+  markerLayer = L.layerGroup().addTo(map);
+  renderMapMarkers();
+}
+
+function renderMapMarkers() {
+  if (!map || !markerLayer) return;
+  markerLayer.clearLayers();
+  if (!mockEvents.length) return;
+  const bounds: L.LatLngExpression[] = [];
+  mockEvents.forEach((event) => {
+    const marker = L.marker([event.lat, event.lng], { icon: markerIcon }).bindPopup(
+      `<strong>${event.name}</strong><br/>${event.theatre}<br/>${event.date}<br/>Focus: ${event.focusRole ? resolveRole(event.focusRole).name : "Any"}`
+    );
+    markerLayer.addLayer(marker);
+    bounds.push([event.lat, event.lng]);
+  });
+  if (bounds.length > 1) {
+    map.fitBounds(bounds, { padding: [30, 30] });
+  } else {
+    map.setView(bounds[0] as L.LatLngExpression, 11);
+  }
 }
 
 function applyQuick(rewards: Rewards, label: string) {
@@ -303,11 +375,13 @@ function handleQuick(action: "train" | "scene" | "audio") {
 renderProfile();
 renderEvents();
 renderTurns();
+initMap();
 
 root.querySelector<HTMLButtonElement>('[data-action="sync-state"]')?.addEventListener("click", () => {
   state = loadState();
   renderProfile();
   renderTurns();
+  renderMapMarkers();
   if (quickResult) {
     quickResult.dataset.state = "info";
     quickResult.textContent = "Stato ricaricato dal profilo principale.";
@@ -316,14 +390,17 @@ root.querySelector<HTMLButtonElement>('[data-action="sync-state"]')?.addEventLis
 
 root.querySelector<HTMLButtonElement>('[data-action="quick-train"]')?.addEventListener("click", () => {
   handleQuick("train");
+  renderMapMarkers();
 });
 
 root.querySelector<HTMLButtonElement>('[data-action="quick-scene"]')?.addEventListener("click", () => {
   handleQuick("scene");
+  renderMapMarkers();
 });
 
 root.querySelector<HTMLButtonElement>('[data-action="quick-audio"]')?.addEventListener("click", () => {
   handleQuick("audio");
+  renderMapMarkers();
 });
 
 registerServiceWorker({
