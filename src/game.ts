@@ -130,6 +130,15 @@ root.innerHTML = `
         </div>
       </div>
       <div class="top-actions">
+        <div class="profile-chip" data-profile-chip>
+          <div class="avatar-display mini" data-avatar="profile-chip">
+            <span class="avatar-icon" data-avatar-label-chip></span>
+          </div>
+          <div class="profile-chip-text">
+            <p class="chip-title" data-chip-name>Profilo</p>
+            <p class="muted tiny" data-chip-role>Ruolo non impostato</p>
+          </div>
+        </div>
         <a class="button ghost" href="/">Landing</a>
         <button class="button primary" type="button" data-action="sync-state">Sincronizza</button>
       </div>
@@ -232,6 +241,10 @@ const avatarProfile = root.querySelector<HTMLElement>('[data-avatar="profile"]')
 const avatarLabel = root.querySelector<HTMLElement>('[data-avatar-label]');
 const roleLabel = root.querySelector<HTMLElement>('[data-role-label]');
 const mapContainer = root.querySelector<HTMLDivElement>("#map");
+const avatarChip = root.querySelector<HTMLElement>('[data-avatar="profile-chip"]');
+const avatarLabelChip = root.querySelector<HTMLElement>('[data-avatar-label-chip]');
+const chipName = root.querySelector<HTMLElement>('[data-chip-name]');
+const chipRole = root.querySelector<HTMLElement>('[data-chip-role]');
 
 let state: GameState = loadState();
 let map: LeafletMap | null = null;
@@ -253,12 +266,18 @@ function renderProfile() {
   if (statXp) statXp.textContent = profile.xp.toString();
   if (statCachet) statCachet.textContent = profile.cachet.toString();
   if (statRep) statRep.textContent = profile.repAtcl.toString();
+  const color = `hsl(${profile.avatar.hue}deg 75% 55%)`;
+  const iconDef = avatarIcons.find((item) => item.id === profile.avatar.icon) ?? avatarIcons[0];
+
   if (avatarProfile) {
-    const color = `hsl(${profile.avatar.hue}deg 75% 55%)`;
     avatarProfile.style.setProperty("--avatar-color", color);
     avatarProfile.style.setProperty("--avatar-hue", `${profile.avatar.hue}deg`);
-    const iconDef = avatarIcons.find((item) => item.id === profile.avatar.icon) ?? avatarIcons[0];
     if (avatarLabel) avatarLabel.textContent = iconDef.symbol;
+  }
+  if (avatarChip) {
+    avatarChip.style.setProperty("--avatar-color", color);
+    avatarChip.style.setProperty("--avatar-hue", `${profile.avatar.hue}deg`);
+    if (avatarLabelChip) avatarLabelChip.textContent = iconDef.symbol;
   }
   if (roleTags) {
     const role = resolveRole(profile.roleId);
@@ -277,6 +296,12 @@ function renderProfile() {
   }
   if (roleLabel) {
     roleLabel.textContent = profileText;
+  }
+  if (chipName) {
+    chipName.textContent = profile.name || "Profilo";
+  }
+  if (chipRole) {
+    chipRole.textContent = roleText;
   }
 }
 
