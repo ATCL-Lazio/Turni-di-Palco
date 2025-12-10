@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:https": "vite --https --host",
     "build": "vite build",
     "preview": "vite preview",
+    "preview:https": "vite preview --https --host",
     "test": "vitest run --passWithNoTests"
   },
   "devDependencies": {
