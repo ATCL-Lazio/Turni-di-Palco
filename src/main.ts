@@ -107,6 +107,21 @@ root.innerHTML = `
             <span>Ruolo principale</span>
             <select name="playerRole" data-field="player-role"></select>
           </label>
+          <div class="avatar-config">
+            <div class="avatar-display large" data-avatar="preview">
+              <span class="avatar-icon" data-avatar-label></span>
+            </div>
+            <div class="form-grid compact">
+              <label class="field">
+                <span>Tinta avatar</span>
+                <input type="range" min="0" max="360" step="1" value="210" data-avatar-hue />
+              </label>
+              <label class="field">
+                <span>Icona</span>
+                <select data-avatar-icon></select>
+              </label>
+            </div>
+          </div>
           <div class="cta-row">
             <button class="button primary" type="button" data-action="save-profile">Salva profilo</button>
             <button class="button ghost" type="button" data-action="reset-state">Reset stato</button>
@@ -178,6 +193,10 @@ const supportsCamera = typeof navigator.mediaDevices?.getUserMedia === "function
 const profileNameInput = root.querySelector<HTMLInputElement>('[data-field="player-name"]');
 const profileRoleSelect = root.querySelector<HTMLSelectElement>('[data-field="player-role"]');
 const profileSummaryBox = root.querySelector<HTMLElement>('[data-profile-summary]');
+const avatarPreview = root.querySelector<HTMLElement>('[data-avatar="preview"]');
+const avatarLabel = root.querySelector<HTMLElement>('[data-avatar-label]');
+const avatarHueInput = root.querySelector<HTMLInputElement>('[data-avatar-hue]');
+const avatarIconSelect = root.querySelector<HTMLSelectElement>('[data-avatar-icon]');
 const statXp = root.querySelector<HTMLElement>('[data-stat="xp"]');
 const statCachet = root.querySelector<HTMLElement>('[data-stat="cachet"]');
 const statRep = root.querySelector<HTMLElement>('[data-stat="rep"]');
@@ -405,6 +424,8 @@ notifyTestButton?.addEventListener("click", () => {
 type RoleId = "attore" | "luci" | "fonico" | "attrezzista" | "palco";
 type Rewards = { xp: number; cachet: number; reputation: number };
 type Role = { id: RoleId; name: string; focus: string; stats: string[] };
+type AvatarIcon = "mask" | "spot" | "gear" | "note";
+type AvatarSettings = { hue: number; icon: AvatarIcon };
 type GameEvent = { id: string; name: string; theatre: string; date: string; baseRewards: Rewards; focusRole?: RoleId };
 type TurnRecord = {
   id: string;
@@ -416,7 +437,7 @@ type TurnRecord = {
   rewards: Rewards;
   createdAt: number;
 };
-type PlayerProfile = { name: string; roleId: RoleId; xp: number; cachet: number; repAtcl: number };
+type PlayerProfile = { name: string; roleId: RoleId; xp: number; cachet: number; repAtcl: number; avatar: AvatarSettings };
 type GameState = { profile: PlayerProfile; turns: TurnRecord[] };
 type ActivityChoice = { id: string; label: string; summary: string; rewards: Rewards };
 type Activity = { id: string; title: string; description: string; choices: ActivityChoice[] };
@@ -427,6 +448,13 @@ const roles: Role[] = [
   { id: "fonico", name: "Fonico", focus: "Pulizia audio", stats: ["Ascolto", "Reattivita", "Problem solving"] },
   { id: "attrezzista", name: "Attrezzista / Scenografo", focus: "Allestimento rapido", stats: ["Creativita", "Manualita", "Organizzazione"] },
   { id: "palco", name: "Assistente di palco", focus: "Coordinamento", stats: ["Coordinazione", "Leadership", "Sangue freddo"] },
+];
+
+const avatarIcons: { id: AvatarIcon; label: string; symbol: string }[] = [
+  { id: "mask", label: "Maschera", symbol: "M" },
+  { id: "spot", label: "Spot", symbol: "L" },
+  { id: "gear", label: "Tecnica", symbol: "T" },
+  { id: "note", label: "Musica", symbol: "N" },
 ];
 
 const roleMap = roles.reduce<Record<RoleId, Role>>((acc, role) => {
@@ -530,7 +558,7 @@ const MAX_TURNS_STORED = 8;
 
 function createDefaultState(): GameState {
   return {
-    profile: { name: "", roleId: "attore", xp: 0, cachet: 0, repAtcl: 0 },
+    profile: { name: "", roleId: "attore", xp: 0, cachet: 0, repAtcl: 0, avatar: { hue: 210, icon: "mask" } },
     turns: [],
   };
 }
@@ -543,11 +571,16 @@ function loadState(): GameState {
     if (!parsed.profile || !parsed.profile.roleId) return createDefaultState();
     const base = createDefaultState();
     const safeRole = parsed.profile.roleId in roleMap ? parsed.profile.roleId : base.profile.roleId;
+    const safeAvatar: AvatarSettings = {
+      hue: typeof parsed.profile.avatar?.hue === "number" ? Math.max(0, Math.min(360, parsed.profile.avatar.hue)) : base.profile.avatar.hue,
+      icon: avatarIcons.some((icon) => icon.id === parsed.profile.avatar?.icon) ? (parsed.profile.avatar?.icon as AvatarIcon) : base.profile.avatar.icon,
+    };
     return {
       profile: {
         ...base.profile,
         ...parsed.profile,
         roleId: safeRole,
+        avatar: safeAvatar,
       },
       turns: Array.isArray(parsed.turns) ? parsed.turns : [],
     };
@@ -570,6 +603,18 @@ function formatRewards(rewards: Rewards) {
 
 let gameState = loadState();
 
+function renderAvatarPreview() {
+  if (!avatarPreview) return;
+  const { hue, icon } = gameState.profile.avatar;
+  const color = `hsl(${hue}deg 75% 55%)`;
+  avatarPreview.style.setProperty("--avatar-color", color);
+  avatarPreview.style.setProperty("--avatar-hue", `${hue}deg`);
+  const iconDef = avatarIcons.find((item) => item.id === icon) ?? avatarIcons[0];
+  if (avatarLabel) {
+    avatarLabel.textContent = iconDef.symbol;
+  }
+}
+
 function syncProfileForm() {
   if (profileNameInput) {
     profileNameInput.value = gameState.profile.name;
@@ -580,6 +625,13 @@ function syncProfileForm() {
   if (turnRoleSelect) {
     turnRoleSelect.value = gameState.profile.roleId;
   }
+  if (avatarHueInput) {
+    avatarHueInput.value = gameState.profile.avatar.hue.toString();
+  }
+  if (avatarIconSelect) {
+    avatarIconSelect.value = gameState.profile.avatar.icon;
+  }
+  renderAvatarPreview();
 }
 
 function renderRoleOptions(select: HTMLSelectElement | null) {
@@ -587,6 +639,11 @@ function renderRoleOptions(select: HTMLSelectElement | null) {
   select.innerHTML = roles
     .map((role) => `<option value="${role.id}">${role.name}</option>`)
     .join("");
+}
+
+function renderAvatarOptions() {
+  if (!avatarIconSelect) return;
+  avatarIconSelect.innerHTML = avatarIcons.map((item) => `<option value="${item.id}">${item.label}</option>`).join("");
 }
 
 function renderEvents() {
@@ -629,18 +686,24 @@ function applyRewards(rewards: Rewards) {
 function handleSaveProfile() {
   const chosenRole = (profileRoleSelect?.value as RoleId) || gameState.profile.roleId;
   const name = profileNameInput?.value.trim() ?? "";
+  const hueValue = avatarHueInput ? Number(avatarHueInput.value) : gameState.profile.avatar.hue;
+  const nextHue = Number.isFinite(hueValue) ? Math.max(0, Math.min(360, Math.round(hueValue))) : gameState.profile.avatar.hue;
+  const nextIcon = avatarIconSelect?.value as AvatarIcon;
+  const safeIcon = avatarIcons.some((item) => item.id === nextIcon) ? nextIcon : gameState.profile.avatar.icon;
   gameState = {
     ...gameState,
     profile: {
       ...gameState.profile,
       name,
       roleId: chosenRole in roleMap ? chosenRole : gameState.profile.roleId,
+      avatar: { hue: nextHue, icon: safeIcon },
     },
   };
   saveState(gameState);
   syncProfileForm();
   renderCareerCard();
   renderTurnHistory();
+  renderAvatarPreview();
   if (turnFeedbackBox) {
     turnFeedbackBox.textContent = "Profilo aggiornato.";
   }
@@ -655,6 +718,7 @@ function handleResetState() {
   renderCareerCard();
   renderActivityUI();
   renderTurnHistory();
+  renderAvatarPreview();
   if (turnFeedbackBox) {
     turnFeedbackBox.textContent = "Stato locale resettato.";
   }
@@ -767,6 +831,7 @@ function handleRegisterTurn() {
   saveState(gameState);
   renderCareerCard();
   renderTurnHistory();
+  renderAvatarPreview();
   if (turnFeedbackBox) {
     turnFeedbackBox.dataset.state = "ok";
     turnFeedbackBox.textContent = `Turno registrato: ${selectedEvent.name} (${formatRewards(rewards)})`;
@@ -775,11 +840,13 @@ function handleRegisterTurn() {
 
 renderRoleOptions(profileRoleSelect);
 renderRoleOptions(turnRoleSelect);
+renderAvatarOptions();
 renderEvents();
 renderActivityUI();
 syncProfileForm();
 renderCareerCard();
 renderTurnHistory();
+renderAvatarPreview();
 
 root.querySelector<HTMLButtonElement>('[data-action="save-profile"]')?.addEventListener("click", handleSaveProfile);
 root.querySelector<HTMLButtonElement>('[data-action="reset-state"]')?.addEventListener("click", handleResetState);
@@ -798,6 +865,14 @@ activityChoices?.addEventListener("click", (event) => {
   if (choiceId) {
     handleActivityChoice(choiceId);
   }
+});
+
+avatarHueInput?.addEventListener("input", () => {
+  handleSaveProfile();
+});
+
+avatarIconSelect?.addEventListener("change", () => {
+  handleSaveProfile();
 });
 
 checkPermissions().catch(() => undefined);
