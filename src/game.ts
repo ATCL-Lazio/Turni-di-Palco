@@ -2,116 +2,20 @@ import "./style.css";
 import { registerServiceWorker } from "./pwa/register-sw";
 import L, { Map as LeafletMap, LayerGroup } from "leaflet";
 import "leaflet/dist/leaflet.css";
-// Leaflet asset imports for proper bundling
 import markerIconPng from "leaflet/dist/images/marker-icon.png";
 import markerShadowPng from "leaflet/dist/images/marker-shadow.png";
-
-const STORAGE_KEY = "tdp-game-state";
-
-type RoleId = "attore" | "luci" | "fonico" | "attrezzista" | "palco";
-type Rewards = { xp: number; cachet: number; reputation: number };
-type Role = { id: RoleId; name: string; focus: string; stats: string[] };
-type GameEvent = { id: string; name: string; theatre: string; date: string; lat: number; lng: number; focusRole?: RoleId };
-type AvatarIcon = "mask" | "spot" | "gear" | "note";
-type AvatarSettings = { hue: number; icon: AvatarIcon };
-type TurnRecord = {
-  id: string;
-  eventId: string;
-  eventName: string;
-  theatre: string;
-  date: string;
-  roleId: RoleId;
-  rewards: Rewards;
-};
-type PlayerProfile = { name: string; roleId: RoleId; xp: number; cachet: number; repAtcl: number; avatar: AvatarSettings };
-type GameState = { profile: PlayerProfile; turns: TurnRecord[] };
-
-const roles: Role[] = [
-  { id: "attore", name: "Attore / Attrice", focus: "Presenza scenica", stats: ["Presenza", "Memoria", "Versatilita"] },
-  { id: "luci", name: "Tecnico luci", focus: "Precisione cue", stats: ["Precisione", "Tempismo", "Stress"] },
-  { id: "fonico", name: "Fonico", focus: "Pulizia audio", stats: ["Ascolto", "Reattivita", "Problem solving"] },
-  { id: "attrezzista", name: "Attrezzista / Scenografo", focus: "Allestimento rapido", stats: ["Creativita", "Manualita", "Organizzazione"] },
-  { id: "palco", name: "Assistente di palco", focus: "Coordinamento", stats: ["Coordinazione", "Leadership", "Sangue freddo"] },
-];
-
-const avatarIcons: { id: AvatarIcon; label: string; symbol: string }[] = [
-  { id: "mask", label: "Maschera", symbol: "M" },
-  { id: "spot", label: "Spot", symbol: "L" },
-  { id: "gear", label: "Tecnica", symbol: "T" },
-  { id: "note", label: "Musica", symbol: "N" },
-];
-
-const roleMap = roles.reduce<Record<RoleId, Role>>((acc, role) => {
-  acc[role.id] = role;
-  return acc;
-}, {} as Record<RoleId, Role>);
-
-const mockEvents: GameEvent[] = [
-  {
-    id: "ATCL-001",
-    name: "Prova aperta - Latina",
-    theatre: "Teatro di Latina",
-    date: "2025-12-15",
-    lat: 41.4676,
-    lng: 12.9037,
-    focusRole: "attrezzista",
-  },
-  {
-    id: "ATCL-002",
-    name: "Festival Giovani Voci",
-    theatre: "Teatro dell'Unione",
-    date: "2026-01-10",
-    lat: 42.419,
-    lng: 12.1077,
-    focusRole: "fonico",
-  },
-  {
-    id: "ATCL-003",
-    name: "Prima nazionale",
-    theatre: "Teatro Palladium",
-    date: "2026-02-02",
-    lat: 41.8581,
-    lng: 12.4816,
-    focusRole: "luci",
-  },
-];
-
-const defaultState: GameState = {
-  profile: { name: "", roleId: "attore", xp: 0, cachet: 0, repAtcl: 0, avatar: { hue: 210, icon: "mask" } },
-  turns: [],
-};
-
-function loadState(): GameState {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState;
-    const parsed = JSON.parse(raw) as GameState;
-    if (!parsed.profile || !parsed.profile.roleId) return defaultState;
-    const safeRole = parsed.profile.roleId in roleMap ? parsed.profile.roleId : defaultState.profile.roleId;
-    const safeAvatar: AvatarSettings = {
-      hue: typeof parsed.profile.avatar?.hue === "number" ? Math.max(0, Math.min(360, parsed.profile.avatar.hue)) : defaultState.profile.avatar.hue,
-      icon: avatarIcons.some((item) => item.id === parsed.profile.avatar?.icon) ? (parsed.profile.avatar?.icon as AvatarIcon) : defaultState.profile.avatar.icon,
-    };
-    return {
-      profile: { ...defaultState.profile, ...parsed.profile, roleId: safeRole, avatar: safeAvatar },
-      turns: Array.isArray(parsed.turns) ? parsed.turns : [],
-    };
-  } catch {
-    return defaultState;
-  }
-}
-
-function saveState(state: GameState) {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // ignore storage errors
-  }
-}
-
-function formatRewards(rewards: Rewards) {
-  return `+${rewards.xp} XP | +${rewards.cachet} cachet | +${rewards.reputation} rep`;
-}
+import {
+  AvatarIcon,
+  avatarIcons,
+  formatRewards,
+  GameState,
+  loadState,
+  mockEvents,
+  resolveRole,
+  Rewards,
+  RoleId,
+  saveState,
+} from "./state";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
