@@ -22,6 +22,9 @@ root.innerHTML = `
         <button class="button ghost" type="button" data-action="refresh">
           Reload per update
         </button>
+        <a class="button ghost" href="/game.html">
+          Apri interfaccia base
+        </a>
       </div>
       <div class="badges">
         <span class="badge">Installable</span>
