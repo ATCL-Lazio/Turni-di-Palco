@@ -31,3 +31,6 @@ coverage/
 *.key
 *.crt
 mkcert.exe
+
+# Local references for AI Agents
+docs and references/plan.md
