@@ -99,6 +99,23 @@ code {
   align-items: center;
 }
 
+.top-stats {
+  display: inline-flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 0.95rem;
+}
+
 .chip-row {
   display: flex;
   flex-wrap: wrap;
@@ -142,6 +159,10 @@ code {
 .profile-chip-text {
   display: grid;
   gap: 0.1rem;
+}
+
+.profile-chip .avatar-display {
+  margin-right: 0.1rem;
 }
 
 .chip-title {
