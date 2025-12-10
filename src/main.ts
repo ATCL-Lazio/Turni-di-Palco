@@ -9,7 +9,23 @@ if (!root) {
 
 root.innerHTML = `
   <main class="page">
-    <section class="hero">
+    <header class="app-bar">
+      <div class="app-brand">
+        <span class="brand-mark">TdP</span>
+        <div>
+          <p class="eyebrow">Turni di Palco</p>
+          <p class="muted tiny">PWA shell</p>
+        </div>
+      </div>
+      <div class="chip-row">
+        <a class="chip" href="#hero">Home</a>
+        <a class="chip" href="#permissions">Permessi</a>
+        <a class="chip" href="#gameplay">Gioco</a>
+        <a class="chip" href="/game.html">Pagina gioco</a>
+      </div>
+    </header>
+
+    <section class="hero" id="hero">
       <p class="eyebrow">Turni di Palco</p>
       <h1>Progressive Web App base</h1>
       <p class="lede">
@@ -73,7 +89,7 @@ root.innerHTML = `
         <p class="muted">Toggle rete per test offline. Se c'e un update SW usa il pulsante reload.</p>
       </article>
 
-      <article class="card">
+      <article class="card" id="permissions">
         <h2>Permission check</h2>
         <p>Richiedi i permessi comuni (notifiche, geolocalizzazione, fotocamera) e controlla l'esito in tempo reale.</p>
         <p class="muted">Nota: su iOS/Safari le notifiche funzionano solo dopo l'installazione come PWA e su connessione sicura (HTTPS). Geolocalizzazione e fotocamera richiedono contesto sicuro.</p>
@@ -95,7 +111,7 @@ root.innerHTML = `
       </article>
     </section>
 
-    <section class="grid gameplay">
+    <section class="grid gameplay" id="gameplay">
       <article class="card span-2">
         <h2>Profilo giocatore</h2>
         <div class="form-grid" data-form="profile">
