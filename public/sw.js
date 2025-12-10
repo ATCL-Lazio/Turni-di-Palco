@@ -1,6 +1,16 @@
-const CACHE_NAME = "turni-di-palco-v2";
+const CACHE_NAME = "turni-di-palco-v3";
 const OFFLINE_URL = "/index.html";
-const CORE_ASSETS = ["/", OFFLINE_URL, "/game.html", "/manifest.webmanifest", "/icons/pwa-192.png", "/icons/pwa-512.png"];
+const CORE_ASSETS = [
+  "/",
+  OFFLINE_URL,
+  "/game.html",
+  "/profile.html",
+  "/events.html",
+  "/turns.html",
+  "/manifest.webmanifest",
+  "/icons/pwa-192.png",
+  "/icons/pwa-512.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
