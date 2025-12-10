@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:https": "cross-env HTTPS=true vite --host",
+    "dev:https": "cross-env HTTPS=true vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "preview:https": "cross-env HTTPS=true vite preview --host",
+    "preview:https": "cross-env HTTPS=true vite preview --host 0.0.0.0",
     "test": "vitest run --passWithNoTests"
   },
   "devDependencies": {

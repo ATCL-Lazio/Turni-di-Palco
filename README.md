@@ -5,10 +5,10 @@ Starter Progressive Web App shell for Turni di Palco with Vite and TypeScript. I
 ## Quick start
 - Install dependencies: `npm install`
 - Run locally (HTTP): `npm run dev` (defaults to `http://localhost:5173`, network-hosted for device testing)
-- Run locally with HTTPS (self-signed): `npm run dev:https -- --port 5173 --host 0.0.0.0` then open the “Network” URL Vite prints; accetta l’avviso del certificato.  
+- Run locally with HTTPS (self-signed): `npm run dev:https -- --port 5173` (host già impostato a `0.0.0.0`) poi apri l’URL “Network” stampato da Vite e accetta l’avviso del certificato.
 - Build: `npm run build` → outputs to `dist/`
 - Preview built app (HTTP): `npm run preview`
-- Preview with HTTPS: `npm run preview:https -- --port 4173 --host 0.0.0.0`
+- Preview with HTTPS: `npm run preview:https -- --port 4173` (host già impostato a `0.0.0.0`)
 - Tests: `npm test` (Vitest, currently placeholder setup)
 
 ## Structure
