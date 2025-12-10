@@ -2,7 +2,14 @@ export type RoleId = "attore" | "luci" | "fonico" | "attrezzista" | "palco";
 export type Rewards = { xp: number; cachet: number; reputation: number };
 export type Role = { id: RoleId; name: string; focus: string; stats: string[] };
 export type AvatarIcon = "mask" | "spot" | "gear" | "note";
-export type AvatarSettings = { hue: number; icon: AvatarIcon };
+export type AvatarSettings = {
+  hue: number;
+  icon: AvatarIcon;
+  rpmUrl?: string;
+  rpmThumbnail?: string;
+  rpmId?: string;
+  updatedAt?: number;
+};
 export type GameEvent = {
   id: string;
   name: string;
@@ -73,7 +80,14 @@ export const STORAGE_KEY = "tdp-game-state";
 
 export function createDefaultState(): GameState {
   return {
-    profile: { name: "", roleId: "attore", xp: 0, cachet: 0, repAtcl: 0, avatar: { hue: 210, icon: "mask" } },
+    profile: {
+      name: "",
+      roleId: "attore",
+      xp: 0,
+      cachet: 0,
+      repAtcl: 0,
+      avatar: { hue: 210, icon: "mask", rpmUrl: "", rpmThumbnail: "", rpmId: "", updatedAt: undefined },
+    },
     turns: [],
   };
 }
@@ -91,6 +105,30 @@ export function formatRewards(rewards: Rewards) {
   return `+${rewards.xp} XP | +${rewards.cachet} cachet | +${rewards.reputation} rep`;
 }
 
+export function deriveRpmThumbnail(url?: string) {
+  if (!url) return "";
+  try {
+    const clean = url.split("?")[0];
+    if (clean.endsWith(".glb")) {
+      return `${clean.slice(0, -4)}.png`;
+    }
+    return `${clean}.png`;
+  } catch {
+    return "";
+  }
+}
+
+export function getAvatarVisual(avatar: AvatarSettings) {
+  const color = `hsl(${avatar.hue}deg 75% 55%)`;
+  const iconDef = avatarIcons.find((item) => item.id === avatar.icon) ?? avatarIcons[0];
+  const thumb = avatar.rpmThumbnail || deriveRpmThumbnail(avatar.rpmUrl);
+  return {
+    color,
+    icon: iconDef.symbol,
+    image: thumb || "",
+  };
+}
+
 export function loadState(): GameState {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -102,6 +140,10 @@ export function loadState(): GameState {
     const safeAvatar: AvatarSettings = {
       hue: typeof parsed.profile.avatar?.hue === "number" ? Math.max(0, Math.min(360, parsed.profile.avatar.hue)) : base.profile.avatar.hue,
       icon: avatarIcons.some((item) => item.id === parsed.profile.avatar?.icon) ? (parsed.profile.avatar?.icon as AvatarIcon) : base.profile.avatar.icon,
+      rpmUrl: typeof parsed.profile.avatar?.rpmUrl === "string" ? parsed.profile.avatar.rpmUrl : "",
+      rpmThumbnail: typeof parsed.profile.avatar?.rpmThumbnail === "string" ? parsed.profile.avatar.rpmThumbnail : "",
+      rpmId: typeof parsed.profile.avatar?.rpmId === "string" ? parsed.profile.avatar.rpmId : "",
+      updatedAt: typeof parsed.profile.avatar?.updatedAt === "number" ? parsed.profile.avatar.updatedAt : undefined,
     };
     return {
       profile: { ...base.profile, ...parsed.profile, roleId: safeRole, avatar: safeAvatar },

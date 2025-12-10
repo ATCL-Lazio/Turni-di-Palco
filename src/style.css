@@ -66,6 +66,7 @@ code {
 
 .map-app {
   position: relative;
+  min-height: 100vh;
   height: 100vh;
   overflow: hidden;
 }
@@ -166,6 +167,10 @@ code {
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.profile-chip img {
+  display: block;
 }
 
 .profile-chip-text {
@@ -366,7 +371,7 @@ code {
 }
 
 .map-canvas {
-  position: absolute;
+  position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
@@ -388,11 +393,12 @@ code {
   top: 1rem;
   left: 1rem;
   right: 1rem;
+  max-width: calc(100% - 2rem);
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 0.85rem;
+  padding: 0.6rem 0.8rem;
   border-radius: 18px;
   background: rgba(5, 7, 13, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -403,19 +409,22 @@ code {
 
 .map-actions {
   position: absolute;
-  top: 5.2rem;
+  top: 5rem;
   left: 1rem;
-  right: 1rem;
+  right: auto;
+  max-width: 420px;
+  width: calc(100% - 2rem);
   display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  align-items: center;
-  padding: 0.65rem 0.8rem;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.45rem;
+  align-items: flex-start;
+  padding: 0.55rem 0.7rem;
   border-radius: 14px;
-  background: rgba(5, 7, 13, 0.35);
+  background: rgba(5, 7, 13, 0.32);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(12px) saturate(1.15);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px) saturate(1.1);
   z-index: 9;
 }
 
@@ -425,15 +434,19 @@ code {
 
 .map-drawer {
   position: absolute;
-  left: 1rem;
+  left: auto;
   right: 1rem;
   bottom: 1rem;
+  max-width: 420px;
+  width: calc(100% - 2rem);
+  max-height: 70vh;
+  overflow-y: auto;
   border-radius: 18px;
   background: rgba(5, 7, 13, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(14px) saturate(1.2);
-  padding: 0.9rem 1rem;
+  padding: 0.8rem 0.9rem;
   z-index: 8;
 }
 
@@ -441,7 +454,7 @@ code {
   display: flex;
   justify-content: space-between;
   gap: 0.75rem;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
 }
 
@@ -457,7 +470,7 @@ code {
 }
 
 .drawer-body {
-  margin-top: 0.6rem;
+  margin-top: 0.5rem;
 }
 
 .drawer-section {
@@ -494,6 +507,26 @@ code {
 .map-controls {
   display: flex;
   gap: 0.4rem;
+}
+
+@media (max-width: 768px) {
+  .map-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .map-actions {
+    max-width: unset;
+    right: 1rem;
+  }
+
+  .map-drawer {
+    left: 1rem;
+    right: 1rem;
+    max-width: unset;
+    max-height: 50vh;
+  }
 }
 
 .button.small {
@@ -721,6 +754,16 @@ code {
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
+.avatar-display img {
+  position: absolute;
+  inset: 6px;
+  width: calc(100% - 12px);
+  height: calc(100% - 12px);
+  border-radius: 16px;
+  object-fit: cover;
+  filter: saturate(1.05);
+}
+
 .avatar-display::before {
   content: "";
   position: absolute;
@@ -740,6 +783,32 @@ code {
   width: 44px;
   height: 44px;
   border-radius: 12px;
+}
+
+.avatar-display.has-image::before {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.avatar-display.has-image .avatar-icon {
+  display: none;
+}
+
+.rpm-frame {
+  position: relative;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+  box-shadow:
+    0 18px 60px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.rpm-frame iframe {
+  width: 100%;
+  min-height: 620px;
+  border: none;
+  display: block;
 }
 
 .avatar-icon {

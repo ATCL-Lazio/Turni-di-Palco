@@ -15,7 +15,8 @@ root.innerHTML = `
       <p class="lede">Usati per testare la registrazione turni e la mappa.</p>
       <div class="cta-row">
         <a class="button ghost" href="/">Landing</a>
-        <a class="button ghost" href="/game.html">Mappa</a>
+        <a class="button ghost" href="/avatar.html">Avatar</a>
+        <a class="button ghost" href="/map.html">Mappa</a>
         <a class="button ghost" href="/profile.html">Profilo</a>
         <a class="button ghost" href="/turns.html">Turni</a>
       </div>

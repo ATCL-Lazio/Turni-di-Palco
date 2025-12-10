@@ -15,7 +15,8 @@ root.innerHTML = `
       <p class="lede">Ultimi turni registrati dal prototipo.</p>
       <div class="cta-row">
         <a class="button ghost" href="/">Landing</a>
-        <a class="button ghost" href="/game.html">Mappa</a>
+        <a class="button ghost" href="/avatar.html">Avatar</a>
+        <a class="button ghost" href="/map.html">Mappa</a>
         <a class="button ghost" href="/profile.html">Profilo</a>
         <a class="button ghost" href="/events.html">Eventi</a>
       </div>

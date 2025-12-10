@@ -1,5 +1,5 @@
 import "./style.css";
-import { avatarIcons, formatRewards, loadState, resolveRole } from "./state";
+import { formatRewards, getAvatarVisual, loadState, resolveRole } from "./state";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
@@ -15,7 +15,8 @@ root.innerHTML = `
       <p class="lede">Stato giocatore, avatar e riepilogo recente.</p>
       <div class="cta-row">
         <a class="button ghost" href="/">Landing</a>
-        <a class="button ghost" href="/game.html">Mappa</a>
+        <a class="button ghost" href="/avatar.html">Avatar</a>
+        <a class="button ghost" href="/map.html">Mappa</a>
         <a class="button ghost" href="/events.html">Eventi</a>
         <a class="button ghost" href="/turns.html">Turni</a>
       </div>
@@ -26,6 +27,7 @@ root.innerHTML = `
         <h2>Stato giocatore</h2>
         <div class="profile-pane">
           <div class="avatar-display large" data-avatar="profile">
+            <img data-avatar-img alt="Avatar ReadyPlayerMe" />
             <span class="avatar-icon" data-avatar-label></span>
           </div>
           <div>
@@ -52,6 +54,7 @@ root.innerHTML = `
 
 const avatarDisplay = root.querySelector<HTMLElement>('[data-avatar="profile"]');
 const avatarLabel = root.querySelector<HTMLElement>('[data-avatar-label]');
+const avatarImg = root.querySelector<HTMLImageElement>('[data-avatar-img]');
 const nameNode = root.querySelector<HTMLElement>("[data-player-name]");
 const roleNode = root.querySelector<HTMLElement>("[data-player-role]");
 const roleTags = root.querySelector<HTMLElement>("[data-role-tags]");
@@ -61,15 +64,23 @@ const statRep = root.querySelector<HTMLElement>('[data-stat="rep"]');
 const turnLog = root.querySelector<HTMLElement>('[data-turn-log]');
 
 const state = loadState();
-
-const color = `hsl(${state.profile.avatar.hue}deg 75% 55%)`;
-const iconDef = avatarIcons.find((item) => item.id === state.profile.avatar.icon) ?? avatarIcons[0];
+const avatarVisual = getAvatarVisual(state.profile.avatar);
 if (avatarDisplay) {
-  avatarDisplay.style.setProperty("--avatar-color", color);
+  avatarDisplay.style.setProperty("--avatar-color", avatarVisual.color);
   avatarDisplay.style.setProperty("--avatar-hue", `${state.profile.avatar.hue}deg`);
+  avatarDisplay.classList.toggle("has-image", !!avatarVisual.image);
+}
+if (avatarImg) {
+  if (avatarVisual.image) {
+    avatarImg.src = avatarVisual.image;
+    avatarImg.style.display = "block";
+  } else {
+    avatarImg.removeAttribute("src");
+    avatarImg.style.display = "none";
+  }
 }
 if (avatarLabel) {
-  avatarLabel.textContent = iconDef.symbol;
+  avatarLabel.textContent = avatarVisual.icon;
 }
 
 if (nameNode) {
