@@ -58,6 +58,61 @@ code {
   gap: 1.25rem;
 }
 
+.app-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(99, 140, 255, 0.95), rgba(78, 206, 255, 0.95));
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: 0.04em;
+  box-shadow: 0 10px 20px rgba(79, 134, 255, 0.3);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e9edf5;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.chip:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
 .hero {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
   border: 1px solid rgba(255, 255, 255, 0.16);
