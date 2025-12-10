@@ -91,53 +91,98 @@ if (!root) {
 }
 
 root.innerHTML = `
-  <main class="page page-game">
-    <header class="hero">
-      <p class="eyebrow">Turni di Palco</p>
-      <h1>Interfaccia base del gioco</h1>
-      <p class="lede">Panoramica del profilo, azioni rapide e eventi mock. Torna alla landing per configurare il profilo.</p>
-      <div class="cta-row">
-        <a class="button ghost" href="/">Torna alla landing</a>
-        <button class="button primary" type="button" data-action="sync-state">Aggiorna dati locali</button>
+  <main class="page page-game app-shell">
+    <header class="top-bar">
+      <div class="app-brand">
+        <span class="brand-mark">TdP</span>
+        <div>
+          <p class="eyebrow">Turni di Palco</p>
+          <p class="muted tiny">Interfaccia base del gioco</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <a class="button ghost" href="/">Landing</a>
+        <button class="button primary" type="button" data-action="sync-state">Sincronizza</button>
       </div>
     </header>
 
-    <section class="grid">
-      <article class="card">
-        <h2>Profilo</h2>
-        <p class="muted" data-profile-state>Carica i dati dal profilo principale.</p>
-        <div class="avatar-display" data-avatar="profile">
-          <span class="avatar-icon" data-avatar-label></span>
-        </div>
-        <ul class="stat-list">
-          <li><span>XP</span><strong data-stat="xp">0</strong></li>
-          <li><span>Cachet</span><strong data-stat="cachet">0</strong></li>
-          <li><span>Reputazione ATCL</span><strong data-stat="rep">0</strong></li>
-        </ul>
-        <div class="pill-row" data-role-tags></div>
-      </article>
+    <nav class="nav-tabs">
+      <a class="chip" href="#profile">Profilo</a>
+      <a class="chip" href="#actions">Azioni</a>
+      <a class="chip" href="#events">Eventi</a>
+      <a class="chip" href="#turns">Turni</a>
+    </nav>
 
-      <article class="card">
-        <h2>Attivita rapida</h2>
-        <p class="muted">Simula un'azione veloce per testare il loop di ricompense.</p>
-        <div class="cta-row">
-          <button class="button primary" type="button" data-action="quick-train">Allenamento breve</button>
-          <button class="button ghost" type="button" data-action="quick-scene">Gestione scena</button>
-          <button class="button ghost" type="button" data-action="quick-audio">Check audio</button>
-        </div>
-        <div class="result-box" data-quick-result>Nessuna attivita eseguita.</div>
-      </article>
+    <section class="app-layout">
+      <div class="column">
+        <section class="panel profile-panel" id="profile">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Profilo</p>
+              <h2 class="panel-title">Stato giocatore</h2>
+              <p class="muted tiny" data-profile-state>Carica i dati dal profilo principale.</p>
+            </div>
+            <div class="avatar-display large" data-avatar="profile">
+              <span class="avatar-icon" data-avatar-label></span>
+            </div>
+          </div>
+          <div class="stat-board">
+            <div class="stat-chip">
+              <span>XP</span>
+              <strong data-stat="xp">0</strong>
+            </div>
+            <div class="stat-chip">
+              <span>Cachet</span>
+              <strong data-stat="cachet">0</strong>
+            </div>
+            <div class="stat-chip">
+              <span>Reputazione ATCL</span>
+              <strong data-stat="rep">0</strong>
+            </div>
+          </div>
+          <div class="pill-row" data-role-tags></div>
+        </section>
 
-      <article class="card">
-        <h2>Prossimi eventi (mock)</h2>
-        <ul class="log-list" data-event-list></ul>
-      </article>
+        <section class="panel" id="actions">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Attivita</p>
+              <h2 class="panel-title">Azioni rapide</h2>
+              <p class="muted tiny">Simula un'azione veloce per testare il loop di ricompense.</p>
+            </div>
+          </div>
+          <div class="cta-row wrap">
+            <button class="button primary" type="button" data-action="quick-train">Allenamento breve</button>
+            <button class="button ghost" type="button" data-action="quick-scene">Gestione scena</button>
+            <button class="button ghost" type="button" data-action="quick-audio">Check audio</button>
+          </div>
+          <div class="result-box" data-quick-result>Nessuna attivita eseguita.</div>
+        </section>
+      </div>
 
-      <article class="card">
-        <h2>Registro turni</h2>
-        <p class="muted">Mostra gli ultimi turni registrati dal prototipo principale.</p>
-        <ul class="log-list" data-turn-log></ul>
-      </article>
+      <div class="column">
+        <section class="panel" id="events">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Prossimi eventi</p>
+              <h2 class="panel-title">Mock ATCL</h2>
+              <p class="muted tiny">Usati per testare il flusso di turni.</p>
+            </div>
+          </div>
+          <ul class="log-list dense" data-event-list></ul>
+        </section>
+
+        <section class="panel" id="turns">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Turni</p>
+              <h2 class="panel-title">Registro recente</h2>
+              <p class="muted tiny">Mostra gli ultimi turni registrati dal prototipo principale.</p>
+            </div>
+          </div>
+          <ul class="log-list dense" data-turn-log></ul>
+        </section>
+      </div>
     </section>
   </main>
 `;
