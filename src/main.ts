@@ -73,6 +73,7 @@ root.innerHTML = `
       <article class="card">
         <h2>Permission check</h2>
         <p>Richiedi i permessi comuni (notifiche, geolocalizzazione) e controlla l'esito in tempo reale.</p>
+        <p class="muted">Nota: su iOS/Safari le notifiche funzionano solo dopo l'installazione come PWA e su connessione sicura (HTTPS). Geolocalizzazione richiede contesto sicuro.</p>
         <div class="cta-row">
           <button class="button primary" type="button" data-action="notify-permission">
             Richiedi notifiche
@@ -97,6 +98,9 @@ const notifyButton = root.querySelector<HTMLButtonElement>('[data-action="notify
 const geoButton = root.querySelector<HTMLButtonElement>('[data-action="geo-permission"]');
 const notifyTestButton = root.querySelector<HTMLButtonElement>('[data-action="notify-test"]');
 const permissionOutput = root.querySelector<HTMLElement>("[data-permission-result]");
+const isSecure = window.isSecureContext;
+const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent);
+const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
 
 function setConnectionStatus() {
   if (!connectionNode) return;
@@ -153,9 +157,21 @@ function setNotifyButtonState(permission: NotificationPermission) {
 }
 
 async function checkPermissions() {
+  if (!isSecure) {
+    renderPermission("Permessi limitati: serve connessione sicura (HTTPS o localhost).", "warn");
+  }
+
   if (typeof Notification !== "undefined") {
     setNotifyButtonState(Notification.permission);
     renderPermission(`Permesso notifiche attuale: ${Notification.permission}`, "info");
+
+    if (isIOS && !isStandalone) {
+      renderPermission("Su iOS chiedi notifiche solo dopo installazione come PWA.", "warn");
+      notifyButton?.setAttribute("disabled", "true");
+    }
+  } else {
+    notifyButton?.setAttribute("disabled", "true");
+    notifyTestButton?.setAttribute("disabled", "true");
   }
 
   if (navigator.permissions) {
@@ -176,6 +192,14 @@ notifyButton?.addEventListener("click", async () => {
     renderPermission("Notifiche non supportate in questo browser.", "error");
     return;
   }
+  if (!isSecure) {
+    renderPermission("Richiedi notifiche solo su HTTPS/localhost.", "warn");
+    return;
+  }
+  if (isIOS && !isStandalone) {
+    renderPermission("Installa come PWA su iOS per abilitare le notifiche.", "warn");
+    return;
+  }
   try {
     const result = await Notification.requestPermission();
     const state = result === "granted" ? "ok" : result === "denied" ? "warn" : "info";
@@ -190,6 +214,10 @@ notifyButton?.addEventListener("click", async () => {
 geoButton?.addEventListener("click", () => {
   if (!("geolocation" in navigator)) {
     renderPermission("Geolocalizzazione non supportata.", "error");
+    return;
+  }
+  if (!isSecure) {
+    renderPermission("La geolocalizzazione richiede HTTPS o localhost.", "warn");
     return;
   }
   renderPermission("Richiesta posizione in corso...", "info");
@@ -217,6 +245,14 @@ geoButton?.addEventListener("click", () => {
 notifyTestButton?.addEventListener("click", () => {
   if (!("Notification" in window)) {
     renderPermission("Notifiche non supportate in questo browser.", "error");
+    return;
+  }
+  if (!isSecure) {
+    renderPermission("Le notifiche richiedono HTTPS o localhost.", "warn");
+    return;
+  }
+  if (isIOS && !isStandalone) {
+    renderPermission("Installa come PWA su iOS per inviare notifiche.", "warn");
     return;
   }
   if (Notification.permission !== "granted") {
