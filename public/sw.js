@@ -1,9 +1,11 @@
-const CACHE_NAME = "turni-di-palco-v3";
+const CACHE_NAME = "turni-di-palco-v6";
 const OFFLINE_URL = "/index.html";
 const CORE_ASSETS = [
   "/",
   OFFLINE_URL,
+  "/map.html",
   "/game.html",
+  "/avatar.html",
   "/profile.html",
   "/events.html",
   "/turns.html",

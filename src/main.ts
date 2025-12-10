@@ -125,6 +125,7 @@ root.innerHTML = `
           </label>
           <div class="avatar-config">
             <div class="avatar-display large" data-avatar="preview">
+              <img data-avatar-img alt="Avatar ReadyPlayerMe" />
               <span class="avatar-icon" data-avatar-label></span>
             </div>
             <div class="form-grid compact">
@@ -210,6 +211,7 @@ const profileNameInput = root.querySelector<HTMLInputElement>('[data-field="play
 const profileRoleSelect = root.querySelector<HTMLSelectElement>('[data-field="player-role"]');
 const profileSummaryBox = root.querySelector<HTMLElement>('[data-profile-summary]');
 const avatarPreview = root.querySelector<HTMLElement>('[data-avatar="preview"]');
+const avatarImg = root.querySelector<HTMLImageElement>('[data-avatar-img]');
 const avatarLabel = root.querySelector<HTMLElement>('[data-avatar-label]');
 const avatarHueInput = root.querySelector<HTMLInputElement>('[data-avatar-hue]');
 const avatarIconSelect = root.querySelector<HTMLSelectElement>('[data-avatar-icon]');
@@ -441,7 +443,14 @@ type RoleId = "attore" | "luci" | "fonico" | "attrezzista" | "palco";
 type Rewards = { xp: number; cachet: number; reputation: number };
 type Role = { id: RoleId; name: string; focus: string; stats: string[] };
 type AvatarIcon = "mask" | "spot" | "gear" | "note";
-type AvatarSettings = { hue: number; icon: AvatarIcon };
+type AvatarSettings = {
+  hue: number;
+  icon: AvatarIcon;
+  rpmUrl?: string;
+  rpmThumbnail?: string;
+  rpmId?: string;
+  updatedAt?: number;
+};
 type GameEvent = { id: string; name: string; theatre: string; date: string; baseRewards: Rewards; focusRole?: RoleId };
 type TurnRecord = {
   id: string;
@@ -574,7 +583,14 @@ const MAX_TURNS_STORED = 8;
 
 function createDefaultState(): GameState {
   return {
-    profile: { name: "", roleId: "attore", xp: 0, cachet: 0, repAtcl: 0, avatar: { hue: 210, icon: "mask" } },
+    profile: {
+      name: "",
+      roleId: "attore",
+      xp: 0,
+      cachet: 0,
+      repAtcl: 0,
+      avatar: { hue: 210, icon: "mask", rpmUrl: "", rpmThumbnail: "", rpmId: "", updatedAt: undefined },
+    },
     turns: [],
   };
 }
@@ -590,6 +606,10 @@ function loadState(): GameState {
     const safeAvatar: AvatarSettings = {
       hue: typeof parsed.profile.avatar?.hue === "number" ? Math.max(0, Math.min(360, parsed.profile.avatar.hue)) : base.profile.avatar.hue,
       icon: avatarIcons.some((icon) => icon.id === parsed.profile.avatar?.icon) ? (parsed.profile.avatar?.icon as AvatarIcon) : base.profile.avatar.icon,
+      rpmUrl: typeof parsed.profile.avatar?.rpmUrl === "string" ? parsed.profile.avatar.rpmUrl : "",
+      rpmThumbnail: typeof parsed.profile.avatar?.rpmThumbnail === "string" ? parsed.profile.avatar.rpmThumbnail : "",
+      rpmId: typeof parsed.profile.avatar?.rpmId === "string" ? parsed.profile.avatar.rpmId : "",
+      updatedAt: typeof parsed.profile.avatar?.updatedAt === "number" ? parsed.profile.avatar.updatedAt : undefined,
     };
     return {
       profile: {
@@ -617,15 +637,35 @@ function formatRewards(rewards: Rewards) {
   return `+${rewards.xp} XP | +${rewards.cachet} cachet | +${rewards.reputation} rep`;
 }
 
+function deriveRpmThumbnail(url?: string) {
+  if (!url) return "";
+  const clean = url.split("?")[0];
+  if (clean.endsWith(".glb")) {
+    return `${clean.slice(0, -4)}.png`;
+  }
+  return `${clean}.png`;
+}
+
 let gameState = loadState();
 
 function renderAvatarPreview() {
   if (!avatarPreview) return;
-  const { hue, icon } = gameState.profile.avatar;
+  const { hue, icon, rpmUrl, rpmThumbnail } = gameState.profile.avatar;
   const color = `hsl(${hue}deg 75% 55%)`;
+  const image = rpmThumbnail || deriveRpmThumbnail(rpmUrl);
   avatarPreview.style.setProperty("--avatar-color", color);
   avatarPreview.style.setProperty("--avatar-hue", `${hue}deg`);
+  avatarPreview.classList.toggle("has-image", !!image);
   const iconDef = avatarIcons.find((item) => item.id === icon) ?? avatarIcons[0];
+  if (avatarImg) {
+    if (image) {
+      avatarImg.src = image;
+      avatarImg.style.display = "block";
+    } else {
+      avatarImg.removeAttribute("src");
+      avatarImg.style.display = "none";
+    }
+  }
   if (avatarLabel) {
     avatarLabel.textContent = iconDef.symbol;
   }
@@ -712,7 +752,7 @@ function handleSaveProfile() {
       ...gameState.profile,
       name,
       roleId: chosenRole in roleMap ? chosenRole : gameState.profile.roleId,
-      avatar: { hue: nextHue, icon: safeIcon },
+      avatar: { ...gameState.profile.avatar, hue: nextHue, icon: safeIcon },
     },
   };
   saveState(gameState);
