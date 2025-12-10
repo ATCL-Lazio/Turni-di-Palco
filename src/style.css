@@ -353,6 +353,18 @@ code {
   pointer-events: none;
 }
 
+.map-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.map-surface.ready .map-placeholder {
+  display: none;
+}
+
 .map-overlay {
   position: absolute;
   left: 0;
