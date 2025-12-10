@@ -72,14 +72,17 @@ root.innerHTML = `
 
       <article class="card">
         <h2>Permission check</h2>
-        <p>Richiedi i permessi comuni (notifiche, geolocalizzazione) e controlla l'esito in tempo reale.</p>
-        <p class="muted">Nota: su iOS/Safari le notifiche funzionano solo dopo l'installazione come PWA e su connessione sicura (HTTPS). Geolocalizzazione richiede contesto sicuro.</p>
+        <p>Richiedi i permessi comuni (notifiche, geolocalizzazione, fotocamera) e controlla l'esito in tempo reale.</p>
+        <p class="muted">Nota: su iOS/Safari le notifiche funzionano solo dopo l'installazione come PWA e su connessione sicura (HTTPS). Geolocalizzazione e fotocamera richiedono contesto sicuro.</p>
         <div class="cta-row">
           <button class="button primary" type="button" data-action="notify-permission">
             Richiedi notifiche
           </button>
           <button class="button ghost" type="button" data-action="geo-permission">
             Richiedi geolocalizzazione
+          </button>
+          <button class="button ghost" type="button" data-action="camera-permission">
+            Richiedi fotocamera
           </button>
           <button class="button ghost" type="button" data-action="notify-test">
             Notifica di prova
@@ -96,11 +99,13 @@ const swStatusNode = root.querySelector<HTMLElement>("[data-sw-status]");
 const reloadButton = root.querySelector<HTMLButtonElement>('[data-action="refresh"]');
 const notifyButton = root.querySelector<HTMLButtonElement>('[data-action="notify-permission"]');
 const geoButton = root.querySelector<HTMLButtonElement>('[data-action="geo-permission"]');
+const cameraButton = root.querySelector<HTMLButtonElement>('[data-action="camera-permission"]');
 const notifyTestButton = root.querySelector<HTMLButtonElement>('[data-action="notify-test"]');
 const permissionOutput = root.querySelector<HTMLElement>("[data-permission-result]");
 const isSecure = window.isSecureContext;
 const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent);
 const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
+const supportsCamera = typeof navigator.mediaDevices?.getUserMedia === "function";
 
 function setConnectionStatus() {
   if (!connectionNode) return;
@@ -122,7 +127,7 @@ registerServiceWorker({
   },
   onUpdate: () => {
     if (swStatusNode) {
-      swStatusNode.textContent = "Update available — reload to apply";
+      swStatusNode.textContent = "Update available - reload to apply";
       swStatusNode.dataset.state = "update";
     }
     reloadButton?.classList.remove("ghost");
@@ -156,6 +161,15 @@ function setNotifyButtonState(permission: NotificationPermission) {
   notifyTestButton.textContent = permission === "granted" ? "Notifica di prova" : "Richiedi permesso per notifiche";
 }
 
+async function queryPermissionSafe(descriptor: PermissionDescriptor | { name: "camera" }) {
+  if (!navigator.permissions) return null;
+  try {
+    return await navigator.permissions.query(descriptor as PermissionDescriptor);
+  } catch {
+    return null;
+  }
+}
+
 async function checkPermissions() {
   if (!isSecure) {
     renderPermission("Permessi limitati: serve connessione sicura (HTTPS o localhost).", "warn");
@@ -174,16 +188,23 @@ async function checkPermissions() {
     notifyTestButton?.setAttribute("disabled", "true");
   }
 
-  if (navigator.permissions) {
-    try {
-      const geoStatus = await navigator.permissions.query({ name: "geolocation" as PermissionName });
+  const geoStatus = await queryPermissionSafe({ name: "geolocation" });
+  if (geoStatus) {
+    renderPermission(`Geo stato: ${geoStatus.state}`, geoStatus.state === "granted" ? "ok" : "info");
+    geoStatus.onchange = () => {
       renderPermission(`Geo stato: ${geoStatus.state}`, geoStatus.state === "granted" ? "ok" : "info");
-      geoStatus.onchange = () => {
-        renderPermission(`Geo stato: ${geoStatus.state}`, geoStatus.state === "granted" ? "ok" : "info");
-      };
-    } catch {
-      // permissions API non disponibile per geolocalizzazione in alcuni browser
-    }
+    };
+  }
+
+  const cameraStatus = await queryPermissionSafe({ name: "camera" });
+  if (cameraStatus) {
+    renderPermission(`Stato fotocamera: ${cameraStatus.state}`, cameraStatus.state === "granted" ? "ok" : "info");
+    cameraStatus.onchange = () => {
+      renderPermission(`Stato fotocamera: ${cameraStatus.state}`, cameraStatus.state === "granted" ? "ok" : "info");
+    };
+  } else if (!supportsCamera) {
+    renderPermission("Fotocamera non supportata in questo browser.", "warn");
+    cameraButton?.setAttribute("disabled", "true");
   }
 }
 
@@ -240,6 +261,31 @@ geoButton?.addEventListener("click", () => {
     },
     { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 }
   );
+});
+
+cameraButton?.addEventListener("click", async () => {
+  if (!supportsCamera) {
+    renderPermission("Fotocamera non disponibile nel browser.", "error");
+    return;
+  }
+  if (!isSecure) {
+    renderPermission("La fotocamera richiede HTTPS o localhost.", "warn");
+    return;
+  }
+
+  renderPermission("Richiesta fotocamera in corso...", "info");
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    stream.getTracks().forEach((track) => track.stop());
+    renderPermission("Permesso fotocamera: concesso.", "ok");
+  } catch (error) {
+    if (error instanceof DOMException && (error.name === "NotAllowedError" || error.name === "SecurityError")) {
+      renderPermission("Permesso fotocamera: rifiutato.", "warn");
+      return;
+    }
+    renderPermission("Richiesta fotocamera fallita.", "error");
+    console.error(error);
+  }
 });
 
 notifyTestButton?.addEventListener("click", () => {
