@@ -141,6 +141,10 @@ code {
   font-size: 1.25rem;
 }
 
+.span-2 {
+  grid-column: span 2;
+}
+
 .list {
   padding-left: 1.1rem;
   margin: 0;
@@ -164,6 +168,10 @@ code {
   padding: 0.35rem 0.6rem;
   font-size: 0.9rem;
   color: #cbd5e1;
+}
+
+.pill.ghost {
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .result-box {
@@ -217,6 +225,10 @@ code {
   font-weight: 600;
 }
 
+[data-state="info"] {
+  color: #e5e7eb;
+}
+
 [data-state="online"] {
   color: #34d399;
 }
@@ -242,6 +254,67 @@ code {
   font-size: 0.95rem;
 }
 
+.form-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e5e7eb;
+}
+
+.field input:focus,
+.field select:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.4);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.stat-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.stat-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+}
+
+.stat-list strong {
+  color: #bfdbfe;
+}
+
+.log-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.log-list li {
+  padding-bottom: 0.25rem;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
 @media (max-width: 640px) {
   .page {
     padding: 1.5rem 1.25rem 2.5rem;
@@ -249,5 +322,9 @@ code {
 
   .card {
     min-height: auto;
+  }
+
+  .span-2 {
+    grid-column: auto;
   }
 }
