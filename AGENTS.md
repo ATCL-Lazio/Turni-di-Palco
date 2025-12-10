@@ -29,7 +29,7 @@
 - Before opening a PR, ensure docs are updated, new commands are documented, and tests (if any) pass locally.
 
 ## Identity & Git Hygiene
-- Author/committer identity for this repo: Codex <codex@noreply.users.github.com>. Keep it consistent across commits.
+- Author/committer identity for this repo: Codex <codex@users.noreply.github.com>. Keep it consistent across commits.
 - Keep commits small and topical; prefer multiple commits over one large drop when touching orthogonal areas.
 
 ## PWA & Assets
