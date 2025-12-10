@@ -96,6 +96,7 @@ code {
 .top-actions {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
 }
 
 .chip-row {
@@ -126,6 +127,26 @@ code {
 
 .chip:hover {
   border-color: rgba(255, 255, 255, 0.25);
+}
+
+.profile-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.profile-chip-text {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.chip-title {
+  margin: 0;
+  font-weight: 600;
 }
 
 .hero {
@@ -577,6 +598,12 @@ code {
 .avatar-display.large {
   width: 96px;
   height: 96px;
+}
+
+.avatar-display.mini {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
 }
 
 .avatar-icon {
