@@ -35,3 +35,6 @@
 ## PWA & Assets
 - Update `public/sw.js` cache version string when altering core assets to ensure clients receive the new shell.
 - Keep manifest (`public/manifest.webmanifest`) in sync with icon filenames and theme colors. Replace placeholder icons in `public/icons/` with final branding once available.
+
+## Work Plan
+- Piano MVP in `docs and references/plan.md`. Mantienilo aggiornato a ogni milestone/modifica rilevante (scope, priorità, stato attività).
