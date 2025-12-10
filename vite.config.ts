@@ -20,7 +20,20 @@ function resolveHttps() {
 const httpsOption = resolveHttps();
 
 export default defineConfig({
-  appType: "spa",
+  appType: "mpa",
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        game: path.resolve(__dirname, "game.html"),
+        map: path.resolve(__dirname, "map.html"),
+        avatar: path.resolve(__dirname, "avatar.html"),
+        profile: path.resolve(__dirname, "profile.html"),
+        events: path.resolve(__dirname, "events.html"),
+        turns: path.resolve(__dirname, "turns.html"),
+      },
+    },
+  },
   server: {
     host: true,
     port: 5173,
