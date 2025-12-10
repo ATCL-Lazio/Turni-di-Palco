@@ -120,8 +120,10 @@ if (!root) {
 }
 
 root.innerHTML = `
-  <main class="page page-game app-shell">
-    <header class="top-bar">
+  <main class="map-app">
+    <div id="map" class="map-canvas" aria-label="Mappa eventi"></div>
+
+    <header class="map-topbar">
       <div class="app-brand">
         <span class="brand-mark">TdP</span>
         <div>
@@ -149,86 +151,53 @@ root.innerHTML = `
       </div>
     </header>
 
-    <nav class="nav-tabs">
-      <a class="chip" href="#map-panel">Mappa</a>
-      <a class="chip" href="#profile">Profilo</a>
-      <a class="chip" href="#events">Eventi</a>
-      <a class="chip" href="#turns">Turni</a>
-    </nav>
+    <div class="map-actions">
+      <div class="pill-row">
+        <span class="pill ghost" data-profile-state>Carica i dati dal profilo principale.</span>
+        <span class="pill" data-role-label>Ruolo non impostato</span>
+      </div>
+      <div class="map-controls">
+        <button class="button ghost small" type="button" data-action="quick-train">Allenamento</button>
+        <button class="button ghost small" type="button" data-action="quick-scene">Scena</button>
+        <button class="button ghost small" type="button" data-action="quick-audio">Audio</button>
+      </div>
+    </div>
 
-    <section class="app-stage">
-      <div class="map-panel" id="map-panel">
-        <div class="map-surface">
-          <div class="map-overlay top">
-            <div class="pill-row">
-              <span class="pill ghost" data-profile-state>Carica i dati dal profilo principale.</span>
-              <span class="pill" data-role-label>Ruolo non impostato</span>
-            </div>
-            <div class="map-controls">
-              <button class="button ghost small" type="button" data-action="quick-train">Allenamento</button>
-              <button class="button ghost small" type="button" data-action="quick-scene">Scena</button>
-              <button class="button ghost small" type="button" data-action="quick-audio">Audio</button>
-            </div>
+    <section class="map-drawer">
+      <div class="drawer-header">
+        <div class="drawer-tabs">
+          <button class="chip" data-drawer-tab="events">Eventi</button>
+          <button class="chip" data-drawer-tab="turns">Turni</button>
+          <button class="chip" data-drawer-tab="profile">Profilo</button>
+        </div>
+        <div class="stat-board compact">
+          <div class="stat-chip">
+            <span>XP</span>
+            <strong data-stat="xp">0</strong>
           </div>
-          <div class="map-placeholder">
-            <div class="avatar-display large" data-avatar="profile">
-              <span class="avatar-icon" data-avatar-label></span>
-            </div>
-            <p class="muted tiny">Mappa interattiva in arrivo - usa le azioni per simulare il loop</p>
+          <div class="stat-chip">
+            <span>Cachet</span>
+            <strong data-stat="cachet">0</strong>
           </div>
-          <div id="map" class="map-canvas" aria-label="Mappa eventi"></div>
-          <div class="map-overlay bottom">
-            <div class="stat-board compact">
-              <div class="stat-chip">
-                <span>XP</span>
-                <strong data-stat="xp">0</strong>
-              </div>
-              <div class="stat-chip">
-                <span>Cachet</span>
-                <strong data-stat="cachet">0</strong>
-              </div>
-              <div class="stat-chip">
-                <span>Rep</span>
-                <strong data-stat="rep">0</strong>
-              </div>
-            </div>
-            <div class="result-box slim" data-quick-result>Mappa pronta.</div>
+          <div class="stat-chip">
+            <span>Rep</span>
+            <strong data-stat="rep">0</strong>
           </div>
         </div>
       </div>
-
-      <div class="side-stack">
-        <section class="panel profile-panel" id="profile">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Profilo</p>
-              <h2 class="panel-title">Stato giocatore</h2>
-            </div>
-          </div>
+      <div class="drawer-body">
+        <div class="drawer-section" data-section="profile">
           <div class="pill-row" data-role-tags></div>
-        </section>
-
-        <section class="panel" id="events">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Prossimi eventi</p>
-              <h2 class="panel-title">Mock ATCL</h2>
-              <p class="muted tiny">Usati per testare il flusso di turni.</p>
-            </div>
-          </div>
+          <div class="result-box slim" data-quick-result>Mappa pronta.</div>
+        </div>
+        <div class="drawer-section" data-section="events">
+          <p class="muted tiny">Prossimi eventi mock</p>
           <ul class="log-list dense" data-event-list></ul>
-        </section>
-
-        <section class="panel" id="turns">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Turni</p>
-              <h2 class="panel-title">Registro recente</h2>
-              <p class="muted tiny">Ultimi turni registrati dal prototipo principale.</p>
-            </div>
-          </div>
+        </div>
+        <div class="drawer-section" data-section="turns">
+          <p class="muted tiny">Registro recente</p>
           <ul class="log-list dense" data-turn-log></ul>
-        </section>
+        </div>
       </div>
     </section>
   </main>
@@ -246,7 +215,6 @@ const avatarProfile = root.querySelector<HTMLElement>('[data-avatar="profile"]')
 const avatarLabel = root.querySelector<HTMLElement>('[data-avatar-label]');
 const roleLabel = root.querySelector<HTMLElement>('[data-role-label]');
 const mapContainer = root.querySelector<HTMLDivElement>("#map");
-const mapSurface = root.querySelector<HTMLElement>(".map-surface");
 const avatarChip = root.querySelector<HTMLElement>('[data-avatar="profile-chip"]');
 const avatarLabelChip = root.querySelector<HTMLElement>('[data-avatar-label-chip]');
 const chipName = root.querySelector<HTMLElement>('[data-chip-name]');
@@ -254,6 +222,10 @@ const chipRole = root.querySelector<HTMLElement>('[data-chip-role]');
 const topStatXp = root.querySelector<HTMLElement>('[data-top-stat="xp"]');
 const topStatCachet = root.querySelector<HTMLElement>('[data-top-stat="cachet"]');
 const topStatRep = root.querySelector<HTMLElement>('[data-top-stat="rep"]');
+const drawerTabs = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-drawer-tab]"));
+const drawerSections = Array.from(root.querySelectorAll<HTMLElement>("[data-section]"));
+const drawerTabs = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-drawer-tab]"));
+const drawerSections = Array.from(root.querySelectorAll<HTMLElement>("[data-section]"));
 
 let state: GameState = loadState();
 let map: LeafletMap | null = null;
@@ -357,7 +329,6 @@ function initMap() {
   }).addTo(map);
   markerLayer = L.layerGroup().addTo(map);
   renderMapMarkers();
-  mapSurface?.classList.add("ready");
 }
 
 function renderMapMarkers() {
@@ -377,6 +348,15 @@ function renderMapMarkers() {
   } else {
     map.setView(bounds[0] as L.LatLngExpression, 11);
   }
+}
+
+function setDrawer(sectionId: "events" | "turns" | "profile") {
+  drawerTabs.forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.drawerTab === sectionId);
+  });
+  drawerSections.forEach((section) => {
+    section.classList.toggle("active", section.dataset.section === sectionId);
+  });
 }
 
 function applyQuick(rewards: Rewards, label: string) {
@@ -414,6 +394,7 @@ renderProfile();
 renderEvents();
 renderTurns();
 initMap();
+setDrawer("events");
 
 root.querySelector<HTMLButtonElement>('[data-action="sync-state"]')?.addEventListener("click", () => {
   state = loadState();
@@ -439,6 +420,15 @@ root.querySelector<HTMLButtonElement>('[data-action="quick-scene"]')?.addEventLi
 root.querySelector<HTMLButtonElement>('[data-action="quick-audio"]')?.addEventListener("click", () => {
   handleQuick("audio");
   renderMapMarkers();
+});
+
+drawerTabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    const target = tab.dataset.drawerTab as "events" | "turns" | "profile" | undefined;
+    if (target) {
+      setDrawer(target);
+    }
+  });
 });
 
 registerServiceWorker({
