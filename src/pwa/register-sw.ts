@@ -10,6 +10,14 @@ export function registerServiceWorker(callbacks: ServiceWorkerCallbacks = {}) {
     return;
   }
 
+  // In sviluppo: assicurati che eventuali SW vecchi vengano rimossi per evitare cache errate.
+  if (!import.meta.env.PROD) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((registration) => registration.unregister().catch(() => undefined));
+    });
+    return;
+  }
+
   navigator.serviceWorker
     .register("/sw.js")
     .then((registration) => {
