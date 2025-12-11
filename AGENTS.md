@@ -27,6 +27,7 @@
 - Use short, imperative commit messages (e.g., `Add dialogue parser`, `Fix scene load order`). Keep changes scoped and commit frequently.
 - PRs should include intent, key changes, and testing performed; link related tasks/issues. Add screenshots or short clips for visual changes.
 - Before opening a PR, ensure docs are updated, new commands are documented, and tests (if any) pass locally.
+- All commits should be done using **your own git identity**
 
 ## Identity & Git Hygiene
 - Author/committer identity is managed by the repo owner; do not change git config locally (no `git config` commands). Use the existing configuration as-is.
@@ -38,3 +39,11 @@
 
 ## Work Plan
 - Piano MVP in `docs and references/plan.md`. Mantienilo aggiornato a ogni milestone/modifica rilevante (scope, priorità, stato attività).
+
+## Git Identity
+- Every agent should have his own git identity when committing changes in order to have a more clear and readable history
+
+| Agent | GIT_COMMITTER_NAME / GIT_AUTHOR_NAME | GIT_COMMITTER_EMAIL / GIT_AUTHOR_EMAIL |
+|-------|:--------------------------------------:|----------------------------------------|
+| Codex | Codex                                | codex@users.noreply.github.com         |
+| Gemini | Gemini | gemini-code-assist@users.noreply.github.com |
