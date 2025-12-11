@@ -1,11 +1,22 @@
-@echo off
-setlocal
+$ErrorActionPreference = 'Stop'
 
-REM Percorso assoluto ai certificati per il dev HTTPS
-set "SSL_CRT_FILE=%~dp0192.168.3.243+1.pem"
-set "SSL_KEY_FILE=%~dp0192.168.3.243+1-key.pem"
-set "HTTPS=true"
+# Pick the first key in root that matches "*-key.pem", and align the cert to the same basename.
+$keyFile = Get-ChildItem -Path . -Filter '*-key.pem' -File | Select-Object -First 1
+if (-not $keyFile) {
+  Write-Error 'Nessun file *-key.pem trovato nella root del progetto.'
+  exit 1
+}
 
+$keyBase = $keyFile.BaseName -replace '-key$',''
+$certFile = Get-ChildItem -Path . -File | Where-Object { $_.Extension -eq '.pem' -and $_.BaseName -eq $keyBase } | Select-Object -First 1
+if (-not $certFile) {
+  Write-Error "Nessun certificato .pem abbinato alla chiave $($keyFile.Name)."
+  exit 1
+}
+
+$env:SSL_KEY_FILE = $keyFile.FullName
+$env:SSL_CRT_FILE = $certFile.FullName
+$env:HTTPS = "true"
+
+Write-Host "Uso certificato: $($certFile.Name) / chiave: $($keyFile.Name)"
 npm run dev:https
-
-endlocal
