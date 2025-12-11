@@ -1,0 +1,26 @@
+name: Update Server Repository
+
+on:
+    push:
+        branches: [ main ]
+    workflow_dispatch:
+
+jobs:
+    update-server-repo:
+        # Viene eseguito per forzare l'aggiornamento del repository del server
+        runs-on: [ self-hosted, Windows, X64 ]
+        defaults:
+            run:
+                shell: powershell
+                working-directory: C:\actions-runner\repo\Turni-di-Palco
+
+        steps:
+            - name: Fetch aggiornamenti da origin
+              run: |
+                git fetch origin
+                git checkout main
+                git reset --hard origin/main
+
+            - name: Forza aggiornamento repository del server
+              run: |
+                git pull origin main --force
