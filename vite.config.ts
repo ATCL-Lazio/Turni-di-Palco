@@ -25,6 +25,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, "index.html"),
+        dev: path.resolve(__dirname, "dev.html"),
         game: path.resolve(__dirname, "game.html"),
         map: path.resolve(__dirname, "map.html"),
         avatar: path.resolve(__dirname, "avatar.html"),
