@@ -15,12 +15,22 @@ jobs:
                 working-directory: C:\actions-runner\repo\Turni-di-Palco
 
         steps:
-            - name: Fetch aggiornamenti da origin
+            - name: Fetch aggiornamenti da origin (main repository)
               run: |
                 git fetch origin
                 git checkout main
                 git reset --hard origin/main
 
-            - name: Forza aggiornamento repository del server
+            - name: Forza aggiornamento repository del server (main repository)
               run: |
                 git pull origin main --force
+            
+            - name: Fetch aggiornamenti da origin (submodules)
+              run: |
+                git submodule foreach --recursive git fetch origin
+                git submodule foreach --recursive git checkout main
+                git submodule foreach --recursive git reset --hard origin/main
+            
+            - name: Forza aggiornamento repository del server (submodules)
+              run: |
+                    git submodule foreach --recursive git pull origin main --force
