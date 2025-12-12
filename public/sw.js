@@ -10,6 +10,7 @@ const CORE_ASSETS = [
   "/dev.html",
   "/events.html",
   "/turns.html",
+  "/mobile/index.html",
   "/manifest.webmanifest",
   "/icons/pwa-192.png",
   "/icons/pwa-512.png",
