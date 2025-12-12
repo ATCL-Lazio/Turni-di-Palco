@@ -28,6 +28,7 @@
 - PRs should include intent, key changes, and testing performed; link related tasks/issues. Add screenshots or short clips for visual changes.
 - Before opening a PR, ensure docs are updated, new commands are documented, and tests (if any) pass locally.
 - All commits should be done using **your own git identity**
+- You should always commits submodules **before** the main repository
 
 ## Identity & Git Hygiene
 - Author/committer identity is managed by the repo owner; do not change git config locally (no `git config` commands). Use the existing configuration as-is.
