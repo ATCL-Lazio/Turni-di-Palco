@@ -10,49 +10,79 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     defaults:
       run:
-        shell: pwsh
+        shell: powershell
+        working-directory: ${{ github.workspace }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
       # -----------------------------------------------------------------
-      # 1️⃣  Avvio Codex con permessi già impostati
+      # 1) Avvio Codex con permessi gia impostati
       # -----------------------------------------------------------------
       - name: Prompting Codex
         run: |
-          # Avvia Codex con modalità "auto" (può leggere/scrivere file locali)
-          codex --ask-for-approval=auto <<'EOF'
-          Ci sono delle modifiche che ho fatto nella repo Turni-di-Palco-UI,
-          vorrei che tu le portassi nella repository principale Turni-di-Palco,
-          quando hai finito invia un messaggio che il sistema del workflow possa
-          riconoscere: "Success".
-          EOF
+          if (-not (Get-Command codex -ErrorAction SilentlyContinue)) {
+            Write-Error 'CLI "codex" non trovato nel runner.'
+            exit 1
+          }
+
+          $prompt = @'
+Ci sono delle modifiche che ho fatto nella repo Turni-di-Palco-UI,
+vorrei che tu le portassi nella repository principale Turni-di-Palco,
+quando hai finito invia un messaggio che il sistema del workflow possa
+riconoscere: "Success".
+'@
+
+          $prompt | codex --ask-for-approval=auto
 
       # -----------------------------------------------------------------
-      # 2️⃣  Attesa della risposta “Success” nel log
+      # 2) Attesa della risposta "Success" nel log
       # -----------------------------------------------------------------
       - name: Attesa risposta Codex
         id: wait_codex
         run: |
+          $logPath = Join-Path $PWD 'codex.log'
           $maxAttempts = 30
           $attempt = 0
-          while (-not (Get-Content C:\actions-runner\repo\Turni-di-Palco\codex.log |
-                        Select-String -Pattern "Success" -SimpleMatch -Quiet) -and $attempt -lt $maxAttempts) {
+
+          while ($attempt -lt $maxAttempts) {
+            if (Test-Path $logPath) {
+              if (Get-Content $logPath | Select-String -Pattern "Success" -SimpleMatch -Quiet) {
+                break
+              }
+            }
             Start-Sleep -Seconds 1
             $attempt++
           }
+
+          if (-not (Test-Path $logPath)) {
+            Write-Error "Log codex non trovato: $logPath"
+            exit 1
+          }
+
           if ($attempt -ge $maxAttempts) {
-            Write-Error "Timeout in attesa di Success"
+            Write-Error "Timeout in attesa di Success (tentativi: $maxAttempts)"
             exit 1
           }
 
       # -----------------------------------------------------------------
-      # 3️⃣  Verifica finale
+      # 3) Verifica finale
       # -----------------------------------------------------------------
       - name: Controllo successo Codex
         id: check_success
         run: |
-          if (Get-Content C:\actions-runner\repo\Turni-di-Palco\codex.log |
-              Select-String -Pattern "Success" -SimpleMatch -Quiet) {
-            echo "status=Success" >> $GITHUB_OUTPUT
+          $logPath = Join-Path $PWD 'codex.log'
+
+          if (-not (Test-Path $logPath)) {
+            Write-Error "Log codex non trovato: $logPath"
+            exit 1
+          }
+
+          if (Get-Content $logPath | Select-String -Pattern "Success" -SimpleMatch -Quiet) {
+            "status=Success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           } else {
-            echo "status=Failure" >> $GITHUB_OUTPUT
+            "status=Failure" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             exit 1
           }
