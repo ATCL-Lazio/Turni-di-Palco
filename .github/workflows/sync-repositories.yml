@@ -32,7 +32,7 @@ jobs:
           )
           $prompt = $promptLines -join [Environment]::NewLine
 
-          $prompt | codex --ask-for-approval=never
+          codex $prompt --ask-for-approval=never | Out-File -FilePath codex.log -Encoding utf8
 
       # -----------------------------------------------------------------
       # 2) Attesa della risposta "Success" nel log
