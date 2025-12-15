@@ -12,12 +12,6 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          repository: Turni-di-Palco-UI
-          path: ui-repo
-
       # -----------------------------------------------------------------
       # 1️⃣  Avvio Codex con permessi già impostati
       # -----------------------------------------------------------------
