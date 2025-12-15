@@ -36,11 +36,11 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
 
       {/* Action Buttons */}
       <div className="w-full max-w-md animate-slide-up flex flex-col items-center justify-center gap-4">
-        <Button variant="primary" size="lg" fullWidth onClick={onStart} style={{ maxWidth: "400px", margin: "0 20px" }}>
+        <Button variant="primary" size="lg" fullWidth onClick={onStart} className="welcome-button-primary">
           Inizia
         </Button>
 
-        <Button variant="secondary" size="lg" fullWidth onClick={onLogin} style={{ maxWidth: "400px", margin: "auto 0 20px" }}>
+        <Button variant="secondary" size="lg" fullWidth onClick={onLogin} className="welcome-button-secondary">
           Accedi
         </Button>
       </div>
