@@ -1,0 +1,64 @@
+name: Update Server Repository
+
+on:
+    push:
+        branches: [ main ]
+    workflow_dispatch:
+
+jobs:
+  copy-from-ui-to-repo:
+    runs-on: [self-hosted, Windows, X64]
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          repository: Turni-di-Palco-UI
+          path: ui-repo
+
+      # -----------------------------------------------------------------
+      # 1️⃣  Avvio Codex con permessi già impostati
+      # -----------------------------------------------------------------
+      - name: Prompting Codex
+        run: |
+          # Avvia Codex con modalità "auto" (può leggere/scrivere file locali)
+          codex --ask-for-approval=auto <<'EOF'
+          Ci sono delle modifiche che ho fatto nella repo Turni-di-Palco-UI,
+          vorrei che tu le portassi nella repository principale Turni-di-Palco,
+          quando hai finito invia un messaggio che il sistema del workflow possa
+          riconoscere: "Success".
+          EOF
+
+      # -----------------------------------------------------------------
+      # 2️⃣  Attesa della risposta “Success” nel log
+      # -----------------------------------------------------------------
+      - name: Attesa risposta Codex
+        id: wait_codex
+        run: |
+          $maxAttempts = 30
+          $attempt = 0
+          while (-not (Get-Content C:\actions-runner\repo\Turni-di-Palco\codex.log |
+                        Select-String -Pattern "Success" -SimpleMatch -Quiet) -and $attempt -lt $maxAttempts) {
+            Start-Sleep -Seconds 1
+            $attempt++
+          }
+          if ($attempt -ge $maxAttempts) {
+            Write-Error "Timeout in attesa di Success"
+            exit 1
+          }
+
+      # -----------------------------------------------------------------
+      # 3️⃣  Verifica finale
+      # -----------------------------------------------------------------
+      - name: Controllo successo Codex
+        id: check_success
+        run: |
+          if (Get-Content C:\actions-runner\repo\Turni-di-Palco\codex.log |
+              Select-String -Pattern "Success" -SimpleMatch -Quiet) {
+            echo "status=Success" >> $GITHUB_OUTPUT
+          } else {
+            echo "status=Failure" >> $GITHUB_OUTPUT
+            exit 1
+          }
