@@ -28,12 +28,13 @@ jobs:
             exit 1
           }
 
-          $prompt = @'
-Ci sono delle modifiche che ho fatto nella repo Turni-di-Palco-UI,
-vorrei che tu le portassi nella repository principale Turni-di-Palco,
-quando hai finito invia un messaggio che il sistema del workflow possa
-riconoscere: "Success".
-'@
+          $promptLines = @(
+            'Ci sono delle modifiche che ho fatto nella repo Turni-di-Palco-UI,'
+            'vorrei che tu le portassi nella repository principale Turni-di-Palco,'
+            'quando hai finito invia un messaggio che il sistema del workflow possa'
+            'riconoscere: "Success".'
+          )
+          $prompt = $promptLines -join [Environment]::NewLine
 
           $prompt | codex --ask-for-approval=auto
 
