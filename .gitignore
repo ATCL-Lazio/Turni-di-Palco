@@ -1,6 +1,6 @@
 # Dependencies & build output
-node_modules/
-dist/
+**/node_modules/
+**/dist/
 
 # IDE / editor
 .DS_Store
