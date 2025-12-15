@@ -9,7 +9,7 @@ Monorepo per PWA, mobile UI e CMS. La PWA è sviluppata con Vite/TypeScript ed �
 - Build: `npm run build:pwa` → output in `apps/pwa/dist`.
 - Preview: `npm run preview:pwa`.
 - Test: `npm run test:pwa` (Vitest placeholder).
-- Mobile bundle: `npm run build:mobile` e copia in PWA con `npm run sync:mobile` (oppure `npm run build:mobile:copy` per build+sync).
+- Mobile bundle: `npm run build:mobile` (build + copia in `apps/pwa/public/mobile/`); solo copia: `npm run sync:mobile`.
 
 ## Struttura
 - `apps/pwa`: PWA Vite multipage. HTML in root package, sorgenti in `src/`, asset in `public/` (include `public/mobile/` con bundle mobile e `public/sw.js`).
