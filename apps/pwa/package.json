@@ -1,0 +1,25 @@
+{
+  "name": "turni-di-palco-pwa",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:https": "cross-env HTTPS=true vite --host 0.0.0.0 --port 5173 --strictPort --clearScreen false",
+    "build": "vite build",
+    "preview": "vite preview",
+    "preview:https": "cross-env HTTPS=true vite preview --host 0.0.0.0 --port 4173 --strictPort --clearScreen false",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.8",
+    "vitest": "^2.1.2"
+  },
+  "dependencies": {
+    "@types/leaflet": "^1.9.21",
+    "leaflet": "^1.9.4"
+  }
+}
