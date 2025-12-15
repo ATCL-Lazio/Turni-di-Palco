@@ -3,7 +3,7 @@ const path = require("path");
 
 async function main() {
   const root = path.resolve(__dirname, "..");
-  const source = path.join(root, "UI", "build");
+  const source = path.join(root, "apps", "mobile", "build");
   const destination = path.join(root, "apps", "pwa", "public", "mobile");
 
   try {
