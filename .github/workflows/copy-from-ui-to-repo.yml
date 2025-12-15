@@ -11,13 +11,8 @@ jobs:
     defaults:
       run:
         shell: powershell
-        working-directory: ${{ github.workspace }}
+        working-directory: C:\actions-runner\repo\Turni-di-Palco
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: true
-
       # -----------------------------------------------------------------
       # 1) Avvio Codex con permessi gia impostati
       # -----------------------------------------------------------------
