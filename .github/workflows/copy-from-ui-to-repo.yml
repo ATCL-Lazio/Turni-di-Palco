@@ -1,4 +1,4 @@
-name: Update Server Repository
+name: Sync Repositories
 
 on:
     push:
@@ -6,7 +6,7 @@ on:
     workflow_dispatch:
 
 jobs:
-  copy-from-ui-to-repo:
+  sync-repositories:
     runs-on: [self-hosted, Windows, X64]
     defaults:
       run:
