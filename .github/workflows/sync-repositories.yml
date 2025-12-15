@@ -13,10 +13,6 @@ jobs:
         shell: powershell
         working-directory: ${{ github.workspace }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: true
 
       # -----------------------------------------------------------------
       # 1) Avvio Codex con permessi gia impostati
