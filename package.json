@@ -2,7 +2,8 @@
   "name": "turni-di-palco-monorepo",
   "private": true,
   "workspaces": [
-    "apps/pwa"
+    "apps/pwa",
+    "apps/mobile"
   ],
   "scripts": {
     "dev:pwa": "npm --workspace apps/pwa run dev",
@@ -10,7 +11,8 @@
     "build:pwa": "npm --workspace apps/pwa run build",
     "preview:pwa": "npm --workspace apps/pwa run preview",
     "test:pwa": "npm --workspace apps/pwa run test",
-    "build:mobile": "npm --prefix UI run build",
+    "dev:mobile": "npm --workspace apps/mobile run dev",
+    "build:mobile": "npm --workspace apps/mobile run build",
     "sync:mobile": "node tools/sync-mobile.js",
     "build:mobile:copy": "npm run build:mobile && npm run sync:mobile"
   }
