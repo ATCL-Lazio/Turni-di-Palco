@@ -3,16 +3,17 @@
 Monorepo per PWA, mobile UI e CMS. La PWA è sviluppata con Vite/TypeScript ed è ora sotto `apps/pwa`. La mobile UI resta nel submodule `UI`.
 
 ## Quick start (PWA)
-- Installa dipendenze: `npm install` (root, usa workspaces).
+- Installa dipendenze: `npm install` (root, usa workspaces per la PWA; genera lockfile unico).
 - Avvia dev (HTTP): `npm run dev:pwa` (http://localhost:5173).
 - Avvia dev (HTTPS): `npm run dev:pwa:https` con variabili `SSL_CRT_FILE`/`SSL_KEY_FILE` (vedi `run.ps1`/`run.bat`).
 - Build: `npm run build:pwa` → output in `apps/pwa/dist`.
 - Preview: `npm run preview:pwa`.
 - Test: `npm run test:pwa` (Vitest placeholder).
+- Mobile bundle: `npm run build:mobile` e copia in PWA con `npm run sync:mobile` (oppure `npm run build:mobile:copy` per build+sync).
 
 ## Struttura
 - `apps/pwa`: PWA Vite multipage. HTML in root package, sorgenti in `src/`, asset in `public/` (include `public/mobile/` con bundle mobile e `public/sw.js`).
-- `UI`: submodule mobile UI (build Vite/React) – fonte degli asset copiati in `apps/pwa/public/mobile/`.
+- `UI`: submodule mobile UI (build Vite/React) – fonte degli asset copiati in `apps/pwa/public/mobile/` via script.
 - `reactbricks`: sorgente CMS (da pulire, non ancora workspace).
 - `docs and references/`: PDF di design/GDD.
 
