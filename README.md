@@ -1,38 +1,27 @@
-# Turni di Palco – PWA base
+# Turni di Palco – Monorepo
 
-Starter Progressive Web App shell for Turni di Palco with Vite and TypeScript. It includes an installable manifest, a custom service worker for offline support, and a lightweight landing UI to wire future gameplay into.
+Monorepo per PWA, mobile UI e CMS. La PWA è sviluppata con Vite/TypeScript ed è ora sotto `apps/pwa`. La mobile UI resta nel submodule `UI`.
 
-## Quick start
-- Install dependencies: `npm install`
-- Run locally (HTTP): `npm run dev` (defaults to `http://localhost:5173`, network-hosted for device testing)
-- Run locally with HTTPS:
-  - Consigliato: genera un certificato fidato con `mkcert` (per iOS/Android):
-    ```
-    mkcert dev.localhost
-    $env:SSL_CRT_FILE="$(Resolve-Path ./dev.localhost.pem)"
-    $env:SSL_KEY_FILE="$(Resolve-Path ./dev.localhost-key.pem)"
-    $env:HTTPS="true"
-    npm run dev:https
-    ```
-    Apri l’URL “Network” stampato da Vite (es. `https://dev.localhost:5173`) e installa/accetta il certificato anche sul device.
-  - Rapido (cert non fidato): `npm run dev:https` e accetta l’avviso.
-- Build: `npm run build` → outputs to `dist/`
-- Preview built app (HTTP): `npm run preview`
-- Preview with HTTPS: `npm run preview:https` (rispetta `SSL_CRT_FILE`/`SSL_KEY_FILE` se presenti)
-- Tests: `npm test` (Vitest, currently placeholder setup)
+## Quick start (PWA)
+- Installa dipendenze: `npm install` (root, usa workspaces).
+- Avvia dev (HTTP): `npm run dev:pwa` (http://localhost:5173).
+- Avvia dev (HTTPS): `npm run dev:pwa:https` con variabili `SSL_CRT_FILE`/`SSL_KEY_FILE` (vedi `run.ps1`/`run.bat`).
+- Build: `npm run build:pwa` → output in `apps/pwa/dist`.
+- Preview: `npm run preview:pwa`.
+- Test: `npm run test:pwa` (Vitest placeholder).
 
-## Structure
-- `index.html`: App shell entry with manifest links and theme color.
-- `src/`: TypeScript source (`main.ts` bootstraps UI, `pwa/register-sw.ts` handles service worker lifecycle, `style.css` defines the base look). Add gameplay modules here.
-- `public/`: Static assets copied as-is (`manifest.webmanifest`, `sw.js`, PWA icons in `public/icons/`).
-- `docs and references/`: Existing design and GDD PDFs (kept untouched).
+## Struttura
+- `apps/pwa`: PWA Vite multipage. HTML in root package, sorgenti in `src/`, asset in `public/` (include `public/mobile/` con bundle mobile e `public/sw.js`).
+- `UI`: submodule mobile UI (build Vite/React) – fonte degli asset copiati in `apps/pwa/public/mobile/`.
+- `reactbricks`: sorgente CMS (da pulire, non ancora workspace).
+- `docs and references/`: PDF di design/GDD.
 
 ## PWA notes
-- Service worker (`public/sw.js`) pre-caches the shell and caches fetched assets on first use; updates trigger a “Reload for updates” CTA.
-- Manifest (`public/manifest.webmanifest`) sets name, colors, start URL, and icons for install prompts.
-- Icons (`public/icons/pwa-192.png`, `pwa-512.png`) are placeholders—replace with final branding when available.
+- Service worker: `apps/pwa/public/sw.js` pre-cacha shell/offline, bump `CACHE_NAME` per invalidare.
+- Manifest: `apps/pwa/public/manifest.webmanifest`.
+- Icone: `apps/pwa/public/icons/pwa-192.png`, `pwa-512.png` (placeholder).
 
-## Next steps
-- Add gameplay UI modules under `src/` and route to them from `main.ts`.
-- Expand tests in `src/test/` for core logic and offline behaviour.
-- Consider adding lint/format tooling (ESLint/Prettier) and CI scripts once the codebase grows.
+## Prossimi passi
+- Allineare il workflow CI/CD ai workspaces (build PWA + copia mobile dal submodule).
+- Aggiungere lint/format e test reali.
+- Ripulire/integrare `reactbricks` come workspace separato.
