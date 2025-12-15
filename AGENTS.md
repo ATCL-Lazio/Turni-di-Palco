@@ -9,7 +9,7 @@
 ## Build, Test, and Development Commands
 - Install deps (workspaces per PWA): `npm install` (Node 18+; repo attuale Node 22.14.0).
 - PWA: `npm run dev:pwa` / `npm run dev:pwa:https`, build `npm run build:pwa`, preview `npm run preview:pwa`, test `npm run test:pwa` (setup in `apps/pwa/src/test/setup.ts`).
-- Mobile UI (submodule `UI`): `npm --prefix UI run dev|build`; copia il bundle in `apps/pwa/public/mobile/` con `npm run sync:mobile` (oppure `npm run build:mobile:copy` per build+sync).
+- Mobile UI (submodule `UI`): `npm --prefix UI run dev|build`; `npm run build:mobile` esegue build+copy in `apps/pwa/public/mobile/` (solo copia: `npm run sync:mobile`).
 - Keep lockfiles committed. Prefer deterministic scripts (fixed seeds, headless-friendly).
 
 ## Coding Style & Naming Conventions
