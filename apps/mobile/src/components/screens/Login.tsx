@@ -33,7 +33,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
   
   return (
     <div className="min-h-screen bg-[#0f0d0e] p-6 pb-20">
-      <div className="w-full max-w-md mx-auto">
+      <div className="max-w-md mx-auto">
         {/* Header */}
         <button 
           onClick={onBack}
