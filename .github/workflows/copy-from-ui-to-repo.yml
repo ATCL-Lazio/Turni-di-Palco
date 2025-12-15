@@ -36,7 +36,7 @@ jobs:
           )
           $prompt = $promptLines -join [Environment]::NewLine
 
-          $prompt | codex --ask-for-approval=auto
+          $prompt | codex --ask-for-approval=never
 
       # -----------------------------------------------------------------
       # 2) Attesa della risposta "Success" nel log
