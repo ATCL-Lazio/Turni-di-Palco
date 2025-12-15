@@ -182,4 +182,8 @@ small {
   .welcome-button-secondary {
     margin: 0 auto;
   }
+
+  .welcome-button-secondary {
+    margin-bottom: 20px;
+  }
 }
