@@ -11,6 +11,8 @@
     "build:pwa": "npm --workspace apps/pwa run build",
     "preview:pwa": "npm --workspace apps/pwa run preview",
     "test:pwa": "npm --workspace apps/pwa run test",
+    "lint": "npm --workspace apps/pwa run lint",
+    "format": "npm --workspace apps/pwa run format",
     "dev:mobile": "npm --workspace apps/mobile run dev",
     "build:mobile": "npm --workspace apps/mobile run build && npm run sync:mobile",
     "sync:mobile": "node tools/sync-mobile.js"
