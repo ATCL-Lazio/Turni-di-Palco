@@ -1,5 +1,4 @@
-import "./styles/tokens.css";
-import "./style.css";
+import "../../../shared/styles/main.css";
 import { registerServiceWorker } from "./pwa/register-sw";
 import { renderAppBar } from "./components/app-bar";
 
