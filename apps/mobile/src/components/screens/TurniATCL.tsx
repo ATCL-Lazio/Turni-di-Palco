@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { QrCode, MapPin, Calendar, TrendingUp, Theater } from 'lucide-react';
 import { TurnRecord, RoleId, roles } from '../../state/store';
