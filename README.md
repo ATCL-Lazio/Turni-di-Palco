@@ -21,6 +21,8 @@ Monorepo per PWA, mobile UI e CMS. La PWA Ã¨ sviluppata con Vite/TypeScript ed Ã
 - Service worker: `apps/pwa/public/sw.js` pre-cacha shell/offline. `npm run build:pwa` esegue `node tools/update-cache-version.js` per calcolare l'hash degli asset core (`apps/pwa/public/**`, escluso `sw.js`) e aggiornare `CACHE_NAME` (rinomina in base all'hash). Puoi lanciare lo script manualmente quando modifichi asset statici per forzare l'update della cache.
 - Manifest: `apps/pwa/public/manifest.webmanifest`.
 - Icone: `apps/pwa/public/icons/pwa-192.png`, `pwa-512.png` (placeholder).
+- Design tokens: `apps/pwa/src/styles/tokens.css` centralizza palette, scala tipografica e spaziature (include gradient brand e superfici chip/pill). Importa il file prima di `style.css` negli entry Vite.
+- Temi: le pagine espongono `data-theme` sul `<body>` (default `dark`, alternativa `light`) e i componenti leggono le CSS custom properties; sincronizza il meta `theme-color` con il colore di base del tema attivo.
 
 ## Prossimi passi
 - Allineare il workflow CI/CD ai workspaces (build PWA + copia mobile dal submodule).
