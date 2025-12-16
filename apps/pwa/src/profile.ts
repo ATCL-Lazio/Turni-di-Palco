@@ -8,8 +8,8 @@ if (!root) {
 }
 
 root.innerHTML = `
-  <main class="page page-game">
-    <header class="hero">
+  <main class="page page-game layout-shell">
+    <header class="hero layout-stack">
       <p class="eyebrow">Turni di Palco</p>
       <h1>Profilo</h1>
       <p class="lede">Stato giocatore, avatar e riepilogo recente.</p>
@@ -22,8 +22,8 @@ root.innerHTML = `
       </div>
     </header>
 
-    <section class="grid">
-      <article class="card span-2">
+    <section class="grid layout-grid">
+      <article class="card layout-span-2">
         <h2>Stato giocatore</h2>
         <div class="profile-pane">
           <div class="avatar-display large" data-avatar="profile">
