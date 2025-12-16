@@ -18,7 +18,7 @@ Monorepo per PWA, mobile UI e CMS. La PWA Ã¨ sviluppata con Vite/TypeScript ed Ã
 - `docs and references/`: PDF di design/GDD.
 
 ## PWA notes
-- Service worker: `apps/pwa/public/sw.js` pre-cacha shell/offline, bump `CACHE_NAME` per invalidare.
+- Service worker: `apps/pwa/public/sw.js` pre-cacha shell/offline. `npm run build:pwa` esegue `node tools/update-cache-version.js` per calcolare l'hash degli asset core (`apps/pwa/public/**`, escluso `sw.js`) e aggiornare `CACHE_NAME` (rinomina in base all'hash). Puoi lanciare lo script manualmente quando modifichi asset statici per forzare l'update della cache.
 - Manifest: `apps/pwa/public/manifest.webmanifest`.
 - Icone: `apps/pwa/public/icons/pwa-192.png`, `pwa-512.png` (placeholder).
 
