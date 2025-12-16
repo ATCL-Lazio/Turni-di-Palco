@@ -8,7 +8,7 @@
   "scripts": {
     "dev:pwa": "npm --workspace apps/pwa run dev",
     "dev:pwa:https": "npm --workspace apps/pwa run dev:https",
-    "build:pwa": "npm --workspace apps/pwa run build",
+    "build:pwa": "node tools/update-cache-version.js && npm --workspace apps/pwa run build",
     "preview:pwa": "npm --workspace apps/pwa run preview",
     "test:pwa": "npm --workspace apps/pwa run test",
     "dev:mobile": "npm --workspace apps/mobile run dev",
