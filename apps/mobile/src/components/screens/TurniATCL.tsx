@@ -38,17 +38,90 @@ export function TurniATCL({ turns, onScanQR }: TurniATCLProps) {
       
       {/* Main Content */}
       <div className="w-full max-w-md mx-auto px-6 space-y-6 pt-6 pb-8">
-        {/* Scan Button */}
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          onClick={onScanQR}
-          style={{ padding: "0 5px" }}
+        {/* QR Scan Card */}
+        <Card
+          style={{
+            backgroundColor: 'rgb(26, 22, 23)',
+            backgroundImage: 'linear-gradient(to right in oklab, rgb(140, 28, 56) 0%, rgb(168, 40, 71) 100%)',
+            borderColor: 'oklab(0.832337 0.0168459 0.13923 / 0.3)',
+            borderRadius: '16.4px',
+            borderWidth: '1px',
+            boxShadow: 'rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.1) 0px 2px 4px -2px',
+            transitionDuration: '0.2s',
+            transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+            position: 'relative',
+          }}
         >
-          <QrCode size={20} />
-          Registra nuovo turno (Scansiona QR)
-        </Button>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                backgroundColor: 'rgb(244, 191, 79)',
+                borderRadius: '16.4px',
+                height: '48px',
+                justifyContent: 'center',
+                width: '48px',
+                margin: '5px 0 5px 5px',
+              }}
+            >
+              <QrCode size={24} style={{ color: 'rgb(45, 10, 15)' }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <button
+                onClick={onScanQR}
+                style={{
+                  display: 'inline-block',
+                  color: 'rgb(255, 255, 255)',
+                  textAlign: 'left',
+                  width: '100%',
+                  backgroundColor: 'rgba(0, 0, 0, 0)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '0',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div>
+                    <div style={{ lineHeight: '25.6px', fontWeight: '400' }}>Scansiona QR</div>
+                    <div style={{ lineHeight: '25.6px', fontWeight: '400' }}>Registra un turno dal biglietto</div>
+                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{
+                      display: 'block',
+                      stroke: 'rgb(255, 255, 255)',
+                      flex: 'none',
+                    }}
+                  >
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </div>
+              </button>
+            </div>
+          </div>
+        </Card>
         
         {/* Stats Summary */}
         <Card>
