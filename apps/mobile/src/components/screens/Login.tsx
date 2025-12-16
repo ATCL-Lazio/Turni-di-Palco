@@ -53,6 +53,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           error={errors.email}
+          autoComplete="email"
         />
 
         <Input
@@ -62,6 +63,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
+          autoComplete="current-password"
         />
 
         <div className="text-right">
