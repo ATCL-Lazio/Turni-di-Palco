@@ -22,6 +22,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Terminate lingering esbuild processes
+        run: Get-Process esbuild -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+
       - name: Clean existing node_modules
         run: |
           Get-ChildItem -Path . -Filter node_modules -Directory -Recurse -ErrorAction SilentlyContinue |
