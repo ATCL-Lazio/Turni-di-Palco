@@ -1,5 +1,4 @@
-import "./styles/tokens.css";
-import "./style.css";
+import "../../../shared/styles/main.css";
 import { registerServiceWorker } from "./pwa/register-sw";
 import L, { Map as LeafletMap, LayerGroup } from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -192,8 +191,7 @@ function renderEvents() {
   eventList.innerHTML = mockEvents
     .map(
       (item) =>
-        `<li><div><strong>${item.name}</strong> - ${item.theatre}</div><div class="muted">${item.date} | Focus: ${
-          item.focusRole ? resolveRole(item.focusRole).name : "Any"
+        `<li><div><strong>${item.name}</strong> - ${item.theatre}</div><div class="muted">${item.date} | Focus: ${item.focusRole ? resolveRole(item.focusRole).name : "Any"
         }</div></li>`
     )
     .join("");
@@ -233,8 +231,7 @@ function renderMapMarkers() {
   const bounds: L.LatLngExpression[] = [];
   mockEvents.forEach((event) => {
     const marker = L.marker([event.lat, event.lng], { icon: markerIcon }).bindPopup(
-      `<strong>${event.name}</strong><br/>${event.theatre}<br/>${event.date}<br/>Focus: ${
-        event.focusRole ? resolveRole(event.focusRole).name : "Any"
+      `<strong>${event.name}</strong><br/>${event.theatre}<br/>${event.date}<br/>Focus: ${event.focusRole ? resolveRole(event.focusRole).name : "Any"
       }`
     );
     markerLayer.addLayer(marker);
