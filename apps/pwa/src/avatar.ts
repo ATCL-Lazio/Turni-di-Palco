@@ -13,8 +13,8 @@ if (!root) {
 }
 
 root.innerHTML = `
-  <main class="page page-game">
-    <header class="hero">
+  <main class="page page-game layout-shell">
+    <header class="hero layout-stack">
       <p class="eyebrow">Turni di Palco</p>
       <h1>Avatar ReadyPlayer.Me</h1>
       <p class="lede">Crea o aggiorna il tuo avatar 3D. Il risultato verrà salvato nel profilo e usato nelle altre pagine.</p>
@@ -26,8 +26,8 @@ root.innerHTML = `
       </div>
     </header>
 
-    <section class="grid">
-      <article class="card span-2">
+    <section class="grid layout-grid">
+      <article class="card layout-span-2">
         <h2>Editor ReadyPlayer.Me</h2>
         <div class="rpm-frame">
           <iframe title="ReadyPlayer.Me avatar" data-rpm-frame src="${RPM_SRC}" allow="camera *; microphone *" referrerpolicy="no-referrer"></iframe>
