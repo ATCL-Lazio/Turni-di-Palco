@@ -48,7 +48,6 @@
     "vaul": "^1.1.2"
   },
   "devDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.53.4",
     "@types/node": "^20.10.0",
     "@vitejs/plugin-react-swc": "^3.10.2",
     "rollup": "^4.53.4",
