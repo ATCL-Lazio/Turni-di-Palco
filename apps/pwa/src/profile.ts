@@ -1,5 +1,4 @@
-import "./styles/tokens.css";
-import "./style.css";
+import "../../../shared/styles/main.css";
 import { formatRewards, getAvatarVisual, loadState, resolveRole } from "./state";
 
 const root = document.querySelector<HTMLDivElement>("#app");
