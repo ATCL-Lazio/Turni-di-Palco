@@ -6,7 +6,7 @@ import { Tag } from '../ui/Tag';
 import { MetricTile } from '../ui/MetricTile';
 import { Skeleton } from '../ui/skeleton';
 import { Button } from '../ui/Button';
-import { Play, Calendar, TrendingUp, Award, MapPin, Clock, Navigation, CalendarPlus, X, Bell } from 'lucide-react';
+import { Play, Calendar, TrendingUp, Award, MapPin, Clock, Navigation, CalendarPlus, X, Bell, ChevronRight } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { GameEvent } from '../../state/store';
 import { ScanQRCard } from '../ScanQRCard';

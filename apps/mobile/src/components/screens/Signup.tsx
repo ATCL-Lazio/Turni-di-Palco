@@ -58,6 +58,7 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           error={errors.name}
+          autoComplete="name"
         />
         
         <Input
@@ -67,6 +68,7 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           error={errors.email}
+          autoComplete="email"
         />
         
         <Input
@@ -77,6 +79,7 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
           helperText="Almeno 8 caratteri"
+          autoComplete="new-password"
         />
         
         <Input
@@ -86,6 +89,7 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           error={errors.confirmPassword}
+          autoComplete="new-password"
         />
         
         <div className="flex items-start gap-3">
