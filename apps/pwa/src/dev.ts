@@ -1,5 +1,6 @@
 import "./style.css";
 import { registerServiceWorker } from "./pwa/register-sw";
+import { renderAppBar } from "./components/app-bar";
 import {
   AvatarIcon,
   GameState,
@@ -47,6 +48,15 @@ const devEvents: DevEvent[] = [
     focusRole: "luci",
   },
 ];
+
+const devNav = [
+  { label: "Landing", href: "/", icon: "🏠" },
+  { label: "Hub", href: "/game.html", icon: "🎛️" },
+  { label: "Mappa", href: "/map.html", icon: "🗺️" },
+  { label: "Avatar", href: "/avatar.html", icon: "🧑" },
+];
+
+const devAppBar = renderAppBar({ eyebrow: "Turni di Palco", subtitle: "Dev playground", actions: devNav });
 
 const activities: Activity[] = [
   {
@@ -117,22 +127,8 @@ if (!root) {
 }
 
 root.innerHTML = `
-  <main class="page layout-shell">
-    <header class="app-bar">
-      <div class="app-brand">
-        <span class="brand-mark">TdP</span>
-        <div>
-          <p class="eyebrow">Turni di Palco</p>
-          <p class="muted tiny">Dev playground</p>
-        </div>
-      </div>
-      <div class="chip-row">
-        <a class="chip" href="/">Landing</a>
-        <a class="chip" href="/game.html">Hub</a>
-        <a class="chip" href="/map.html">Mappa</a>
-        <a class="chip" href="/avatar.html">Avatar</a>
-      </div>
-    </header>
+  <main class="page">
+    ${devAppBar}
 
     <section class="hero layout-stack" id="dev">
       <p class="eyebrow">Turni di Palco</p>
