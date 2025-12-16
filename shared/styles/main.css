@@ -1,4 +1,196 @@
 
+/* Source: globals.css */
+
+
+/* Design System Tokens */
+:root {
+  /* Colors - Theatre Inspired */
+  --color-burgundy-950: #2d0a0f;
+  --color-burgundy-900: #4a0e1a;
+  --color-burgundy-800: #6b1529;
+  --color-burgundy-700: #8c1c38;
+  --color-burgundy-600: #a82847;
+  --color-burgundy-500: #c23456;
+  
+  --color-gold-400: #f4bf4f;
+  --color-gold-500: #e6a23c;
+  --color-gold-600: #d48806;
+  
+  /* Neutrals - Dark Theme */
+  --color-bg-primary: #0f0d0e;
+  --color-bg-surface: #1a1617;
+  --color-bg-surface-elevated: #241f20;
+  --color-bg-surface-hover: #2d2728;
+  
+  --color-text-primary: #f5f5f5;
+  --color-text-secondary: #b8b2b3;
+  --color-text-tertiary: #7a7577;
+  
+  /* Semantic Colors */
+  --color-success: #52c41a;
+  --color-error: #ff4d4f;
+  --color-warning: #faad14;
+  
+  /* Spacing Scale */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  
+  /* Border Radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+}
+
+/* Reset & Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Inter', system-ui, sans-serif;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography Scale */
+h1 {
+  font-size: 2rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+h3 {
+  font-size: 1.25rem;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+h4 {
+  font-size: 1.125rem;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+p {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+small {
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-bg-surface-hover);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}
+
+/* Accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-gold-400);
+  outline-offset: 2px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+/* Welcome Screen Button Styles */
+.welcome-button-primary {
+  max-width: 400px;
+  margin: 0 20px;
+}
+
+.welcome-button-secondary {
+  max-width: 400px;
+  margin: auto 0 20px;
+}
+
+@media (max-width: 640px) {
+  .welcome-button-primary,
+  .welcome-button-secondary {
+    margin: 0 auto;
+  }
+
+  .welcome-button-secondary {
+    margin-bottom: 20px;
+  }
+}
+
+
 /* Source: tokens.css */
 :root {
   /* Typography */
@@ -27,33 +219,39 @@
   --space-12: 3rem;
 
   /* Palette */
-  --color-brand-600: #4f86ff;
-  --color-brand-500: #638cff;
-  --color-brand-400: #4eceff;
-  --color-brand-200: #d8e4ff;
-  --color-surface-900: #05070d;
-  --color-surface-800: #0b1021;
-  --color-surface-700: #04070f;
-  --color-ink: #0b1021;
-  --color-neutral-50: #f8fafc;
-  --color-neutral-100: #e9edf5;
-  --color-neutral-200: #e5e7eb;
-  --color-neutral-250: #cad3e0;
+  /* Palette - Mapped to Theatre Theme (Mobile) */
+  --color-brand-600: var(--color-gold-500);
+  --color-brand-500: var(--color-gold-400);
+  --color-brand-400: var(--color-gold-400); /* Fallback/Lighter */
+  --color-brand-200: var(--color-burgundy-900);
+  
+  --color-surface-900: var(--color-bg-primary); 
+  --color-surface-800: var(--color-bg-surface);
+  --color-surface-700: var(--color-bg-surface-elevated);
+  
+  --color-ink: #0b1021; /* Keep or map to text-primary-inverse? */
+  --color-neutral-50: var(--color-text-primary);
+  --color-neutral-100: var(--color-text-primary);
+  --color-neutral-200: var(--color-text-secondary);
+  --color-neutral-250: var(--color-text-tertiary);
   --color-neutral-300: #d1d5db;
   --color-neutral-350: #cbd5e1;
   --color-neutral-375: #cdd8ee;
   --color-neutral-500: #9ca3af;
-  --color-sky-200: #93c5fd;
-  --color-sky-300: #7dd3fc;
-  --color-indigo-200: #a5b4fc;
-  --color-info-50: #dbeafe;
-  --color-info-100: #bfdbfe;
-  --color-success-400: #34d399;
+  
+  --color-sky-200: var(--color-gold-400); /* Eyebrow */
+  --color-sky-300: var(--color-gold-500);
+  --color-indigo-200: var(--color-success); /* Ready state */
+  
+  --color-info-50: var(--color-text-primary);
+  --color-info-100: var(--color-text-secondary);
+  
+  --color-success-400: var(--color-success);
   --color-success-100: #bbf7d0;
-  --color-warning-300: #fcd34d;
-  --color-danger-200: #fda4af;
-  --color-danger-300: #fca5a5;
-  --color-danger-400: #f87171;
+  --color-warning-300: var(--color-warning);
+  --color-danger-200: var(--color-error);
+  --color-danger-300: var(--color-error);
+  --color-danger-400: var(--color-error);
 
   /* Shared gradients & components */
   --gradient-brand: linear-gradient(135deg, var(--color-brand-500), var(--color-brand-400));
