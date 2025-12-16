@@ -5,6 +5,8 @@ import L, { Map as LeafletMap, LayerGroup } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import markerIconPng from "leaflet/dist/images/marker-icon.png";
 import markerShadowPng from "leaflet/dist/images/marker-shadow.png";
+import { renderChip } from "./components/chip";
+import { renderStatPill } from "./components/stat-pill";
 import { formatRewards, getAvatarVisual, loadState, mockEvents, resolveRole, Rewards, saveState } from "./state";
 
 const root = document.querySelector<HTMLDivElement>("#app");
@@ -12,6 +14,18 @@ const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) {
   throw new Error("Root container missing");
 }
+
+const topStatsMarkup = [
+  renderStatPill({ label: "XP", value: 0, size: "sm", icon: "⭐", valueAttributes: { "data-top-stat": "xp" } }),
+  renderStatPill({ label: "Cachet", value: 0, size: "sm", icon: "💰", valueAttributes: { "data-top-stat": "cachet" } }),
+  renderStatPill({ label: "Rep", value: 0, size: "sm", icon: "📣", valueAttributes: { "data-top-stat": "rep" } }),
+].join("");
+
+const drawerTabsMarkup = [
+  renderChip({ label: "Eventi", size: "sm", variant: "ghost", state: "active", dataAttributes: { "drawer-tab": "events" } }),
+  renderChip({ label: "Turni", size: "sm", variant: "ghost", dataAttributes: { "drawer-tab": "turns" } }),
+  renderChip({ label: "Profilo", size: "sm", variant: "ghost", dataAttributes: { "drawer-tab": "profile" } }),
+].join("");
 
 root.innerHTML = `
   <main class="map-app">
@@ -36,11 +50,7 @@ root.innerHTML = `
             <p class="muted tiny" data-chip-role>Ruolo non impostato</p>
           </div>
         </div>
-        <div class="top-stats">
-          <div class="stat-pill"><span>XP</span><strong data-top-stat="xp">0</strong></div>
-          <div class="stat-pill"><span>Cachet</span><strong data-top-stat="cachet">0</strong></div>
-          <div class="stat-pill"><span>Rep</span><strong data-top-stat="rep">0</strong></div>
-        </div>
+        <div class="top-stats">${topStatsMarkup}</div>
         <a class="button ghost" href="/avatar.html">Avatar</a>
         <a class="button ghost" href="/">Landing</a>
         <a class="button ghost" href="/profile.html">Profilo</a>
@@ -62,11 +72,7 @@ root.innerHTML = `
 
     <section class="map-drawer">
       <div class="drawer-header">
-        <div class="drawer-tabs">
-          <button class="chip" data-drawer-tab="events">Eventi</button>
-          <button class="chip" data-drawer-tab="turns">Turni</button>
-          <button class="chip" data-drawer-tab="profile">Profilo</button>
-        </div>
+        <div class="drawer-tabs">${drawerTabsMarkup}</div>
         <div class="stat-board compact">
           <div class="stat-chip">
             <span>XP</span>
@@ -243,7 +249,9 @@ function renderMapMarkers() {
 
 function setDrawer(sectionId: "events" | "turns" | "profile") {
   drawerTabs.forEach((tab) => {
-    tab.classList.toggle("active", tab.dataset.drawerTab === sectionId);
+    const isActive = tab.dataset.drawerTab === sectionId;
+    tab.classList.toggle("active", isActive);
+    tab.dataset.state = isActive ? "active" : "default";
   });
   drawerSections.forEach((section) => {
     section.classList.toggle("active", section.dataset.section === sectionId);
