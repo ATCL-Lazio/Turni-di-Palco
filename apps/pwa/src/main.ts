@@ -1,5 +1,15 @@
 import "./style.css";
 import { registerServiceWorker } from "./pwa/register-sw";
+import { renderAppBar } from "./components/app-bar";
+
+const mainNav = [
+  { label: "Home", href: "#hero", state: "active" as const },
+  { label: "Permessi", href: "#permissions" },
+  { label: "Dev playground", href: "/dev.html", icon: "🛠️" },
+  { label: "Pagina gioco", href: "/game.html", icon: "🎮" },
+];
+
+const appBar = renderAppBar({ eyebrow: "Turni di Palco", subtitle: "PWA shell", actions: mainNav });
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
@@ -9,21 +19,7 @@ if (!root) {
 
 root.innerHTML = `
   <main class="page">
-    <header class="app-bar">
-      <div class="app-brand">
-        <span class="brand-mark">TdP</span>
-        <div>
-          <p class="eyebrow">Turni di Palco</p>
-          <p class="muted tiny">PWA shell</p>
-        </div>
-      </div>
-      <div class="chip-row">
-        <a class="chip" href="#hero">Home</a>
-        <a class="chip" href="#permissions">Permessi</a>
-        <a class="chip" href="/dev.html">Dev playground</a>
-        <a class="chip" href="/game.html">Pagina gioco</a>
-      </div>
-    </header>
+    ${appBar}
 
     <section class="hero" id="hero">
       <p class="eyebrow">Turni di Palco</p>
