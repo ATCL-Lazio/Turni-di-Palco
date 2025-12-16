@@ -8,7 +8,7 @@ if (!root) {
 }
 
 root.innerHTML = `
-  <main class="page">
+  <main class="page layout-shell">
     <header class="app-bar">
       <div class="app-brand">
         <span class="brand-mark">TdP</span>
@@ -25,7 +25,7 @@ root.innerHTML = `
       </div>
     </header>
 
-    <section class="hero" id="hero">
+    <section class="hero layout-stack" id="hero">
       <p class="eyebrow">Turni di Palco</p>
       <h1>Progressive Web App base</h1>
       <p class="lede">
@@ -49,7 +49,7 @@ root.innerHTML = `
       </div>
     </section>
 
-    <section class="grid">
+    <section class="grid layout-grid">
       <article class="card">
         <h2>App shell</h2>
         <p>
