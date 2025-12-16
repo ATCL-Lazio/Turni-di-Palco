@@ -130,7 +130,7 @@ root.innerHTML = `
   <main class="page">
     ${devAppBar}
 
-    <section class="hero" id="dev">
+    <section class="hero layout-stack" id="dev">
       <p class="eyebrow">Turni di Palco</p>
       <h1>Dev playground</h1>
       <p class="lede">Profilo, carriera, attivita simulate e registrazione turni di test.</p>
@@ -140,8 +140,8 @@ root.innerHTML = `
       </div>
     </section>
 
-    <section class="grid gameplay">
-      <article class="card span-2">
+    <section class="grid layout-grid gameplay">
+      <article class="card layout-span-2">
         <h2>Profilo giocatore</h2>
         <div class="form-grid" data-form="profile">
           <label class="field">
