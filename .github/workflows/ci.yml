@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate shared CSS
+        run: node tools/bundle-css.js
+
       - name: Run lint
         run: npm run lint
 

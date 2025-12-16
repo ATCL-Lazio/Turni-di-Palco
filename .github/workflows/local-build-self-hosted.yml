@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --omit=optional
 
+      - name: Generate shared CSS
+        run: node tools/bundle-css.js
+
       - name: Build mobile bundle
         run: npm run build:mobile
 
