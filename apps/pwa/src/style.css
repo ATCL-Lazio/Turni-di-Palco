@@ -55,15 +55,6 @@ code {
   font-family: var(--font-family-mono);
 }
 
-.page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--space-12) var(--space-6) calc(var(--space-12) + var(--space-2));
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-
 .map-app {
   position: relative;
   min-height: 100vh;
@@ -347,13 +338,8 @@ code {
 @media (max-width: 960px) {
   .app-stage,
   .app-layout {
-    grid-template-columns: 1fr;
+  grid-template-columns: 1fr;
   }
-}
-
-.map-canvas {
-  width: 100%;
-  height: 100%;
 }
 
 .panel {
