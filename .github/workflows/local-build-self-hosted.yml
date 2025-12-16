@@ -35,10 +35,7 @@ jobs:
         with:
           node-version: 22.14.0
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci --omit=optional
-
+          
       - name: Build mobile bundle
         run: npm run build:mobile
 
