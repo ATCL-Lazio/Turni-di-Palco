@@ -25,33 +25,39 @@
   --space-12: 3rem;
 
   /* Palette */
-  --color-brand-600: #4f86ff;
-  --color-brand-500: #638cff;
-  --color-brand-400: #4eceff;
-  --color-brand-200: #d8e4ff;
-  --color-surface-900: #05070d;
-  --color-surface-800: #0b1021;
-  --color-surface-700: #04070f;
-  --color-ink: #0b1021;
-  --color-neutral-50: #f8fafc;
-  --color-neutral-100: #e9edf5;
-  --color-neutral-200: #e5e7eb;
-  --color-neutral-250: #cad3e0;
+  /* Palette - Mapped to Theatre Theme (Mobile) */
+  --color-brand-600: var(--color-gold-500);
+  --color-brand-500: var(--color-gold-400);
+  --color-brand-400: var(--color-gold-400); /* Fallback/Lighter */
+  --color-brand-200: var(--color-burgundy-900);
+  
+  --color-surface-900: var(--color-bg-primary); 
+  --color-surface-800: var(--color-bg-surface);
+  --color-surface-700: var(--color-bg-surface-elevated);
+  
+  --color-ink: #0b1021; /* Keep or map to text-primary-inverse? */
+  --color-neutral-50: var(--color-text-primary);
+  --color-neutral-100: var(--color-text-primary);
+  --color-neutral-200: var(--color-text-secondary);
+  --color-neutral-250: var(--color-text-tertiary);
   --color-neutral-300: #d1d5db;
   --color-neutral-350: #cbd5e1;
   --color-neutral-375: #cdd8ee;
   --color-neutral-500: #9ca3af;
-  --color-sky-200: #93c5fd;
-  --color-sky-300: #7dd3fc;
-  --color-indigo-200: #a5b4fc;
-  --color-info-50: #dbeafe;
-  --color-info-100: #bfdbfe;
-  --color-success-400: #34d399;
+  
+  --color-sky-200: var(--color-gold-400); /* Eyebrow */
+  --color-sky-300: var(--color-gold-500);
+  --color-indigo-200: var(--color-success); /* Ready state */
+  
+  --color-info-50: var(--color-text-primary);
+  --color-info-100: var(--color-text-secondary);
+  
+  --color-success-400: var(--color-success);
   --color-success-100: #bbf7d0;
-  --color-warning-300: #fcd34d;
-  --color-danger-200: #fda4af;
-  --color-danger-300: #fca5a5;
-  --color-danger-400: #f87171;
+  --color-warning-300: var(--color-warning);
+  --color-danger-200: var(--color-error);
+  --color-danger-300: var(--color-error);
+  --color-danger-400: var(--color-error);
 
   /* Shared gradients & components */
   --gradient-brand: linear-gradient(135deg, var(--color-brand-500), var(--color-brand-400));
