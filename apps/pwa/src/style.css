@@ -1,3 +1,5 @@
+@import "./styles/layout.css";
+
 :root {
   color: #e9edf5;
   background-color: #05070d;
@@ -56,12 +58,12 @@ code {
 }
 
 .page {
-  max-width: 1200px;
+  max-width: var(--layout-max);
   margin: 0 auto;
-  padding: 2.75rem 1.5rem 3.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+  padding: clamp(1.75rem, 3vw + 1.25rem, 3rem) var(--layout-gutter)
+    clamp(2.25rem, 3vw + 1.5rem, 3.5rem);
+  display: grid;
+  gap: var(--layout-gap);
 }
 
 .map-app {
@@ -153,10 +155,18 @@ code {
   color: #e9edf5;
   text-decoration: none;
   font-size: 0.95rem;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease, transform 120ms ease;
 }
 
-.chip:hover {
+.chip:hover,
+.drawer-tabs .chip:hover {
   border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.chip:active,
+.drawer-tabs .chip:active {
+  transform: translateY(1px);
 }
 
 .profile-chip {
@@ -191,7 +201,9 @@ code {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 22px;
-  padding: 1.85rem;
+  padding: clamp(1.35rem, 1vw + 1.45rem, 2.1rem);
+  display: grid;
+  gap: clamp(0.9rem, 0.8vw + 0.6rem, 1.35rem);
   backdrop-filter: blur(18px) saturate(1.35);
   box-shadow:
     0 18px 60px rgba(0, 0, 0, 0.45),
@@ -215,7 +227,7 @@ code {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin: 1.25rem 0;
+  margin: 0.35rem 0 0;
 }
 
 .button {
@@ -228,6 +240,11 @@ code {
   background: rgba(255, 255, 255, 0.06);
   color: #e9edf5;
   backdrop-filter: blur(12px) saturate(1.4);
+}
+
+.button:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
 }
 
 .button:active {
@@ -243,10 +260,27 @@ code {
   border-color: transparent;
 }
 
+.button.primary:hover {
+  filter: brightness(1.05);
+}
+
 .button.ghost {
   background: rgba(255, 255, 255, 0.08);
   color: #dbeafe;
   border-color: rgba(255, 255, 255, 0.14);
+}
+
+.button:focus-visible,
+.chip:focus-visible,
+.drawer-tabs .chip:focus-visible,
+.nav-tabs a:focus-visible {
+  outline: 2px solid rgba(99, 140, 255, 0.85);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(99, 140, 255, 0.25);
+}
+
+.button:focus-visible {
+  border-color: rgba(99, 140, 255, 0.65);
 }
 
 .badges {
@@ -268,30 +302,38 @@ code {
 
 .grid {
   display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--layout-gap);
+  grid-template-columns: repeat(auto-fit, minmax(var(--grid-min), 1fr));
+  align-items: start;
 }
 
 .app-stage {
   display: grid;
-  grid-template-columns: 1.4fr 0.9fr;
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr);
+  gap: var(--layout-gap);
 }
 
 .app-stage .side-stack {
   display: grid;
-  gap: 0.9rem;
+  gap: var(--layout-gap);
 }
 
 .app-layout {
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: var(--layout-gap);
 }
 
 .column {
   display: grid;
-  gap: 1rem;
+  gap: var(--layout-gap);
+}
+
+@media (max-width: 960px) {
+  .app-stage,
+  .app-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .map-canvas {
@@ -838,16 +880,8 @@ code {
 }
 
 @media (max-width: 640px) {
-  .page {
-    padding: 1.5rem 1.25rem 2.5rem;
-  }
-
   .card {
     min-height: auto;
-  }
-
-  .span-2 {
-    grid-column: auto;
   }
 
   .avatar-config {
