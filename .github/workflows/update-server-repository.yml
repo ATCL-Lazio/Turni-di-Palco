@@ -7,30 +7,20 @@ on:
 
 jobs:
     update-server-repo:
-        # Viene eseguito per forzare l'aggiornamento del repository del server
         runs-on: [ self-hosted, Windows, X64 ]
-        defaults:
-            run:
-                shell: powershell
-                working-directory: C:\actions-runner\repo\Turni-di-Palco
-
         steps:
-            - name: Fetch aggiornamenti da origin (main repository)
-              run: |
-                git fetch origin
-                git checkout main
-                git reset --hard origin/main
+            - name: Checkout repository (main + submodules)
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+                submodules: recursive
+                persist-credentials: true
 
-            - name: Forza aggiornamento repository del server (main repository)
+            - name: Sync main and submodules to origin
+              shell: powershell
               run: |
-                git pull origin main --force
-            
-            - name: Fetch aggiornamenti da origin (submodules)
-              run: |
-                git submodule foreach --recursive git fetch origin
-                git submodule foreach --recursive git checkout main
-                git submodule foreach --recursive git reset --hard origin/main
-            
-            - name: Forza aggiornamento repository del server (submodules)
-              run: |
-                    git submodule foreach --recursive git pull origin main --force
+                git checkout main
+                git fetch origin
+                git reset --hard origin/main
+                git submodule sync --recursive
+                git submodule update --init --recursive --force --checkout
