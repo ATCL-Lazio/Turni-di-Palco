@@ -1,3 +1,5 @@
+@import "./styles/layout.css";
+
 :root {
   color: var(--text-primary);
   background-color: var(--bg-body);
@@ -117,6 +119,18 @@ code {
 }
 
 .stat-pill {
+  --pill-py: 0.35rem;
+  --pill-px: 0.55rem;
+  --pill-fz: 0.95rem;
+  --pill-radius: 10px;
+  --pill-bg: rgba(255, 255, 255, 0.08);
+  --pill-border: rgba(255, 255, 255, 0.14);
+  --pill-text: #e9edf5;
+  --pill-muted: #cad3e0;
+  --pill-positive: #34d399;
+  --pill-warning: #f59e0b;
+  --pill-danger: #f87171;
+
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -141,6 +155,16 @@ code {
 }
 
 .chip {
+  --chip-py: 0.5rem;
+  --chip-px: 0.8rem;
+  --chip-fz: 0.95rem;
+  --chip-radius: 999px;
+  --chip-bg: rgba(255, 255, 255, 0.08);
+  --chip-border: rgba(255, 255, 255, 0.14);
+  --chip-hover-border: rgba(255, 255, 255, 0.25);
+  --chip-active-bg: rgba(99, 140, 255, 0.18);
+  --chip-active-border: rgba(99, 140, 255, 0.65);
+
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -150,7 +174,17 @@ code {
   border: 1px solid var(--chip-border);
   color: var(--text-primary);
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: var(--chip-fz);
+}
+
+.chip:hover,
+.chip:focus-visible {
+  border-color: var(--chip-hover-border);
+}
+
+.chip-ghost {
+  --chip-bg: transparent;
+  --chip-border: rgba(255, 255, 255, 0.2);
 }
 
 .chip:hover {
@@ -189,7 +223,9 @@ code {
   background: var(--bg-hero);
   border: 1px solid var(--border-strong);
   border-radius: 22px;
-  padding: 1.85rem;
+  padding: clamp(1.35rem, 1vw + 1.45rem, 2.1rem);
+  display: grid;
+  gap: clamp(0.9rem, 0.8vw + 0.6rem, 1.35rem);
   backdrop-filter: blur(18px) saturate(1.35);
   box-shadow:
     var(--shadow-elevated),
@@ -213,7 +249,7 @@ code {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin: 1.25rem 0;
+  margin: 0.35rem 0 0;
 }
 
 .button {
@@ -226,6 +262,11 @@ code {
   background: var(--surface-veil);
   color: var(--text-primary);
   backdrop-filter: blur(12px) saturate(1.4);
+}
+
+.button:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
 }
 
 .button:active {
@@ -241,10 +282,27 @@ code {
   border-color: transparent;
 }
 
+.button.primary:hover {
+  filter: brightness(1.05);
+}
+
 .button.ghost {
   background: var(--surface-veil-strong);
   color: var(--color-info-50);
   border-color: var(--border-regular);
+}
+
+.button:focus-visible,
+.chip:focus-visible,
+.drawer-tabs .chip:focus-visible,
+.nav-tabs a:focus-visible {
+  outline: 2px solid rgba(99, 140, 255, 0.85);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(99, 140, 255, 0.25);
+}
+
+.button:focus-visible {
+  border-color: rgba(99, 140, 255, 0.65);
 }
 
 .badges {
@@ -264,32 +322,33 @@ code {
   font-size: 0.9rem;
 }
 
-.grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-}
-
 .app-stage {
   display: grid;
-  grid-template-columns: 1.4fr 0.9fr;
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr);
+  gap: var(--layout-gap);
 }
 
 .app-stage .side-stack {
   display: grid;
-  gap: 0.9rem;
+  gap: var(--layout-gap);
 }
 
 .app-layout {
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: var(--layout-gap);
 }
 
 .column {
   display: grid;
-  gap: 1rem;
+  gap: var(--layout-gap);
+}
+
+@media (max-width: 960px) {
+  .app-stage,
+  .app-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .map-canvas {
@@ -836,16 +895,8 @@ code {
 }
 
 @media (max-width: 640px) {
-  .page {
-    padding: 1.5rem 1.25rem 2.5rem;
-  }
-
   .card {
     min-height: auto;
-  }
-
-  .span-2 {
-    grid-column: auto;
   }
 
   .avatar-config {

@@ -9,8 +9,8 @@ if (!root) {
 }
 
 root.innerHTML = `
-  <main class="page page-game">
-    <header class="hero">
+  <main class="page page-game layout-shell">
+    <header class="hero layout-stack">
       <p class="eyebrow">Turni di Palco</p>
       <h1>Eventi mock</h1>
       <p class="lede">Usati per testare la registrazione turni e la mappa.</p>
@@ -23,8 +23,8 @@ root.innerHTML = `
       </div>
     </header>
 
-    <section class="grid">
-      <article class="card span-2">
+    <section class="grid layout-grid">
+      <article class="card layout-span-2">
         <h2>Prossimi eventi</h2>
         <ul class="log-list dense" data-event-list></ul>
       </article>

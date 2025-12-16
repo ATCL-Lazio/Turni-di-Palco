@@ -14,8 +14,8 @@ const role = resolveRole(state.profile.roleId);
 const avatarVisual = getAvatarVisual(state.profile.avatar);
 
 root.innerHTML = `
-  <main class="page page-game">
-    <header class="hero">
+  <main class="page page-game layout-shell">
+    <header class="hero layout-stack">
       <p class="eyebrow">Turni di Palco</p>
       <h1>Hub di navigazione</h1>
       <p class="lede">Accedi a mappa, profilo, eventi e registro turni.</p>
@@ -29,7 +29,7 @@ root.innerHTML = `
       </div>
     </header>
 
-    <section class="grid">
+    <section class="grid layout-grid">
       <article class="card">
         <h2>Profilo</h2>
         <div class="profile-pane">
@@ -54,7 +54,7 @@ root.innerHTML = `
         </ul>
       </article>
 
-      <article class="card span-2">
+      <article class="card layout-span-2">
         <h2>Ultimi turni</h2>
         <ul class="log-list dense" data-turn-log></ul>
       </article>
