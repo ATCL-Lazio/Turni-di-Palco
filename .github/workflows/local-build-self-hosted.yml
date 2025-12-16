@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: local-build-main
   cancel-in-progress: true
@@ -12,6 +15,9 @@ concurrency:
 jobs:
   build:
     runs-on: [self-hosted, windows]
+    defaults:
+      run:
+        shell: powershell
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
