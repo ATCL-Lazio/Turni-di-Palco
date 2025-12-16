@@ -1,0 +1,216 @@
+:root {
+  /* Typography */
+  --font-family-base: "-apple-system", "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  --font-family-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  --font-size-xs: 0.8rem;
+  --font-size-sm: 0.95rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.2rem;
+  --font-size-xl: 1.6rem;
+  --font-size-2xl: 2rem;
+  --line-height-base: 1.6;
+  --line-height-tight: 1.2;
+
+  /* Spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-9: 2.25rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* Palette */
+  --color-brand-600: #4f86ff;
+  --color-brand-500: #638cff;
+  --color-brand-400: #4eceff;
+  --color-brand-200: #d8e4ff;
+  --color-surface-900: #05070d;
+  --color-surface-800: #0b1021;
+  --color-surface-700: #04070f;
+  --color-ink: #0b1021;
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #e9edf5;
+  --color-neutral-200: #e5e7eb;
+  --color-neutral-250: #cad3e0;
+  --color-neutral-300: #d1d5db;
+  --color-neutral-350: #cbd5e1;
+  --color-neutral-375: #cdd8ee;
+  --color-neutral-500: #9ca3af;
+  --color-sky-200: #93c5fd;
+  --color-sky-300: #7dd3fc;
+  --color-indigo-200: #a5b4fc;
+  --color-info-50: #dbeafe;
+  --color-info-100: #bfdbfe;
+  --color-success-400: #34d399;
+  --color-success-100: #bbf7d0;
+  --color-warning-300: #fcd34d;
+  --color-danger-200: #fda4af;
+  --color-danger-300: #fca5a5;
+  --color-danger-400: #f87171;
+
+  /* Shared gradients & components */
+  --gradient-brand: linear-gradient(135deg, var(--color-brand-500), var(--color-brand-400));
+  --gradient-hero: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  --gradient-panel: linear-gradient(160deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.03));
+
+  --chip-surface: rgba(255, 255, 255, 0.08);
+  --chip-border: rgba(255, 255, 255, 0.14);
+  --pill-surface: rgba(255, 255, 255, 0.06);
+  --pill-border: rgba(255, 255, 255, 0.1);
+  --pill-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+body {
+  color-scheme: dark;
+  --bg-body: var(--color-surface-900);
+  --bg-card: rgba(255, 255, 255, 0.06);
+  --bg-card-strong: rgba(255, 255, 255, 0.08);
+  --bg-panel: var(--gradient-panel);
+  --bg-hero: var(--gradient-hero);
+  --bg-map: var(--color-surface-800);
+
+  --border-regular: rgba(255, 255, 255, 0.14);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-soft: rgba(255, 255, 255, 0.12);
+
+  --text-primary: var(--color-neutral-100);
+  --text-secondary: var(--color-neutral-250);
+  --text-muted: var(--color-neutral-500);
+  --text-inverse: var(--color-ink);
+  --text-eyebrow: var(--color-sky-200);
+  --text-quiet: var(--color-neutral-350);
+
+  --selection-bg: rgba(147, 197, 253, 0.25);
+  --focus-ring: rgba(59, 130, 246, 0.4);
+
+  --surface-faint: rgba(255, 255, 255, 0.04);
+  --surface-veil-soft: rgba(255, 255, 255, 0.05);
+  --surface-veil: var(--bg-card);
+  --surface-veil-strong: var(--bg-card-strong);
+  --surface-veil-heavy: rgba(255, 255, 255, 0.12);
+  --surface-veil-bright: rgba(255, 255, 255, 0.18);
+  --surface-veil-highlight: rgba(255, 255, 255, 0.25);
+  --surface-veil-contrast: rgba(255, 255, 255, 0.28);
+  --surface-veil-stronger: rgba(255, 255, 255, 0.3);
+
+  --chip-surface: rgba(255, 255, 255, 0.08);
+  --chip-border: rgba(255, 255, 255, 0.14);
+  --pill-surface: rgba(255, 255, 255, 0.06);
+  --pill-border: rgba(255, 255, 255, 0.1);
+  --pill-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+
+  --shadow-card: 0 10px 40px rgba(0, 0, 0, 0.35);
+  --shadow-elevated: 0 18px 60px rgba(0, 0, 0, 0.45);
+  --shadow-brand: 0 10px 20px rgba(79, 134, 255, 0.3);
+  --shadow-brand-strong: 0 14px 30px rgba(79, 134, 255, 0.35);
+  --shadow-panel: 0 16px 50px rgba(0, 0, 0, 0.42);
+  --shadow-soft-elevated: 0 12px 30px rgba(0, 0, 0, 0.4);
+  --shadow-map: 0 18px 60px rgba(0, 0, 0, 0.5);
+  --shadow-text-contrast: 0 2px 6px rgba(0, 0, 0, 0.25);
+
+  --backdrop-strong: rgba(5, 7, 13, 0.4);
+  --backdrop-heavy: rgba(5, 7, 13, 0.45);
+  --backdrop-muted: rgba(5, 7, 13, 0.32);
+  --overlay-top-strong: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent);
+  --overlay-bottom-strong: linear-gradient(0deg, rgba(0, 0, 0, 0.5), transparent);
+  --panel-backdrop: linear-gradient(180deg, rgba(20, 28, 58, 0.55), rgba(10, 16, 26, 0.8));
+
+  --glow-primary: rgba(74, 144, 255, 0.22);
+  --glow-secondary: rgba(120, 119, 237, 0.24);
+  --glow-tertiary: rgba(16, 185, 129, 0.12);
+  --map-glow-primary: rgba(99, 140, 255, 0.25);
+  --map-glow-secondary: rgba(78, 206, 255, 0.18);
+  --map-glow-tertiary: rgba(16, 185, 129, 0.18);
+
+  --border-success: rgba(52, 211, 153, 0.5);
+  --border-warning: rgba(252, 211, 77, 0.5);
+  --border-danger: rgba(248, 113, 113, 0.5);
+  --inset-bright: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --inset-soft: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --inset-faint: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+
+  --gradient-body: radial-gradient(circle at 20% 20%, var(--glow-primary), transparent 32%),
+    radial-gradient(circle at 72% 15%, var(--glow-secondary), transparent 32%),
+    radial-gradient(circle at 30% 70%, var(--glow-tertiary), transparent 32%);
+}
+
+body[data-theme="light"] {
+  color-scheme: light;
+  --bg-body: #f7f9fc;
+  --bg-card: #ffffff;
+  --bg-card-strong: #f1f5f9;
+  --bg-panel: linear-gradient(160deg, rgba(15, 23, 42, 0.06), rgba(15, 23, 42, 0.03));
+  --bg-hero: linear-gradient(135deg, rgba(15, 23, 42, 0.06), rgba(15, 23, 42, 0.02));
+  --bg-map: #e8f0ff;
+
+  --border-regular: #cbd5e1;
+  --border-strong: #94a3b8;
+  --border-subtle: #e2e8f0;
+  --border-soft: #e2e8f0;
+
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #475569;
+  --text-inverse: #ffffff;
+  --text-eyebrow: #0f172a;
+  --text-quiet: #475569;
+
+  --selection-bg: rgba(99, 140, 255, 0.18);
+  --focus-ring: rgba(99, 140, 255, 0.35);
+
+  --surface-faint: #e2e8f0;
+  --surface-veil-soft: #ecf1fc;
+  --surface-veil: #edf2fb;
+  --surface-veil-strong: #e5ecfb;
+  --surface-veil-heavy: #dbeafe;
+  --surface-veil-bright: #d8e4ff;
+  --surface-veil-highlight: rgba(15, 23, 42, 0.12);
+  --surface-veil-contrast: rgba(15, 23, 42, 0.18);
+  --surface-veil-stronger: rgba(15, 23, 42, 0.2);
+
+  --chip-surface: #e8f0ff;
+  --chip-border: #cbd5e1;
+  --pill-surface: #e2e8f0;
+  --pill-border: #cbd5e1;
+  --pill-shadow: 0 6px 20px rgba(15, 23, 42, 0.1);
+
+  --shadow-card: 0 10px 40px rgba(15, 23, 42, 0.14);
+  --shadow-elevated: 0 18px 60px rgba(15, 23, 42, 0.18);
+  --shadow-brand: 0 10px 20px rgba(79, 134, 255, 0.35);
+  --shadow-brand-strong: 0 14px 30px rgba(79, 134, 255, 0.32);
+  --shadow-panel: 0 16px 50px rgba(15, 23, 42, 0.18);
+  --shadow-soft-elevated: 0 12px 30px rgba(15, 23, 42, 0.16);
+  --shadow-map: 0 18px 60px rgba(15, 23, 42, 0.22);
+  --shadow-text-contrast: 0 2px 6px rgba(15, 23, 42, 0.25);
+
+  --backdrop-strong: rgba(255, 255, 255, 0.85);
+  --backdrop-heavy: rgba(255, 255, 255, 0.92);
+  --backdrop-muted: rgba(255, 255, 255, 0.7);
+  --overlay-top-strong: linear-gradient(180deg, rgba(255, 255, 255, 0.82), transparent);
+  --overlay-bottom-strong: linear-gradient(0deg, rgba(255, 255, 255, 0.84), transparent);
+  --panel-backdrop: linear-gradient(180deg, rgba(232, 240, 255, 0.85), rgba(240, 245, 255, 0.92));
+
+  --glow-primary: rgba(99, 140, 255, 0.18);
+  --glow-secondary: rgba(78, 206, 255, 0.16);
+  --glow-tertiary: rgba(16, 185, 129, 0.14);
+  --map-glow-primary: rgba(99, 140, 255, 0.18);
+  --map-glow-secondary: rgba(78, 206, 255, 0.16);
+  --map-glow-tertiary: rgba(16, 185, 129, 0.12);
+
+  --border-success: rgba(52, 211, 153, 0.45);
+  --border-warning: rgba(252, 211, 77, 0.45);
+  --border-danger: rgba(248, 113, 113, 0.45);
+  --inset-bright: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --inset-soft: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --inset-faint: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+
+  --gradient-body: radial-gradient(circle at 20% 20%, var(--glow-primary), transparent 32%),
+    radial-gradient(circle at 72% 15%, var(--glow-secondary), transparent 32%),
+    radial-gradient(circle at 30% 70%, var(--glow-tertiary), transparent 32%);
+}

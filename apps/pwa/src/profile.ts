@@ -1,3 +1,4 @@
+import "./styles/tokens.css";
 import "./style.css";
 import { formatRewards, getAvatarVisual, loadState, resolveRole } from "./state";
 
