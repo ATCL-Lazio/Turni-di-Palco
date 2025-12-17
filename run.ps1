@@ -19,4 +19,22 @@ $env:SSL_CRT_FILE = $certFile.FullName
 $env:HTTPS = "true"
 
 Write-Host "Uso certificato: $($certFile.Name) / chiave: $($keyFile.Name)"
-npm --workspace apps/pwa run dev:https
+param(
+  [ValidateSet("dev", "preview")] [string] $Mode = "preview",
+  [int] $Port = 5173
+)
+
+if ($Mode -eq "dev") {
+  Write-Host "Avvio dev server HTTPS su porta $Port"
+  npm --workspace apps/pwa run dev:https -- --host 0.0.0.0 --port $Port --strictPort --clearScreen false
+  exit $LASTEXITCODE
+}
+
+Write-Host "Eseguo build mobile + PWA, poi preview HTTPS su porta $Port"
+npm run build:mobile
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+npm run build:pwa
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+npm --workspace apps/pwa run preview -- --host 0.0.0.0 --port $Port
