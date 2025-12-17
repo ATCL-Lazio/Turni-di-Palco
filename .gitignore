@@ -38,3 +38,6 @@ docs and references/plan.md
 
 # Windows executable files
 *.exe
+
+# Firebase Studio Environment
+.idx/
