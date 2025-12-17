@@ -1,15 +1,15 @@
 export const colorTokens = {
-  surface: "rgba(255, 255, 255, 0.08)",
-  surfaceBorder: "rgba(255, 255, 255, 0.14)",
-  surfaceHoverBorder: "rgba(255, 255, 255, 0.25)",
-  accent: "#9cc9ff",
-  accentTint: "rgba(99, 140, 255, 0.18)",
-  accentBorder: "rgba(99, 140, 255, 0.65)",
-  success: "#34d399",
-  warning: "#f59e0b",
-  danger: "#f87171",
-  text: "#e9edf5",
-  muted: "#cad3e0",
+  surface: "var(--color-bg-surface)",
+  surfaceBorder: "var(--color-bg-surface-hover)",
+  surfaceHoverBorder: "rgba(244, 191, 79, 0.35)",
+  accent: "var(--color-gold-400)",
+  accentTint: "rgba(244, 191, 79, 0.2)",
+  accentBorder: "rgba(244, 191, 79, 0.65)",
+  success: "var(--color-success)",
+  warning: "var(--color-warning)",
+  danger: "var(--color-error)",
+  text: "var(--color-text-primary)",
+  muted: "var(--color-text-secondary)",
 };
 
 export const radiusTokens = {
