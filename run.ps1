@@ -27,8 +27,11 @@ Write-Host "Uso certificato: $($certFile.Name) / chiave: $($keyFile.Name)"
 
 if ($Mode -eq "dev") {
   Write-Host "Avvio dev server HTTPS su porta $Port"
-  npm --workspace apps/pwa run dev:https -- --host 0.0.0.0 --port $Port --strictPort --clearScreen false
-  exit $LASTEXITCODE
+  Push-Location apps/pwa
+  npm run dev:https -- --host 0.0.0.0 --port $Port --strictPort --clearScreen false
+  $code = $LASTEXITCODE
+  Pop-Location
+  exit $code
 }
 
 Write-Host "Eseguo build mobile + PWA, poi preview HTTPS su porta $Port"
@@ -38,4 +41,8 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 npm run build:pwa
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-npm --workspace apps/pwa run preview -- --host 0.0.0.0 --port $Port
+Push-Location apps/pwa
+npm run preview -- --host 0.0.0.0 --port $Port
+$code = $LASTEXITCODE
+Pop-Location
+exit $code
