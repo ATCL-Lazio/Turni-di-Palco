@@ -112,13 +112,13 @@ code {
   --pill-px: 0.55rem;
   --pill-fz: 0.95rem;
   --pill-radius: 10px;
-  --pill-bg: rgba(255, 255, 255, 0.08);
-  --pill-border: rgba(255, 255, 255, 0.14);
-  --pill-text: #e9edf5;
-  --pill-muted: #cad3e0;
-  --pill-positive: #34d399;
-  --pill-warning: #f59e0b;
-  --pill-danger: #f87171;
+  --pill-bg: rgba(244, 191, 79, 0.08);
+  --pill-border: rgba(244, 191, 79, 0.14);
+  --pill-text: var(--color-text-primary);
+  --pill-muted: var(--color-text-secondary);
+  --pill-positive: var(--color-success);
+  --pill-warning: var(--color-warning);
+  --pill-danger: var(--color-error);
 
   display: inline-flex;
   align-items: center;
@@ -151,8 +151,8 @@ code {
   --chip-bg: rgba(255, 255, 255, 0.08);
   --chip-border: rgba(255, 255, 255, 0.14);
   --chip-hover-border: rgba(255, 255, 255, 0.25);
-  --chip-active-bg: rgba(99, 140, 255, 0.18);
-  --chip-active-border: rgba(99, 140, 255, 0.65);
+  --chip-active-bg: rgba(244, 191, 79, 0.18);
+  --chip-active-border: rgba(244, 191, 79, 0.65);
 
   display: inline-flex;
   align-items: center;
@@ -285,13 +285,13 @@ code {
 .chip:focus-visible,
 .drawer-tabs .chip:focus-visible,
 .nav-tabs a:focus-visible {
-  outline: 2px solid rgba(99, 140, 255, 0.85);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(99, 140, 255, 0.25);
+  box-shadow: 0 0 0 4px var(--surface-veil-highlight);
 }
 
 .button:focus-visible {
-  border-color: rgba(99, 140, 255, 0.65);
+  border-color: var(--border-subtle);
 }
 
 .badges {
