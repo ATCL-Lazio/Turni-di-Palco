@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: pwa
+    env: static
+    buildCommand: npm install && npm run build:pwa && npm run build:mobile
+    staticPublishPath: apps/pwa/dist
