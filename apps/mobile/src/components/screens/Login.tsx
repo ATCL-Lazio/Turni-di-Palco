@@ -82,7 +82,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
       </form>
 
       <div className="mt-8 text-center">
-        <p className="text-[#b8b2b3]">
+        <p className="text-[#b8b2b3] login-footer-paragraph">
           Non hai un account?{' '}
           <button
             onClick={onSignup}
