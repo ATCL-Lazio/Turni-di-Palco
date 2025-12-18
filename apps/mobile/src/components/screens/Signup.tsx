@@ -92,7 +92,7 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
           autoComplete="new-password"
         />
         
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 signup-terms-container">
           <input
             type="checkbox"
             id="terms"
@@ -102,9 +102,9 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
           />
           <label htmlFor="terms" className="text-sm text-[#b8b2b3] cursor-pointer">
             Accetto i{' '}
-            <span className="text-[#f4bf4f]">Termini e Condizioni</span>
+            <span className="text-[#f4bf4f] signup-terms-label">Termini e Condizioni</span>
             {' '}e la{' '}
-            <span className="text-[#f4bf4f]">Privacy Policy</span>
+            <span className="text-[#f4bf4f] signup-terms-label">&nbsp;Privacy Policy</span>
           </label>
         </div>
         {errors.terms && (
