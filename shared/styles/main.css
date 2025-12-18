@@ -1,5 +1,6 @@
 /* Unified style entry shared by PWA and mobile (mobile theme + utilities) */
 @import "../../apps/mobile/src/index.css";
+@import "../../apps/mobile/src/styles/globals.css";
 
 /* PWA layer built on the same mobile tokens */
 @import "../../apps/pwa/src/styles/tokens.css";
