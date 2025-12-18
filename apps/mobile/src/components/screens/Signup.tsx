@@ -36,7 +36,7 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
   };
   
   return (
-    <div className="w-full max-w-md mx-auto p-6">
+    <div className="w-full mx-auto p-6" style={{ maxWidth: '300px' }}>
       <button 
         onClick={onBack}
         className="flex items-center gap-2 text-[#f4bf4f] mb-8 hover:text-[#e6a23c] transition-colors"
@@ -102,9 +102,9 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
           />
           <label htmlFor="terms" className="text-sm text-[#b8b2b3] cursor-pointer">
             Accetto i{' '}
-            <span className="text-[#f4bf4f]">Termini e Condizioni</span>
+            <span className="text-[#f4bf4f]" style={{ padding: '0 5px' }}>Termini e Condizioni</span>
             {' '}e la{' '}
-            <span className="text-[#f4bf4f]">Privacy Policy</span>
+            <span className="text-[#f4bf4f]">\u00A0Privacy Policy</span>
           </label>
         </div>
         {errors.terms && (
@@ -122,6 +122,7 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
           <button 
             onClick={onLogin}
             className="text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+            style={{ marginLeft: '5px' }}
           >
             Accedi
           </button>
