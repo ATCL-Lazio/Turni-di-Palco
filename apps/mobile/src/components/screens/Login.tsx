@@ -31,7 +31,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-6">
+    <div className="w-full mx-auto p-6" style={{ maxWidth: '300px' }}>
       <button
         onClick={onBack}
         className="flex items-center gap-2 text-[#f4bf4f] mb-8 hover:text-[#e6a23c] transition-colors"
@@ -66,7 +66,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
           autoComplete="current-password"
         />
 
-        <div className="text-right">
+        <div className="text-right" style={{ marginBottom: '20px' }}>
           <button
             type="button"
             onClick={onForgotPassword}
@@ -82,11 +82,12 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
       </form>
 
       <div className="mt-8 text-center">
-        <p className="text-[#b8b2b3]">
+        <p className="text-[#b8b2b3]" style={{ marginTop: '20px' }}>
           Non hai un account?{' '}
           <button
             onClick={onSignup}
             className="text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+            style={{ paddingLeft: '5px' }}
           >
             Registrati
           </button>
