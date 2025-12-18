@@ -31,12 +31,6 @@ if ($Mode -eq "dev") {
   exit $LASTEXITCODE
 }
 
-Write-Host "Eseguo build mobile + PWA, poi preview HTTPS su porta $Port"
-npm run build:mobile
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-npm run build:pwa
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
+Write-Host "Avvio preview HTTPS su porta $Port"
 npm --workspace apps/pwa run preview -- --host 0.0.0.0 --port $Port
 exit $LASTEXITCODE
