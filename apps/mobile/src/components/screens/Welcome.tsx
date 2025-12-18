@@ -27,8 +27,8 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
         </div>
 
         {/* Description */}
-        <div className="bg-[#1a1617] rounded-2xl p-6 border border-[#2d2728] animate-slide-up" style={{ margin: "20px 20px 0" }}>
-          <p className="text-[#b8b2b3] text-center" style={{ maxWidth: "400px", margin: "0 20px" }}>
+        <div className="bg-[#1a1617] rounded-2xl p-6 border border-[#2d2728] animate-slide-up welcome-description" style={{ margin: "20px 20px 0", maxWidth: "400px" }}>
+          <p className="text-[#b8b2b3] text-center" style={{ margin: "0 20px" }}>
             Simula la carriera di un professionista del teatro e registra la tua partecipazione agli eventi reali ATCL scansionando il QR sul biglietto.
           </p>
         </div>
