@@ -5,26 +5,15 @@ interface CardProps {
   className?: string;
   onClick?: () => void;
   hoverable?: boolean;
-  style?: React.CSSProperties;
 }
 
-export function Card({ children, className = '', onClick, hoverable = false, style }: CardProps) {
+export function Card({ children, className = '', onClick, hoverable = false }: CardProps) {
   const hoverClass = hoverable || onClick ? 'hover:bg-[#2d2728] cursor-pointer active:scale-[0.98]' : '';
-  const defaultStyles: React.CSSProperties = {
-    backgroundColor: 'rgb(26, 22, 23)',
-    borderRadius: '16.4px',
-    padding: '16px',
-    boxShadow: 'rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.1) 0px 2px 4px -2px',
-    transitionDuration: '0.2s',
-    transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
-    ...style,
-  };
-
+  
   return (
-    <div
-      className={`transition-all duration-200 ${hoverClass} ${className}`}
+    <div 
+      className={`bg-[#1a1617] rounded-xl p-4 shadow-md transition-all duration-200 ${hoverClass} ${className}`}
       onClick={onClick}
-      style={defaultStyles}
     >
       {children}
     </div>

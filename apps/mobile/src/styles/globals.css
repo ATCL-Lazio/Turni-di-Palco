@@ -165,25 +165,3 @@ small {
 .animate-slide-up {
   animation: slideUp 0.4s ease-out;
 }
-
-/* Welcome Screen Button Styles */
-.welcome-button-primary {
-  max-width: 400px;
-  margin: 0 20px;
-}
-
-.welcome-button-secondary {
-  max-width: 400px;
-  margin: auto 0 20px;
-}
-
-@media (max-width: 640px) {
-  .welcome-button-primary,
-  .welcome-button-secondary {
-    margin: 0 auto;
-  }
-
-  .welcome-button-secondary {
-    margin-bottom: 20px;
-  }
-}
