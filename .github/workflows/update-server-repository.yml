@@ -13,7 +13,7 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    update-and-build:
+    sync:
         runs-on: [ self-hosted, Windows, X64 ]
         defaults:
             run:
@@ -33,6 +33,20 @@ jobs:
                 git reset --hard origin/main
                 git submodule sync --recursive
                 git submodule update --init --recursive --force --checkout
+
+    build:
+        needs: sync
+        runs-on: [ self-hosted, Windows, X64 ]
+        defaults:
+            run:
+                shell: powershell
+        steps:
+            - name: Checkout repository (main + submodules)
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+                submodules: recursive
+                persist-credentials: true
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
