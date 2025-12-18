@@ -1,6 +1,7 @@
 param(
   [ValidateSet("dev", "preview")] [string] $Mode = "preview",
-  [int] $Port = 5173
+  [int] $Port = 5173,
+  [switch] $SkipMobile
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,6 +25,19 @@ $env:SSL_CRT_FILE = $certFile.FullName
 $env:HTTPS = "true"
 
 Write-Host "Uso certificato: $($certFile.Name) / chiave: $($keyFile.Name)"
+
+if ($Mode -ne "dev") {
+  if (-not $SkipMobile -and (Test-Path "UI")) {
+    Write-Host "Build UI mobile e sync in apps/pwa/public/mobile/..." -ForegroundColor Cyan
+    npm run build:mobile
+  } elseif ($SkipMobile) {
+    Write-Host "Build UI mobile saltata (opzione -SkipMobile)..." -ForegroundColor Yellow
+  }
+
+  Write-Host "Pulizia build precedenti e build PWA..." -ForegroundColor Cyan
+  npm run clean:builds
+  npm run build:pwa
+}
 
 if ($Mode -eq "dev") {
   Write-Host "Avvio dev server PWA HTTPS su porta $Port"
