@@ -66,7 +66,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
           autoComplete="current-password"
         />
 
-        <div className="text-right">
+        <div className="text-right login-forgot-password">
           <button
             type="button"
             onClick={onForgotPassword}
