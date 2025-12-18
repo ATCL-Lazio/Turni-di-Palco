@@ -13,8 +13,11 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    update-server-repo:
+    update-and-build:
         runs-on: [ self-hosted, Windows, X64 ]
+        defaults:
+            run:
+                shell: powershell
         steps:
             - name: Checkout repository (main + submodules)
               uses: actions/checkout@v4
@@ -24,24 +27,21 @@ jobs:
                 persist-credentials: true
 
             - name: Sync main and submodules to origin
-              shell: powershell
               run: |
                 git checkout main
                 git fetch origin
                 git reset --hard origin/main
                 git submodule sync --recursive
                 git submodule update --init --recursive --force --checkout
-    build:
-        runs-on: [self-hosted, windows]
-        defaults:
-            run:
-                shell: powershell
-        steps:
+
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
                 node-version: 22.14.0
                 cache: npm
+
+            - name: Install dependencies (workspace)
+              run: npm ci
 
             - name: Build mobile bundle
               run: npm run build:mobile
