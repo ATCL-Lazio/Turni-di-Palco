@@ -31,3 +31,20 @@ jobs:
                 git reset --hard origin/main
                 git submodule sync --recursive
                 git submodule update --init --recursive --force --checkout
+    build:
+        runs-on: [self-hosted, windows]
+        defaults:
+            run:
+                shell: powershell
+        steps:
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                node-version: 22.14.0
+                cache: npm
+
+            - name: Build mobile bundle
+              run: npm run build:mobile
+
+            - name: Build PWA
+              run: npm run build:pwa
