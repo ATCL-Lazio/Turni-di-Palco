@@ -104,7 +104,7 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
             Accetto i{' '}
             <span className="text-[#f4bf4f]" style={{ padding: '0 5px' }}>Termini e Condizioni</span>
             {' '}e la{' '}
-            <span className="text-[#f4bf4f]">\u00A0Privacy Policy</span>
+            <span className="text-[#f4bf4f]"><p>Privacy Policy</p></span>
           </label>
         </div>
         {errors.terms && (
