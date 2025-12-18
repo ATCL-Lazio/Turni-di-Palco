@@ -1,7 +1,7 @@
 
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
-import "../../../shared/styles/main.css";
+import "./index.css";
 
 // On the dev server (5173) keep SW caches out of the way to avoid stale bundles.
 const isDevServer = window.location.port === "5173";
