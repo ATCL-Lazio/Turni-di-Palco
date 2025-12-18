@@ -41,3 +41,6 @@ docs and references/plan.md
 
 # Firebase Studio Environment
 .idx/
+
+# Local helper scripts
+test.ps1
