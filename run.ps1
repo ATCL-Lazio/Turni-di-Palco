@@ -1,8 +1,3 @@
-param(
-  [ValidateSet("dev", "preview")] [string] $Mode = "preview",
-  [int] $Port = 5173
-)
-
 $ErrorActionPreference = 'Stop'
 
 # Pick the first key in root that matches "*-key.pem", and align the cert to the same basename.
@@ -24,6 +19,4 @@ $env:SSL_CRT_FILE = $certFile.FullName
 $env:HTTPS = "true"
 
 Write-Host "Uso certificato: $($certFile.Name) / chiave: $($keyFile.Name)"
-
-# Avvio dev server HTTPS su porta $Port
 npm run dev:https
