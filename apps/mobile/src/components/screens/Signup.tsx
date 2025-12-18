@@ -36,20 +36,20 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
   };
   
   return (
-    <div className="w-full max-w-md mx-auto p-6">
-      <button 
+    <div className="w-full max-w-md mx-auto p-6 signup-container">
+      <button
         onClick={onBack}
         className="flex items-center gap-2 text-[#f4bf4f] mb-8 hover:text-[#e6a23c] transition-colors"
       >
         <ArrowLeft size={20} />
         <span>Indietro</span>
       </button>
-      
+
       <div className="mb-8">
         <h2 className="mb-2">Crea il tuo account</h2>
         <p className="text-[#b8b2b3]">Inizia la tua carriera teatrale</p>
       </div>
-      
+
       <form onSubmit={handleSubmit} className="space-y-5">
         <Input
           type="text"
