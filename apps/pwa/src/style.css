@@ -18,6 +18,8 @@ body {
   background:
     var(--gradient-body),
     var(--bg-body);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
 }
