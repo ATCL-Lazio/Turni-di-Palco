@@ -13,6 +13,7 @@ import { ActivityDetail } from './components/screens/ActivityDetail';
 import { Profilo } from './components/screens/Profilo';
 import { Carriera } from './components/screens/Carriera';
 import { GameStateProvider, useGameState } from './state/store';
+import './styles/globals.css';
 
 
 type Screen =
