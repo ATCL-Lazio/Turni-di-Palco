@@ -39,3 +39,4 @@ npm run build:pwa
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 npm --workspace apps/pwa run preview -- --host 0.0.0.0 --port $Port
+exit $LASTEXITCODE
