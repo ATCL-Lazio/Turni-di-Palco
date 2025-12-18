@@ -111,7 +111,7 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
           <p className="text-[#ff4d4f] text-sm -mt-2">{errors.terms}</p>
         )}
         
-        <Button type="submit" variant="primary" size="lg" fullWidth>
+        <Button type="submit" variant="primary" size="lg" fullWidth className="signup-submit-button">
           Registrati
         </Button>
       </form>
