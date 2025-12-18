@@ -25,13 +25,5 @@ $env:HTTPS = "true"
 
 Write-Host "Uso certificato: $($certFile.Name) / chiave: $($keyFile.Name)"
 
-if ($Mode -eq "dev") {
-  Write-Host "Avvio dev server HTTPS su porta $Port"
-  npm --workspace apps/pwa run dev:https -- --host 0.0.0.0 --port $Port --strictPort --clearScreen false
-  exit $LASTEXITCODE
-}
-
-Write-Host "Avvio preview HTTPS su porta $Port"
-# Using direct workspace run to ensure flags reach vite (nested npm runs swallow flags without extra --)
-npm --workspace apps/pwa run preview -- --host 0.0.0.0 --port $Port
-exit $LASTEXITCODE
+# Avvio dev server HTTPS su porta $Port
+npm run dev:https
