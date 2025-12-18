@@ -12,7 +12,7 @@ if (-not $keyFile) {
   exit 1
 }
 
-$keyBase = $keyFile.BaseName -replace '-key$',''
+$keyBase = $keyFile.BaseName -replace '-key$', ''
 $certFile = Get-ChildItem -Path . -File | Where-Object { $_.Extension -eq '.pem' -and $_.BaseName -eq $keyBase } | Select-Object -First 1
 if (-not $certFile) {
   Write-Error "Nessun certificato .pem abbinato alla chiave $($keyFile.Name)."
@@ -27,10 +27,10 @@ Write-Host "Uso certificato: $($certFile.Name) / chiave: $($keyFile.Name)"
 
 if ($Mode -eq "dev") {
   Write-Host "Avvio dev server PWA HTTPS su porta $Port"
-  npm --workspace apps/pwa run dev:https -- --host 0.0.0.0 --port $Port --strictPort --clearScreen false
+  npx --workspace apps/pwa vite --host 0.0.0.0 --port $Port --strictPort --clearScreen false
   exit $LASTEXITCODE
 }
 
 Write-Host "Avvio preview HTTPS su porta $Port (usa build esistente)"
-npm --workspace apps/pwa run preview -- --host 0.0.0.0 --port $Port --strictPort --clearScreen false
+npx --workspace apps/pwa vite preview --host 0.0.0.0 --port $Port --strictPort --clearScreen false
 exit $LASTEXITCODE
