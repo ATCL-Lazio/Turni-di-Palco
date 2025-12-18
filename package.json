@@ -6,6 +6,7 @@
     "apps/mobile"
   ],
   "scripts": {
+    "clean:builds": "node tools/clean-builds.js",
     "dev:pwa": "npm --workspace apps/pwa run dev",
     "dev:pwa:https": "npm --workspace apps/pwa run dev:https",
     "build:pwa": "node tools/update-cache-version.js && npm --workspace apps/pwa run build",
