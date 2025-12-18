@@ -6,9 +6,10 @@ import { Tag } from '../ui/Tag';
 import { MetricTile } from '../ui/MetricTile';
 import { Skeleton } from '../ui/skeleton';
 import { Button } from '../ui/Button';
-import { QrCode, Play, Calendar, TrendingUp, Award, ChevronRight, MapPin, Clock, Navigation, CalendarPlus, X, Bell } from 'lucide-react';
+import { Play, Calendar, TrendingUp, Award, MapPin, Clock, Navigation, CalendarPlus, X, Bell, ChevronRight } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { GameEvent } from '../../state/store';
+import { ScanQRCard } from '../ScanQRCard';
 
 type EventState = 'loading' | 'error' | 'empty' | 'ready';
 
@@ -113,27 +114,7 @@ export function Home({
           </div>
         </header>
 
-        <Card className="bg-gradient-to-r from-[#8c1c38] to-[#a82847] border border-[#f4bf4f]/30" style={{ marginTop: '20px' }}>
-          <div className="flex items-center gap-3">
-            <div className="flex-shrink-0 w-12 h-12 bg-[#f4bf4f] rounded-xl flex items-center justify-center" style={{ margin: '5px 0 5px 5px' }}>
-              <QrCode className="text-[#2d0a0f]" size={24} />
-            </div>
-            <div className="flex-1">
-              <button
-                onClick={onScanQR}
-                className="w-full text-left text-white hover:opacity-90 transition"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="font-semibold text-base">Scansiona QR</p>
-                    <p className="text-sm text-[#f4bf4f]/90">Registra un turno dal biglietto</p>
-                  </div>
-                  <ChevronRight className="text-white" size={22} />
-                </div>
-              </button>
-            </div>
-          </div>
-        </Card>
+        <ScanQRCard onScanQR={onScanQR} style={{ marginTop: '20px' }} />
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
