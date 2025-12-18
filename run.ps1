@@ -19,4 +19,4 @@ $env:SSL_CRT_FILE = $certFile.FullName
 $env:HTTPS = "true"
 
 Write-Host "Uso certificato: $($certFile.Name) / chiave: $($keyFile.Name)"
-npm --workspace apps/pwa run dev:https
+npm run dev:https

@@ -1,4 +1,4 @@
-const CACHE_NAME = "turni-di-palco-v18";
+const CACHE_NAME = "turni-di-palco-v16f4505d";
 const OFFLINE_URL = "/index.html";
 const CORE_ASSETS = [
   "/",

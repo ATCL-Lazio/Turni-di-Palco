@@ -35,16 +35,17 @@ async function calculateHash(filePaths) {
 
 async function updateServiceWorker(cacheSuffix) {
   const swContent = await fs.readFile(SERVICE_WORKER_PATH, 'utf8');
-  const nextCacheName = `${CACHE_PREFIX}${cacheSuffix}`;
-  const updatedContent = swContent.replace(
-    /const CACHE_NAME = "[^"]*";/,
-    `const CACHE_NAME = "${nextCacheName}";`
-  );
-
-  if (updatedContent === swContent) {
-    throw new Error('CACHE_NAME not updated; pattern not found in service worker');
+  const match = swContent.match(/const CACHE_NAME = "([^"]*)";/);
+  if (!match) {
+    throw new Error('CACHE_NAME pattern not found in service worker');
   }
 
+  const nextCacheName = `${CACHE_PREFIX}${cacheSuffix}`;
+  if (match[1] === nextCacheName) {
+    return nextCacheName;
+  }
+
+  const updatedContent = swContent.replace(match[0], `const CACHE_NAME = "${nextCacheName}";`);
   await fs.writeFile(SERVICE_WORKER_PATH, updatedContent);
   return nextCacheName;
 }

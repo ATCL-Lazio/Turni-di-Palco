@@ -30,8 +30,14 @@ coverage/
 *.pem
 *.key
 *.crt
-mkcert.exe
+
 
 # Local references for AI Agents
 docs and references/plan.md
 /.runner
+
+# Windows executable files
+*.exe
+
+# Firebase Studio Environment
+.idx/
