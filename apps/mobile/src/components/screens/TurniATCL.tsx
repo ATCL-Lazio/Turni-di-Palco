@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { QrCode, MapPin, Calendar, TrendingUp, Theater } from 'lucide-react';
 import { TurnRecord, RoleId, roles } from '../../state/store';
+import { ScanQRCard } from '../ScanQRCard';
 
 interface TurniATCLProps {
   turns: TurnRecord[];
@@ -38,17 +39,8 @@ export function TurniATCL({ turns, onScanQR }: TurniATCLProps) {
       
       {/* Main Content */}
       <div className="w-full max-w-md mx-auto px-6 space-y-6 pt-6 pb-8">
-        {/* Scan Button */}
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          onClick={onScanQR}
-          style={{ padding: "0 5px" }}
-        >
-          <QrCode size={20} />
-          Registra nuovo turno (Scansiona QR)
-        </Button>
+        {/* QR Scan Card */}
+        <ScanQRCard onScanQR={onScanQR} />
         
         {/* Stats Summary */}
         <Card>
