@@ -1477,6 +1477,22 @@ small {
   .signup-footer {
     margin-top: 20px;
   }
+
+  .login-container {
+    max-width: 300px;
+  }
+
+  .login-forgot-password {
+    margin-top: 20px;
+  }
+
+  .login-submit-button {
+    margin-top: 20px;
+  }
+
+  .login-footer-paragraph {
+    margin-top: 20px;
+  }
 }
 
 @property --tw-space-y-reverse {
