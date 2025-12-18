@@ -27,7 +27,7 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
         </div>
 
         {/* Description */}
-        <div className="bg-[#1a1617] rounded-2xl p-6 border border-[#2d2728] animate-slide-up" style={{ margin: "20px 20px 0" }}>
+        <div className="bg-[#1a1617] rounded-2xl p-6 border border-[#2d2728] animate-slide-up" style={{ margin: "20px 20px 0", maxWidth: "300px" }}>
           <p className="text-[#b8b2b3] text-center" style={{ maxWidth: "400px", margin: "0 20px" }}>
             Simula la carriera di un professionista del teatro e registra la tua partecipazione agli eventi reali ATCL scansionando il QR sul biglietto.
           </p>
@@ -36,11 +36,11 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
 
       {/* Action Buttons */}
       <div className="w-full max-w-md animate-slide-up flex flex-col items-center justify-center gap-4">
-        <Button variant="primary" size="lg" fullWidth onClick={onStart} className="welcome-button-primary">
+        <Button variant="primary" size="lg" fullWidth onClick={onStart} className="welcome-button-primary" style={{ maxWidth: "300px" }}>
           Inizia
         </Button>
 
-        <Button variant="secondary" size="lg" fullWidth onClick={onLogin} className="welcome-button-secondary">
+        <Button variant="secondary" size="lg" fullWidth onClick={onLogin} className="welcome-button-secondary" style={{ maxWidth: "300px", marginBottom: "20px" }}>
           Accedi
         </Button>
       </div>
