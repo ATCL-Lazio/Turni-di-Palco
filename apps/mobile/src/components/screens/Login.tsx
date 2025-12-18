@@ -76,7 +76,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
           </button>
         </div>
 
-        <Button type="submit" variant="primary" size="lg" fullWidth>
+        <Button type="submit" variant="primary" size="lg" fullWidth className="login-submit-button">
           Accedi
         </Button>
       </form>
