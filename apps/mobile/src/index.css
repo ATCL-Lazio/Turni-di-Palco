@@ -1457,6 +1457,26 @@ small {
     max-width: 300px;
     margin-bottom: 150px;
   }
+
+  .signup-container {
+    max-width: 300px;
+  }
+
+  .signup-terms-container {
+    margin-top: 20px;
+  }
+
+  .signup-terms-label {
+    margin: 0 5px;
+  }
+
+  .signup-submit-button {
+    margin-top: 20px;
+  }
+
+  .signup-footer {
+    margin-top: 20px;
+  }
 }
 
 @property --tw-space-y-reverse {
