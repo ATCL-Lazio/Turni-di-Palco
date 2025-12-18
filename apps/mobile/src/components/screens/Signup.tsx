@@ -116,10 +116,10 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
         </Button>
       </form>
       
-      <div className="mt-8 text-center">
+      <div className="mt-8 text-center signup-footer">
         <p className="text-[#b8b2b3]">
           Hai già un account?{' '}
-          <button 
+          <button
             onClick={onLogin}
             className="text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
           >
