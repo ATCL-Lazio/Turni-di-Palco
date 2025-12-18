@@ -31,7 +31,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-6">
+    <div className="w-full max-w-md mx-auto p-6 login-container">
       <button
         onClick={onBack}
         className="flex items-center gap-2 text-[#f4bf4f] mb-8 hover:text-[#e6a23c] transition-colors"
