@@ -18,13 +18,14 @@ export function Input({ label, error, helperText, className = '', ...props }: In
         className={`w-full bg-[#241f20] border-2 ${
           error ? 'border-[#ff4d4f]' : 'border-[#2d2728]'
         } rounded-lg px-4 py-3 text-white placeholder:text-[#7a7577] focus:border-[#f4bf4f] focus:outline-none transition-colors ${className}`}
+        style={{ marginBottom: '20px' }}
         {...props}
       />
       {error && (
         <p className="text-[#ff4d4f] mt-1 text-sm">{error}</p>
       )}
       {helperText && !error && (
-        <p className="text-[#7a7577] mt-1 text-sm">{helperText}</p>
+        <p className="text-[#7a7577] mt-1 text-sm" style={{ marginBottom: '20px' }}>{helperText}</p>
       )}
     </div>
   );
