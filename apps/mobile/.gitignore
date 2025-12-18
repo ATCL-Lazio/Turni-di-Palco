@@ -1,3 +1,2 @@
-# Ignore node modules and build output
+# Ignore node modules
 node_modules/
-build/
