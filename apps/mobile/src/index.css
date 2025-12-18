@@ -1444,6 +1444,21 @@ small {
   animation: .4s ease-out slideUp;
 }
 
+@media (max-width: 640px) {
+  .welcome-description {
+    max-width: 300px;
+  }
+
+  .welcome-button-primary {
+    max-width: 300px;
+  }
+
+  .welcome-button-secondary {
+    max-width: 300px;
+    margin-bottom: 150px;
+  }
+}
+
 @property --tw-space-y-reverse {
   syntax: "*";
   inherits: false;
