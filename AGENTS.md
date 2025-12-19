@@ -31,6 +31,7 @@
 
 ## Identity & Git Hygiene
 - Author/committer identity is managed by the repo owner; do not change git config locally (no `git config` commands). Use the existing configuration as-is.
+- Never use the Heartran git identity for commits or pushes.
 - Keep commits small and topical; prefer multiple commits over one large drop when touching orthogonal areas.
 
 ## PWA & Assets
