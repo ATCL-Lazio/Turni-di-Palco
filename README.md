@@ -1,54 +1,50 @@
-# Turni di Palco – Monorepo
+# Turni di Palco - Monorepo
 
-**Turni di Palco** è una Progressive Web App (PWA) progettata per la gestione gamificata dei turni in teatro. L'obiettivo è rendere l'organizzazione del lavoro teatrale più coinvolgente attraverso meccaniche di gioco (XP, livelli, ruoli).
+Turni di Palco e una Progressive Web App pensata per gestire i turni teatrali con meccaniche di gioco (XP, livelli, ruoli) per rendere l'organizzazione piu coinvolgente.
 
-Questo repository è strutturato come monorepo contenente:
-- **apps/pwa**: Il frontend principale (Vite + TypeScript + Vanilla).
-- **apps/mobile**: (Sottoprogetto UI Mobile).
-- **shared**: Codice e stili condivisi.
+Il monorepo contiene:
+- `apps/pwa`: shell PWA multipagina (Vite + TypeScript + Vanilla).
+- `apps/mobile`: UI mobile React/Vite; il bundle statico finisce in `apps/pwa/public/mobile/`.
+- `shared`: codice e stili condivisi.
+- `docs and references/`: documenti di design e GDD.
 
-## 🚀 Guida Rapida (PWA)
+## Requisiti
+- Node.js 18+ (setup corrente: 22.14.0).
+- npm.
 
-### Prerequisiti
-- Node.js (v18+ raccomandato)
-- npm
+## Installazione
+Installa tutte le dipendenze dei workspace dalla root:
 
-### Installazione
-Esegui questo comando nella root del progetto per installare tutte le dipendenze (utilizzando i workspaces):
 ```bash
 npm install
 ```
 
-### Sviluppo
-Per avviare l'ambiente di sviluppo locale:
-```bash
-npm run dev:pwa
-```
-L'app sarà disponibile su `http://localhost:5173`.
+## Comandi disponibili
+Tutti gli script vanno eseguiti dalla root con `npm run <script>`.
 
-### Testing
-Esegui i test unitari con Vitest:
-```bash
-npm run test:pwa
-```
+### Manutenzione
+- `clean:builds`: elimina gli output di build standard (`dist/`, `apps/pwa/dist`, `apps/mobile/dist`) per partire da un albero pulito.
 
-### Build
-Per compilare il progetto per la produzione:
-```bash
-npm run build:pwa
-```
-L'output sarà in `apps/pwa/dist`.
+### PWA (`apps/pwa`)
+- `dev:pwa`: avvia il dev server Vite su `http://localhost:5173` (host 0.0.0.0) con ricarica a caldo.
+- `dev:pwa:https`: stesso server ma in HTTPS; usa le variabili `SSL_CRT_FILE`/`SSL_KEY_FILE` se impostate, altrimenti un certificato generato da Vite.
+- `build:pwa`: aggiorna il nome della cache nel service worker (`apps/pwa/public/sw.js`) in base agli asset pubblici e compila la PWA in `apps/pwa/dist`.
+- `preview:pwa`: serve il build gia compilato (porta 4173 per default); richiede una build precedente.
+- `test:pwa`: esegue Vitest una volta sola con la configurazione in `apps/pwa/src/test/setup.ts` (`--passWithNoTests` attivo).
+- `lint`: lancia ESLint sull'intero workspace PWA.
+- `format`: formatta i file del workspace PWA con Prettier (modifica i file in-place).
 
-## 🏗️ Struttura del Progetto
+### UI mobile (`apps/mobile`)
+- `dev:mobile`: avvia il dev server Vite React su `http://localhost:3000` con base `/mobile/`.
+- `build:mobile`: build Vite in `apps/mobile/build` e copia il bundle statico in `apps/pwa/public/mobile/` tramite `sync:mobile`.
+- `sync:mobile`: solo copia l'ultimo build da `apps/mobile/build` a `apps/pwa/public/mobile/` (scrive un checksum per saltare copie inutili).
 
-Il codice sorgente della PWA si trova in `apps/pwa/src` ed è organizzato modularmente:
-- **components/**: Componenti UI riutilizzabili.
-- **features/**: Moduli funzionali (es. gestione permessi, status card).
-- **services/**: Logica di business e integrazioni API/Browser (es. `permissions.ts`).
-- **utils/**: Funzioni di utilità generali.
+## Struttura del codice PWA
+Il sorgente della PWA vive in `apps/pwa/src` ed e suddiviso in:
+- `components/`: componenti UI riutilizzabili.
+- `features/`: moduli funzionali (es. gestione permessi, schede stato).
+- `services/`: logica di business e integrazioni browser/API.
+- `utils/`: funzioni di utilita generiche.
 
-## 🤝 Contribuire
-Vedi [CONTRIBUTING.md](CONTRIBUTING.md) per linee guida su stile del codice, commit e setup dell'ambiente.
-
-## 📄 Note di Design
-Consulta la cartella `docs and references/` per i dettagli sul Game Design Document e analisi del progetto.
+## Contributi
+Consulta `CONTRIBUTING.md` per stile del codice, convenzioni di commit e setup ambiente. Per note di design vedi `docs and references/`.
