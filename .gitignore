@@ -44,10 +44,10 @@ docs and references/plan.md
 
 # Local helper scripts
 test.ps1
+
+# PWA build output
 apps/pwa/public/mobile/.mobile-checksum
-apps/pwa/public/mobile/assets/index-B29zHrzI.js
-apps/pwa/public/mobile/assets/index-BRazDips.css
-apps/pwa/public/mobile/assets/index-Cz8IhA5k.css
-apps/pwa/public/mobile/assets/index-s5My2Ae4.js
+apps/pwa/public/mobile/assets/index-*.js
+apps/pwa/public/mobile/assets/index-*.css
 apps/pwa/public/mobile/index.html
 apps/pwa/public/sw.js
