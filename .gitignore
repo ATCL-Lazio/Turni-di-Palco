@@ -51,3 +51,6 @@ apps/pwa/public/mobile/assets/index-Cz8IhA5k.css
 apps/pwa/public/mobile/assets/index-s5My2Ae4.js
 apps/pwa/public/mobile/index.html
 apps/pwa/public/sw.js
+apps/mobile/build/index.html
+apps/mobile/build/assets/index-*.js
+apps/mobile/build/assets/index-*s.css
