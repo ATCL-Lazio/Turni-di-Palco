@@ -233,11 +233,9 @@ function AppShell() {
   const showBottomNav = ['home', 'turni', 'attivita', 'profilo', 'carriera'].includes(currentScreen);
 
   return (
-    <div className="min-h-screen bg-[#0f0d0e] flex items-center justify-center px-4">
-      <div className="w-full max-w-5xl flex justify-center">
-        <div className="w-full max-w-md relative min-h-[calc(100vh-32px)] flex flex-col justify-center">
-          {renderScreen()}
-        </div>
+    <div className="min-h-screen bg-[#0f0d0e] flex items-center justify-center">
+      <div className="w-full">
+        <div className="w-full max-w-md relative mx-auto min-h-[calc(100vh-32px)] flex flex-col justify-center">{renderScreen()}</div>
       </div>
       {showBottomNav && <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />}
     </div>
