@@ -36,13 +36,15 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
       withBottomNavPadding={false}
       header={
         <ScreenHeader gradient>
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
-          >
-            <ArrowLeft size={20} />
-            <span>Indietro</span>
-          </button>
+          <div className="flex justify-start">
+            <button
+              onClick={onBack}
+              className="flex items-center gap-2 text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+            >
+              <ArrowLeft size={20} />
+              <span>Indietro</span>
+            </button>
+          </div>
         </ScreenHeader>
       }
     >
