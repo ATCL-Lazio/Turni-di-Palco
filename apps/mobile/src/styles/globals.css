@@ -168,22 +168,21 @@ small {
 
 /* Welcome Screen Button Styles */
 .welcome-button-primary {
-  max-width: 400px;
-  margin: 0 20px;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .welcome-button-secondary {
-  max-width: 400px;
-  margin: auto 0 20px;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 @media (max-width: 640px) {
   .welcome-button-primary,
   .welcome-button-secondary {
-    margin: 0 auto;
-  }
-
-  .welcome-button-secondary {
-    margin-bottom: 20px;
+    margin-left: auto;
+    margin-right: auto;
   }
 }
