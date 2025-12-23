@@ -20,12 +20,12 @@ export function Screen({
   contentClassName
 }: ScreenProps) {
   return (
-    <div className={cn('min-h-screen bg-[#0f0d0e]', className)}>
+    <div className={cn('min-h-screen bg-[#0f0d0e] flex flex-col items-center justify-center', className)}>
       {header}
       <div
         className={cn(
-          'w-full max-w-md mx-auto space-y-6 px-6 pt-6 pb-8',
-          withBottomNavPadding && 'pb-[calc(env(safe-area-inset-bottom,_0px)+96px)]',
+          'w-full max-w-md mx-auto space-y-5 px-5 pt-5 pb-6',
+          withBottomNavPadding && 'pb-[calc(env(safe-area-inset-bottom,_0px)+116px)]',
           contentClassName
         )}
       >
@@ -44,7 +44,7 @@ interface ScreenHeaderProps {
 export function ScreenHeader({ children, gradient = true, className }: ScreenHeaderProps) {
   return (
     <div className={cn(gradient && 'bg-gradient-to-b from-[#2d0a0f] to-[#0f0d0e]', className)}>
-      <div className="w-full max-w-md mx-auto px-6 pt-6 pb-8">{children}</div>
+      <div className="w-full max-w-md mx-auto px-5 pt-5 pb-6 space-y-5">{children}</div>
     </div>
   );
 }
