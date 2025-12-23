@@ -50,7 +50,6 @@ apps/pwa/public/mobile/.mobile-checksum
 apps/pwa/public/mobile/assets/index-*.js
 apps/pwa/public/mobile/assets/index-*.css
 apps/pwa/public/mobile/index.html
-apps/pwa/public/sw.js
 apps/mobile/build/index.html
 apps/mobile/build/assets/index-*.js
 apps/mobile/build/assets/index-*s.css
