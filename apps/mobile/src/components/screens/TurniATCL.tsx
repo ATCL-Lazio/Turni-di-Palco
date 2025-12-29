@@ -24,7 +24,7 @@ export function TurniATCL({ turns, onScanQR }: TurniATCLProps) {
 
   return (
     <div
-      className="min-h-screen bg-[#0f0d0e]"
+      className="min-h-screen app-gradient"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
     >
       {/* Header */}
