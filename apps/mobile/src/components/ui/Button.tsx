@@ -18,7 +18,7 @@ export function Button({
   const baseStyles = 'inline-flex items-center justify-center gap-2 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variants = {
-    primary: 'bg-gradient-to-r from-[#8c1c38] to-[#a82847] text-white shadow-md hover:shadow-lg hover:from-[#6b1529] hover:to-[#8c1c38] active:scale-95',
+    primary: 'bg-gradient-to-b from-[#8c1c38] to-[#a82847] text-white shadow-md hover:shadow-lg hover:from-[#6b1529] hover:to-[#8c1c38] active:scale-95',
     secondary: 'border-2 border-[#a82847] text-[#f4bf4f] bg-transparent hover:bg-[#a82847]/10 active:scale-95',
     ghost: 'text-[#f4bf4f] hover:bg-[#241f20] active:scale-95'
   };
