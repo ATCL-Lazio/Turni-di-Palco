@@ -150,9 +150,11 @@ export function Profilo({
               </div>
             </div>
             <div className="flex items-center gap-[8px]">
-              <span className="bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f] rounded-full size-[20px] flex items-center justify-center text-[12px] leading-[16px] text-[#0f0d0e]">
-                {newAchievementsCount}
-              </span>
+              {newAchievementsCount > 0 ? (
+                <span className="bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f] rounded-full size-[20px] flex items-center justify-center text-[12px] leading-[16px] text-[#0f0d0e]">
+                  {newAchievementsCount}
+                </span>
+              ) : null}
               <ChevronRight className="text-[#7a7577]" size={20} />
             </div>
           </button>
