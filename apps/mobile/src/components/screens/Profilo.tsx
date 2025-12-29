@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Award, BarChart3, ChevronRight, LogOut, Settings, User } from 'lucide-react';
+import { Award, BarChart3, ChevronRight, LogOut, Settings, Theater, User } from 'lucide-react';
 import { ProgressBar } from '../ui/ProgressBar';
 import { achievements } from '../../data/achievements_data';
 
