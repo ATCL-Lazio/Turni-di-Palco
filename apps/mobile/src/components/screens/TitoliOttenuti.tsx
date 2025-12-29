@@ -12,14 +12,15 @@ export function TitoliOttenuti({ onBack }: TitoliOttenutiProps) {
   return (
     <Screen
       header={(
-        <ScreenHeader>
+        <ScreenHeader gradient={false}>
           <div className="max-w-md mx-auto">
             <button
+              type="button"
               onClick={onBack}
-              className="flex items-center gap-2 rounded-md px-2 py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+              className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
+              aria-label="Indietro"
             >
-              <ArrowLeft size={20} />
-              <span>Indietro</span>
+              <ArrowLeft size={24} />
             </button>
           </div>
           <div className="max-w-md mx-auto">
@@ -34,7 +35,7 @@ export function TitoliOttenuti({ onBack }: TitoliOttenutiProps) {
           const Icon = achievement.icon;
           return (
             <Card key={achievement.id} className="flex flex-col items-center text-center gap-3">
-              <div className="w-14 h-14 bg-gradient-to-br from-[#e6a23c] to-[#f4bf4f] rounded-2xl flex items-center justify-center">
+              <div className="w-14 h-14 bg-[#f4bf4f] rounded-2xl flex items-center justify-center">
                 <Icon className="text-[#0f0d0e]" size={24} />
               </div>
               <p className="text-xs leading-snug text-[#b8b2b3]">{achievement.title}</p>
