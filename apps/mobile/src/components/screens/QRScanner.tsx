@@ -59,7 +59,7 @@ export function QRScanner({ onClose, onScanSuccess }: QRScannerProps) {
                 </div>
                 
                 {/* QR Icon */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                <div className="absolute left-1/2 top-1/2 opacity-30 -translate-x-1/2 -translate-y-1/2">
                   <QrCode className="text-[#f4bf4f]" size={120} />
                 </div>
               </div>
