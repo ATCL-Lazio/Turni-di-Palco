@@ -43,7 +43,7 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center justify-center size-[40px] text-[#f4bf4f]"
+          className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
           aria-label="Indietro"
         >
           <ArrowLeft size={24} />
@@ -144,19 +144,19 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
             </div>
           </div>
 
-          <div className="flex gap-[12px] items-start">
+          <label htmlFor="terms" className="flex gap-[12px] items-start rounded-md py-[6px] text-[14px] leading-[20px] text-[#b8b2b3]">
             <input
               id="terms"
               type="checkbox"
               checked={acceptTerms}
               onChange={(e) => setAcceptTerms(e.target.checked)}
-              className="bg-[#241f20] border border-[#2d2728] size-[20px] accent-[#a82847]"
+              className="bg-[#241f20] border border-[#2d2728] size-[24px] accent-[#a82847]"
             />
-            <label htmlFor="terms" className="text-[14px] leading-[20px] text-[#b8b2b3]">
+            <span>
               Accetto i <span className="text-[#f4bf4f]">Termini e Condizioni</span> e la{' '}
               <span className="text-[#f4bf4f]">Privacy Policy</span>
-            </label>
-          </div>
+            </span>
+          </label>
 
           <button
             type="submit"
@@ -173,7 +173,7 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
           <button
             type="button"
             onClick={onLogin}
-            className="text-[16px] leading-[25.6px] text-[#f4bf4f]"
+            className="inline-flex items-center justify-center rounded-md px-2 py-[10px] text-[16px] leading-[25.6px] text-[#f4bf4f]"
           >
             Accedi
           </button>
