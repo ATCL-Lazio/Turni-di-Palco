@@ -41,10 +41,10 @@ export function TurniATCL({ turns, onScanQR }: TurniATCLProps) {
         {/* Scan Button */}
         <Button
           variant="primary"
-          size="lg"
+          size="md"
           fullWidth
           onClick={onScanQR}
-          style={{ padding: "0 5px" }}
+          className="min-h-[44px] px-4"
         >
           <QrCode size={20} />
           Registra nuovo turno (Scansiona QR)
