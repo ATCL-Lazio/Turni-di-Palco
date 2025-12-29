@@ -62,9 +62,9 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
                   </div>
                 </div>
 
-                <div className="h-[38.391px] relative w-[194.891px]">
+                <div className="h-[38.391px] relative w-fit">
                   <p
-                    className="absolute left-1/2 top-[calc(50%-22.2px)] translate-x-[-50%] text-[32px] leading-[38.4px] font-bold tracking-[-0.64px] text-transparent bg-clip-text"
+                    className="absolute left-1/2 top-[calc(50%-22.2px)] translate-x-[-50%] text-center whitespace-nowrap text-[32px] leading-[38.4px] font-bold tracking-[-0.64px] text-transparent bg-clip-text"
                     style={{
                       WebkitTextFillColor: 'transparent',
                       backgroundImage:
