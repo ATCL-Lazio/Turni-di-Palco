@@ -30,7 +30,7 @@ export function RoleSelection({ roles, onComplete }: RoleSelectionProps) {
   if (step === 1) {
     return (
       <Screen withBottomNavPadding={false}>
-        <ScreenHeader>
+        <ScreenHeader gradient={false}>
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-full mb-4">
               <Star className="text-[#f4bf4f]" size={32} />
