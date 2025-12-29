@@ -12,6 +12,7 @@ import { Attivita } from './components/screens/Attivita';
 import { ActivityDetail } from './components/screens/ActivityDetail';
 import { Profilo } from './components/screens/Profilo';
 import { Carriera } from './components/screens/Carriera';
+import { TitoliOttenuti } from './components/screens/TitoliOttenuti';
 import { GameStateProvider, useGameState } from './state/store';
 
 
@@ -27,7 +28,8 @@ type Screen =
   | 'attivita'
   | 'activity-detail'
   | 'profilo'
-  | 'carriera';
+  | 'carriera'
+  | 'titoli-ottenuti';
 
 type Tab = 'home' | 'turni' | 'attivita' | 'profilo';
 
@@ -83,8 +85,8 @@ function AppShell() {
     setCurrentScreen('event-confirmation');
   };
 
-  const handleEventConfirm = (roleId: string) => {
-    const resolvedRoleId = (roleId as typeof state.profile.roleId) || state.profile.roleId;
+  const handleEventConfirm = () => {
+    const resolvedRoleId = state.profile.roleId;
     const record = registerTurn(scannedEventId, resolvedRoleId);
     if (record) {
       setCurrentScreen('home');
@@ -107,6 +109,10 @@ function AppShell() {
 
   const handleViewCarriera = () => {
     setCurrentScreen('carriera');
+  };
+
+  const handleViewTitoli = () => {
+    setCurrentScreen('titoli-ottenuti');
   };
 
   const handleLogout = () => {
@@ -170,15 +176,17 @@ function AppShell() {
           />
         );
 
-      case 'event-confirmation':
+      case 'event-confirmation': {
+        const selectedRole = roles.find((role) => role.id === state.profile.roleId);
         return (
           <EventConfirmation
             event={selectedEvent}
-            roles={roles}
+            role={selectedRole}
             onConfirm={handleEventConfirm}
             onCancel={() => setCurrentScreen('turni')}
           />
         );
+      }
 
       case 'attivita':
         return <Attivita activities={activities} onStartActivity={handleStartActivity} />;
@@ -205,6 +213,7 @@ function AppShell() {
             xpSulCampo={state.profile.xpField}
             reputationGlobal={state.profile.reputation}
             onViewCarriera={handleViewCarriera}
+            onViewTitoli={handleViewTitoli}
             onSettings={() => undefined}
             onLogout={handleLogout}
           />
@@ -225,15 +234,18 @@ function AppShell() {
           />
         );
 
+      case 'titoli-ottenuti':
+        return <TitoliOttenuti onBack={() => setCurrentScreen('profilo')} />;
+
       default:
         return null;
     }
   };
 
-  const showBottomNav = ['home', 'turni', 'attivita', 'profilo', 'carriera'].includes(currentScreen);
+  const showBottomNav = ['home', 'turni', 'attivita', 'profilo', 'carriera', 'titoli-ottenuti'].includes(currentScreen);
 
   return (
-    <div className="min-h-screen bg-[#0f0d0e] flex items-start justify-center">
+    <div className="min-h-screen app-gradient flex items-start justify-center">
       <div className="w-full">
         <div className="w-full max-w-[393px] relative mx-auto min-h-screen">{renderScreen()}</div>
       </div>
