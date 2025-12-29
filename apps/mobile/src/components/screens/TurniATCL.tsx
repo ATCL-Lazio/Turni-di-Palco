@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
+import { ScanQRCard } from '../ScanQRCard';
 import { QrCode, MapPin, Calendar, TrendingUp, Theater } from 'lucide-react';
 import { TurnRecord, RoleId, roles } from '../../state/store';
 
@@ -39,16 +40,7 @@ export function TurniATCL({ turns, onScanQR }: TurniATCLProps) {
       {/* Main Content */}
       <div className="w-full max-w-md mx-auto px-6 space-y-6 pt-6 pb-8">
         {/* Scan Button */}
-        <Button
-          variant="primary"
-          size="md"
-          fullWidth
-          onClick={onScanQR}
-          className="min-h-[44px] px-4"
-        >
-          <QrCode size={20} />
-          Registra nuovo turno (Scansiona QR)
-        </Button>
+        <ScanQRCard onScanQR={onScanQR} />
         
         {/* Stats Summary */}
         <Card>
