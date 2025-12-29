@@ -36,7 +36,7 @@ export function Profilo({
   onLogout
 }: ProfiloProps) {
   const safeXpTotal = Math.max(xpTotal, 1);
-  const roleLabel = userRole.replace(/\s*\/\s*/g, '/');
+  const roleLabel = (userRole ?? 'Ruolo').replace(/\s*\/\s*/g, '/');
 
   return (
     <div
