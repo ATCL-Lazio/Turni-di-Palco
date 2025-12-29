@@ -44,7 +44,7 @@ export function RoleSelection({ roles, onComplete }: RoleSelectionProps) {
           {roles.map((role) => {
             const Icon = roleIcons[role.id] ?? Users;
             return (
-              <Card key={role.id} hoverable onClick={() => handleRoleSelect(role)} className="flex items-center gap-4 p-5">
+              <Card key={role.id} hoverable onClick={() => handleRoleSelect(role)} className="flex items-center gap-4">
                 <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
                   <Icon className="text-[#f4bf4f]" size={24} />
                 </div>
