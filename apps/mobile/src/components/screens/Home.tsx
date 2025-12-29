@@ -225,7 +225,7 @@ export function Home({
               Vedi tutti
             </button>
           </div>
-          <Card style={{ padding: '5px' }}>
+          <Card>
             {statsLoading ? (
               <div className="grid grid-cols-3 gap-3">
                 <Skeleton className="h-16 rounded-xl" />
@@ -244,7 +244,7 @@ export function Home({
 
         <section className="space-y-3">
           <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>Attività simulate</h3>
-          <Card hoverable onClick={onViewActivities} style={{ marginBottom: '20px', padding: '5px' }}>
+          <Card hoverable onClick={onViewActivities} className="mb-5">
             <div className="flex items-center gap-4">
               <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
                 <Play className="text-[#f4bf4f]" size={24} />
