@@ -54,7 +54,7 @@ export function Home({
 
   return (
     <div
-      className="min-h-screen bg-[#0f0d0e] flex flex-col justify-center items-center"
+      className="min-h-screen app-gradient flex flex-col justify-center items-center"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
     >
       <div className="w-full max-w-md mx-auto px-6 pt-6 pb-8 space-y-6">

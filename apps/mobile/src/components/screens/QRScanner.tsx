@@ -27,7 +27,7 @@ export function QRScanner({ onClose, onScanSuccess }: QRScannerProps) {
   };
   
   return (
-    <div className="fixed inset-0 bg-[#0f0d0e] z-50 flex flex-col">
+    <div className="fixed inset-0 app-gradient z-50 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-[#1a1617]">
         <h3 className="text-white">Scansiona QR</h3>
