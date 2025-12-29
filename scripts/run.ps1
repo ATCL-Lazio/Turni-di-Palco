@@ -13,15 +13,21 @@ if (-not (Test-Path (Join-Path $repoRoot ".git"))) {
 
 Push-Location $repoRoot
 try {
-  # Pick the first key in root that matches "*-key.pem", and align the cert to the same basename.
-  $keyFile = Get-ChildItem -Path $repoRoot -Filter '*-key.pem' -File | Select-Object -First 1
+  $certRoot = Join-Path $repoRoot ".cert"
+  if (-not (Test-Path $certRoot)) {
+    Write-Error "Cartella certificati non trovata: $certRoot"
+    exit 1
+  }
+
+  # Pick the first key in .cert that matches "*-key.pem", and align the cert to the same basename.
+  $keyFile = Get-ChildItem -Path $certRoot -Filter '*-key.pem' -File | Select-Object -First 1
   if (-not $keyFile) {
-    Write-Error 'Nessun file *-key.pem trovato nella root del progetto.'
+    Write-Error 'Nessun file *-key.pem trovato nella cartella .cert.'
     exit 1
   }
 
   $keyBase = $keyFile.BaseName -replace '-key$', ''
-  $certFile = Get-ChildItem -Path $repoRoot -File | Where-Object { $_.Extension -eq '.pem' -and $_.BaseName -eq $keyBase } | Select-Object -First 1
+  $certFile = Get-ChildItem -Path $certRoot -File | Where-Object { $_.Extension -eq '.pem' -and $_.BaseName -eq $keyBase } | Select-Object -First 1
   if (-not $certFile) {
     Write-Error "Nessun certificato .pem abbinato alla chiave $($keyFile.Name)."
     exit 1
