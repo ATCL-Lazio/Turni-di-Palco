@@ -233,7 +233,7 @@ function AppShell() {
   const showBottomNav = ['home', 'turni', 'attivita', 'profilo', 'carriera'].includes(currentScreen);
 
   return (
-    <div className="min-h-screen bg-[#0f0d0e] flex items-start justify-center">
+    <div className="min-h-screen app-gradient flex items-start justify-center">
       <div className="w-full">
         <div className="w-full max-w-[393px] relative mx-auto min-h-screen">{renderScreen()}</div>
       </div>

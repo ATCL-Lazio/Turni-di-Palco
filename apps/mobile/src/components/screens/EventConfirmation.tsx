@@ -39,7 +39,7 @@ export function EventConfirmation({ event, roles, onConfirm, onCancel }: EventCo
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-[#0f0d0e] flex items-center justify-center p-6">
+      <div className="min-h-screen app-gradient flex items-center justify-center p-6">
         <div className="max-w-md w-full text-center animate-fade-in">
           <div className="w-24 h-24 bg-gradient-to-br from-[#52c41a] to-[#389e0d] rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
             <CheckCircle2 className="text-white" size={48} />
@@ -85,7 +85,7 @@ export function EventConfirmation({ event, roles, onConfirm, onCancel }: EventCo
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0d0e] pb-24">
+    <div className="min-h-screen app-gradient pb-24">
       <div className="bg-gradient-to-b from-[#2d0a0f] to-[#0f0d0e] p-6 pb-8">
         <div className="max-w-md mx-auto">
           <h2 className="text-white mb-2">Conferma turno</h2>
