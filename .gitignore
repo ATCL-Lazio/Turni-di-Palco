@@ -42,9 +42,6 @@ docs and references/plan.md
 # Firebase Studio Environment
 .idx/
 
-# Local helper scripts
-test.ps1
-
 # PWA build output
 apps/pwa/public/mobile/.mobile-checksum
 apps/pwa/public/mobile/assets/index-*.js
