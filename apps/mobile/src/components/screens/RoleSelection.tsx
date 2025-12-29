@@ -73,7 +73,7 @@ export function RoleSelection({ roles, onComplete }: RoleSelectionProps) {
           <ScreenHeader>
             <button
               onClick={() => setStep(1)}
-              className="flex items-center gap-2 text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+              className="flex items-center gap-2 rounded-md px-2 py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
             >
               <ChevronRight size={20} className="rotate-180" />
               <span>Cambia ruolo</span>
