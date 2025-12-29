@@ -25,8 +25,8 @@ export function ScanQRCard({ onScanQR, className = '', style }: ScanQRCardProps)
         </div>
         <div className="flex-1 flex items-center justify-between">
           <div className="flex flex-col items-start">
-            <p className="text-[16px] leading-[25.6px] font-semibold text-white">Scansiona QR</p>
-            <p className="text-[16px] leading-[25.6px] text-[#f4bf4f]/90">Registra un turno dal biglietto</p>
+            <p className="text-[16px] leading-[25.6px] font-semibold text-white !m-0">Scansiona QR</p>
+            <p className="text-[16px] leading-[25.6px] text-white !m-0">Registra un turno dal biglietto</p>
           </div>
           <ChevronRight className="text-white" size={22} />
         </div>
