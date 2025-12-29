@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Users, Lightbulb, Volume2, Package, Clipboard, ChevronRight, Star } from 'lucide-react';
+import { Users, Lightbulb, Volume2, Package, Clipboard, ChevronRight, Star, ArrowLeft } from 'lucide-react';
 import { Role } from '../../state/store';
 import { Screen, ScreenHeader } from '../ui/Screen';
 
@@ -30,7 +30,7 @@ export function RoleSelection({ roles, onComplete }: RoleSelectionProps) {
   if (step === 1) {
     return (
       <Screen withBottomNavPadding={false}>
-        <ScreenHeader>
+        <ScreenHeader gradient={false}>
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-full mb-4">
               <Star className="text-[#f4bf4f]" size={32} />
@@ -44,7 +44,7 @@ export function RoleSelection({ roles, onComplete }: RoleSelectionProps) {
           {roles.map((role) => {
             const Icon = roleIcons[role.id] ?? Users;
             return (
-              <Card key={role.id} hoverable onClick={() => handleRoleSelect(role)} className="flex items-center gap-4 p-5">
+              <Card key={role.id} hoverable onClick={() => handleRoleSelect(role)} className="flex items-center gap-4">
                 <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
                   <Icon className="text-[#f4bf4f]" size={24} />
                 </div>
@@ -69,52 +69,54 @@ export function RoleSelection({ roles, onComplete }: RoleSelectionProps) {
     return (
       <Screen
         withBottomNavPadding={false}
-        header={
-          <ScreenHeader>
-            <button
-              onClick={() => setStep(1)}
-              className="flex items-center gap-2 text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
-            >
-              <ChevronRight size={20} className="rotate-180" />
-              <span>Cambia ruolo</span>
-            </button>
-          </ScreenHeader>
-        }
+        className="relative items-start justify-start"
+        contentClassName="relative w-full max-w-[393px] flex-1 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom,_0px)+32px)] space-y-0 box-border"
       >
-        <div className="text-center mb-4">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl mb-4 shadow-lg">
-            <Icon className="text-[#f4bf4f]" size={40} />
+        <div className="flex h-full flex-col">
+          <button
+            type="button"
+            onClick={() => setStep(1)}
+            className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
+            aria-label="Indietro"
+          >
+            <ArrowLeft size={24} />
+          </button>
+
+          <div className="mt-4 text-center mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl mb-4 shadow-lg">
+              <Icon className="text-[#f4bf4f]" size={40} />
+            </div>
+            <h2 className="mb-3">{selectedRole.name}</h2>
+            <p className="text-[#b8b2b3] px-4">{selectedRole.focus}</p>
           </div>
-          <h2 className="mb-3">{selectedRole.name}</h2>
-          <p className="text-[#b8b2b3] px-4">{selectedRole.focus}</p>
+
+          <Card className="mb-4">
+            <h4 className="mb-4 text-[#f4bf4f]">Caratteristiche principali</h4>
+
+            <div className="space-y-4">
+              {Object.entries(selectedRole.stats).map(([key, value]) => (
+                <div key={key}>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-[#b8b2b3] capitalize">
+                      {key === 'presence' ? 'Presenza scenica' : key === 'precision' ? 'Precisione' : key === 'leadership' ? 'Leadership' : 'Creatività'}
+                    </span>
+                    <span className="text-white">{value}/100</span>
+                  </div>
+                  <div className="h-2 bg-[#241f20] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#e6a23c] to-[#f4bf4f] rounded-full transition-all duration-500"
+                      style={{ width: `${value}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Button variant="primary" size="lg" fullWidth onClick={() => onComplete(selectedRole)}>
+            Conferma ruolo e continua
+          </Button>
         </div>
-
-        <Card className="mb-4">
-          <h4 className="mb-4 text-[#f4bf4f]">Caratteristiche principali</h4>
-
-          <div className="space-y-4">
-            {Object.entries(selectedRole.stats).map(([key, value]) => (
-              <div key={key}>
-                <div className="flex justify-between mb-2">
-                  <span className="text-[#b8b2b3] capitalize">
-                    {key === 'presence' ? 'Presenza scenica' : key === 'precision' ? 'Precisione' : key === 'leadership' ? 'Leadership' : 'Creatività'}
-                  </span>
-                  <span className="text-white">{value}/100</span>
-                </div>
-                <div className="h-2 bg-[#241f20] rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#e6a23c] to-[#f4bf4f] rounded-full transition-all duration-500"
-                    style={{ width: `${value}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Button variant="primary" size="lg" fullWidth onClick={() => onComplete(selectedRole)}>
-          Conferma ruolo e continua
-        </Button>
       </Screen>
     );
   }

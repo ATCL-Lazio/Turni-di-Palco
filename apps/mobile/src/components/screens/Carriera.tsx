@@ -64,7 +64,7 @@ export function Carriera({
           <div className="max-w-md mx-auto">
             <button
               onClick={onBack}
-              className="flex items-center gap-2 text-[#f4bf4f] mb-6 hover:text-[#e6a23c] transition-colors"
+              className="flex items-center gap-2 rounded-md px-2 py-[10px] text-[#f4bf4f] mb-6 hover:text-[#e6a23c] transition-colors"
             >
               <ArrowLeft size={20} />
               <span>Indietro</span>
