@@ -53,8 +53,8 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-8 flex w-full max-w-[300px] flex-col gap-5 self-center">
-          <div className="flex flex-col gap-2">
+        <form onSubmit={handleSubmit} className="mt-8 flex w-full max-w-[300px] flex-col gap-6 mx-auto">
+          <div className="flex flex-col gap-2 w-full">
             <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
               Email
             </label>
@@ -75,7 +75,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 w-full">
             <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
               Password
             </label>
@@ -97,7 +97,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
             <button
               type="button"
               onClick={onForgotPassword}
-              className="self-start rounded-md px-2 py-[10px] text-[16px] leading-[25.6px] text-[#f4bf4f]"
+              className="self-start rounded-md px-2 py-[10px] mt-2 text-[16px] leading-[25.6px] text-[#f4bf4f]"
             >
               Password dimenticata?
             </button>
