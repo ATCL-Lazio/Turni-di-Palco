@@ -62,7 +62,7 @@ export function Home({
           <div className="absolute top-0 right-0">
             <Popover>
               <PopoverTrigger asChild>
-                <button className="p-2 rounded-lg hover:bg-[#241f20] transition">
+                <button className="flex items-center justify-center size-[44px] rounded-lg hover:bg-[#241f20] transition">
                   <Bell size={20} className="text-[#f4bf4f]" />
                 </button>
               </PopoverTrigger>
@@ -141,7 +141,7 @@ export function Home({
             {eventState === 'ready' ? (
               <button
                 onClick={onViewTurni}
-                className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-2 py-1 rounded-lg"
+                className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
                 style={{ margin: '20px 0 5px' }}
               >
                 Dettagli
@@ -200,11 +200,11 @@ export function Home({
                   </div>
                 </div>
                 <div className="flex gap-2 pt-1">
-                  <Button variant="secondary" size="sm" className="flex-1 justify-center" onClick={onViewTurni} style={{ backgroundColor: '#a72847' }}>
+                  <Button variant="secondary" size="sm" className="flex-1 justify-center min-h-[44px]" onClick={onViewTurni} style={{ backgroundColor: '#a72847' }}>
                     <Navigation size={16} className="text-white" />
                     <div className="text-white">Naviga</div>
                   </Button>
-                  <Button variant="ghost" size="sm" className="flex-1 justify-center" onClick={onViewTurni}>
+                  <Button variant="ghost" size="sm" className="flex-1 justify-center min-h-[44px]" onClick={onViewTurni}>
                     <CalendarPlus size={16} />
                     Aggiungi
                   </Button>
@@ -219,7 +219,7 @@ export function Home({
             <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>Turni ATCL</h3>
             <button
               onClick={onViewTurni}
-              className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-2 py-1 rounded-lg"
+              className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
               style={{ marginTop: '20px' }}
             >
               Vedi tutti
