@@ -31,9 +31,9 @@ export function QRScanner({ onClose, onScanSuccess }: QRScannerProps) {
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-[#1a1617]">
         <h3 className="text-white">Scansiona QR</h3>
-        <button 
+        <button
           onClick={onClose}
-          className="p-2 hover:bg-[#241f20] rounded-lg transition-colors"
+          className="flex items-center justify-center size-[44px] hover:bg-[#241f20] rounded-lg transition-colors"
         >
           <X className="text-[#f4bf4f]" size={24} />
         </button>
@@ -85,9 +85,9 @@ export function QRScanner({ onClose, onScanSuccess }: QRScannerProps) {
                   Simula scansione (Demo)
                 </Button>
                 
-                <button 
+                <button
                   onClick={() => setIsScanning(false)}
-                  className="text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+                  className="inline-flex items-center justify-center rounded-md px-2 py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
                 >
                   Inserisci codice manualmente
                 </button>
@@ -120,10 +120,10 @@ export function QRScanner({ onClose, onScanSuccess }: QRScannerProps) {
                 Conferma codice
               </Button>
               
-              <button 
+              <button
                 type="button"
                 onClick={() => setIsScanning(true)}
-                className="w-full text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+                className="w-full rounded-md py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
               >
                 Torna alla scansione QR
               </button>
