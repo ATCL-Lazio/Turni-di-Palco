@@ -32,19 +32,19 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
     <Screen
       withBottomNavPadding={false}
       className="relative items-start justify-start"
-      contentClassName="relative w-full max-w-[393px] h-[852px] px-0 pt-0 pb-0 space-y-0"
+      contentClassName="relative w-full max-w-[393px] flex-1 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom,_0px)+32px)] space-y-0 box-border"
     >
-      <div className="relative w-full h-full">
+      <div className="flex h-full flex-col">
         <button
           type="button"
           onClick={onBack}
-          className="absolute content-stretch flex items-center left-[27px] p-0 size-[40px] top-[56px] text-[#f4bf4f] z-10"
+          className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
           aria-label="Indietro"
         >
           <ArrowLeft size={24} />
         </button>
 
-        <div className="absolute flex flex-col h-[57px] items-start left-[calc(50%+0.5px)] top-[calc(50%-279.5px)] translate-x-[-50%] translate-y-[-50%] w-[222px]">
+        <div className="mt-4 flex flex-col items-start gap-1">
           <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[#f5f5f5]">
             Accedi
           </p>
@@ -53,15 +53,15 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="absolute inset-0 z-0">
-          <div className="absolute flex flex-col h-[52px] items-start left-[calc(50%+0.5px)] top-[calc(50%-74px)] translate-x-[-50%] translate-y-[-50%] w-[300px]">
-            <label className="h-[24px] text-[16px] leading-[24px] text-[#b8b2b3] relative -top-[2px]">
+        <form onSubmit={handleSubmit} className="mt-8 flex w-full max-w-[300px] flex-col gap-6 mx-auto">
+          <div className="flex flex-col gap-2 w-full">
+            <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
               Email
             </label>
             <div
               className={`bg-[#241f20] border-2 ${
                 errors.email ? 'border-[#ff4d4f]' : 'border-[#2d2728]'
-              } rounded-[10px] flex h-[28px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
+              } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
             >
               <input
                 type="email"
@@ -75,14 +75,14 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
             </div>
           </div>
 
-          <div className="absolute flex flex-col h-[78px] items-start left-[calc(50%+0.5px)] top-[calc(50%+40px)] translate-x-[-50%] translate-y-[-50%] w-[300px]">
-            <label className="h-[24px] text-[16px] leading-[24px] text-[#b8b2b3] relative -top-[2px]">
+          <div className="flex flex-col gap-2 w-full">
+            <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
               Password
             </label>
             <div
               className={`bg-[#241f20] border-2 ${
                 errors.password ? 'border-[#ff4d4f]' : 'border-[#2d2728]'
-              } rounded-[10px] flex h-[28px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
+              } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
             >
               <input
                 type="password"
@@ -97,7 +97,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
             <button
               type="button"
               onClick={onForgotPassword}
-              className="pt-[10px] text-[16px] leading-[25.6px] text-[#f4bf4f]"
+              className="self-start rounded-md px-2 py-[10px] mt-2 text-[16px] leading-[25.6px] text-[#f4bf4f]"
             >
               Password dimenticata?
             </button>
@@ -105,7 +105,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
 
           <button
             type="submit"
-            className="absolute bg-gradient-to-b from-[#8c1c38] to-[#a82847] h-[28px] left-[calc(50%+0.5px)] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] top-[calc(50%+273px)] translate-x-[-50%] translate-y-[-50%] w-[300px]"
+            className="bg-gradient-to-b from-[#8c1c38] to-[#a82847] h-[44px] w-full rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)]"
           >
             <span className="block text-[18px] leading-[28px] text-center text-white">
               Accedi
@@ -113,14 +113,14 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
           </button>
         </form>
 
-        <div className="absolute bottom-[47px] h-[75px] left-1/2 translate-x-[-50%] w-[393px] text-center">
+        <div className="mt-auto pt-6 text-center">
           <p className="text-[16px] leading-[25.6px] text-[#b8b2b3]">
             Non hai un account?
           </p>
           <button
             type="button"
             onClick={onSignup}
-            className="text-[16px] leading-[25.6px] text-[#f4bf4f]"
+            className="inline-flex items-center justify-center rounded-md px-2 py-[10px] text-[16px] leading-[25.6px] text-[#f4bf4f]"
           >
             Registrati
           </button>

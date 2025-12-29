@@ -26,7 +26,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`flex h-[44px] ${tab.widthClass} flex-col items-center justify-end gap-[4px] rounded-[10px] text-[12px] leading-[16px] transition-colors ${
+                className={`flex h-[44px] min-w-[44px] ${tab.widthClass} flex-col items-center justify-end gap-[4px] rounded-[10px] text-[12px] leading-[16px] transition-colors ${
                   isActive ? 'text-[#f4bf4f]' : 'text-[#7a7577] hover:text-[#b8b2b3]'
                 }`}
               >
