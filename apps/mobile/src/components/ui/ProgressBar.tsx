@@ -19,13 +19,13 @@ export function ProgressBar({
   
   const heights = {
     sm: 'h-1.5',
-    md: 'h-2.5',
-    lg: 'h-3'
+    md: 'h-2',
+    lg: 'h-2.5'
   };
   
   const colors = {
-    burgundy: 'bg-gradient-to-r from-[#8c1c38] to-[#a82847]',
-    gold: 'bg-gradient-to-r from-[#e6a23c] to-[#f4bf4f]'
+    burgundy: 'bg-gradient-to-b from-[#8c1c38] to-[#a82847]',
+    gold: 'bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f]'
   };
   
   return (
