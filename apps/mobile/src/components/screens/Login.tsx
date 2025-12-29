@@ -38,7 +38,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
         <button
           type="button"
           onClick={onBack}
-          className="absolute content-stretch flex items-center left-[27px] p-0 size-[40px] top-[56px] text-[#f4bf4f]"
+          className="absolute content-stretch flex items-center left-[27px] p-0 size-[40px] top-[56px] text-[#f4bf4f] z-10"
           aria-label="Indietro"
         >
           <ArrowLeft size={24} />
@@ -53,9 +53,9 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="absolute inset-0">
+        <form onSubmit={handleSubmit} className="absolute inset-0 z-0">
           <div className="absolute flex flex-col h-[52px] items-start left-[calc(50%+0.5px)] top-[calc(50%-74px)] translate-x-[-50%] translate-y-[-50%] w-[300px]">
-            <label className="h-[24px] text-[16px] leading-[24px] text-[#b8b2b3]">
+            <label className="h-[24px] text-[16px] leading-[24px] text-[#b8b2b3] relative -top-[2px]">
               Email
             </label>
             <div
@@ -70,13 +70,13 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
                 autoComplete="email"
                 aria-invalid={Boolean(errors.email)}
                 placeholder="tuo@email.com"
-                className="w-full bg-transparent px-[10px] text-[16px] leading-[normal] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
+                className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
               />
             </div>
           </div>
 
           <div className="absolute flex flex-col h-[78px] items-start left-[calc(50%+0.5px)] top-[calc(50%+40px)] translate-x-[-50%] translate-y-[-50%] w-[300px]">
-            <label className="h-[24px] text-[16px] leading-[24px] text-[#b8b2b3]">
+            <label className="h-[24px] text-[16px] leading-[24px] text-[#b8b2b3] relative -top-[2px]">
               Password
             </label>
             <div
@@ -91,7 +91,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
                 autoComplete="current-password"
                 aria-invalid={Boolean(errors.password)}
                 placeholder="••••••••"
-                className="w-full bg-transparent px-[10px] text-[16px] leading-[normal] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
+                className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
               />
             </div>
             <button
