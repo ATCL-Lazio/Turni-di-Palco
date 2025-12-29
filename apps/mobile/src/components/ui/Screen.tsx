@@ -10,6 +10,7 @@ interface ScreenProps {
   withBottomNavPadding?: boolean;
   className?: string;
   contentClassName?: string;
+  style?: React.CSSProperties;
 }
 
 export function Screen({
@@ -17,10 +18,14 @@ export function Screen({
   header,
   withBottomNavPadding = true,
   className,
-  contentClassName
+  contentClassName,
+  style
 }: ScreenProps) {
   return (
-    <div className={cn('min-h-screen bg-[#0f0d0e] flex flex-col items-center justify-center', className)}>
+    <div
+      className={cn('min-h-screen bg-[#0f0d0e] flex flex-col items-center justify-center', className)}
+      style={style}
+    >
       {header}
       <div
         className={cn(
