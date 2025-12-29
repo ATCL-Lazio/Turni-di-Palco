@@ -13,7 +13,7 @@ interface ActivityDetailProps {
 
 export function ActivityDetail({ activity, onStart, onClose }: ActivityDetailProps) {
   return (
-    <div className="fixed inset-0 bg-[#0f0d0e] z-50 overflow-y-auto pb-24">
+    <div className="fixed inset-0 app-gradient z-50 overflow-y-auto pb-24">
       <div className="sticky top-0 bg-[#1a1617] border-b border-[#2d2728] p-4 flex items-center justify-between z-10">
         <h3 className="text-white">Dettagli attività</h3>
         <button onClick={onClose} className="flex items-center justify-center size-[44px] hover:bg-[#241f20] rounded-lg transition-colors">

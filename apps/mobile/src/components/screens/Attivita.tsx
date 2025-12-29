@@ -16,7 +16,7 @@ const difficultyLabels: Record<Activity['difficulty'], string> = {
 export function Attivita({ activities, onStartActivity }: AttivitaProps) {
   return (
     <div
-      className="min-h-screen bg-[#0f0d0e]"
+      className="min-h-screen app-gradient"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}
     >
       <div className="w-full max-w-[393px] mx-auto pt-[36px] pb-0 mt-[17px] flex flex-col gap-[24px]">
