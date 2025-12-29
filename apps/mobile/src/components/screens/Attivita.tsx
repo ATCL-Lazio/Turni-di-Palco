@@ -102,12 +102,14 @@ export function Attivita({ activities, onStartActivity }: AttivitaProps) {
           </div>
         </section>
 
-        <Card className="text-center">
-          <p className="text-sm text-[#7a7577]">Nuove attività in arrivo</p>
-          <p className="text-sm text-[#b8b2b3]">
-            Stiamo preparando nuove sfide e minigames
-          </p>
-        </Card>
+        {totalActivities === 0 ? (
+          <Card className="text-center">
+            <p className="text-sm text-[#7a7577]">Nuove attività in arrivo</p>
+            <p className="text-sm text-[#b8b2b3]">
+              Stiamo preparando nuove sfide e minigames
+            </p>
+          </Card>
+        ) : null}
       </div>
     </div>
   );
