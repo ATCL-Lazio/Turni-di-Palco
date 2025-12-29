@@ -1,7 +1,5 @@
-import React from 'react';
-import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
-import { Play, Clock, TrendingUp, Coins, Theater } from 'lucide-react';
+﻿import React from 'react';
+import { Clock, Coins, Play, TrendingUp } from 'lucide-react';
 import { Activity } from '../../state/store';
 
 interface AttivitaProps {
@@ -9,96 +7,103 @@ interface AttivitaProps {
   onStartActivity: (activityId: string) => void;
 }
 
-export function Attivita({ activities, onStartActivity }: AttivitaProps) {
-  const getDifficultyColor = (difficulty: Activity['difficulty']) => {
-    switch (difficulty) {
-      case 'Facile':
-        return 'text-[#52c41a]';
-      case 'Medio':
-        return 'text-[#faad14]';
-      case 'Difficile':
-        return 'text-[#ff4d4f]';
-      default:
-        return 'text-[#b8b2b3]';
-    }
-  };
+const difficultyLabels: Record<Activity['difficulty'], string> = {
+  Facile: 'Principiante',
+  Medio: 'Intermedio',
+  Difficile: 'Avanzato'
+};
 
+export function Attivita({ activities, onStartActivity }: AttivitaProps) {
   return (
     <div
       className="min-h-screen bg-[#0f0d0e]"
-      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}
     >
-      <div className="bg-gradient-to-b from-[#2d0a0f] to-[#0f0d0e] p-6 pb-8">
-        <div className="w-full max-w-md mx-auto">
-          <h2 className="text-white mb-2">Attività simulate</h2>
-          <p className="text-[#b8b2b3]">Migliora le tue skill e guadagna ricompense</p>
+      <div className="w-full max-w-[393px] mx-auto pt-[36px] pb-0 mt-[17px] flex flex-col gap-[24px]">
+        <div className="flex flex-col items-start px-[25px]">
+          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-white">
+            Attività simulate
+          </p>
+          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3]">
+            Migliora le tue skill e guadagna ricompense
+          </p>
         </div>
-      </div>
 
-      <div className="w-full max-w-md mx-auto px-6 space-y-6 pt-6 pb-8">
-        <Card className="mb-6 border border-[#f4bf4f]/30">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#e6a23c] to-[#f4bf4f] rounded-lg flex items-center justify-center">
-              <Theater className="text-[#0f0d0e]" size={20} />
-            </div>
-            <div>
-              <h4 className="text-white mb-1">Allenati ogni giorno</h4>
-              <p className="text-sm text-[#b8b2b3]">
-                Completa le attività per migliorare le tue competenze e prepararti per gli eventi reali
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <div className="space-y-5">
-          <h3 className="text-white">Attività disponibili</h3>
-
-          {activities.map((activity) => (
-            <Card key={activity.id} hoverable onClick={() => onStartActivity(activity.id)}>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
-                  <Play className="text-[#f4bf4f]" size={24} />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <h4 className="text-white">{activity.title}</h4>
-                    <Play className="text-[#f4bf4f] flex-shrink-0" size={20} />
-                  </div>
-
-                  <p className="text-sm text-[#b8b2b3] mb-3">{activity.description}</p>
-
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="flex items-center gap-1 text-sm text-[#b8b2b3]">
-                      <Clock size={14} />
-                      <span>{activity.duration}</span>
-                    </div>
-
-                    <span className={`text-sm ${getDifficultyColor(activity.difficulty)}`}>{activity.difficulty}</span>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Badge variant="gold" size="sm">
-                      <TrendingUp size={12} />
-                      +{activity.xpReward} XP
-                    </Badge>
-                    <Badge variant="default" size="sm">
-                      <Coins size={12} />
-                      +{activity.cachetReward}
-                    </Badge>
-                  </div>
-                </div>
+        <div className="flex flex-col gap-[20px] items-start px-[25px]">
+          <div className="bg-[#1a1617] border border-[rgba(244,191,79,0.3)] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] w-[325px] p-px">
+            <div className="flex h-[76px] items-center justify-center px-[5px] py-[4px]">
+              <div className="flex flex-col items-start">
+                <p className="text-[18px] leading-[25.2px] font-semibold text-white">
+                  Allenati ogni giorno
+                </p>
+                <p className="text-[14px] leading-[25.6px] text-[#b8b2b3] w-[319px]">
+                  Completa le attività per migliorare le tue competenze e prepararti per gli eventi reali
+                </p>
               </div>
-            </Card>
-          ))}
-        </div>
-
-        <Card className="bg-[#1a1617] border border-[#2d2728]">
-          <div className="text-center py-4">
-            <p className="text-[#7a7577] mb-1">Nuove attività in arrivo</p>
-            <p className="text-sm text-[#b8b2b3]">Stiamo preparando nuove sfide e minigames</p>
+            </div>
           </div>
-        </Card>
+
+          <div className="flex flex-col gap-[25px] items-start">
+            <p className="text-[20px] leading-[28px] font-semibold text-white">
+              Attività disponibili
+            </p>
+
+            <div className="flex flex-col gap-[20px] items-start">
+              {activities.map((activity) => {
+                const difficultyLabel = difficultyLabels[activity.difficulty] ?? activity.difficulty;
+                return (
+                  <button
+                    key={activity.id}
+                    type="button"
+                    onClick={() => onStartActivity(activity.id)}
+                    className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-[5px] w-[291px] text-left"
+                  >
+                    <div className="flex gap-[16px] items-start">
+                      <div className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-[16.4px] size-[56px] flex items-center justify-center">
+                        <Play className="text-[#f4bf4f]" size={24} />
+                      </div>
+                      <div className="flex-1 flex flex-col items-start">
+                        <div className="flex w-full items-start justify-between">
+                          <p className="text-[18px] leading-[25.2px] font-semibold text-white">
+                            {activity.title}
+                          </p>
+                          <Play className="text-[#f4bf4f]" size={20} />
+                        </div>
+                        <p className="text-[16px] leading-[25.6px] text-[#b8b2b3]">
+                          {activity.description}
+                        </p>
+                        <div className="flex gap-[12px] items-center h-[20px] text-[14px] leading-[20px] text-[#b8b2b3]">
+                          <Clock size={14} />
+                          <span>{activity.duration}</span>
+                          <span>{difficultyLabel}</span>
+                        </div>
+                        <div className="flex gap-[8px] items-start h-[16px]">
+                          <span className="flex items-center gap-[4px] h-[16px] rounded-full bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f] px-[6px] text-[12px] leading-[16px] text-[#0f0d0e]">
+                            <TrendingUp size={12} />
+                            +{activity.xpReward} XP
+                          </span>
+                          <span className="flex items-center gap-[4px] h-[16px] rounded-full bg-[#241f20] px-[6px] text-[12px] leading-[16px] text-[#b8b2b3]">
+                            <Coins size={12} />
+                            +
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="bg-[#1a1617] border border-[#2d2728] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] w-[291px] p-px">
+              <div className="flex flex-col items-center justify-center h-[68px]">
+                <p className="text-[16px] leading-[25.6px] text-[#7a7577]">Nuove attività in arrivo</p>
+                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] text-center w-[266px]">
+                  Stiamo preparando nuove sfide e minigames
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
