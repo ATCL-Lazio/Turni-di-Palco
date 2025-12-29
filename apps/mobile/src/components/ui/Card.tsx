@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from './utils';
 
 interface CardProps {
   children: React.ReactNode;
@@ -13,7 +14,6 @@ export function Card({ children, className = '', onClick, hoverable = false, sty
   const defaultStyles: React.CSSProperties = {
     backgroundColor: 'rgb(26, 22, 23)',
     borderRadius: '16.4px',
-    padding: '16px',
     boxShadow: 'rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.1) 0px 2px 4px -2px',
     transitionDuration: '0.2s',
     transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
@@ -22,7 +22,7 @@ export function Card({ children, className = '', onClick, hoverable = false, sty
 
   return (
     <div
-      className={`transition-all duration-200 ${hoverClass} ${className}`}
+      className={cn('transition-all duration-200 p-4', hoverClass, className)}
       onClick={onClick}
       style={defaultStyles}
     >
