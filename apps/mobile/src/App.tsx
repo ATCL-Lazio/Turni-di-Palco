@@ -85,8 +85,8 @@ function AppShell() {
     setCurrentScreen('event-confirmation');
   };
 
-  const handleEventConfirm = (roleId: string) => {
-    const resolvedRoleId = (roleId as typeof state.profile.roleId) || state.profile.roleId;
+  const handleEventConfirm = () => {
+    const resolvedRoleId = state.profile.roleId;
     const record = registerTurn(scannedEventId, resolvedRoleId);
     if (record) {
       setCurrentScreen('home');
@@ -176,15 +176,17 @@ function AppShell() {
           />
         );
 
-      case 'event-confirmation':
+      case 'event-confirmation': {
+        const selectedRole = roles.find((role) => role.id === state.profile.roleId);
         return (
           <EventConfirmation
             event={selectedEvent}
-            roles={roles}
+            role={selectedRole}
             onConfirm={handleEventConfirm}
             onCancel={() => setCurrentScreen('turni')}
           />
         );
+      }
 
       case 'attivita':
         return <Attivita activities={activities} onStartActivity={handleStartActivity} />;
