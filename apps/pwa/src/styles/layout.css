@@ -24,8 +24,7 @@
   gap: var(--layout-gap);
 }
 
-.layout-grid,
-.grid {
+.layout-grid {
   display: grid;
   gap: var(--layout-gap);
   grid-template-columns: repeat(auto-fit, minmax(var(--grid-min), 1fr));
