@@ -161,9 +161,9 @@ export function Home({
             ) : (
               <div className="space-y-2">
                 <div className="flex items-start gap-3" style={{ marginBottom: '20px' }}>
-                  <div className="flex-shrink-0 bg-[#241f20] rounded-lg flex flex-col items-center justify-center" style={{ width: '70px', height: '70px' }}>
-                    <Calendar className="text-[#f4bf4f]" size={50} />
-                    <p className="text-xs text-[#f4bf4f] mt-1">{upcomingEvent?.date?.slice(0, 6)}</p>
+                  <div className="flex-shrink-0 bg-[#241f20] rounded-lg flex flex-col items-center justify-center w-[70px] h-[70px] gap-1">
+                    <Calendar className="text-[#f4bf4f] block" size={50} />
+                    <p className="text-xs leading-none text-[#f4bf4f] !m-0">{upcomingEvent?.date?.slice(0, 6)}</p>
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-white text-lg leading-tight line-clamp-2">{upcomingEvent?.name}</h4>
