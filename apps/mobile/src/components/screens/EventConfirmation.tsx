@@ -7,20 +7,19 @@ import { GameEvent, Role, RoleId, computeTurnRewards } from '../../state/store';
 
 interface EventConfirmationProps {
   event?: GameEvent;
-  roles: Role[];
-  onConfirm: (roleId: string) => void;
+  role?: Role;
+  onConfirm: () => void;
   onCancel: () => void;
 }
 
-export function EventConfirmation({ event, roles, onConfirm, onCancel }: EventConfirmationProps) {
-  const [selectedRole, setSelectedRole] = useState<string>(roles[0]?.id ?? '');
+export function EventConfirmation({ event, role, onConfirm, onCancel }: EventConfirmationProps) {
   const [isSuccess, setIsSuccess] = useState(false);
+  const roleId = (role?.id ?? 'attore') as RoleId;
 
   const resolvedRewards = useMemo(() => {
     if (!event) return { xp: 0, reputation: 0, cachet: 0 };
-    const roleId = (selectedRole as RoleId) || roles[0]?.id || 'attore';
     return computeTurnRewards(event, roleId);
-  }, [event, selectedRole, roles]);
+  }, [event, roleId]);
 
   const resolvedEvent = event ?? {
     name: 'Evento non trovato',
@@ -33,13 +32,13 @@ export function EventConfirmation({ event, roles, onConfirm, onCancel }: EventCo
   const handleConfirm = () => {
     setIsSuccess(true);
     setTimeout(() => {
-      onConfirm(selectedRole || roles[0]?.id || '');
+      onConfirm();
     }, 1500);
   };
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-[#0f0d0e] flex items-center justify-center p-6">
+      <div className="min-h-screen app-gradient flex items-center justify-center p-6">
         <div className="max-w-md w-full text-center animate-fade-in">
           <div className="w-24 h-24 bg-gradient-to-br from-[#52c41a] to-[#389e0d] rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
             <CheckCircle2 className="text-white" size={48} />
@@ -85,7 +84,7 @@ export function EventConfirmation({ event, roles, onConfirm, onCancel }: EventCo
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0d0e] pb-24">
+    <div className="min-h-screen app-gradient pb-24">
       <div className="bg-gradient-to-b from-[#2d0a0f] to-[#0f0d0e] p-6 pb-8">
         <div className="max-w-md mx-auto">
           <h2 className="text-white mb-2">Conferma turno</h2>
@@ -118,24 +117,17 @@ export function EventConfirmation({ event, roles, onConfirm, onCancel }: EventCo
           </div>
         </Card>
 
-        <div>
-          <label className="block text-white mb-3">Con quale ruolo vuoi registrare questo turno?</label>
-
-          <div className="space-y-2">
-            {roles.map((role) => (
-              <button
-                key={role.id}
-                onClick={() => setSelectedRole(role.id)}
-                className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                  selectedRole === role.id ? 'border-[#f4bf4f] bg-[#f4bf4f]/10' : 'border-[#2d2728] bg-[#1a1617] hover:border-[#7a7577]'
-                }`}
-              >
-                <span className={selectedRole === role.id ? 'text-[#f4bf4f]' : 'text-white'}>{role.name}</span>
-                <p className="text-sm text-[#7a7577]">{role.focus}</p>
-              </button>
-            ))}
+        <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h4 className="text-white mb-1">Ruolo registrato</h4>
+              <p className="text-sm text-[#b8b2b3]">{role?.focus ?? 'Selezionato in fase di registrazione'}</p>
+            </div>
+            <Badge variant="outline" size="md">
+              {role?.name ?? 'Ruolo'}
+            </Badge>
           </div>
-        </div>
+        </Card>
 
         <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
           <h4 className="text-[#f4bf4f] mb-4">Ricompense previste</h4>

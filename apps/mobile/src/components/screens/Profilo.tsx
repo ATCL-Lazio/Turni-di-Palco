@@ -1,6 +1,7 @@
 ﻿import React from 'react';
-import { Award, BarChart3, ChevronRight, LogOut, MapPin, Settings, Theater, User } from 'lucide-react';
+import { Award, BarChart3, ChevronRight, LogOut, Settings, Theater, User } from 'lucide-react';
 import { ProgressBar } from '../ui/ProgressBar';
+import { achievements } from '../../data/achievements_data';
 
 interface ProfiloProps {
   userName: string;
@@ -11,6 +12,7 @@ interface ProfiloProps {
   xpSulCampo: number;
   reputationGlobal: number;
   onViewCarriera: () => void;
+  onViewTitoli: () => void;
   onSettings: () => void;
   onLogout: () => void;
 }
@@ -21,12 +23,6 @@ const theatreReputation = [
   { name: 'Teatro Quirino', reputation: 68 }
 ];
 
-const achievements = [
-  { id: '1', title: 'Ha lavorato in 3 teatri diversi', icon: MapPin },
-  { id: '2', title: 'Prima stagione completata', icon: Award },
-  { id: '3', title: '10 turni registrati', icon: Theater }
-];
-
 export function Profilo({
   userName,
   userRole,
@@ -35,15 +31,17 @@ export function Profilo({
   xpSulCampo,
   reputationGlobal,
   onViewCarriera,
+  onViewTitoli,
   onSettings,
   onLogout
 }: ProfiloProps) {
   const safeXpTotal = Math.max(xpTotal, 1);
-  const roleLabel = userRole.replace(/\s*\/\s*/g, '/');
+  const roleLabel = (userRole ?? 'Ruolo').replace(/\s*\/\s*/g, '/');
+  const newAchievementsCount = achievements.filter((achievement) => achievement.isNew).length;
 
   return (
     <div
-      className="min-h-screen bg-[#0f0d0e]"
+      className="min-h-screen app-gradient"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}
     >
       <div className="w-full max-w-[393px] mx-auto pt-[36px] pb-0 flex flex-col gap-[20px]">
@@ -133,31 +131,33 @@ export function Profilo({
             </div>
           </div>
 
-          <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[5px] py-[2px] flex flex-col gap-[12px]">
-            <div className="flex items-center justify-between">
-              <p className="text-[18px] leading-[25.2px] font-semibold text-white">
-                Titoli ottenuti
-              </p>
-              <span className="bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f] rounded-full size-[16px] flex items-center justify-center text-[12px] leading-[16px] text-[#0f0d0e]">
-                {achievements.length}
-              </span>
+          <button
+            type="button"
+            onClick={onViewTitoli}
+            className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex items-center justify-between"
+          >
+            <div className="flex items-center gap-[12px]">
+              <div className="bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f] rounded-[12px] size-[44px] flex items-center justify-center">
+                <Award className="text-[#0f0d0e]" size={22} />
+              </div>
+              <div className="flex flex-col items-start">
+                <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
+                  Titoli ottenuti
+                </p>
+                <p className="text-[14px] leading-[20px] text-[#b8b2b3] !m-0">
+                  {achievements.length} badge sbloccati
+                </p>
+              </div>
             </div>
-            <div className="flex flex-col gap-[12px]">
-              {achievements.map((achievement) => {
-                const Icon = achievement.icon;
-                return (
-                  <div key={achievement.id} className="bg-[#241f20] rounded-[10px] h-[40px] flex items-center gap-[12px] px-[8px]">
-                    <div className="bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f] rounded-[10px] size-[40px] flex items-center justify-center">
-                      <Icon className="text-[#0f0d0e]" size={20} />
-                    </div>
-                    <span className="text-[16px] leading-[24px] text-[#b8b2b3]">
-                      {achievement.title}
-                    </span>
-                  </div>
-                );
-              })}
+            <div className="flex items-center gap-[8px]">
+              {newAchievementsCount > 0 ? (
+                <span className="bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f] rounded-full size-[20px] flex items-center justify-center text-[12px] leading-[16px] text-[#0f0d0e]">
+                  {newAchievementsCount}
+                </span>
+              ) : null}
+              <ChevronRight className="text-[#7a7577]" size={20} />
             </div>
-          </div>
+          </button>
 
           <button
             type="button"
@@ -167,10 +167,10 @@ export function Profilo({
             <div className="flex items-center gap-[12px]">
               <Settings className="text-[#f4bf4f]" size={24} />
               <div>
-                <p className="text-[18px] leading-[25.2px] font-semibold text-white">
+                <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                   Gestisci account
                 </p>
-                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3]">
+                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
                   Impostazioni e privacy
                 </p>
               </div>
@@ -181,7 +181,7 @@ export function Profilo({
           <button
             type="button"
             onClick={onLogout}
-            className="flex items-center justify-center gap-[6px] h-[28px] text-[18px] leading-[28px] text-[#ff4d4f]"
+            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[18px] leading-[28px] text-[#ff4d4f]"
           >
             <LogOut size={20} />
             Esci
