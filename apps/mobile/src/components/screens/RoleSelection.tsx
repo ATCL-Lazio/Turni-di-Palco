@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Users, Lightbulb, Volume2, Package, Clipboard, ChevronRight, Star } from 'lucide-react';
+import { Users, Lightbulb, Volume2, Package, Clipboard, ChevronRight, Star, ArrowLeft } from 'lucide-react';
 import { Role } from '../../state/store';
 import { Screen, ScreenHeader } from '../ui/Screen';
 
@@ -73,10 +73,10 @@ export function RoleSelection({ roles, onComplete }: RoleSelectionProps) {
           <ScreenHeader>
             <button
               onClick={() => setStep(1)}
-              className="flex items-center gap-2 rounded-md px-2 py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+              className="flex items-center justify-center size-[44px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+              aria-label="Cambia ruolo"
             >
-              <ChevronRight size={20} className="rotate-180" />
-              <span>Cambia ruolo</span>
+              <ArrowLeft size={24} />
             </button>
           </ScreenHeader>
         }
