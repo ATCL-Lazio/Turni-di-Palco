@@ -73,8 +73,8 @@ export function RoleSelection({ roles, onComplete }: RoleSelectionProps) {
           <ScreenHeader>
             <button
               onClick={() => setStep(1)}
-              className="flex items-center justify-center size-[44px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
-              aria-label="Cambia ruolo"
+              className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
+              aria-label="Indietro"
             >
               <ArrowLeft size={24} />
             </button>
