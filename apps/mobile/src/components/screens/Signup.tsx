@@ -121,7 +121,7 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
                   className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
                 />
               </div>
-              <p className="mt-2 text-[16px] leading-[25.6px] text-[#7a7577]">Almeno 8 caratteri</p>
+              <p className="mt-2 !mb-0 text-[16px] leading-[25.6px] text-[#7a7577]">Almeno 8 caratteri</p>
             </div>
 
             <div className="flex flex-col gap-2 w-full">
