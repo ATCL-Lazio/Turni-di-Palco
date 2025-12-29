@@ -20,7 +20,7 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
       }}
     >
       <div className="relative w-full h-full">
-        <div className="absolute h-[96px] left-1/2 top-[calc(50%+309px)] translate-x-[-50%] translate-y-[-50%] w-[448px]">
+        <div className="absolute z-10 h-[96px] left-1/2 top-[calc(50%+309px)] translate-x-[-50%] translate-y-[-50%] w-[448px]">
           <div className="flex flex-col gap-[16px] items-center justify-center pb-[20px]">
             <button
               type="button"
@@ -43,7 +43,7 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
           </div>
         </div>
 
-        <div className="absolute h-[852px] left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%] w-[393px]">
+        <div className="absolute z-0 pointer-events-none h-[852px] left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%] w-[393px]">
           <div className="relative flex flex-col gap-[20px] items-center justify-center w-full h-full">
             <div className="absolute bg-[#1a1617] border border-[#2d2728] h-[102px] left-[calc(50%+0.5px)] rounded-[16px] top-[calc(50%+115px)] translate-x-[-50%] translate-y-[-50%] w-[300px]">
               <div className="flex items-center justify-center w-full h-full">
