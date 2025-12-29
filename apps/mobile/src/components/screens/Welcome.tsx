@@ -43,7 +43,7 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
           </p>
         </div>
 
-        <div className="mt-[18px] mb-4 w-full max-w-[300px] bg-[#1a1617] border border-[#2d2728] rounded-[16px] px-4 py-3">
+        <div className="mt-[18px] mb-5 w-full max-w-[300px] bg-[#1a1617] border border-[#2d2728] rounded-[16px] px-4 py-3">
           <p className="!m-0 text-[16px] leading-[25.6px] text-center text-[#b8b2b3]">
             Simula la carriera di un professionista del teatro e registra la tua
             partecipazione agli eventi reali ATCL scansionando il QR sul biglietto.
