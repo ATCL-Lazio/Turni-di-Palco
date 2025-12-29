@@ -101,46 +101,48 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 w-full">
-            <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
-              Password
-            </label>
-            <div
-              className={`bg-[#241f20] border-2 ${
-                errors.password ? 'border-[#ff4d4f]' : 'border-[#2d2728]'
-              } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
-            >
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="new-password"
-                aria-invalid={Boolean(errors.password)}
-                placeholder="••••••••"
-                className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
-              />
+          <div className="flex flex-col gap-4 w-full">
+            <div className="flex flex-col gap-2 w-full">
+              <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
+                Password
+              </label>
+              <div
+                className={`bg-[#241f20] border-2 ${
+                  errors.password ? 'border-[#ff4d4f]' : 'border-[#2d2728]'
+                } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
+              >
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                  aria-invalid={Boolean(errors.password)}
+                  placeholder="••••••••"
+                  className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
+                />
+              </div>
+              <p className="mt-2 text-[16px] leading-[25.6px] text-[#7a7577]">Almeno 8 caratteri</p>
             </div>
-            <p className="mt-2 text-[16px] leading-[25.6px] text-[#7a7577]">Almeno 8 caratteri</p>
-          </div>
 
-          <div className="flex flex-col gap-2 w-full">
-            <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
-              Conferma password
-            </label>
-            <div
-              className={`bg-[#241f20] border-2 ${
-                errors.confirmPassword ? 'border-[#ff4d4f]' : 'border-[#2d2728]'
-              } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
-            >
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                autoComplete="new-password"
-                aria-invalid={Boolean(errors.confirmPassword)}
-                placeholder="••••••••"
-                className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
-              />
+            <div className="flex flex-col gap-2 w-full">
+              <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
+                Conferma password
+              </label>
+              <div
+                className={`bg-[#241f20] border-2 ${
+                  errors.confirmPassword ? 'border-[#ff4d4f]' : 'border-[#2d2728]'
+                } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
+              >
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                  aria-invalid={Boolean(errors.confirmPassword)}
+                  placeholder="••••••••"
+                  className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
+                />
+              </div>
             </div>
           </div>
 
