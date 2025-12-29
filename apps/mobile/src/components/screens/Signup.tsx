@@ -58,8 +58,8 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-8 flex w-full max-w-[300px] flex-col gap-5 self-center">
-          <div className="flex flex-col gap-2">
+        <form onSubmit={handleSubmit} className="mt-8 flex w-full max-w-[300px] flex-col gap-6 mx-auto">
+          <div className="flex flex-col gap-2 w-full">
             <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
               Nome visualizzato
             </label>
@@ -80,7 +80,7 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 w-full">
             <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
               Email
             </label>
@@ -101,7 +101,7 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 w-full">
             <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
               Password
             </label>
@@ -120,10 +120,10 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
                 className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
               />
             </div>
-            <p className="text-[16px] leading-[25.6px] text-[#7a7577]">Almeno 8 caratteri</p>
+            <p className="mt-2 text-[16px] leading-[25.6px] text-[#7a7577]">Almeno 8 caratteri</p>
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 w-full">
             <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
               Conferma password
             </label>
