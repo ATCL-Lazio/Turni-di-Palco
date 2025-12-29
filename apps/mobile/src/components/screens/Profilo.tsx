@@ -181,7 +181,7 @@ export function Profilo({
           <button
             type="button"
             onClick={onLogout}
-            className="flex items-center justify-center gap-[6px] h-[28px] text-[18px] leading-[28px] text-[#ff4d4f]"
+            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[18px] leading-[28px] text-[#ff4d4f]"
           >
             <LogOut size={20} />
             Esci
