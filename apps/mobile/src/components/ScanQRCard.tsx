@@ -10,8 +10,9 @@ interface ScanQRCardProps {
 
 export function ScanQRCard({ onScanQR, className = '', style }: ScanQRCardProps) {
   return (
-    <Card className={`bg-gradient-to-r from-[#8c1c38] to-[#a82847] border border-[#f4bf4f]/30 ${className}`} style={style}>
-      <div className="flex items-center gap-3">
+    <Card className={`relative overflow-hidden border border-[#2d2728] ${className}`} style={style}>
+      <div className="absolute inset-0 bg-gradient-to-r from-[#8c1c38]/35 to-[#a82847]/35 pointer-events-none" />
+      <div className="relative flex items-center gap-3">
         <div className="flex-shrink-0 w-12 h-12 bg-[#f4bf4f] rounded-xl flex items-center justify-center ml-1 my-1">
           <QrCode className="text-[#2d0a0f]" size={24} />
         </div>
