@@ -72,6 +72,7 @@ export function RoleSelection({ roles, onComplete }: RoleSelectionProps) {
         header={
           <ScreenHeader>
             <button
+              type="button"
               onClick={() => setStep(1)}
               className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
               aria-label="Indietro"
