@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 
 function resolveHttps() {
   const flag = process.env.HTTPS === "true" || process.env.HTTPS === "1";
@@ -21,6 +22,7 @@ const httpsOption = resolveHttps();
 
 export default defineConfig({
   appType: "mpa",
+  plugins: [tailwindcss()],
   build: {
     rollupOptions: {
       input: {
