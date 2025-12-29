@@ -140,10 +140,10 @@ export function Profilo({
                 <Award className="text-[#0f0d0e]" size={22} />
               </div>
               <div className="flex flex-col items-start">
-                <p className="text-[18px] leading-[25.2px] font-semibold text-white">
+                <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                   Titoli ottenuti
                 </p>
-                <p className="text-[14px] leading-[20px] text-[#b8b2b3]">
+                <p className="text-[14px] leading-[20px] text-[#b8b2b3] !m-0">
                   {achievements.length} badge sbloccati
                 </p>
               </div>
@@ -164,10 +164,10 @@ export function Profilo({
             <div className="flex items-center gap-[12px]">
               <Settings className="text-[#f4bf4f]" size={24} />
               <div>
-                <p className="text-[18px] leading-[25.2px] font-semibold text-white">
+                <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                   Gestisci account
                 </p>
-                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3]">
+                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
                   Impostazioni e privacy
                 </p>
               </div>
