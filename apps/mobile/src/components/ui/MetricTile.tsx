@@ -20,8 +20,8 @@ export function MetricTile({ label, value, helper, icon, onClick, progress }: Me
       )}
       onClick={onClick}
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="text-xs text-[#b8b2b3]">{label}</div>
+      <div className="flex items-start justify-between gap-2 mb-2 min-h-[32px]">
+        <div className="text-xs leading-4 text-[#b8b2b3]">{label}</div>
         {icon ? <div className="text-[#f4bf4f]">{icon}</div> : null}
       </div>
       <div className="text-white leading-tight" style={{ fontSize: '55px', margin: '10px 0 20px' }}>{value}</div>
