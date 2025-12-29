@@ -38,7 +38,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center justify-center size-[40px] text-[#f4bf4f]"
+          className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
           aria-label="Indietro"
         >
           <ArrowLeft size={24} />
@@ -97,7 +97,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
             <button
               type="button"
               onClick={onForgotPassword}
-              className="text-[16px] leading-[25.6px] text-[#f4bf4f] self-start"
+              className="self-start rounded-md px-2 py-[10px] text-[16px] leading-[25.6px] text-[#f4bf4f]"
             >
               Password dimenticata?
             </button>
@@ -120,7 +120,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
           <button
             type="button"
             onClick={onSignup}
-            className="text-[16px] leading-[25.6px] text-[#f4bf4f]"
+            className="inline-flex items-center justify-center rounded-md px-2 py-[10px] text-[16px] leading-[25.6px] text-[#f4bf4f]"
           >
             Registrati
           </button>
