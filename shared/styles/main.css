@@ -87,7 +87,9 @@
 
   body.mobile-fixed-bg {
     position: relative;
-    background-color: var(--color-bg-primary);
+    background: var(--color-bg-primary);
+    background-image: none;
+    background-attachment: scroll;
   }
 
   body.mobile-fixed-bg::before {
