@@ -44,6 +44,13 @@ function AppShell() {
 
   const upcomingEvent = useMemo(() => events[0], [events]);
 
+  useEffect(() => {
+    if (!events.length) return;
+    if (!scannedEventId || !events.some((event) => event.id === scannedEventId)) {
+      setScannedEventId(events[0].id);
+    }
+  }, [events, scannedEventId]);
+
   const handleStart = () => setCurrentScreen('signup');
 
   const handleLogin = async (email: string, password: string) => {
@@ -245,7 +252,13 @@ function AppShell() {
         );
 
       case 'turni':
-        return <TurniATCL turns={state.turns} onScanQR={() => setCurrentScreen('qr-scanner')} />;
+        return (
+          <TurniATCL
+            turns={state.turns}
+            roles={roles}
+            onScanQR={() => setCurrentScreen('qr-scanner')}
+          />
+        );
 
       case 'qr-scanner':
         return (
