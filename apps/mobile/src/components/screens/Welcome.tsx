@@ -14,10 +14,6 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
       withBottomNavPadding={false}
       className="relative items-start justify-start h-[100dvh] overflow-hidden"
       contentClassName="relative w-full max-w-[393px] flex-1 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom,_0px)+32px)] space-y-0 box-border"
-      style={{
-        backgroundImage:
-          'linear-gradient(180deg, rgba(15, 13, 14, 1) 0%, rgba(26, 22, 23, 1) 50%, rgba(45, 10, 15, 1) 100%), linear-gradient(90deg, rgba(15, 13, 14, 1) 0%, rgba(15, 13, 14, 1) 100%)'
-      }}
     >
       <div className="relative flex h-full flex-col items-center text-center">
         <div className="flex flex-col items-center gap-[20px] pt-[12px]">
