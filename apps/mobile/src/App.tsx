@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { BottomNav } from './components/BottomNav';
 import { Welcome } from './components/screens/Welcome';
 import { Login } from './components/screens/Login';
@@ -14,6 +14,7 @@ import { Profilo } from './components/screens/Profilo';
 import { Carriera } from './components/screens/Carriera';
 import { TitoliOttenuti } from './components/screens/TitoliOttenuti';
 import { GameStateProvider, useGameState } from './state/store';
+import { isSupabaseConfigured, supabase } from './lib/supabase';
 
 
 type Screen =
@@ -39,18 +40,51 @@ function AppShell() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [scannedEventId, setScannedEventId] = useState<string>(events[0]?.id ?? '');
   const [selectedActivityId, setSelectedActivityId] = useState<string>('');
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const upcomingEvent = useMemo(() => events[0], [events]);
 
   const handleStart = () => setCurrentScreen('signup');
 
-  const handleLogin = (email: string, password: string) => {
-    updateProfile({ email });
+  const handleLogin = async (email: string, password: string) => {
+    setAuthError(null);
+    if (!isSupabaseConfigured || !supabase) {
+      updateProfile({ email });
+      setCurrentScreen('home');
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+
+    const displayName = data.user?.user_metadata?.name ?? state.profile.name;
+    updateProfile({ name: displayName, email });
     setCurrentScreen('home');
   };
 
-  const handleSignup = (name: string, email: string, password: string) => {
-    updateProfile({ name, email });
+  const handleSignup = async (name: string, email: string, password: string) => {
+    setAuthError(null);
+    if (!isSupabaseConfigured || !supabase) {
+      updateProfile({ name, email });
+      setCurrentScreen('role-selection');
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } },
+    });
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+
+    const displayName = data.user?.user_metadata?.name ?? name;
+    updateProfile({ name: displayName, email });
     setCurrentScreen('role-selection');
   };
 
@@ -116,9 +150,49 @@ function AppShell() {
   };
 
   const handleLogout = () => {
+    if (supabase) {
+      supabase.auth.signOut();
+    }
     setCurrentScreen('welcome');
     setActiveTab('home');
   };
+
+  useEffect(() => {
+    setAuthError(null);
+  }, [currentScreen]);
+
+  useEffect(() => {
+    if (!supabase) return;
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!mounted || error) return;
+      if (data.session?.user) {
+        const user = data.session.user;
+        const displayName = user.user_metadata?.name ?? state.profile.name;
+        updateProfile({ name: displayName, email: user.email ?? state.profile.email });
+        setCurrentScreen('home');
+      }
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      if (event === 'SIGNED_OUT') {
+        setCurrentScreen('welcome');
+        setActiveTab('home');
+        return;
+      }
+      if (session?.user) {
+        const displayName = session.user.user_metadata?.name ?? state.profile.name;
+        updateProfile({ name: displayName, email: session.user.email ?? state.profile.email });
+      }
+    });
+
+    return () => {
+      mounted = false;
+      authListener?.subscription.unsubscribe();
+    };
+  }, [updateProfile, state.profile.email, state.profile.name]);
 
   const selectedEvent = events.find((event) => event.id === scannedEventId) ?? events[0];
   const currentActivity = activities.find((item) => item.id === selectedActivityId);
@@ -135,11 +209,19 @@ function AppShell() {
             onLogin={handleLogin}
             onSignup={() => setCurrentScreen('signup')}
             onForgotPassword={() => undefined}
+            errorMessage={authError}
           />
         );
 
       case 'signup':
-        return <Signup onBack={() => setCurrentScreen('welcome')} onSignup={handleSignup} onLogin={() => setCurrentScreen('login')} />;
+        return (
+          <Signup
+            onBack={() => setCurrentScreen('welcome')}
+            onSignup={handleSignup}
+            onLogin={() => setCurrentScreen('login')}
+            errorMessage={authError}
+          />
+        );
 
       case 'role-selection':
         return <RoleSelection roles={roles} onComplete={(role) => handleRoleComplete(role.id)} />;
