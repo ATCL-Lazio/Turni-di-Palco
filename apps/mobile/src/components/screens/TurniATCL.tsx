@@ -20,7 +20,8 @@ export function TurniATCL({ turns, roles, onScanQR }: TurniATCLProps) {
     return { totalXp, theatreCount, totalTurns };
   }, [turns]);
 
-  const resolveRoleName = (roleId: RoleId) => roles.find((role) => role.id === roleId)?.name ?? 'Ruolo';
+  const resolveRoleName = (roleId: RoleId) =>
+    roles.find((role) => role.id === roleId)?.name ?? 'Ruolo';
   const sortedTurns = useMemo(() => [...turns].sort((a, b) => b.createdAt - a.createdAt), [turns]);
 
   return (
