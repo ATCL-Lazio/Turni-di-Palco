@@ -39,14 +39,14 @@ try {
 
   Write-Host "Uso certificato: $($certFile.Name) / chiave: $($keyFile.Name)"
 
-  if ($Mode -ne "dev") {
-    if (-not $SkipMobile -and (Test-Path "UI")) {
-      Write-Host "Build UI mobile e sync in apps/pwa/public/mobile/..." -ForegroundColor Cyan
-      npm run build:mobile
-    } elseif ($SkipMobile) {
-      Write-Host "Build UI mobile saltata (opzione -SkipMobile)..." -ForegroundColor Yellow
-    }
+  if (-not $SkipMobile) {
+    Write-Host "Build UI mobile (apps/mobile) e sync in apps/pwa/public/mobile/..." -ForegroundColor Cyan
+    npm run build:mobile
+  } elseif ($SkipMobile) {
+    Write-Host "Build UI mobile saltata (opzione -SkipMobile)..." -ForegroundColor Yellow
+  }
 
+  if ($Mode -ne "dev") {
     Write-Host "Pulizia build precedenti e build PWA..." -ForegroundColor Cyan
     npm run clean:builds
     npm run build:pwa
