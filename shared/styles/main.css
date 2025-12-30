@@ -114,11 +114,6 @@
     z-index: 1;
   }
 
-  body.mobile-fixed-bg .app-gradient {
-    background-color: transparent;
-    background-image: none;
-  }
-
   h1,
   .heading-1 {
     font-size: var(--heading-1-size);
@@ -236,5 +231,10 @@
     );
     background-repeat: no-repeat;
     background-size: cover;
+  }
+
+  .mobile-fixed-bg .app-gradient {
+    background-color: transparent;
+    background-image: none;
   }
 }
