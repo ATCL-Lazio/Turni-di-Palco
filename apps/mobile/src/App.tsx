@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BottomNav } from './components/BottomNav';
 import { Welcome } from './components/screens/Welcome';
 import { Login } from './components/screens/Login';
@@ -41,6 +41,7 @@ function AppShell() {
   const [scannedEventId, setScannedEventId] = useState<string>(events[0]?.id ?? '');
   const [selectedActivityId, setSelectedActivityId] = useState<string>('');
   const [authError, setAuthError] = useState<string | null>(null);
+  const currentScreenRef = useRef(currentScreen);
 
   const upcomingEvent = useMemo(() => events[0], [events]);
 
@@ -50,6 +51,10 @@ function AppShell() {
       setScannedEventId(events[0].id);
     }
   }, [events, scannedEventId]);
+
+  useEffect(() => {
+    currentScreenRef.current = currentScreen;
+  }, [currentScreen]);
 
   const handleStart = () => setCurrentScreen('signup');
 
@@ -192,6 +197,11 @@ function AppShell() {
       if (session?.user) {
         const displayName = session.user.user_metadata?.name ?? state.profile.name;
         updateProfile({ name: displayName, email: session.user.email ?? state.profile.email });
+        const shouldAutoHome =
+          currentScreenRef.current === 'welcome' || currentScreenRef.current === 'login';
+        if (shouldAutoHome) {
+          setCurrentScreen('home');
+        }
       }
     });
 
