@@ -425,6 +425,93 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     };
   }, [authUserId]);
 
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !authUserId) return;
+
+    const mapTurnRow = (turn: any): TurnRecord => ({
+      id: turn.id,
+      eventId: turn.event_id ?? '',
+      eventName: turn.event_name ?? '',
+      theatre: turn.theatre ?? '',
+      date: turn.event_date ?? '',
+      time: turn.event_time ?? '',
+      roleId: (turn.role_id as RoleId) ?? 'attore',
+      rewards: {
+        xp: Number(turn.rewards?.xp ?? 0),
+        reputation: Number(turn.rewards?.reputation ?? 0),
+        cachet: Number(turn.rewards?.cachet ?? 0),
+      },
+      createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
+    });
+
+    const channel = supabase
+      .channel(`tdp-mobile-${authUserId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${authUserId}` },
+        (payload) => {
+          if (!payload.new) return;
+          const profile = payload.new as any;
+          setState((prev) => ({
+            ...prev,
+            profile: {
+              ...prev.profile,
+              name: profile.name ?? prev.profile.name,
+              email: profile.email ?? prev.profile.email,
+              roleId: (profile.role_id as RoleId) ?? prev.profile.roleId,
+              level: profile.level ?? prev.profile.level,
+              xp: profile.xp ?? prev.profile.xp,
+              xpToNextLevel: profile.xp_to_next_level ?? prev.profile.xpToNextLevel,
+              xpTotal: profile.xp_total ?? prev.profile.xpTotal,
+              xpField: profile.xp_field ?? prev.profile.xpField,
+              reputation: profile.reputation ?? prev.profile.reputation,
+              cachet: profile.cachet ?? prev.profile.cachet,
+            },
+          }));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'turns', filter: `user_id=eq.${authUserId}` },
+        (payload) => {
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const nextTurn = mapTurnRow(payload.new);
+            setState((prev) => {
+              if (prev.turns.some((turn) => turn.id === nextTurn.id)) {
+                return prev;
+              }
+              const merged = [nextTurn, ...prev.turns].sort((a, b) => b.createdAt - a.createdAt);
+              return { ...prev, turns: merged.slice(0, MAX_TURNS) };
+            });
+          }
+
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            const nextTurn = mapTurnRow(payload.new);
+            setState((prev) => ({
+              ...prev,
+              turns: prev.turns
+                .map((turn) => (turn.id === nextTurn.id ? nextTurn : turn))
+                .sort((a, b) => b.createdAt - a.createdAt),
+            }));
+          }
+
+          if (payload.eventType === 'DELETE' && payload.old) {
+            const deletedId = (payload.old as any).id as string | undefined;
+            if (!deletedId) return;
+            setState((prev) => ({
+              ...prev,
+              turns: prev.turns.filter((turn) => turn.id !== deletedId),
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [authUserId]);
+
   const persistProfile = useCallback(
     (profile: PlayerProfile) => {
       if (!supabase || !authUserId) return;
@@ -481,8 +568,12 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       const event = catalog.events.find((item) => item.id === eventId) ?? catalog.events[0];
       if (!event) return null;
       const rewards = computeTurnRewards(event, roleId);
+      const turnId =
+        supabase && authUserId && globalThis.crypto?.randomUUID
+          ? globalThis.crypto.randomUUID()
+          : `turn-${Date.now()}`;
       const record: TurnRecord = {
-        id: `turn-${Date.now()}`,
+        id: turnId,
         eventId: event.id,
         eventName: event.name,
         theatre: event.theatre,
@@ -510,6 +601,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         supabase
           .from('turns')
           .insert({
+            id: turnId,
             user_id: authUserId,
             event_id: event.id,
             event_name: event.name,
@@ -538,6 +630,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       const rewards: Rewards = { xp: activity.xpReward, cachet: activity.cachetReward, reputation: 5 };
 
       let nextProfile: PlayerProfile | null = null;
+      const completionId =
+        supabase && authUserId && globalThis.crypto?.randomUUID
+          ? globalThis.crypto.randomUUID()
+          : `activity-${Date.now()}`;
       setState((prev) => {
         nextProfile = applyRewards(prev.profile, rewards, 'activity');
         return {
@@ -553,7 +649,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       if (supabase && authUserId) {
         supabase
           .from('activity_completions')
-          .insert({ user_id: authUserId, activity_id: activity.id, rewards })
+          .insert({ id: completionId, user_id: authUserId, activity_id: activity.id, rewards })
           .then(({ error }) => {
             if (error) {
               console.warn('Supabase activity insert failed', error);
