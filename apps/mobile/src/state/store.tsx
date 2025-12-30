@@ -263,10 +263,31 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     events,
     activities,
   }));
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
 
   useEffect(() => {
     saveState(state);
   }, [state]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    let isMounted = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!isMounted) return;
+      setAuthUserId(data.session?.user.id ?? null);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      setAuthUserId(session?.user.id ?? null);
+    });
+
+    return () => {
+      isMounted = false;
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -345,53 +366,205 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const updateProfile = useCallback((updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId'>>) => {
-    setState((prev) => {
-      const nextRole =
-        updates.roleId && catalog.roles.some((role) => role.id === updates.roleId)
-          ? updates.roleId
-          : prev.profile.roleId;
-      return {
-        ...prev,
-        profile: { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId },
-      };
-    });
-  }, [catalog.roles]);
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !authUserId) return;
+    let isMounted = true;
 
-  const registerTurn = useCallback((eventId: string, roleId: RoleId): TurnRecord | null => {
-    const event = catalog.events.find((item) => item.id === eventId) ?? catalog.events[0];
-    if (!event) return null;
-    const rewards = computeTurnRewards(event, roleId);
-    const record: TurnRecord = {
-      id: `turn-${Date.now()}`,
-      eventId: event.id,
-      eventName: event.name,
-      theatre: event.theatre,
-      date: event.date,
-      time: event.time,
-      roleId,
-      rewards,
-      createdAt: Date.now(),
+    const loadRemoteState = async () => {
+      const [profileRes, turnsRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', authUserId).single(),
+        supabase.from('turns').select('*').eq('user_id', authUserId).order('created_at', { ascending: false }),
+      ]);
+
+      if (!isMounted) return;
+
+      if (profileRes.data) {
+        setState((prev) => {
+          const remoteTurns = Array.isArray(turnsRes.data)
+            ? turnsRes.data.map((turn) => ({
+                id: turn.id,
+                eventId: turn.event_id ?? '',
+                eventName: turn.event_name ?? '',
+                theatre: turn.theatre ?? '',
+                date: turn.event_date ?? '',
+                time: turn.event_time ?? '',
+                roleId: (turn.role_id as RoleId) ?? 'attore',
+                rewards: {
+                  xp: Number(turn.rewards?.xp ?? 0),
+                  reputation: Number(turn.rewards?.reputation ?? 0),
+                  cachet: Number(turn.rewards?.cachet ?? 0),
+                },
+                createdAt: new Date(turn.created_at).getTime(),
+              }))
+            : null;
+
+          return {
+            profile: {
+              ...prev.profile,
+              name: profileRes.data.name ?? prev.profile.name,
+              email: profileRes.data.email ?? prev.profile.email,
+              roleId: (profileRes.data.role_id as RoleId) ?? prev.profile.roleId,
+              level: profileRes.data.level ?? prev.profile.level,
+              xp: profileRes.data.xp ?? prev.profile.xp,
+              xpToNextLevel: profileRes.data.xp_to_next_level ?? prev.profile.xpToNextLevel,
+              xpTotal: profileRes.data.xp_total ?? prev.profile.xpTotal,
+              xpField: profileRes.data.xp_field ?? prev.profile.xpField,
+              reputation: profileRes.data.reputation ?? prev.profile.reputation,
+              cachet: profileRes.data.cachet ?? prev.profile.cachet,
+            },
+            turns: remoteTurns && remoteTurns.length > 0 ? remoteTurns : prev.turns,
+          };
+        });
+      }
     };
 
-    setState((prev) => ({
-      profile: applyRewards(prev.profile, rewards, 'turn'),
-      turns: [record, ...prev.turns].slice(0, MAX_TURNS),
-    }));
+    loadRemoteState();
 
-    return record;
-  }, [catalog.events]);
+    return () => {
+      isMounted = false;
+    };
+  }, [authUserId]);
 
-  const completeActivity = useCallback((activityId: string) => {
-    const activity = catalog.activities.find((item) => item.id === activityId);
-    if (!activity) return null;
-    const rewards: Rewards = { xp: activity.xpReward, cachet: activity.cachetReward, reputation: 5 };
-    setState((prev) => ({
-      ...prev,
-      profile: applyRewards(prev.profile, rewards, 'activity'),
-    }));
-    return { activity, rewards };
-  }, [catalog.activities]);
+  const persistProfile = useCallback(
+    (profile: PlayerProfile) => {
+      if (!supabase || !authUserId) return;
+      supabase
+        .from('profiles')
+        .upsert(
+          {
+            id: authUserId,
+            name: profile.name,
+            email: profile.email,
+            role_id: profile.roleId,
+            level: profile.level,
+            xp: profile.xp,
+            xp_to_next_level: profile.xpToNextLevel,
+            xp_total: profile.xpTotal,
+            xp_field: profile.xpField,
+            reputation: profile.reputation,
+            cachet: profile.cachet,
+          },
+          { onConflict: 'id' }
+        )
+        .then(({ error }) => {
+          if (error) {
+            console.warn('Supabase profile upsert failed', error);
+          }
+        });
+    },
+    [authUserId]
+  );
+
+  const updateProfile = useCallback(
+    (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId'>>) => {
+      let nextProfile: PlayerProfile | null = null;
+      setState((prev) => {
+        const nextRole =
+          updates.roleId && catalog.roles.some((role) => role.id === updates.roleId)
+            ? updates.roleId
+            : prev.profile.roleId;
+        nextProfile = { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId };
+        return {
+          ...prev,
+          profile: nextProfile,
+        };
+      });
+      if (nextProfile) {
+        persistProfile(nextProfile);
+      }
+    },
+    [catalog.roles, persistProfile]
+  );
+
+  const registerTurn = useCallback(
+    (eventId: string, roleId: RoleId): TurnRecord | null => {
+      const event = catalog.events.find((item) => item.id === eventId) ?? catalog.events[0];
+      if (!event) return null;
+      const rewards = computeTurnRewards(event, roleId);
+      const record: TurnRecord = {
+        id: `turn-${Date.now()}`,
+        eventId: event.id,
+        eventName: event.name,
+        theatre: event.theatre,
+        date: event.date,
+        time: event.time,
+        roleId,
+        rewards,
+        createdAt: Date.now(),
+      };
+
+      let nextProfile: PlayerProfile | null = null;
+      setState((prev) => {
+        nextProfile = applyRewards(prev.profile, rewards, 'turn');
+        return {
+          profile: nextProfile,
+          turns: [record, ...prev.turns].slice(0, MAX_TURNS),
+        };
+      });
+
+      if (nextProfile) {
+        persistProfile(nextProfile);
+      }
+
+      if (supabase && authUserId) {
+        supabase
+          .from('turns')
+          .insert({
+            user_id: authUserId,
+            event_id: event.id,
+            event_name: event.name,
+            theatre: event.theatre,
+            event_date: event.date,
+            event_time: event.time,
+            role_id: roleId,
+            rewards,
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.warn('Supabase turn insert failed', error);
+            }
+          });
+      }
+
+      return record;
+    },
+    [catalog.events, authUserId, persistProfile]
+  );
+
+  const completeActivity = useCallback(
+    (activityId: string) => {
+      const activity = catalog.activities.find((item) => item.id === activityId);
+      if (!activity) return null;
+      const rewards: Rewards = { xp: activity.xpReward, cachet: activity.cachetReward, reputation: 5 };
+
+      let nextProfile: PlayerProfile | null = null;
+      setState((prev) => {
+        nextProfile = applyRewards(prev.profile, rewards, 'activity');
+        return {
+          ...prev,
+          profile: nextProfile,
+        };
+      });
+
+      if (nextProfile) {
+        persistProfile(nextProfile);
+      }
+
+      if (supabase && authUserId) {
+        supabase
+          .from('activity_completions')
+          .insert({ user_id: authUserId, activity_id: activity.id, rewards })
+          .then(({ error }) => {
+            if (error) {
+              console.warn('Supabase activity insert failed', error);
+            }
+          });
+      }
+
+      return { activity, rewards };
+    },
+    [catalog.activities, authUserId, persistProfile]
+  );
 
   const resetState = useCallback(() => {
     const next = createDefaultState();
