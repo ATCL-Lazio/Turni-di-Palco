@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 export type RoleId = 'attore' | 'luci' | 'fonico' | 'attrezzista' | 'palco';
@@ -150,6 +151,43 @@ export const activities: Activity[] = [
 
 const STORAGE_KEY = 'tdp-mobile-ui-state';
 const MAX_TURNS = 20;
+const SUPABASE_SESSION_KEY = 'tdp-supabase-session';
+const SUPABASE_SESSION_ID_KEY = 'tdp-supabase-session-id';
+
+type StoredSession = { access_token: string; refresh_token: string; user_id?: string };
+
+function readStoredSession(): StoredSession | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(SUPABASE_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredSession;
+    if (!parsed.access_token || !parsed.refresh_token) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function persistStoredSession(session: Session | null) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (!session) {
+      window.localStorage.removeItem(SUPABASE_SESSION_KEY);
+      window.localStorage.removeItem(SUPABASE_SESSION_ID_KEY);
+      return;
+    }
+    const payload: StoredSession = {
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+      user_id: session.user.id,
+    };
+    window.localStorage.setItem(SUPABASE_SESSION_KEY, JSON.stringify(payload));
+    window.localStorage.setItem(SUPABASE_SESSION_ID_KEY, session.user.id);
+  } catch {
+    // ignore storage errors
+  }
+}
 
 function createDefaultState(): GameState {
   return {
@@ -273,12 +311,25 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     if (!isSupabaseConfigured || !supabase) return;
     let isMounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    const restoreSession = async () => {
+      const stored = readStoredSession();
+      if (stored) {
+        await supabase.auth.setSession({
+          access_token: stored.access_token,
+          refresh_token: stored.refresh_token,
+        });
+      }
+
+      const { data } = await supabase.auth.getSession();
       if (!isMounted) return;
+      persistStoredSession(data.session ?? null);
       setAuthUserId(data.session?.user.id ?? null);
-    });
+    };
+
+    restoreSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      persistStoredSession(session ?? null);
       if (!isMounted) return;
       setAuthUserId(session?.user.id ?? null);
     });
