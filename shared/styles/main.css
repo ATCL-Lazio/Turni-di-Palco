@@ -87,7 +87,9 @@
 
   body.mobile-fixed-bg {
     position: relative;
-    background-color: var(--color-bg-primary);
+    background: var(--color-bg-primary);
+    background-image: none;
+    background-attachment: scroll;
   }
 
   body.mobile-fixed-bg::before {
@@ -110,11 +112,6 @@
   body.mobile-fixed-bg > * {
     position: relative;
     z-index: 1;
-  }
-
-  body.mobile-fixed-bg .app-gradient {
-    background-color: transparent;
-    background-image: none;
   }
 
   h1,
@@ -234,5 +231,10 @@
     );
     background-repeat: no-repeat;
     background-size: cover;
+  }
+
+  .mobile-fixed-bg .app-gradient {
+    background-color: transparent;
+    background-image: none;
   }
 }
