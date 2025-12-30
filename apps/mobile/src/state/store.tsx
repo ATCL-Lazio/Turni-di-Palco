@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 export type RoleId = 'attore' | 'luci' | 'fonico' | 'attrezzista' | 'palco';
 export type Rewards = { xp: number; reputation: number; cachet: number };
@@ -59,6 +60,12 @@ type PlayerProfile = {
 export type GameState = {
   profile: PlayerProfile;
   turns: TurnRecord[];
+};
+
+type CatalogState = {
+  roles: Role[];
+  events: GameEvent[];
+  activities: Activity[];
 };
 
 export const roles: Role[] = [
@@ -251,23 +258,108 @@ const GameStateContext = createContext<GameContextValue | undefined>(undefined);
 
 export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GameState>(() => loadState());
+  const [catalog, setCatalog] = useState<CatalogState>(() => ({
+    roles,
+    events,
+    activities,
+  }));
 
   useEffect(() => {
     saveState(state);
   }, [state]);
 
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    let isMounted = true;
+
+    const loadCatalog = async () => {
+      const [rolesRes, eventsRes, activitiesRes] = await Promise.all([
+        supabase.from('roles').select('id,name,focus,stats'),
+        supabase
+          .from('events')
+          .select('id,name,theatre,event_date,event_time,genre,base_rewards,focus_role'),
+        supabase
+          .from('activities')
+          .select('id,title,description,duration,xp_reward,cachet_reward,difficulty'),
+      ]);
+
+      if (!isMounted) return;
+
+      const nextRoles =
+        rolesRes.error || !rolesRes.data?.length
+          ? roles
+          : rolesRes.data.map((role) => ({
+              id: role.id as RoleId,
+              name: role.name,
+              focus: role.focus,
+              stats: {
+                presence: Number(role.stats?.presence ?? 0),
+                precision: Number(role.stats?.precision ?? 0),
+                leadership: Number(role.stats?.leadership ?? 0),
+                creativity: Number(role.stats?.creativity ?? 0),
+              },
+            }));
+
+      const nextEvents =
+        eventsRes.error || !eventsRes.data?.length
+          ? events
+          : eventsRes.data.map((event) => ({
+              id: event.id,
+              name: event.name,
+              theatre: event.theatre,
+              date: event.event_date,
+              time: event.event_time,
+              genre: event.genre,
+              baseRewards: {
+                xp: Number(event.base_rewards?.xp ?? 0),
+                reputation: Number(event.base_rewards?.reputation ?? 0),
+                cachet: Number(event.base_rewards?.cachet ?? 0),
+              },
+              focusRole: event.focus_role ?? undefined,
+            }));
+
+      const nextActivities =
+        activitiesRes.error || !activitiesRes.data?.length
+          ? activities
+          : activitiesRes.data.map((activity) => ({
+              id: activity.id,
+              title: activity.title,
+              description: activity.description,
+              duration: activity.duration,
+              xpReward: activity.xp_reward,
+              cachetReward: activity.cachet_reward,
+              difficulty: activity.difficulty as Activity['difficulty'],
+            }));
+
+      setCatalog({
+        roles: nextRoles,
+        events: nextEvents,
+        activities: nextActivities,
+      });
+    };
+
+    loadCatalog();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const updateProfile = useCallback((updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId'>>) => {
     setState((prev) => {
-      const nextRole = updates.roleId && roles.some((role) => role.id === updates.roleId) ? updates.roleId : prev.profile.roleId;
+      const nextRole =
+        updates.roleId && catalog.roles.some((role) => role.id === updates.roleId)
+          ? updates.roleId
+          : prev.profile.roleId;
       return {
         ...prev,
         profile: { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId },
       };
     });
-  }, []);
+  }, [catalog.roles]);
 
   const registerTurn = useCallback((eventId: string, roleId: RoleId): TurnRecord | null => {
-    const event = events.find((item) => item.id === eventId) ?? events[0];
+    const event = catalog.events.find((item) => item.id === eventId) ?? catalog.events[0];
     if (!event) return null;
     const rewards = computeTurnRewards(event, roleId);
     const record: TurnRecord = {
@@ -288,10 +380,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     }));
 
     return record;
-  }, []);
+  }, [catalog.events]);
 
   const completeActivity = useCallback((activityId: string) => {
-    const activity = activities.find((item) => item.id === activityId);
+    const activity = catalog.activities.find((item) => item.id === activityId);
     if (!activity) return null;
     const rewards: Rewards = { xp: activity.xpReward, cachet: activity.cachetReward, reputation: 5 };
     setState((prev) => ({
@@ -299,7 +391,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       profile: applyRewards(prev.profile, rewards, 'activity'),
     }));
     return { activity, rewards };
-  }, []);
+  }, [catalog.activities]);
 
   const resetState = useCallback(() => {
     const next = createDefaultState();
@@ -309,15 +401,15 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<GameContextValue>(
     () => ({
       state,
-      roles,
-      events,
-      activities,
+      roles: catalog.roles,
+      events: catalog.events,
+      activities: catalog.activities,
       updateProfile,
       registerTurn,
       completeActivity,
       resetState,
     }),
-    [state, updateProfile, registerTurn, completeActivity, resetState]
+    [state, catalog, updateProfile, registerTurn, completeActivity, resetState]
   );
 
   return <GameStateContext.Provider value={value}>{children}</GameStateContext.Provider>;
