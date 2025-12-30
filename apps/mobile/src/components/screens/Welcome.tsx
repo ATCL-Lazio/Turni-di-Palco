@@ -12,7 +12,7 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
   return (
     <Screen
       withBottomNavPadding={false}
-      className="relative items-start justify-start"
+      className="relative items-start justify-start h-[100dvh] overflow-hidden"
       contentClassName="relative w-full max-w-[393px] flex-1 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom,_0px)+32px)] space-y-0 box-border"
       style={{
         backgroundImage:
