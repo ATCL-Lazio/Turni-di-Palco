@@ -44,6 +44,21 @@ function AppShell() {
   const currentScreenRef = useRef(currentScreen);
 
   const upcomingEvent = useMemo(() => events[0], [events]);
+  const turnStats = useMemo(() => {
+    const turns = state.turns;
+    if (!turns.length) {
+      return { turnsThisMonth: 0, uniqueTheatres: 0 };
+    }
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const turnsThisMonth = turns.filter((turn) => {
+      const created = new Date(turn.createdAt);
+      return created.getFullYear() === year && created.getMonth() === month;
+    }).length;
+    const uniqueTheatres = new Set(turns.map((turn) => turn.theatre).filter(Boolean)).size;
+    return { turnsThisMonth, uniqueTheatres };
+  }, [state.turns]);
 
   useEffect(() => {
     if (!events.length) return;
@@ -257,6 +272,8 @@ function AppShell() {
             onViewTurni={() => handleTabChange('turni')}
             upcomingEvent={upcomingEvent}
             totalTurns={state.turns.length}
+            turnsThisMonth={turnStats.turnsThisMonth}
+            uniqueTheatres={turnStats.uniqueTheatres}
             activitiesCount={activities.length}
           />
         );
