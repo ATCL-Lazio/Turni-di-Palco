@@ -63,6 +63,26 @@ export type GameState = {
   turns: TurnRecord[];
 };
 
+export type TurnStats = {
+  totalTurns: number;
+  turnsThisMonth: number;
+  uniqueTheatres: number;
+};
+
+export type BadgeMetric = 'total_turns' | 'turns_this_month' | 'unique_theatres' | 'manual';
+
+export type Badge = {
+  id: string;
+  title: string;
+  description: string | null;
+  icon: string;
+  metric: BadgeMetric | null;
+  threshold: number | null;
+  unlocked: boolean;
+  unlockedAt: number | null;
+  seenAt: number | null;
+};
+
 type CatalogState = {
   roles: Role[];
   events: GameEvent[];
@@ -272,6 +292,63 @@ function saveState(state: GameState) {
   }
 }
 
+function computeTurnStatsFromTurns(turns: TurnRecord[]): TurnStats {
+  const totalTurns = turns.length;
+  if (!turns.length) {
+    return { totalTurns: 0, turnsThisMonth: 0, uniqueTheatres: 0 };
+  }
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const turnsThisMonth = turns.filter((turn) => {
+    const created = new Date(turn.createdAt);
+    return created.getFullYear() === year && created.getMonth() === month;
+  }).length;
+  const uniqueTheatres = new Set(turns.map((turn) => turn.theatre).filter(Boolean)).size;
+  return { totalTurns, turnsThisMonth, uniqueTheatres };
+}
+
+const FALLBACK_BADGES: Array<Omit<Badge, 'unlocked' | 'unlockedAt' | 'seenAt'>> = [
+  {
+    id: 'unique_theatres_3',
+    title: 'Ha lavorato in 3 teatri diversi',
+    description: null,
+    icon: 'MapPin',
+    metric: 'unique_theatres',
+    threshold: 3,
+  },
+  {
+    id: 'first_season',
+    title: 'Prima stagione completata',
+    description: null,
+    icon: 'Award',
+    metric: 'manual',
+    threshold: null,
+  },
+  {
+    id: 'total_turns_10',
+    title: '10 turni registrati',
+    description: null,
+    icon: 'Theater',
+    metric: 'total_turns',
+    threshold: 10,
+  },
+];
+
+function computeFallbackBadges(stats: TurnStats): Badge[] {
+  return FALLBACK_BADGES.map((badge) => {
+    const unlocked =
+      badge.metric === 'total_turns' && badge.threshold != null
+        ? stats.totalTurns >= badge.threshold
+        : badge.metric === 'turns_this_month' && badge.threshold != null
+          ? stats.turnsThisMonth >= badge.threshold
+          : badge.metric === 'unique_theatres' && badge.threshold != null
+            ? stats.uniqueTheatres >= badge.threshold
+            : false;
+    return { ...badge, unlocked, unlockedAt: null, seenAt: null };
+  });
+}
+
 function applyRewards(profile: PlayerProfile, rewards: Rewards, source: 'turn' | 'activity'): PlayerProfile {
   let nextXp = profile.xp + rewards.xp;
   let nextLevel = profile.level;
@@ -309,6 +386,11 @@ type GameContextValue = {
   roles: Role[];
   events: GameEvent[];
   activities: Activity[];
+  turnStats: TurnStats;
+  statsLoading: boolean;
+  badges: Badge[];
+  badgesLoading: boolean;
+  markBadgesSeen: () => void;
   updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId'>>) => void;
   registerTurn: (eventId: string, roleId: RoleId) => TurnRecord | null;
   completeActivity: (activityId: string) => { activity: Activity; rewards: Rewards } | null;
@@ -326,10 +408,76 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   }));
   const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [hasHydratedRemote, setHasHydratedRemote] = useState(false);
+  const localTurnStats = useMemo(() => computeTurnStatsFromTurns(state.turns), [state.turns]);
+  const [remoteTurnStats, setRemoteTurnStats] = useState<TurnStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [remoteBadges, setRemoteBadges] = useState<Badge[]>([]);
+  const [badgesLoading, setBadgesLoading] = useState(false);
+
+  const turnStats = useMemo(
+    () => (isSupabaseConfigured && authUserId ? remoteTurnStats ?? localTurnStats : localTurnStats),
+    [authUserId, localTurnStats, remoteTurnStats]
+  );
+
+  const badges = useMemo(
+    () => (isSupabaseConfigured && authUserId ? remoteBadges : computeFallbackBadges(localTurnStats)),
+    [authUserId, localTurnStats, remoteBadges]
+  );
 
   useEffect(() => {
     saveState(state);
   }, [state]);
+
+  const refreshTurnStats = useCallback(async () => {
+    if (!supabase || !authUserId) return;
+    setStatsLoading(true);
+    const { data, error } = await supabase
+      .from('my_turn_stats')
+      .select('total_turns,turns_this_month,unique_theatres')
+      .single();
+    if (!error && data) {
+      setRemoteTurnStats({
+        totalTurns: Number(data.total_turns ?? 0),
+        turnsThisMonth: Number(data.turns_this_month ?? 0),
+        uniqueTheatres: Number(data.unique_theatres ?? 0),
+      });
+    }
+    setStatsLoading(false);
+  }, [authUserId]);
+
+  const refreshBadges = useCallback(async () => {
+    if (!supabase || !authUserId) return;
+    setBadgesLoading(true);
+    await supabase.rpc('evaluate_my_badges');
+    const { data, error } = await supabase
+      .from('my_badges')
+      .select('id,title,description,icon,metric,threshold,unlocked_at,seen_at,unlocked');
+    if (!error && data) {
+      const nextBadges: Badge[] = data.map((row) => ({
+        id: row.id,
+        title: row.title,
+        description: row.description ?? null,
+        icon: row.icon ?? 'Award',
+        metric: (row.metric as BadgeMetric | null) ?? null,
+        threshold: row.threshold != null ? Number(row.threshold) : null,
+        unlocked: Boolean(row.unlocked),
+        unlockedAt: row.unlocked_at ? new Date(row.unlocked_at).getTime() : null,
+        seenAt: row.seen_at ? new Date(row.seen_at).getTime() : null,
+      }));
+      setRemoteBadges(nextBadges);
+    }
+    setBadgesLoading(false);
+  }, [authUserId]);
+
+  const markBadgesSeen = useCallback(() => {
+    if (!supabase || !authUserId) return;
+    supabase
+      .rpc('mark_my_badges_seen')
+      .then(() => refreshBadges())
+      .catch((error) => {
+        console.warn('Supabase mark badges seen failed', error);
+      });
+  }, [authUserId, refreshBadges]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -367,6 +515,16 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setHasHydratedRemote(false);
   }, [authUserId]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !authUserId) {
+      setRemoteTurnStats(null);
+      setRemoteBadges([]);
+      return;
+    }
+    refreshTurnStats();
+    refreshBadges();
+  }, [authUserId, refreshBadges, refreshTurnStats]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -605,6 +763,16 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               turns: prev.turns.filter((turn) => turn.id !== deletedId),
             }));
           }
+
+          refreshTurnStats();
+          refreshBadges();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_badges', filter: `user_id=eq.${authUserId}` },
+        () => {
+          refreshBadges();
         }
       )
       .subscribe();
@@ -612,7 +780,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [authUserId]);
+  }, [authUserId, refreshBadges, refreshTurnStats]);
 
   const persistProfile = useCallback(
     (profile: PlayerProfile) => {
@@ -775,12 +943,29 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       roles: catalog.roles,
       events: catalog.events,
       activities: catalog.activities,
+      turnStats,
+      statsLoading,
+      badges,
+      badgesLoading,
+      markBadgesSeen,
       updateProfile,
       registerTurn,
       completeActivity,
       resetState,
     }),
-    [state, catalog, updateProfile, registerTurn, completeActivity, resetState]
+    [
+      state,
+      catalog,
+      turnStats,
+      statsLoading,
+      badges,
+      badgesLoading,
+      markBadgesSeen,
+      updateProfile,
+      registerTurn,
+      completeActivity,
+      resetState,
+    ]
   );
 
   return <GameStateContext.Provider value={value}>{children}</GameStateContext.Provider>;
