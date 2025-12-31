@@ -189,7 +189,25 @@ function persistStoredSession(session: Session | null) {
   }
 }
 
-function createDefaultState(): GameState {
+function createInitialState(): GameState {
+  return {
+    profile: {
+      name: '',
+      email: '',
+      roleId: 'attore',
+      level: 1,
+      xp: 0,
+      xpToNextLevel: 1000,
+      xpTotal: 0,
+      xpField: 0,
+      reputation: 0,
+      cachet: 0,
+    },
+    turns: [],
+  };
+}
+
+function createDemoState(): GameState {
   return {
     profile: {
       name: 'Mario',
@@ -219,7 +237,12 @@ function createDefaultState(): GameState {
   };
 }
 
+function createDefaultState(): GameState {
+  return isSupabaseConfigured ? createInitialState() : createDemoState();
+}
+
 function loadState(): GameState {
+  if (isSupabaseConfigured) return createInitialState();
   if (typeof window === 'undefined') return createDefaultState();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -302,6 +325,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     activities,
   }));
   const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [hasHydratedRemote, setHasHydratedRemote] = useState(false);
 
   useEffect(() => {
     saveState(state);
@@ -339,6 +363,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       authListener?.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    setHasHydratedRemote(false);
+  }, [authUserId]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -422,50 +450,72 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true;
 
     const loadRemoteState = async () => {
-      const [profileRes, turnsRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', authUserId).single(),
+      const [userRes, profileRes, turnsRes] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from('profiles').select('*').eq('id', authUserId).maybeSingle(),
         supabase.from('turns').select('*').eq('user_id', authUserId).order('created_at', { ascending: false }),
       ]);
 
       if (!isMounted) return;
 
-      if (profileRes.data) {
-        setState((prev) => {
-          const remoteTurns = Array.isArray(turnsRes.data)
-            ? turnsRes.data.map((turn) => ({
-                id: turn.id,
-                eventId: turn.event_id ?? '',
-                eventName: turn.event_name ?? '',
-                theatre: turn.theatre ?? '',
-                date: turn.event_date ?? '',
-                time: turn.event_time ?? '',
-                roleId: (turn.role_id as RoleId) ?? 'attore',
-                rewards: {
-                  xp: Number(turn.rewards?.xp ?? 0),
-                  reputation: Number(turn.rewards?.reputation ?? 0),
-                  cachet: Number(turn.rewards?.cachet ?? 0),
-                },
-                createdAt: new Date(turn.created_at).getTime(),
-              }))
-            : null;
+      let profileRow: any = profileRes.data;
 
-          return {
-            profile: {
-              ...prev.profile,
-              name: profileRes.data.name ?? prev.profile.name,
-              email: profileRes.data.email ?? prev.profile.email,
-              roleId: (profileRes.data.role_id as RoleId) ?? prev.profile.roleId,
-              level: profileRes.data.level ?? prev.profile.level,
-              xp: profileRes.data.xp ?? prev.profile.xp,
-              xpToNextLevel: profileRes.data.xp_to_next_level ?? prev.profile.xpToNextLevel,
-              xpTotal: profileRes.data.xp_total ?? prev.profile.xpTotal,
-              xpField: profileRes.data.xp_field ?? prev.profile.xpField,
-              reputation: profileRes.data.reputation ?? prev.profile.reputation,
-              cachet: profileRes.data.cachet ?? prev.profile.cachet,
+      if (!profileRow && userRes.data?.user?.email) {
+        const user = userRes.data.user;
+        const insertRes = await supabase
+          .from('profiles')
+          .insert({
+            id: authUserId,
+            name: user.user_metadata?.name ?? user.email.split('@')[0] ?? 'Player',
+            email: user.email,
+            role_id: 'attore',
+          })
+          .select('*')
+          .single();
+        profileRow = insertRes.data ?? null;
+      }
+
+      if (!isMounted) return;
+
+      const remoteTurns = Array.isArray(turnsRes.data)
+        ? turnsRes.data.map((turn) => ({
+            id: turn.id,
+            eventId: turn.event_id ?? '',
+            eventName: turn.event_name ?? '',
+            theatre: turn.theatre ?? '',
+            date: turn.event_date ?? '',
+            time: turn.event_time ?? '',
+            roleId: (turn.role_id as RoleId) ?? 'attore',
+            rewards: {
+              xp: Number(turn.rewards?.xp ?? 0),
+              reputation: Number(turn.rewards?.reputation ?? 0),
+              cachet: Number(turn.rewards?.cachet ?? 0),
             },
-            turns: remoteTurns && remoteTurns.length > 0 ? remoteTurns : prev.turns,
-          };
-        });
+            createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
+          }))
+        : [];
+
+      if (profileRow) {
+        setState((prev) => ({
+          profile: {
+            ...prev.profile,
+            name: profileRow.name ?? prev.profile.name,
+            email: profileRow.email ?? prev.profile.email,
+            roleId: (profileRow.role_id as RoleId) ?? prev.profile.roleId,
+            level: profileRow.level ?? prev.profile.level,
+            xp: profileRow.xp ?? prev.profile.xp,
+            xpToNextLevel: profileRow.xp_to_next_level ?? prev.profile.xpToNextLevel,
+            xpTotal: profileRow.xp_total ?? prev.profile.xpTotal,
+            xpField: profileRow.xp_field ?? prev.profile.xpField,
+            reputation: profileRow.reputation ?? prev.profile.reputation,
+            cachet: profileRow.cachet ?? prev.profile.cachet,
+          },
+          turns: remoteTurns,
+        }));
+      }
+
+      if (profileRow || !profileRes.error) {
+        setHasHydratedRemote(true);
       }
     };
 
@@ -509,16 +559,17 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               ...prev.profile,
               name: profile.name ?? prev.profile.name,
               email: profile.email ?? prev.profile.email,
-              roleId: (profile.role_id as RoleId) ?? prev.profile.roleId,
+              roleId: (profile.role_id as RoleId) ?? prev.profile.roleId,       
               level: profile.level ?? prev.profile.level,
               xp: profile.xp ?? prev.profile.xp,
               xpToNextLevel: profile.xp_to_next_level ?? prev.profile.xpToNextLevel,
               xpTotal: profile.xp_total ?? prev.profile.xpTotal,
               xpField: profile.xp_field ?? prev.profile.xpField,
-              reputation: profile.reputation ?? prev.profile.reputation,
+              reputation: profile.reputation ?? prev.profile.reputation,        
               cachet: profile.cachet ?? prev.profile.cachet,
             },
           }));
+          setHasHydratedRemote(true);
         }
       )
       .on(
@@ -565,7 +616,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   const persistProfile = useCallback(
     (profile: PlayerProfile) => {
-      if (!supabase || !authUserId) return;
+      if (!supabase || !authUserId || !hasHydratedRemote) return;
       supabase
         .from('profiles')
         .upsert(
@@ -590,7 +641,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           }
         });
     },
-    [authUserId]
+    [authUserId, hasHydratedRemote]
   );
 
   const updateProfile = useCallback(
