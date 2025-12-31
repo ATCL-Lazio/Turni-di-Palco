@@ -21,6 +21,8 @@ interface HomeProps {
   xpToNextLevel: number;
   reputation: number;
   totalTurns: number;
+  turnsThisMonth: number;
+  uniqueTheatres: number;
   upcomingEvent?: GameEvent;
   activitiesCount: number;
   eventLoading?: boolean;
@@ -39,6 +41,8 @@ export function Home({
   xpToNextLevel,
   reputation,
   totalTurns,
+  turnsThisMonth,
+  uniqueTheatres,
   upcomingEvent,
   activitiesCount,
   eventLoading = false,
@@ -50,6 +54,7 @@ export function Home({
 }: HomeProps) {
   const xpToNext = Math.max(xpToNextLevel - xp, 0);
   const [showBadge, setShowBadge] = React.useState(true);
+  const hasTheatreBadge = uniqueTheatres >= 3;
 
   const eventState: EventState = eventError ? 'error' : eventLoading ? 'loading' : !upcomingEvent ? 'empty' : 'ready';
 
@@ -68,14 +73,14 @@ export function Home({
                 </button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-80 bg-[#1a1617] border-[#3d3a3b] p-3">
-                {showBadge ? (
+                {showBadge && hasTheatreBadge ? (
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#f4bf4f] to-[#e6a23c] rounded-lg flex items-center justify-center">
                       <Award className="text-[#0f0d0e]" size={20} />
                     </div>
                     <div className="flex-1">
                       <p className="text-xs text-[#f4bf4f] mb-1 font-semibold">Nuovo titolo ottenuto</p>
-                      <p className="text-white text-sm">Ha lavorato in 3 teatri diversi</p>
+                      <p className="text-white text-sm">Ha lavorato in {uniqueTheatres} teatri diversi</p>
                     </div>
                     <button onClick={() => setShowBadge(false)} className="text-[#7a7577] p-1 hover:text-white flex-shrink-0">
                       <X size={16} />
@@ -216,8 +221,8 @@ export function Home({
             ) : (
               <div className="grid grid-cols-3 gap-3">
                 <MetricTile label="Totale turni" value={totalTurns} onClick={onViewTurni} />
-                <MetricTile label="Questo mese" value={Math.max(0, totalTurns - 7)} onClick={onViewTurni} />
-                <MetricTile label="Teatri diversi" value={Math.min(3, totalTurns || 1)} onClick={onViewTurni} />
+                <MetricTile label="Questo mese" value={turnsThisMonth} onClick={onViewTurni} />
+                <MetricTile label="Teatri diversi" value={uniqueTheatres} onClick={onViewTurni} />
               </div>
             )}
           </Card>
