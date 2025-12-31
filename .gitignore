@@ -49,4 +49,4 @@ apps/pwa/public/mobile/assets/index-*.css
 apps/pwa/public/mobile/index.html
 apps/mobile/build/index.html
 apps/mobile/build/assets/index-*.js
-apps/mobile/build/assets/index-*s.css
+apps/mobile/build/assets/index-*.css

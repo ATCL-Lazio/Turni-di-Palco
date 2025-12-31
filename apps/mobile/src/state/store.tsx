@@ -1,4 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 export type RoleId = 'attore' | 'luci' | 'fonico' | 'attrezzista' | 'palco';
 export type Rewards = { xp: number; reputation: number; cachet: number };
@@ -59,6 +61,38 @@ type PlayerProfile = {
 export type GameState = {
   profile: PlayerProfile;
   turns: TurnRecord[];
+};
+
+export type TurnStats = {
+  totalTurns: number;
+  turnsThisMonth: number;
+  uniqueTheatres: number;
+};
+
+export type TheatreReputation = {
+  theatre: string;
+  reputation: number;
+  totalTurns: number;
+};
+
+export type BadgeMetric = 'total_turns' | 'turns_this_month' | 'unique_theatres' | 'manual';
+
+export type Badge = {
+  id: string;
+  title: string;
+  description: string | null;
+  icon: string;
+  metric: BadgeMetric | null;
+  threshold: number | null;
+  unlocked: boolean;
+  unlockedAt: number | null;
+  seenAt: number | null;
+};
+
+type CatalogState = {
+  roles: Role[];
+  events: GameEvent[];
+  activities: Activity[];
 };
 
 export const roles: Role[] = [
@@ -143,8 +177,63 @@ export const activities: Activity[] = [
 
 const STORAGE_KEY = 'tdp-mobile-ui-state';
 const MAX_TURNS = 20;
+const SUPABASE_SESSION_KEY = 'tdp-supabase-session';
+const SUPABASE_SESSION_ID_KEY = 'tdp-supabase-session-id';
 
-function createDefaultState(): GameState {
+type StoredSession = { access_token: string; refresh_token: string; user_id?: string };
+
+function readStoredSession(): StoredSession | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(SUPABASE_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredSession;
+    if (!parsed.access_token || !parsed.refresh_token) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function persistStoredSession(session: Session | null) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (!session) {
+      window.localStorage.removeItem(SUPABASE_SESSION_KEY);
+      window.localStorage.removeItem(SUPABASE_SESSION_ID_KEY);
+      return;
+    }
+    const payload: StoredSession = {
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+      user_id: session.user.id,
+    };
+    window.localStorage.setItem(SUPABASE_SESSION_KEY, JSON.stringify(payload));
+    window.localStorage.setItem(SUPABASE_SESSION_ID_KEY, session.user.id);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function createInitialState(): GameState {
+  return {
+    profile: {
+      name: '',
+      email: '',
+      roleId: 'attore',
+      level: 1,
+      xp: 0,
+      xpToNextLevel: 1000,
+      xpTotal: 0,
+      xpField: 0,
+      reputation: 0,
+      cachet: 0,
+    },
+    turns: [],
+  };
+}
+
+function createDemoState(): GameState {
   return {
     profile: {
       name: 'Mario',
@@ -174,7 +263,12 @@ function createDefaultState(): GameState {
   };
 }
 
+function createDefaultState(): GameState {
+  return isSupabaseConfigured ? createInitialState() : createDemoState();
+}
+
 function loadState(): GameState {
+  if (isSupabaseConfigured) return createInitialState();
   if (typeof window === 'undefined') return createDefaultState();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -202,6 +296,90 @@ function saveState(state: GameState) {
   } catch {
     // ignore storage errors
   }
+}
+
+function computeTurnStatsFromTurns(turns: TurnRecord[]): TurnStats {
+  const totalTurns = turns.length;
+  if (!turns.length) {
+    return { totalTurns: 0, turnsThisMonth: 0, uniqueTheatres: 0 };
+  }
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const turnsThisMonth = turns.filter((turn) => {
+    const created = new Date(turn.createdAt);
+    return created.getFullYear() === year && created.getMonth() === month;
+  }).length;
+  const uniqueTheatres = new Set(turns.map((turn) => turn.theatre).filter(Boolean)).size;
+  return { totalTurns, turnsThisMonth, uniqueTheatres };
+}
+
+function computeTheatreReputationFromTurns(turns: TurnRecord[]): TheatreReputation[] {
+  const map = new Map<string, { reputation: number; totalTurns: number }>();
+
+  turns.forEach((turn) => {
+    const theatre = turn.theatre?.trim();
+    if (!theatre) return;
+    const previous = map.get(theatre) ?? { reputation: 0, totalTurns: 0 };
+    map.set(theatre, {
+      reputation: Math.min(100, previous.reputation + (turn.rewards?.reputation ?? 0)),
+      totalTurns: previous.totalTurns + 1,
+    });
+  });
+
+  return [...map.entries()]
+    .map(([theatre, entry]) => ({
+      theatre,
+      reputation: entry.reputation,
+      totalTurns: entry.totalTurns,
+    }))
+    .sort(
+      (a, b) =>
+        b.reputation - a.reputation ||
+        b.totalTurns - a.totalTurns ||
+        a.theatre.localeCompare(b.theatre)
+    );
+}
+
+const FALLBACK_BADGES: Array<Omit<Badge, 'unlocked' | 'unlockedAt' | 'seenAt'>> = [
+  {
+    id: 'unique_theatres_3',
+    title: 'Ha lavorato in 3 teatri diversi',
+    description: null,
+    icon: 'MapPin',
+    metric: 'unique_theatres',
+    threshold: 3,
+  },
+  {
+    id: 'first_season',
+    title: 'Prima stagione completata',
+    description: null,
+    icon: 'Award',
+    metric: 'manual',
+    threshold: null,
+  },
+  {
+    id: 'total_turns_10',
+    title: '10 turni registrati',
+    description: null,
+    icon: 'Theater',
+    metric: 'total_turns',
+    threshold: 10,
+  },
+];
+
+function computeFallbackBadges(stats: TurnStats): Badge[] {
+  return FALLBACK_BADGES.map((badge) => {
+    const unlocked =
+      badge.metric === 'total_turns' && badge.threshold != null
+        ? stats.totalTurns >= badge.threshold
+        : badge.metric === 'turns_this_month' && badge.threshold != null
+          ? stats.turnsThisMonth >= badge.threshold
+          : badge.metric === 'unique_theatres' && badge.threshold != null
+            ? stats.uniqueTheatres >= badge.threshold
+            : false;
+    return { ...badge, unlocked, unlockedAt: null, seenAt: null };
+  });
 }
 
 function applyRewards(profile: PlayerProfile, rewards: Rewards, source: 'turn' | 'activity'): PlayerProfile {
@@ -241,6 +419,13 @@ type GameContextValue = {
   roles: Role[];
   events: GameEvent[];
   activities: Activity[];
+  turnStats: TurnStats;
+  statsLoading: boolean;
+  theatreReputation: TheatreReputation[];
+  theatreReputationLoading: boolean;
+  badges: Badge[];
+  badgesLoading: boolean;
+  markBadgesSeen: () => void;
   updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId'>>) => void;
   registerTurn: (eventId: string, roleId: RoleId) => TurnRecord | null;
   completeActivity: (activityId: string) => { activity: Activity; rewards: Rewards } | null;
@@ -251,55 +436,576 @@ const GameStateContext = createContext<GameContextValue | undefined>(undefined);
 
 export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GameState>(() => loadState());
+  const [catalog, setCatalog] = useState<CatalogState>(() => ({
+    roles,
+    events,
+    activities,
+  }));
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [hasHydratedRemote, setHasHydratedRemote] = useState(false);
+  const localTurnStats = useMemo(() => computeTurnStatsFromTurns(state.turns), [state.turns]);
+  const localTheatreReputation = useMemo(
+    () => computeTheatreReputationFromTurns(state.turns),
+    [state.turns]
+  );
+  const [remoteTurnStats, setRemoteTurnStats] = useState<TurnStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [remoteTheatreReputation, setRemoteTheatreReputation] = useState<TheatreReputation[]>([]);
+  const [theatreReputationLoading, setTheatreReputationLoading] = useState(false);
+  const [remoteBadges, setRemoteBadges] = useState<Badge[]>([]);
+  const [badgesLoading, setBadgesLoading] = useState(false);
+
+  const turnStats = useMemo(
+    () => (isSupabaseConfigured && authUserId ? remoteTurnStats ?? localTurnStats : localTurnStats),
+    [authUserId, localTurnStats, remoteTurnStats]
+  );
+
+  const badges = useMemo(
+    () => (isSupabaseConfigured && authUserId ? remoteBadges : computeFallbackBadges(localTurnStats)),
+    [authUserId, localTurnStats, remoteBadges]
+  );
+
+  const theatreReputation = useMemo(
+    () =>
+      isSupabaseConfigured && authUserId ? remoteTheatreReputation : localTheatreReputation,
+    [authUserId, localTheatreReputation, remoteTheatreReputation]
+  );
 
   useEffect(() => {
     saveState(state);
   }, [state]);
 
-  const updateProfile = useCallback((updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId'>>) => {
-    setState((prev) => {
-      const nextRole = updates.roleId && roles.some((role) => role.id === updates.roleId) ? updates.roleId : prev.profile.roleId;
-      return {
-        ...prev,
-        profile: { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId },
-      };
-    });
-  }, []);
+  const refreshTurnStats = useCallback(async () => {
+    if (!supabase || !authUserId) return;
+    setStatsLoading(true);
+    const { data, error } = await supabase
+      .from('my_turn_stats')
+      .select('total_turns,turns_this_month,unique_theatres')
+      .single();
+    if (!error && data) {
+      setRemoteTurnStats({
+        totalTurns: Number(data.total_turns ?? 0),
+        turnsThisMonth: Number(data.turns_this_month ?? 0),
+        uniqueTheatres: Number(data.unique_theatres ?? 0),
+      });
+    }
+    setStatsLoading(false);
+  }, [authUserId]);
 
-  const registerTurn = useCallback((eventId: string, roleId: RoleId): TurnRecord | null => {
-    const event = events.find((item) => item.id === eventId) ?? events[0];
-    if (!event) return null;
-    const rewards = computeTurnRewards(event, roleId);
-    const record: TurnRecord = {
-      id: `turn-${Date.now()}`,
-      eventId: event.id,
-      eventName: event.name,
-      theatre: event.theatre,
-      date: event.date,
-      time: event.time,
-      roleId,
-      rewards,
-      createdAt: Date.now(),
+  const refreshTheatreReputation = useCallback(async () => {
+    if (!supabase || !authUserId) return;
+    setTheatreReputationLoading(true);
+    const { data, error } = await supabase
+      .from('my_theatre_reputation')
+      .select('theatre,reputation,total_turns');
+    if (!error && data) {
+      const nextReputation: TheatreReputation[] = data
+        .map((row: any) => ({
+          theatre: (row.theatre ?? '').toString(),
+          reputation: Number(row.reputation ?? 0),
+          totalTurns: Number(row.total_turns ?? 0),
+        }))
+        .filter((entry) => entry.theatre)
+        .sort(
+          (a, b) =>
+            b.reputation - a.reputation ||
+            b.totalTurns - a.totalTurns ||
+            a.theatre.localeCompare(b.theatre)
+        );
+      setRemoteTheatreReputation(nextReputation);
+    }
+    setTheatreReputationLoading(false);
+  }, [authUserId]);
+
+  const refreshBadges = useCallback(async () => {
+    if (!supabase || !authUserId) return;
+    setBadgesLoading(true);
+    await supabase.rpc('evaluate_my_badges');
+    const { data, error } = await supabase
+      .from('my_badges')
+      .select('id,title,description,icon,metric,threshold,unlocked_at,seen_at,unlocked');
+    if (!error && data) {
+      const nextBadges: Badge[] = data.map((row) => ({
+        id: row.id,
+        title: row.title,
+        description: row.description ?? null,
+        icon: row.icon ?? 'Award',
+        metric: (row.metric as BadgeMetric | null) ?? null,
+        threshold: row.threshold != null ? Number(row.threshold) : null,
+        unlocked: Boolean(row.unlocked),
+        unlockedAt: row.unlocked_at ? new Date(row.unlocked_at).getTime() : null,
+        seenAt: row.seen_at ? new Date(row.seen_at).getTime() : null,
+      }));
+      setRemoteBadges(nextBadges);
+    }
+    setBadgesLoading(false);
+  }, [authUserId]);
+
+  const markBadgesSeen = useCallback(() => {
+    if (!supabase || !authUserId) return;
+    supabase
+      .rpc('mark_my_badges_seen')
+      .then(() => refreshBadges())
+      .catch((error) => {
+        console.warn('Supabase mark badges seen failed', error);
+      });
+  }, [authUserId, refreshBadges]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    let isMounted = true;
+
+    const restoreSession = async () => {
+      const stored = readStoredSession();
+      if (stored) {
+        await supabase.auth.setSession({
+          access_token: stored.access_token,
+          refresh_token: stored.refresh_token,
+        });
+      }
+
+      const { data } = await supabase.auth.getSession();
+      if (!isMounted) return;
+      persistStoredSession(data.session ?? null);
+      setAuthUserId(data.session?.user.id ?? null);
     };
 
-    setState((prev) => ({
-      profile: applyRewards(prev.profile, rewards, 'turn'),
-      turns: [record, ...prev.turns].slice(0, MAX_TURNS),
-    }));
+    restoreSession();
 
-    return record;
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      persistStoredSession(session ?? null);
+      if (!isMounted) return;
+      setAuthUserId(session?.user.id ?? null);
+    });
+
+    return () => {
+      isMounted = false;
+      authListener?.subscription.unsubscribe();
+    };
   }, []);
 
-  const completeActivity = useCallback((activityId: string) => {
-    const activity = activities.find((item) => item.id === activityId);
-    if (!activity) return null;
-    const rewards: Rewards = { xp: activity.xpReward, cachet: activity.cachetReward, reputation: 5 };
-    setState((prev) => ({
-      ...prev,
-      profile: applyRewards(prev.profile, rewards, 'activity'),
-    }));
-    return { activity, rewards };
+  useEffect(() => {
+    setHasHydratedRemote(false);
+  }, [authUserId]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !authUserId) {
+      setRemoteTurnStats(null);
+      setRemoteBadges([]);
+      setRemoteTheatreReputation([]);
+      return;
+    }
+    refreshTurnStats();
+    refreshTheatreReputation();
+    refreshBadges();
+  }, [authUserId, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    let isMounted = true;
+
+    const loadCatalog = async () => {
+      const [rolesRes, eventsRes, activitiesRes] = await Promise.all([
+        supabase.from('roles').select('id,name,focus,stats'),
+        supabase
+          .from('events')
+          .select('id,name,theatre,event_date,event_time,genre,base_rewards,focus_role'),
+        supabase
+          .from('activities')
+          .select('id,title,description,duration,xp_reward,cachet_reward,difficulty'),
+      ]);
+
+      if (!isMounted) return;
+
+      const nextRoles =
+        rolesRes.error || !rolesRes.data?.length
+          ? roles
+          : rolesRes.data.map((role) => ({
+              id: role.id as RoleId,
+              name: role.name,
+              focus: role.focus,
+              stats: {
+                presence: Number(role.stats?.presence ?? 0),
+                precision: Number(role.stats?.precision ?? 0),
+                leadership: Number(role.stats?.leadership ?? 0),
+                creativity: Number(role.stats?.creativity ?? 0),
+              },
+            }));
+
+      const nextEvents =
+        eventsRes.error || !eventsRes.data?.length
+          ? events
+          : eventsRes.data.map((event) => ({
+              id: event.id,
+              name: event.name,
+              theatre: event.theatre,
+              date: event.event_date,
+              time: event.event_time,
+              genre: event.genre,
+              baseRewards: {
+                xp: Number(event.base_rewards?.xp ?? 0),
+                reputation: Number(event.base_rewards?.reputation ?? 0),
+                cachet: Number(event.base_rewards?.cachet ?? 0),
+              },
+              focusRole: event.focus_role ?? undefined,
+            }));
+
+      const nextActivities =
+        activitiesRes.error || !activitiesRes.data?.length
+          ? activities
+          : activitiesRes.data.map((activity) => ({
+              id: activity.id,
+              title: activity.title,
+              description: activity.description,
+              duration: activity.duration,
+              xpReward: activity.xp_reward,
+              cachetReward: activity.cachet_reward,
+              difficulty: activity.difficulty as Activity['difficulty'],
+            }));
+
+      setCatalog({
+        roles: nextRoles,
+        events: nextEvents,
+        activities: nextActivities,
+      });
+    };
+
+    loadCatalog();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !authUserId) return;
+    let isMounted = true;
+
+    const loadRemoteState = async () => {
+      const [userRes, profileRes, turnsRes] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from('profiles').select('*').eq('id', authUserId).maybeSingle(),
+        supabase.from('turns').select('*').eq('user_id', authUserId).order('created_at', { ascending: false }),
+      ]);
+
+      if (!isMounted) return;
+
+      let profileRow: any = profileRes.data;
+
+      if (!profileRow && userRes.data?.user?.email) {
+        const user = userRes.data.user;
+        const insertRes = await supabase
+          .from('profiles')
+          .insert({
+            id: authUserId,
+            name: user.user_metadata?.name ?? user.email.split('@')[0] ?? 'Player',
+            email: user.email,
+            role_id: 'attore',
+          })
+          .select('*')
+          .single();
+        profileRow = insertRes.data ?? null;
+      }
+
+      if (!isMounted) return;
+
+      const remoteTurns = Array.isArray(turnsRes.data)
+        ? turnsRes.data.map((turn) => ({
+            id: turn.id,
+            eventId: turn.event_id ?? '',
+            eventName: turn.event_name ?? '',
+            theatre: turn.theatre ?? '',
+            date: turn.event_date ?? '',
+            time: turn.event_time ?? '',
+            roleId: (turn.role_id as RoleId) ?? 'attore',
+            rewards: {
+              xp: Number(turn.rewards?.xp ?? 0),
+              reputation: Number(turn.rewards?.reputation ?? 0),
+              cachet: Number(turn.rewards?.cachet ?? 0),
+            },
+            createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
+          }))
+        : [];
+
+      if (profileRow) {
+        setState((prev) => ({
+          profile: {
+            ...prev.profile,
+            name: profileRow.name ?? prev.profile.name,
+            email: profileRow.email ?? prev.profile.email,
+            roleId: (profileRow.role_id as RoleId) ?? prev.profile.roleId,
+            level: profileRow.level ?? prev.profile.level,
+            xp: profileRow.xp ?? prev.profile.xp,
+            xpToNextLevel: profileRow.xp_to_next_level ?? prev.profile.xpToNextLevel,
+            xpTotal: profileRow.xp_total ?? prev.profile.xpTotal,
+            xpField: profileRow.xp_field ?? prev.profile.xpField,
+            reputation: profileRow.reputation ?? prev.profile.reputation,
+            cachet: profileRow.cachet ?? prev.profile.cachet,
+          },
+          turns: remoteTurns,
+        }));
+      }
+
+      if (profileRow || !profileRes.error) {
+        setHasHydratedRemote(true);
+      }
+    };
+
+    loadRemoteState();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authUserId]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !authUserId) return;
+
+    const mapTurnRow = (turn: any): TurnRecord => ({
+      id: turn.id,
+      eventId: turn.event_id ?? '',
+      eventName: turn.event_name ?? '',
+      theatre: turn.theatre ?? '',
+      date: turn.event_date ?? '',
+      time: turn.event_time ?? '',
+      roleId: (turn.role_id as RoleId) ?? 'attore',
+      rewards: {
+        xp: Number(turn.rewards?.xp ?? 0),
+        reputation: Number(turn.rewards?.reputation ?? 0),
+        cachet: Number(turn.rewards?.cachet ?? 0),
+      },
+      createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
+    });
+
+    const channel = supabase
+      .channel(`tdp-mobile-${authUserId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${authUserId}` },
+        (payload) => {
+          if (!payload.new) return;
+          const profile = payload.new as any;
+          setState((prev) => ({
+            ...prev,
+            profile: {
+              ...prev.profile,
+              name: profile.name ?? prev.profile.name,
+              email: profile.email ?? prev.profile.email,
+              roleId: (profile.role_id as RoleId) ?? prev.profile.roleId,       
+              level: profile.level ?? prev.profile.level,
+              xp: profile.xp ?? prev.profile.xp,
+              xpToNextLevel: profile.xp_to_next_level ?? prev.profile.xpToNextLevel,
+              xpTotal: profile.xp_total ?? prev.profile.xpTotal,
+              xpField: profile.xp_field ?? prev.profile.xpField,
+              reputation: profile.reputation ?? prev.profile.reputation,        
+              cachet: profile.cachet ?? prev.profile.cachet,
+            },
+          }));
+          setHasHydratedRemote(true);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'turns', filter: `user_id=eq.${authUserId}` },
+        (payload) => {
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const nextTurn = mapTurnRow(payload.new);
+            setState((prev) => {
+              if (prev.turns.some((turn) => turn.id === nextTurn.id)) {
+                return prev;
+              }
+              const merged = [nextTurn, ...prev.turns].sort((a, b) => b.createdAt - a.createdAt);
+              return { ...prev, turns: merged.slice(0, MAX_TURNS) };
+            });
+          }
+
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            const nextTurn = mapTurnRow(payload.new);
+            setState((prev) => ({
+              ...prev,
+              turns: prev.turns
+                .map((turn) => (turn.id === nextTurn.id ? nextTurn : turn))
+                .sort((a, b) => b.createdAt - a.createdAt),
+            }));
+          }
+
+          if (payload.eventType === 'DELETE' && payload.old) {
+            const deletedId = (payload.old as any).id as string | undefined;
+            if (!deletedId) return;
+            setState((prev) => ({
+              ...prev,
+              turns: prev.turns.filter((turn) => turn.id !== deletedId),
+            }));
+          }
+
+          refreshTurnStats();
+          refreshTheatreReputation();
+          refreshBadges();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_badges', filter: `user_id=eq.${authUserId}` },
+        () => {
+          refreshBadges();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [authUserId, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
+
+  const persistProfile = useCallback(
+    (profile: PlayerProfile) => {
+      if (!supabase || !authUserId || !hasHydratedRemote) return;
+      supabase
+        .from('profiles')
+        .upsert(
+          {
+            id: authUserId,
+            name: profile.name,
+            email: profile.email,
+            role_id: profile.roleId,
+            level: profile.level,
+            xp: profile.xp,
+            xp_to_next_level: profile.xpToNextLevel,
+            xp_total: profile.xpTotal,
+            xp_field: profile.xpField,
+            reputation: profile.reputation,
+            cachet: profile.cachet,
+          },
+          { onConflict: 'id' }
+        )
+        .then(({ error }) => {
+          if (error) {
+            console.warn('Supabase profile upsert failed', error);
+          }
+        });
+    },
+    [authUserId, hasHydratedRemote]
+  );
+
+  const updateProfile = useCallback(
+    (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId'>>) => {
+      let nextProfile: PlayerProfile | null = null;
+      setState((prev) => {
+        const nextRole =
+          updates.roleId && catalog.roles.some((role) => role.id === updates.roleId)
+            ? updates.roleId
+            : prev.profile.roleId;
+        nextProfile = { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId };
+        return {
+          ...prev,
+          profile: nextProfile,
+        };
+      });
+      if (nextProfile) {
+        persistProfile(nextProfile);
+      }
+    },
+    [catalog.roles, persistProfile]
+  );
+
+  const registerTurn = useCallback(
+    (eventId: string, roleId: RoleId): TurnRecord | null => {
+      const event = catalog.events.find((item) => item.id === eventId) ?? catalog.events[0];
+      if (!event) return null;
+      const rewards = computeTurnRewards(event, roleId);
+      const turnId =
+        supabase && authUserId && globalThis.crypto?.randomUUID
+          ? globalThis.crypto.randomUUID()
+          : `turn-${Date.now()}`;
+      const record: TurnRecord = {
+        id: turnId,
+        eventId: event.id,
+        eventName: event.name,
+        theatre: event.theatre,
+        date: event.date,
+        time: event.time,
+        roleId,
+        rewards,
+        createdAt: Date.now(),
+      };
+
+      let nextProfile: PlayerProfile | null = null;
+      setState((prev) => {
+        nextProfile = applyRewards(prev.profile, rewards, 'turn');
+        return {
+          profile: nextProfile,
+          turns: [record, ...prev.turns].slice(0, MAX_TURNS),
+        };
+      });
+
+      if (nextProfile) {
+        persistProfile(nextProfile);
+      }
+
+      if (supabase && authUserId) {
+        supabase
+          .from('turns')
+          .insert({
+            id: turnId,
+            user_id: authUserId,
+            event_id: event.id,
+            event_name: event.name,
+            theatre: event.theatre,
+            event_date: event.date,
+            event_time: event.time,
+            role_id: roleId,
+            rewards,
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.warn('Supabase turn insert failed', error);
+            }
+          });
+      }
+
+      return record;
+    },
+    [catalog.events, authUserId, persistProfile]
+  );
+
+  const completeActivity = useCallback(
+    (activityId: string) => {
+      const activity = catalog.activities.find((item) => item.id === activityId);
+      if (!activity) return null;
+      const rewards: Rewards = { xp: activity.xpReward, cachet: activity.cachetReward, reputation: 5 };
+
+      let nextProfile: PlayerProfile | null = null;
+      const completionId =
+        supabase && authUserId && globalThis.crypto?.randomUUID
+          ? globalThis.crypto.randomUUID()
+          : `activity-${Date.now()}`;
+      setState((prev) => {
+        nextProfile = applyRewards(prev.profile, rewards, 'activity');
+        return {
+          ...prev,
+          profile: nextProfile,
+        };
+      });
+
+      if (nextProfile) {
+        persistProfile(nextProfile);
+      }
+
+      if (supabase && authUserId) {
+        supabase
+          .from('activity_completions')
+          .insert({ id: completionId, user_id: authUserId, activity_id: activity.id, rewards })
+          .then(({ error }) => {
+            if (error) {
+              console.warn('Supabase activity insert failed', error);
+            }
+          });
+      }
+
+      return { activity, rewards };
+    },
+    [catalog.activities, authUserId, persistProfile]
+  );
 
   const resetState = useCallback(() => {
     const next = createDefaultState();
@@ -309,15 +1015,36 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<GameContextValue>(
     () => ({
       state,
-      roles,
-      events,
-      activities,
+      roles: catalog.roles,
+      events: catalog.events,
+      activities: catalog.activities,
+      turnStats,
+      statsLoading,
+      theatreReputation,
+      theatreReputationLoading,
+      badges,
+      badgesLoading,
+      markBadgesSeen,
       updateProfile,
       registerTurn,
       completeActivity,
       resetState,
     }),
-    [state, updateProfile, registerTurn, completeActivity, resetState]
+    [
+      state,
+      catalog,
+      turnStats,
+      statsLoading,
+      theatreReputation,
+      theatreReputationLoading,
+      badges,
+      badgesLoading,
+      markBadgesSeen,
+      updateProfile,
+      registerTurn,
+      completeActivity,
+      resetState,
+    ]
   );
 
   return <GameStateContext.Provider value={value}>{children}</GameStateContext.Provider>;
