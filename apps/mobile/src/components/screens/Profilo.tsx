@@ -1,7 +1,6 @@
 ﻿import React from 'react';
 import { Award, BarChart3, ChevronRight, LogOut, Settings, Theater, User } from 'lucide-react';
 import { ProgressBar } from '../ui/ProgressBar';
-import { achievements } from '../../data/achievements_data';
 
 interface ProfiloProps {
   userName: string;
@@ -11,6 +10,8 @@ interface ProfiloProps {
   xpTotal: number;
   xpSulCampo: number;
   reputationGlobal: number;
+  badgesUnlockedCount: number;
+  newBadgesCount: number;
   onViewCarriera: () => void;
   onViewTitoli: () => void;
   onSettings: () => void;
@@ -30,6 +31,8 @@ export function Profilo({
   xpTotal,
   xpSulCampo,
   reputationGlobal,
+  badgesUnlockedCount,
+  newBadgesCount,
   onViewCarriera,
   onViewTitoli,
   onSettings,
@@ -37,7 +40,6 @@ export function Profilo({
 }: ProfiloProps) {
   const safeXpTotal = Math.max(xpTotal, 1);
   const roleLabel = (userRole ?? 'Ruolo').replace(/\s*\/\s*/g, '/');
-  const newAchievementsCount = achievements.filter((achievement) => achievement.isNew).length;
 
   return (
     <div
@@ -145,14 +147,14 @@ export function Profilo({
                   Titoli ottenuti
                 </p>
                 <p className="text-[14px] leading-[20px] text-[#b8b2b3] !m-0">
-                  {achievements.length} badge sbloccati
+                  {badgesUnlockedCount} badge sbloccati
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-[8px]">
-              {newAchievementsCount > 0 ? (
+              {newBadgesCount > 0 ? (
                 <span className="bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f] rounded-full size-[20px] flex items-center justify-center text-[12px] leading-[16px] text-[#0f0d0e]">
-                  {newAchievementsCount}
+                  {newBadgesCount}
                 </span>
               ) : null}
               <ChevronRight className="text-[#7a7577]" size={20} />
