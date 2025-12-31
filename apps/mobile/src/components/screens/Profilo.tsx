@@ -1,7 +1,6 @@
 ﻿import React from 'react';
 import { Award, BarChart3, ChevronRight, LogOut, Settings, Theater, User } from 'lucide-react';
 import { ProgressBar } from '../ui/ProgressBar';
-import { achievements } from '../../data/achievements_data';
 
 interface ProfiloProps {
   userName: string;
@@ -11,17 +10,15 @@ interface ProfiloProps {
   xpTotal: number;
   xpSulCampo: number;
   reputationGlobal: number;
+  theatreReputation: Array<{ name: string; reputation: number }>;
+  theatreReputationLoading: boolean;
+  badgesUnlockedCount: number;
+  newBadgesCount: number;
   onViewCarriera: () => void;
   onViewTitoli: () => void;
   onSettings: () => void;
   onLogout: () => void;
 }
-
-const theatreReputation = [
-  { name: 'Teatro Argentina', reputation: 85 },
-  { name: 'Teatro Valle', reputation: 72 },
-  { name: 'Teatro Quirino', reputation: 68 }
-];
 
 export function Profilo({
   userName,
@@ -30,6 +27,10 @@ export function Profilo({
   xpTotal,
   xpSulCampo,
   reputationGlobal,
+  theatreReputation,
+  theatreReputationLoading,
+  badgesUnlockedCount,
+  newBadgesCount,
   onViewCarriera,
   onViewTitoli,
   onSettings,
@@ -37,7 +38,6 @@ export function Profilo({
 }: ProfiloProps) {
   const safeXpTotal = Math.max(xpTotal, 1);
   const roleLabel = (userRole ?? 'Ruolo').replace(/\s*\/\s*/g, '/');
-  const newAchievementsCount = achievements.filter((achievement) => achievement.isNew).length;
 
   return (
     <div
@@ -118,6 +118,11 @@ export function Profilo({
             <p className="text-[18px] leading-[25.2px] font-semibold text-white">
               Reputazione per teatro
             </p>
+            {theatreReputationLoading ? (
+              <p className="px-[5px] text-[14px] leading-[20px] text-[#b8b2b3]">
+                Caricamento...
+              </p>
+            ) : null}
             <div className="flex flex-col gap-[10px]">
               {theatreReputation.map((theatre) => (
                 <div key={theatre.name} className="flex flex-col gap-[4px]">
@@ -145,14 +150,14 @@ export function Profilo({
                   Titoli ottenuti
                 </p>
                 <p className="text-[14px] leading-[20px] text-[#b8b2b3] !m-0">
-                  {achievements.length} badge sbloccati
+                  {badgesUnlockedCount} badge sbloccati
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-[8px]">
-              {newAchievementsCount > 0 ? (
+              {newBadgesCount > 0 ? (
                 <span className="bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f] rounded-full size-[20px] flex items-center justify-center text-[12px] leading-[16px] text-[#0f0d0e]">
-                  {newAchievementsCount}
+                  {newBadgesCount}
                 </span>
               ) : null}
               <ChevronRight className="text-[#7a7577]" size={20} />

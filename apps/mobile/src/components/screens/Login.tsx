@@ -7,9 +7,10 @@ interface LoginProps {
   onLogin: (email: string, password: string) => void;
   onSignup: () => void;
   onForgotPassword: () => void;
+  errorMessage?: string | null;
 }
 
-export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProps) {
+export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessage }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({ email: '', password: '' });
@@ -102,6 +103,12 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword }: LoginProp
               Password dimenticata?
             </button>
           </div>
+
+          {errorMessage && (
+            <p className="text-[14px] leading-[20px] text-[#ff4d4f] text-center">
+              {errorMessage}
+            </p>
+          )}
 
           <button
             type="submit"

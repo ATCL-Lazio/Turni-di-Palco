@@ -6,9 +6,10 @@ interface SignupProps {
   onBack: () => void;
   onSignup: (name: string, email: string, password: string) => void;
   onLogin: () => void;
+  errorMessage?: string | null;
 }
 
-export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
+export function Signup({ onBack, onSignup, onLogin, errorMessage }: SignupProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -159,6 +160,12 @@ export function Signup({ onBack, onSignup, onLogin }: SignupProps) {
               <span className="text-[#f4bf4f]">Privacy Policy</span>
             </span>
           </label>
+
+          {errorMessage && (
+            <p className="text-[14px] leading-[20px] text-[#ff4d4f] text-center">
+              {errorMessage}
+            </p>
+          )}
 
           <button
             type="submit"
