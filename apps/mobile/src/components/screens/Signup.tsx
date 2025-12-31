@@ -6,10 +6,19 @@ interface SignupProps {
   onBack: () => void;
   onSignup: (name: string, email: string, password: string) => void;
   onLogin: () => void;
+  onViewTerms: () => void;
+  onViewPrivacy: () => void;
   errorMessage?: string | null;
 }
 
-export function Signup({ onBack, onSignup, onLogin, errorMessage }: SignupProps) {
+export function Signup({
+  onBack,
+  onSignup,
+  onLogin,
+  onViewTerms,
+  onViewPrivacy,
+  errorMessage
+}: SignupProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -156,8 +165,30 @@ export function Signup({ onBack, onSignup, onLogin, errorMessage }: SignupProps)
               className="bg-[#241f20] border border-[#2d2728] size-[24px] accent-[#a82847]"
             />
             <span>
-              Accetto i <span className="text-[#f4bf4f]">Termini e Condizioni</span> e la{' '}
-              <span className="text-[#f4bf4f]">Privacy Policy</span>
+              Accetto i{' '}
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onViewTerms();
+                }}
+                className="text-[#f4bf4f] underline underline-offset-2"
+              >
+                Termini e Condizioni
+              </button>{' '}
+              e la{' '}
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onViewPrivacy();
+                }}
+                className="text-[#f4bf4f] underline underline-offset-2"
+              >
+                Privacy Policy
+              </button>
             </span>
           </label>
 
