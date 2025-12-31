@@ -395,11 +395,17 @@ function AppShell() {
           />
         );
 
-      case 'carriera':
+      case 'carriera': {
+        const selectedRole = roles.find((role) => role.id === state.profile.roleId);
+        const fallbackRoleStats = { presence: 0, precision: 0, leadership: 0, creativity: 0 };
+
         return (
           <Carriera
-            userName={state.profile.name}
-            userRole={roles.find((role) => role.id === state.profile.roleId)?.name ?? 'Ruolo'}
+            userRole={selectedRole?.name ?? 'Ruolo'}
+            roleId={state.profile.roleId}
+            roleStats={selectedRole?.stats ?? fallbackRoleStats}
+            turnStats={turnStats}
+            badges={badges}
             level={state.profile.level}
             xp={state.profile.xp}
             xpToNextLevel={state.profile.xpToNextLevel}
@@ -409,6 +415,7 @@ function AppShell() {
             onBack={() => setCurrentScreen('profilo')}
           />
         );
+      }
 
       case 'terms':
         return <TermsAndConditions onBack={() => setCurrentScreen(legalReturnScreen)} />;
