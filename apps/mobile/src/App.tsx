@@ -11,7 +11,10 @@ import { EventConfirmation } from './components/screens/EventConfirmation';
 import { Attivita } from './components/screens/Attivita';
 import { ActivityDetail } from './components/screens/ActivityDetail';
 import { Profilo } from './components/screens/Profilo';
+import { AccountSettings } from './components/screens/AccountSettings';
 import { Carriera } from './components/screens/Carriera';
+import { TermsAndConditions } from './components/screens/TermsAndConditions';
+import { PrivacyPolicy } from './components/screens/PrivacyPolicy';
 import { TitoliOttenuti } from './components/screens/TitoliOttenuti';
 import { GameStateProvider, useGameState } from './state/store';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
@@ -29,10 +32,15 @@ type Screen =
   | 'attivita'
   | 'activity-detail'
   | 'profilo'
+  | 'account-settings'
   | 'carriera'
+  | 'terms'
+  | 'privacy'
   | 'titoli-ottenuti';
 
 type Tab = 'home' | 'turni' | 'attivita' | 'profilo';
+
+type LegalReturnScreen = Exclude<Screen, 'terms' | 'privacy'>;
 
 function AppShell() {
   const {
@@ -51,6 +59,7 @@ function AppShell() {
     completeActivity,
   } = useGameState();
   const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');
+  const [legalReturnScreen, setLegalReturnScreen] = useState<LegalReturnScreen>('welcome');
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [scannedEventId, setScannedEventId] = useState<string>(events[0]?.id ?? '');
   const [selectedActivityId, setSelectedActivityId] = useState<string>('');
@@ -185,6 +194,20 @@ function AppShell() {
     setCurrentScreen('titoli-ottenuti');
   };
 
+  const handleViewAccountSettings = () => {
+    setCurrentScreen('account-settings');
+  };
+
+  const openTerms = (from: LegalReturnScreen) => {
+    setLegalReturnScreen(from);
+    setCurrentScreen('terms');
+  };
+
+  const openPrivacy = (from: LegalReturnScreen) => {
+    setLegalReturnScreen(from);
+    setCurrentScreen('privacy');
+  };
+
   const handleLogout = () => {
     if (supabase) {
       supabase.auth.signOut();
@@ -260,6 +283,8 @@ function AppShell() {
             onBack={() => setCurrentScreen('welcome')}
             onSignup={handleSignup}
             onLogin={() => setCurrentScreen('login')}
+            onViewTerms={() => openTerms('signup')}
+            onViewPrivacy={() => openPrivacy('signup')}
             errorMessage={authError}
           />
         );
@@ -353,7 +378,19 @@ function AppShell() {
             newBadgesCount={newBadges.length}
             onViewCarriera={handleViewCarriera}
             onViewTitoli={handleViewTitoli}
-            onSettings={() => undefined}
+            onSettings={handleViewAccountSettings}
+            onLogout={handleLogout}
+          />
+        );
+
+      case 'account-settings':
+        return (
+          <AccountSettings
+            userName={state.profile.name}
+            email={state.profile.email}
+            onBack={() => setCurrentScreen('profilo')}
+            onViewTerms={() => openTerms('account-settings')}
+            onViewPrivacy={() => openPrivacy('account-settings')}
             onLogout={handleLogout}
           />
         );
@@ -372,6 +409,12 @@ function AppShell() {
             onBack={() => setCurrentScreen('profilo')}
           />
         );
+
+      case 'terms':
+        return <TermsAndConditions onBack={() => setCurrentScreen(legalReturnScreen)} />;
+
+      case 'privacy':
+        return <PrivacyPolicy onBack={() => setCurrentScreen(legalReturnScreen)} />;
 
       case 'titoli-ottenuti':
         return (
