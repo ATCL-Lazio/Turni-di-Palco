@@ -15,7 +15,7 @@ import {
   Package,
   Clipboard
 } from 'lucide-react';
-import { Screen, ScreenHeader } from '../ui/Screen';
+import { Screen } from '../ui/Screen';
 
 interface CarrieraProps {
   userName: string;
@@ -59,24 +59,26 @@ export function Carriera({
 
   return (
     <Screen
-      header={(
-        <ScreenHeader>
-          <div className="max-w-md mx-auto">
-            <button
-              onClick={onBack}
-              className="flex items-center gap-2 rounded-md px-2 py-[10px] text-[#f4bf4f] mb-6 hover:text-[#e6a23c] transition-colors"
-            >
-              <ArrowLeft size={20} />
-              <span>Indietro</span>
-            </button>
-
-            <h2 className="text-white mb-2">Carriera completa</h2>
-            <p className="text-[#b8b2b3]">Il tuo percorso professionale a teatro</p>
-          </div>
-        </ScreenHeader>
-      )}
+      className="relative items-start justify-start"
+      contentClassName="relative w-full max-w-[393px] flex-1 px-6 pt-8 space-y-0 box-border"
     >
-      <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+      <div className="flex flex-col">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
+          aria-label="Indietro"
+        >
+          <ArrowLeft size={24} />
+        </button>
+
+        <div className="mt-4">
+          <h2 className="text-white mb-2">Carriera completa</h2>
+          <p className="text-[#b8b2b3]">Il tuo percorso professionale a teatro</p>
+        </div>
+
+        <div className="mt-6 space-y-5">
+          <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
         <div className="flex items-center gap-4 mb-6">
           <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl flex items-center justify-center">
             <RoleIcon className="text-[#f4bf4f]" size={32} />
@@ -221,6 +223,8 @@ export function Carriera({
           </div>
         </div>
       </Card>
+        </div>
+      </div>
     </Screen>
   );
 }
