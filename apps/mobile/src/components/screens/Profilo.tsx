@@ -10,6 +10,8 @@ interface ProfiloProps {
   xpTotal: number;
   xpSulCampo: number;
   reputationGlobal: number;
+  theatreReputation: Array<{ name: string; reputation: number }>;
+  theatreReputationLoading: boolean;
   badgesUnlockedCount: number;
   newBadgesCount: number;
   onViewCarriera: () => void;
@@ -18,12 +20,6 @@ interface ProfiloProps {
   onLogout: () => void;
 }
 
-const theatreReputation = [
-  { name: 'Teatro Argentina', reputation: 85 },
-  { name: 'Teatro Valle', reputation: 72 },
-  { name: 'Teatro Quirino', reputation: 68 }
-];
-
 export function Profilo({
   userName,
   userRole,
@@ -31,6 +27,8 @@ export function Profilo({
   xpTotal,
   xpSulCampo,
   reputationGlobal,
+  theatreReputation,
+  theatreReputationLoading,
   badgesUnlockedCount,
   newBadgesCount,
   onViewCarriera,
@@ -120,6 +118,11 @@ export function Profilo({
             <p className="text-[18px] leading-[25.2px] font-semibold text-white">
               Reputazione per teatro
             </p>
+            {theatreReputationLoading ? (
+              <p className="px-[5px] text-[14px] leading-[20px] text-[#b8b2b3]">
+                Caricamento...
+              </p>
+            ) : null}
             <div className="flex flex-col gap-[10px]">
               {theatreReputation.map((theatre) => (
                 <div key={theatre.name} className="flex flex-col gap-[4px]">

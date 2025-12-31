@@ -69,6 +69,12 @@ export type TurnStats = {
   uniqueTheatres: number;
 };
 
+export type TheatreReputation = {
+  theatre: string;
+  reputation: number;
+  totalTurns: number;
+};
+
 export type BadgeMetric = 'total_turns' | 'turns_this_month' | 'unique_theatres' | 'manual';
 
 export type Badge = {
@@ -308,6 +314,33 @@ function computeTurnStatsFromTurns(turns: TurnRecord[]): TurnStats {
   return { totalTurns, turnsThisMonth, uniqueTheatres };
 }
 
+function computeTheatreReputationFromTurns(turns: TurnRecord[]): TheatreReputation[] {
+  const map = new Map<string, { reputation: number; totalTurns: number }>();
+
+  turns.forEach((turn) => {
+    const theatre = turn.theatre?.trim();
+    if (!theatre) return;
+    const previous = map.get(theatre) ?? { reputation: 0, totalTurns: 0 };
+    map.set(theatre, {
+      reputation: Math.min(100, previous.reputation + (turn.rewards?.reputation ?? 0)),
+      totalTurns: previous.totalTurns + 1,
+    });
+  });
+
+  return [...map.entries()]
+    .map(([theatre, entry]) => ({
+      theatre,
+      reputation: entry.reputation,
+      totalTurns: entry.totalTurns,
+    }))
+    .sort(
+      (a, b) =>
+        b.reputation - a.reputation ||
+        b.totalTurns - a.totalTurns ||
+        a.theatre.localeCompare(b.theatre)
+    );
+}
+
 const FALLBACK_BADGES: Array<Omit<Badge, 'unlocked' | 'unlockedAt' | 'seenAt'>> = [
   {
     id: 'unique_theatres_3',
@@ -388,6 +421,8 @@ type GameContextValue = {
   activities: Activity[];
   turnStats: TurnStats;
   statsLoading: boolean;
+  theatreReputation: TheatreReputation[];
+  theatreReputationLoading: boolean;
   badges: Badge[];
   badgesLoading: boolean;
   markBadgesSeen: () => void;
@@ -409,8 +444,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [hasHydratedRemote, setHasHydratedRemote] = useState(false);
   const localTurnStats = useMemo(() => computeTurnStatsFromTurns(state.turns), [state.turns]);
+  const localTheatreReputation = useMemo(
+    () => computeTheatreReputationFromTurns(state.turns),
+    [state.turns]
+  );
   const [remoteTurnStats, setRemoteTurnStats] = useState<TurnStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [remoteTheatreReputation, setRemoteTheatreReputation] = useState<TheatreReputation[]>([]);
+  const [theatreReputationLoading, setTheatreReputationLoading] = useState(false);
   const [remoteBadges, setRemoteBadges] = useState<Badge[]>([]);
   const [badgesLoading, setBadgesLoading] = useState(false);
 
@@ -422,6 +463,12 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const badges = useMemo(
     () => (isSupabaseConfigured && authUserId ? remoteBadges : computeFallbackBadges(localTurnStats)),
     [authUserId, localTurnStats, remoteBadges]
+  );
+
+  const theatreReputation = useMemo(
+    () =>
+      isSupabaseConfigured && authUserId ? remoteTheatreReputation : localTheatreReputation,
+    [authUserId, localTheatreReputation, remoteTheatreReputation]
   );
 
   useEffect(() => {
@@ -443,6 +490,31 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       });
     }
     setStatsLoading(false);
+  }, [authUserId]);
+
+  const refreshTheatreReputation = useCallback(async () => {
+    if (!supabase || !authUserId) return;
+    setTheatreReputationLoading(true);
+    const { data, error } = await supabase
+      .from('my_theatre_reputation')
+      .select('theatre,reputation,total_turns');
+    if (!error && data) {
+      const nextReputation: TheatreReputation[] = data
+        .map((row: any) => ({
+          theatre: (row.theatre ?? '').toString(),
+          reputation: Number(row.reputation ?? 0),
+          totalTurns: Number(row.total_turns ?? 0),
+        }))
+        .filter((entry) => entry.theatre)
+        .sort(
+          (a, b) =>
+            b.reputation - a.reputation ||
+            b.totalTurns - a.totalTurns ||
+            a.theatre.localeCompare(b.theatre)
+        );
+      setRemoteTheatreReputation(nextReputation);
+    }
+    setTheatreReputationLoading(false);
   }, [authUserId]);
 
   const refreshBadges = useCallback(async () => {
@@ -520,11 +592,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     if (!isSupabaseConfigured || !supabase || !authUserId) {
       setRemoteTurnStats(null);
       setRemoteBadges([]);
+      setRemoteTheatreReputation([]);
       return;
     }
     refreshTurnStats();
+    refreshTheatreReputation();
     refreshBadges();
-  }, [authUserId, refreshBadges, refreshTurnStats]);
+  }, [authUserId, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -765,6 +839,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           }
 
           refreshTurnStats();
+          refreshTheatreReputation();
           refreshBadges();
         }
       )
@@ -780,7 +855,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [authUserId, refreshBadges, refreshTurnStats]);
+  }, [authUserId, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
 
   const persistProfile = useCallback(
     (profile: PlayerProfile) => {
@@ -945,6 +1020,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       activities: catalog.activities,
       turnStats,
       statsLoading,
+      theatreReputation,
+      theatreReputationLoading,
       badges,
       badgesLoading,
       markBadgesSeen,
@@ -958,6 +1035,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       catalog,
       turnStats,
       statsLoading,
+      theatreReputation,
+      theatreReputationLoading,
       badges,
       badgesLoading,
       markBadgesSeen,
