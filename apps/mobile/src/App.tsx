@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BottomNav } from './components/BottomNav';
 import { Welcome } from './components/screens/Welcome';
 import { Login } from './components/screens/Login';
@@ -14,6 +14,7 @@ import { Profilo } from './components/screens/Profilo';
 import { Carriera } from './components/screens/Carriera';
 import { TitoliOttenuti } from './components/screens/TitoliOttenuti';
 import { GameStateProvider, useGameState } from './state/store';
+import { isSupabaseConfigured, supabase } from './lib/supabase';
 
 
 type Screen =
@@ -34,23 +35,92 @@ type Screen =
 type Tab = 'home' | 'turni' | 'attivita' | 'profilo';
 
 function AppShell() {
-  const { state, roles, events, activities, updateProfile, registerTurn, completeActivity } = useGameState();
+  const {
+    state,
+    roles,
+    events,
+    activities,
+    turnStats,
+    statsLoading,
+    theatreReputation,
+    theatreReputationLoading,
+    badges,
+    markBadgesSeen,
+    updateProfile,
+    registerTurn,
+    completeActivity,
+  } = useGameState();
   const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [scannedEventId, setScannedEventId] = useState<string>(events[0]?.id ?? '');
   const [selectedActivityId, setSelectedActivityId] = useState<string>('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const currentScreenRef = useRef(currentScreen);
 
   const upcomingEvent = useMemo(() => events[0], [events]);
+  const unlockedBadges = useMemo(() => badges.filter((badge) => badge.unlocked), [badges]);
+  const newBadges = useMemo(() => unlockedBadges.filter((badge) => !badge.seenAt), [unlockedBadges]);
+  const theatreReputationForProfile = useMemo(
+    () => theatreReputation.map((entry) => ({ name: entry.theatre, reputation: entry.reputation })),
+    [theatreReputation]
+  );
+  const newestNewBadge = useMemo(() => {
+    if (!newBadges.length) return null;
+    return [...newBadges].sort((a, b) => (b.unlockedAt ?? 0) - (a.unlockedAt ?? 0))[0];
+  }, [newBadges]);
+
+  useEffect(() => {
+    if (!events.length) return;
+    if (!scannedEventId || !events.some((event) => event.id === scannedEventId)) {
+      setScannedEventId(events[0].id);
+    }
+  }, [events, scannedEventId]);
+
+  useEffect(() => {
+    currentScreenRef.current = currentScreen;
+  }, [currentScreen]);
 
   const handleStart = () => setCurrentScreen('signup');
 
-  const handleLogin = (email: string, password: string) => {
-    updateProfile({ email });
+  const handleLogin = async (email: string, password: string) => {
+    setAuthError(null);
+    if (!isSupabaseConfigured || !supabase) {
+      updateProfile({ email });
+      setCurrentScreen('home');
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+
+    const displayName = data.user?.user_metadata?.name ?? state.profile.name;
+    updateProfile({ name: displayName, email });
     setCurrentScreen('home');
   };
 
-  const handleSignup = (name: string, email: string, password: string) => {
-    updateProfile({ name, email });
+  const handleSignup = async (name: string, email: string, password: string) => {
+    setAuthError(null);
+    if (!isSupabaseConfigured || !supabase) {
+      updateProfile({ name, email });
+      setCurrentScreen('role-selection');
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } },
+    });
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+
+    const displayName = data.user?.user_metadata?.name ?? name;
+    updateProfile({ name: displayName, email });
     setCurrentScreen('role-selection');
   };
 
@@ -116,9 +186,54 @@ function AppShell() {
   };
 
   const handleLogout = () => {
+    if (supabase) {
+      supabase.auth.signOut();
+    }
     setCurrentScreen('welcome');
     setActiveTab('home');
   };
+
+  useEffect(() => {
+    setAuthError(null);
+  }, [currentScreen]);
+
+  useEffect(() => {
+    if (!supabase) return;
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!mounted || error) return;
+      if (data.session?.user) {
+        const user = data.session.user;
+        const displayName = user.user_metadata?.name ?? state.profile.name;
+        updateProfile({ name: displayName, email: user.email ?? state.profile.email });
+        setCurrentScreen('home');
+      }
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      if (event === 'SIGNED_OUT') {
+        setCurrentScreen('welcome');
+        setActiveTab('home');
+        return;
+      }
+      if (session?.user) {
+        const displayName = session.user.user_metadata?.name ?? state.profile.name;
+        updateProfile({ name: displayName, email: session.user.email ?? state.profile.email });
+        const shouldAutoHome =
+          currentScreenRef.current === 'welcome' || currentScreenRef.current === 'login';
+        if (shouldAutoHome) {
+          setCurrentScreen('home');
+        }
+      }
+    });
+
+    return () => {
+      mounted = false;
+      authListener?.subscription.unsubscribe();
+    };
+  }, [updateProfile, state.profile.email, state.profile.name]);
 
   const selectedEvent = events.find((event) => event.id === scannedEventId) ?? events[0];
   const currentActivity = activities.find((item) => item.id === selectedActivityId);
@@ -135,11 +250,19 @@ function AppShell() {
             onLogin={handleLogin}
             onSignup={() => setCurrentScreen('signup')}
             onForgotPassword={() => undefined}
+            errorMessage={authError}
           />
         );
 
       case 'signup':
-        return <Signup onBack={() => setCurrentScreen('welcome')} onSignup={handleSignup} onLogin={() => setCurrentScreen('login')} />;
+        return (
+          <Signup
+            onBack={() => setCurrentScreen('welcome')}
+            onSignup={handleSignup}
+            onLogin={() => setCurrentScreen('login')}
+            errorMessage={authError}
+          />
+        );
 
       case 'role-selection':
         return <RoleSelection roles={roles} onComplete={(role) => handleRoleComplete(role.id)} />;
@@ -157,13 +280,25 @@ function AppShell() {
             onViewActivities={() => handleTabChange('attivita')}
             onViewTurni={() => handleTabChange('turni')}
             upcomingEvent={upcomingEvent}
-            totalTurns={state.turns.length}
+            totalTurns={turnStats.totalTurns}
+            turnsThisMonth={turnStats.turnsThisMonth}
+            uniqueTheatres={turnStats.uniqueTheatres}
             activitiesCount={activities.length}
+            statsLoading={statsLoading}
+            newBadgesCount={newBadges.length}
+            newBadgeTitle={newestNewBadge?.title ?? undefined}
+            onDismissBadgeNotification={markBadgesSeen}
           />
         );
 
       case 'turni':
-        return <TurniATCL turns={state.turns} onScanQR={() => setCurrentScreen('qr-scanner')} />;
+        return (
+          <TurniATCL
+            turns={state.turns}
+            roles={roles}
+            onScanQR={() => setCurrentScreen('qr-scanner')}
+          />
+        );
 
       case 'qr-scanner':
         return (
@@ -212,6 +347,10 @@ function AppShell() {
             xpTotal={state.profile.xpTotal}
             xpSulCampo={state.profile.xpField}
             reputationGlobal={state.profile.reputation}
+            theatreReputation={theatreReputationForProfile}
+            theatreReputationLoading={theatreReputationLoading}
+            badgesUnlockedCount={unlockedBadges.length}
+            newBadgesCount={newBadges.length}
             onViewCarriera={handleViewCarriera}
             onViewTitoli={handleViewTitoli}
             onSettings={() => undefined}
@@ -235,7 +374,13 @@ function AppShell() {
         );
 
       case 'titoli-ottenuti':
-        return <TitoliOttenuti onBack={() => setCurrentScreen('profilo')} />;
+        return (
+          <TitoliOttenuti
+            badges={unlockedBadges}
+            onBack={() => setCurrentScreen('profilo')}
+            onViewed={markBadgesSeen}
+          />
+        );
 
       default:
         return null;

@@ -4,14 +4,15 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { ScanQRCard } from '../ScanQRCard';
 import { QrCode, MapPin, Calendar, TrendingUp, Theater } from 'lucide-react';
-import { TurnRecord, RoleId, roles } from '../../state/store';
+import { TurnRecord, Role, RoleId } from '../../state/store';
 
 interface TurniATCLProps {
   turns: TurnRecord[];
+  roles: Role[];
   onScanQR: () => void;
 }
 
-export function TurniATCL({ turns, onScanQR }: TurniATCLProps) {
+export function TurniATCL({ turns, roles, onScanQR }: TurniATCLProps) {
   const stats = useMemo(() => {
     const totalXp = turns.reduce((acc, turn) => acc + turn.rewards.xp, 0);
     const theatreCount = new Set(turns.map((turn) => turn.theatre)).size;
@@ -19,7 +20,8 @@ export function TurniATCL({ turns, onScanQR }: TurniATCLProps) {
     return { totalXp, theatreCount, totalTurns };
   }, [turns]);
 
-  const resolveRoleName = (roleId: RoleId) => roles.find((role) => role.id === roleId)?.name ?? 'Ruolo';
+  const resolveRoleName = (roleId: RoleId) =>
+    roles.find((role) => role.id === roleId)?.name ?? 'Ruolo';
   const sortedTurns = useMemo(() => [...turns].sort((a, b) => b.createdAt - a.createdAt), [turns]);
 
   return (
