@@ -35,7 +35,19 @@ type Screen =
 type Tab = 'home' | 'turni' | 'attivita' | 'profilo';
 
 function AppShell() {
-  const { state, roles, events, activities, updateProfile, registerTurn, completeActivity } = useGameState();
+  const {
+    state,
+    roles,
+    events,
+    activities,
+    turnStats,
+    statsLoading,
+    badges,
+    markBadgesSeen,
+    updateProfile,
+    registerTurn,
+    completeActivity,
+  } = useGameState();
   const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [scannedEventId, setScannedEventId] = useState<string>(events[0]?.id ?? '');
@@ -44,21 +56,12 @@ function AppShell() {
   const currentScreenRef = useRef(currentScreen);
 
   const upcomingEvent = useMemo(() => events[0], [events]);
-  const turnStats = useMemo(() => {
-    const turns = state.turns;
-    if (!turns.length) {
-      return { turnsThisMonth: 0, uniqueTheatres: 0 };
-    }
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const turnsThisMonth = turns.filter((turn) => {
-      const created = new Date(turn.createdAt);
-      return created.getFullYear() === year && created.getMonth() === month;
-    }).length;
-    const uniqueTheatres = new Set(turns.map((turn) => turn.theatre).filter(Boolean)).size;
-    return { turnsThisMonth, uniqueTheatres };
-  }, [state.turns]);
+  const unlockedBadges = useMemo(() => badges.filter((badge) => badge.unlocked), [badges]);
+  const newBadges = useMemo(() => unlockedBadges.filter((badge) => !badge.seenAt), [unlockedBadges]);
+  const newestNewBadge = useMemo(() => {
+    if (!newBadges.length) return null;
+    return [...newBadges].sort((a, b) => (b.unlockedAt ?? 0) - (a.unlockedAt ?? 0))[0];
+  }, [newBadges]);
 
   useEffect(() => {
     if (!events.length) return;
@@ -271,10 +274,14 @@ function AppShell() {
             onViewActivities={() => handleTabChange('attivita')}
             onViewTurni={() => handleTabChange('turni')}
             upcomingEvent={upcomingEvent}
-            totalTurns={state.turns.length}
+            totalTurns={turnStats.totalTurns}
             turnsThisMonth={turnStats.turnsThisMonth}
             uniqueTheatres={turnStats.uniqueTheatres}
             activitiesCount={activities.length}
+            statsLoading={statsLoading}
+            newBadgesCount={newBadges.length}
+            newBadgeTitle={newestNewBadge?.title ?? undefined}
+            onDismissBadgeNotification={markBadgesSeen}
           />
         );
 
@@ -334,6 +341,8 @@ function AppShell() {
             xpTotal={state.profile.xpTotal}
             xpSulCampo={state.profile.xpField}
             reputationGlobal={state.profile.reputation}
+            badgesUnlockedCount={unlockedBadges.length}
+            newBadgesCount={newBadges.length}
             onViewCarriera={handleViewCarriera}
             onViewTitoli={handleViewTitoli}
             onSettings={() => undefined}
@@ -357,7 +366,13 @@ function AppShell() {
         );
 
       case 'titoli-ottenuti':
-        return <TitoliOttenuti onBack={() => setCurrentScreen('profilo')} />;
+        return (
+          <TitoliOttenuti
+            badges={unlockedBadges}
+            onBack={() => setCurrentScreen('profilo')}
+            onViewed={markBadgesSeen}
+          />
+        );
 
       default:
         return null;
