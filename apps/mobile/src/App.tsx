@@ -42,6 +42,8 @@ function AppShell() {
     activities,
     turnStats,
     statsLoading,
+    theatreReputation,
+    theatreReputationLoading,
     badges,
     markBadgesSeen,
     updateProfile,
@@ -58,6 +60,10 @@ function AppShell() {
   const upcomingEvent = useMemo(() => events[0], [events]);
   const unlockedBadges = useMemo(() => badges.filter((badge) => badge.unlocked), [badges]);
   const newBadges = useMemo(() => unlockedBadges.filter((badge) => !badge.seenAt), [unlockedBadges]);
+  const theatreReputationForProfile = useMemo(
+    () => theatreReputation.map((entry) => ({ name: entry.theatre, reputation: entry.reputation })),
+    [theatreReputation]
+  );
   const newestNewBadge = useMemo(() => {
     if (!newBadges.length) return null;
     return [...newBadges].sort((a, b) => (b.unlockedAt ?? 0) - (a.unlockedAt ?? 0))[0];
@@ -341,6 +347,8 @@ function AppShell() {
             xpTotal={state.profile.xpTotal}
             xpSulCampo={state.profile.xpField}
             reputationGlobal={state.profile.reputation}
+            theatreReputation={theatreReputationForProfile}
+            theatreReputationLoading={theatreReputationLoading}
             badgesUnlockedCount={unlockedBadges.length}
             newBadgesCount={newBadges.length}
             onViewCarriera={handleViewCarriera}
