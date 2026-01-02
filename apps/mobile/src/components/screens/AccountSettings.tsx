@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, ChevronRight, FileText, LogOut, Shield } from 'lucide-react';
+import { ArrowLeft, ChevronRight, FileText, KeyRound, LogOut, Shield, Trash2 } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 
 interface AccountSettingsProps {
@@ -8,6 +8,8 @@ interface AccountSettingsProps {
   onBack: () => void;
   onViewTerms: () => void;
   onViewPrivacy: () => void;
+  onChangePassword: () => void;
+  onResetProgress: () => void;
   onLogout: () => void;
 }
 
@@ -17,8 +19,19 @@ export function AccountSettings({
   onBack,
   onViewTerms,
   onViewPrivacy,
+  onChangePassword,
+  onResetProgress,
   onLogout,
 }: AccountSettingsProps) {
+  const handleReset = () => {
+    if (typeof window === 'undefined') return;
+    const ok = window.confirm(
+      'Vuoi davvero resettare i progressi? Questa modifica è irreversibile: cancelleremo turni, badge e statistiche e ti riporteremo alla scelta del ruolo.'
+    );
+    if (!ok) return;
+    onResetProgress();
+  };
+
   return (
     <Screen
       withBottomNavPadding={false}
@@ -86,6 +99,48 @@ export function AccountSettings({
                 </p>
                 <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
                   Come trattiamo i tuoi dati
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="text-[#7a7577]" size={20} />
+          </button>
+        </div>
+
+        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
+          <button
+            type="button"
+            onClick={onChangePassword}
+            className="h-[51px] flex items-center justify-between"
+          >
+            <div className="flex items-center gap-[12px]">
+              <KeyRound className="text-[#f4bf4f]" size={24} />
+              <div className="text-left">
+                <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
+                  Cambia password
+                </p>
+                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                  Aggiorna le credenziali di accesso
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="text-[#7a7577]" size={20} />
+          </button>
+        </div>
+
+        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
+          <button
+            type="button"
+            onClick={handleReset}
+            className="h-[51px] flex items-center justify-between"
+          >
+            <div className="flex items-center gap-[12px]">
+              <Trash2 className="text-[#ff4d4f]" size={24} />
+              <div className="text-left">
+                <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
+                  Resetta progressi
+                </p>
+                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                  Azzeramento irreversibile della carriera
                 </p>
               </div>
             </div>
