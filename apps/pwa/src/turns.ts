@@ -1,5 +1,5 @@
 import "../../../shared/styles/main.css";
-import { formatRewards, loadState, resolveRole } from "./state";
+import { formatRewards, loadState, resolveRole, STORAGE_KEY } from "./state";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
@@ -20,6 +20,9 @@ root.innerHTML = `
         <a class="button ghost" href="/profile.html">Profilo</a>
         <a class="button ghost" href="/events.html">Eventi</a>
       </div>
+      <div class="badges">
+        <span class="badge" data-sync-badge style="display:none">Stato aggiornato</span>
+      </div>
     </header>
 
     <section class="grid layout-grid">
@@ -32,9 +35,25 @@ root.innerHTML = `
 `;
 
 const turnList = root.querySelector<HTMLElement>('[data-turn-list]');
-const state = loadState();
+const syncBadge = root.querySelector<HTMLElement>('[data-sync-badge]');
 
-if (turnList) {
+let state = loadState();
+let syncBadgeTimeout: number | undefined;
+
+function showSyncBadge(message = "Stato aggiornato") {
+  if (!syncBadge) return;
+  syncBadge.textContent = message;
+  syncBadge.style.display = "inline-flex";
+  if (syncBadgeTimeout) {
+    window.clearTimeout(syncBadgeTimeout);
+  }
+  syncBadgeTimeout = window.setTimeout(() => {
+    if (syncBadge) syncBadge.style.display = "none";
+  }, 2500);
+}
+
+function renderTurns() {
+  if (!turnList) return;
   if (!state.turns.length) {
     turnList.innerHTML = `<li class="muted">Nessun turno registrato.</li>`;
   } else {
@@ -46,3 +65,12 @@ if (turnList) {
       .join("");
   }
 }
+
+renderTurns();
+
+window.addEventListener("storage", (event) => {
+  if (event.key !== STORAGE_KEY) return;
+  state = loadState();
+  renderTurns();
+  showSyncBadge();
+});
