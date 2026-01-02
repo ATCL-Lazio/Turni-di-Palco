@@ -74,21 +74,6 @@ export function Profilo({
               </p>
             </div>
           </button>
-
-          <button
-            type="button"
-            onClick={onSettings}
-            className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] flex items-center h-[48px] overflow-hidden"
-          >
-            <div className="bg-[#241f20] rounded-[16.4px] size-[48px] flex items-center justify-center">
-              <Settings className="text-[#f4bf4f]" size={24} />
-            </div>
-            <div className="flex-1 relative h-full">
-              <p className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[16px] leading-[25.6px] text-white !m-0">
-                Impostazioni
-              </p>
-            </div>
-          </button>
         </div>
 
         <div className="flex flex-col gap-[20px] px-[25px]">
