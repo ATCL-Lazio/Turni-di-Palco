@@ -1,7 +1,7 @@
 import "../../../shared/styles/main.css";
 import { renderPageHero } from "./components/page-hero";
 import { buildProgressCopy, getEarnedMilestones, getProgressState, repMilestones, xpMilestones } from "./progression";
-import { formatRewards, getAvatarVisual, loadState, resolveRole } from "./state";
+import { formatRewards, getAvatarVisual, loadState, resolveRole, STORAGE_KEY } from "./state";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
@@ -104,94 +104,129 @@ const progressBarRep = root.querySelector<HTMLElement>('[data-progress-bar="rep"
 const badgeList = root.querySelector<HTMLElement>('[data-badge-list]');
 const badgeNote = root.querySelector<HTMLElement>('[data-badge-note]');
 const turnLog = root.querySelector<HTMLElement>('[data-turn-log]');
+const syncBadge = root.querySelector<HTMLElement>('[data-sync-badge]');
 
-const state = loadState();
-const avatarVisual = getAvatarVisual(state.profile.avatar);
-if (avatarDisplay) {
-  avatarDisplay.style.setProperty("--avatar-color", avatarVisual.color);
-  avatarDisplay.style.setProperty("--avatar-hue", `${state.profile.avatar.hue}deg`);
-  avatarDisplay.classList.toggle("has-image", !!avatarVisual.image);
-}
-if (avatarImg) {
-  if (avatarVisual.image) {
-    avatarImg.src = avatarVisual.image;
-    avatarImg.style.display = "block";
-  } else {
-    avatarImg.removeAttribute("src");
-    avatarImg.style.display = "none";
+let state = loadState();
+let syncBadgeTimeout: number | undefined;
+
+function showSyncBadge(message = "Stato aggiornato") {
+  if (!syncBadge) return;
+  syncBadge.textContent = message;
+  syncBadge.style.display = "inline-flex";
+  if (syncBadgeTimeout) {
+    window.clearTimeout(syncBadgeTimeout);
   }
-}
-if (avatarLabel) {
-  avatarLabel.textContent = avatarVisual.icon;
-}
-
-if (nameNode) {
-  nameNode.textContent = state.profile.name || "Profilo non configurato";
-}
-const role = resolveRole(state.profile.roleId);
-if (roleNode) {
-  roleNode.textContent = `${role.name} - Focus: ${role.focus}`;
-}
-if (roleTags) {
-  roleTags.innerHTML = role.stats.map((stat) => `<span class="pill ghost">${stat}</span>`).join("");
-}
-if (statXp) statXp.textContent = state.profile.xp.toString();
-if (statCachet) statCachet.textContent = state.profile.cachet.toString();
-if (statRep) statRep.textContent = state.profile.repAtcl.toString();
-
-const xpProgress = getProgressState(state.profile.xp, xpMilestones);
-const repProgress = getProgressState(state.profile.repAtcl, repMilestones);
-if (progressValueXp) progressValueXp.textContent = `${state.profile.xp} XP`;
-if (progressValueRep) progressValueRep.textContent = `${state.profile.repAtcl} rep`;
-if (progressCopyXp) progressCopyXp.textContent = buildProgressCopy(xpProgress, "XP");
-if (progressCopyRep) progressCopyRep.textContent = buildProgressCopy(repProgress, "punti rep");
-if (progressBarXp) {
-  progressBarXp.style.width = `${xpProgress.percent}%`;
-  progressBarXp.parentElement?.setAttribute("aria-valuenow", xpProgress.percent.toString());
-}
-if (progressBarRep) {
-  progressBarRep.style.width = `${repProgress.percent}%`;
-  progressBarRep.parentElement?.setAttribute("aria-valuenow", repProgress.percent.toString());
+  syncBadgeTimeout = window.setTimeout(() => {
+    if (syncBadge) syncBadge.style.display = "none";
+  }, 2500);
 }
 
-const earnedXp = getEarnedMilestones(state.profile.xp, xpMilestones);
-const earnedRep = getEarnedMilestones(state.profile.repAtcl, repMilestones);
-const seen = new Set<string>();
-const repIds = new Set(repMilestones.map((item) => item.id));
-const badges = [...earnedXp, ...earnedRep].filter((badge) => {
-  if (seen.has(badge.id)) return false;
-  seen.add(badge.id);
-  return true;
-});
-if (badgeList) {
-  badgeList.innerHTML = badges.length
-    ? badges
+function renderProfile() {
+  const avatarVisual = getAvatarVisual(state.profile.avatar);
+  if (avatarDisplay) {
+    avatarDisplay.style.setProperty("--avatar-color", avatarVisual.color);
+    avatarDisplay.style.setProperty("--avatar-hue", `${state.profile.avatar.hue}deg`);
+    avatarDisplay.classList.toggle("has-image", !!avatarVisual.image);
+  }
+  if (avatarImg) {
+    if (avatarVisual.image) {
+      avatarImg.src = avatarVisual.image;
+      avatarImg.style.display = "block";
+    } else {
+      avatarImg.removeAttribute("src");
+      avatarImg.style.display = "none";
+    }
+  }
+  if (avatarLabel) {
+    avatarLabel.textContent = avatarVisual.icon;
+  }
+
+  if (nameNode) {
+    nameNode.textContent = state.profile.name || "Profilo non configurato";
+  }
+  const role = resolveRole(state.profile.roleId);
+  if (roleNode) {
+    roleNode.textContent = `${role.name} - Focus: ${role.focus}`;
+  }
+  if (roleTags) {
+    roleTags.innerHTML = role.stats.map((stat) => `<span class="pill ghost">${stat}</span>`).join("");
+  }
+  if (statXp) statXp.textContent = state.profile.xp.toString();
+  if (statCachet) statCachet.textContent = state.profile.cachet.toString();
+  if (statRep) statRep.textContent = state.profile.repAtcl.toString();
+
+  if (turnLog) {
+    if (!state.turns.length) {
+      turnLog.innerHTML = `<li class="muted">Nessun turno registrato.</li>`;
+    } else {
+      turnLog.innerHTML = state.turns
+        .slice(0, 8)
         .map(
-          (badge) =>
-            `<span class="badge-chip">${badge.label}<small>${badge.target}${repIds.has(badge.id) ? " rep" : " XP"}</small></span>`
+          (turn) =>
+            `<li><div><strong>${turn.eventName}</strong> - ${turn.theatre} - ${turn.date}</div><div class="muted">${resolveRole(turn.roleId).name} | ${formatRewards(turn.rewards)}</div></li>`
         )
-        .join("")
-    : '<span class="badge-chip ghost">Ancora nessun badge: completa milestone XP/rep.</span>';
-}
-if (badgeNote) {
-  const nextTarget = xpProgress.remaining > 0 ? { progress: xpProgress, unit: "XP" } : { progress: repProgress, unit: "punti" };
-  const nextCopy =
-    xpProgress.remaining <= 0 && repProgress.remaining <= 0
-      ? "Tieni traccia dei nuovi turni per ampliare il medagliere."
-      : buildProgressCopy(nextTarget.progress, nextTarget.unit);
-  badgeNote.textContent = nextCopy;
-}
-
-if (turnLog) {
-  if (!state.turns.length) {
-    turnLog.innerHTML = `<li class="muted">Nessun turno registrato.</li>`;
-  } else {
-    turnLog.innerHTML = state.turns
-      .slice(0, 8)
-      .map(
-        (turn) =>
-          `<li><div><strong>${turn.eventName}</strong> - ${turn.theatre} - ${turn.date}</div><div class="muted">${resolveRole(turn.roleId).name} | ${formatRewards(turn.rewards)}</div></li>`
-      )
-      .join("");
+        .join("");
+    }
   }
 }
+
+renderProfile();
+
+function renderProgressAndBadges() {
+  const xpProgress = getProgressState(state.profile.xp, xpMilestones);
+  const repProgress = getProgressState(state.profile.repAtcl, repMilestones);
+
+  if (progressValueXp) progressValueXp.textContent = `${state.profile.xp} XP`;
+  if (progressValueRep) progressValueRep.textContent = `${state.profile.repAtcl} rep`;
+  if (progressCopyXp) progressCopyXp.textContent = buildProgressCopy(xpProgress, "XP");
+  if (progressCopyRep) progressCopyRep.textContent = buildProgressCopy(repProgress, "punti rep");
+
+  if (progressBarXp) {
+    progressBarXp.style.width = `${xpProgress.percent}%`;
+    progressBarXp.parentElement?.setAttribute("aria-valuenow", xpProgress.percent.toString());
+  }
+  if (progressBarRep) {
+    progressBarRep.style.width = `${repProgress.percent}%`;
+    progressBarRep.parentElement?.setAttribute("aria-valuenow", repProgress.percent.toString());
+  }
+
+  const earnedXp = getEarnedMilestones(state.profile.xp, xpMilestones);
+  const earnedRep = getEarnedMilestones(state.profile.repAtcl, repMilestones);
+  const seen = new Set<string>();
+  const repIds = new Set(repMilestones.map((item) => item.id));
+  const badges = [...earnedXp, ...earnedRep].filter((badge) => {
+    if (seen.has(badge.id)) return false;
+    seen.add(badge.id);
+    return true;
+  });
+
+  if (badgeList) {
+    badgeList.innerHTML = badges.length
+      ? badges
+          .map(
+            (badge) =>
+              `<span class="badge-chip">${badge.label}<small>${badge.target}${repIds.has(badge.id) ? " rep" : " XP"}</small></span>`
+          )
+          .join("")
+      : '<span class="badge-chip ghost">Ancora nessun badge: completa milestone XP/rep.</span>';
+  }
+
+  if (badgeNote) {
+    const nextTarget = xpProgress.remaining > 0 ? { progress: xpProgress, unit: "XP" } : { progress: repProgress, unit: "punti" };
+    const nextCopy =
+      xpProgress.remaining <= 0 && repProgress.remaining <= 0
+        ? "Tieni traccia dei nuovi turni per ampliare il medagliere."
+        : buildProgressCopy(nextTarget.progress, nextTarget.unit);
+    badgeNote.textContent = nextCopy;
+  }
+}
+
+renderProgressAndBadges();
+
+window.addEventListener("storage", (event) => {
+  if (event.key !== STORAGE_KEY) return;
+  state = loadState();
+  renderProfile();
+  renderProgressAndBadges();
+  showSyncBadge();
+});
