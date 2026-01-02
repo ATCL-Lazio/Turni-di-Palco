@@ -1,5 +1,6 @@
 import "../../../shared/styles/main.css";
 import { registerServiceWorker } from "./pwa/register-sw";
+import { promptServiceWorkerUpdate } from "./pwa/sw-update";
 import { formatRewards, getAvatarVisual, loadState, resolveRole } from "./state";
 
 const root = document.querySelector<HTMLDivElement>("#app");
@@ -78,6 +79,10 @@ if (turnLog) {
 
 registerServiceWorker({
   onReady: () => undefined,
-  onUpdate: () => undefined,
-  onError: () => undefined,
+  onUpdate: (registration) => {
+    promptServiceWorkerUpdate(registration);
+  },
+  onError: (error) => {
+    console.error("Service worker registration failed", error);
+  },
 });
