@@ -44,6 +44,100 @@ type Tab = 'home' | 'turni' | 'attivita' | 'profilo';
 
 type LegalReturnScreen = Exclude<Screen, 'terms' | 'privacy'>;
 
+const NAV_STATE_KEY = 'tdp-mobile-ui-nav';
+const NAV_STATE_VERSION = 1 as const;
+
+type PersistedNavState = {
+  version: typeof NAV_STATE_VERSION;
+  screen: Screen;
+  activeTab: Tab;
+  legalReturnScreen: LegalReturnScreen;
+  isPasswordRecovery: boolean;
+  scannedEventId: string;
+  selectedActivityId: string;
+};
+
+const VALID_SCREENS = new Set<Screen>([
+  'welcome',
+  'login',
+  'signup',
+  'role-selection',
+  'home',
+  'turni',
+  'qr-scanner',
+  'event-confirmation',
+  'attivita',
+  'activity-detail',
+  'profilo',
+  'account-settings',
+  'change-password',
+  'carriera',
+  'terms',
+  'privacy',
+  'titoli-ottenuti',
+]);
+
+const VALID_TABS = new Set<Tab>(['home', 'turni', 'attivita', 'profilo']);
+
+const VALID_LEGAL_RETURN_SCREENS = new Set<LegalReturnScreen>([
+  'welcome',
+  'login',
+  'signup',
+  'role-selection',
+  'home',
+  'turni',
+  'qr-scanner',
+  'event-confirmation',
+  'attivita',
+  'activity-detail',
+  'profilo',
+  'account-settings',
+  'change-password',
+  'carriera',
+  'titoli-ottenuti',
+]);
+
+function readNavState(): PersistedNavState | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(NAV_STATE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PersistedNavState>;
+    if (parsed.version !== NAV_STATE_VERSION) return null;
+    if (!parsed.screen || !VALID_SCREENS.has(parsed.screen)) return null;
+    if (!parsed.activeTab || !VALID_TABS.has(parsed.activeTab)) return null;
+    if (!parsed.legalReturnScreen || !VALID_LEGAL_RETURN_SCREENS.has(parsed.legalReturnScreen)) return null;
+
+    return {
+      version: NAV_STATE_VERSION,
+      screen: parsed.screen,
+      activeTab: parsed.activeTab,
+      legalReturnScreen: parsed.legalReturnScreen,
+      isPasswordRecovery: Boolean(parsed.isPasswordRecovery),
+      scannedEventId: typeof parsed.scannedEventId === 'string' ? parsed.scannedEventId : '',
+      selectedActivityId: typeof parsed.selectedActivityId === 'string' ? parsed.selectedActivityId : '',
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeNavState(state: PersistedNavState) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(NAV_STATE_KEY, JSON.stringify(state));
+  } catch {
+    // ignore quota/security errors
+  }
+}
+
+function getScreenToPersist(screen: Screen, activeTab: Tab): Screen {
+  if (screen === 'qr-scanner') {
+    return activeTab === 'home' ? 'home' : 'turni';
+  }
+  return screen;
+}
+
 function AppShell() {
   const {
     state,
@@ -63,12 +157,27 @@ function AppShell() {
     changePassword,
     sendPasswordResetEmail,
   } = useGameState();
-  const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');        
-  const [legalReturnScreen, setLegalReturnScreen] = useState<LegalReturnScreen>('welcome');
-  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('home');
-  const [scannedEventId, setScannedEventId] = useState<string>(events[0]?.id ?? '');
-  const [selectedActivityId, setSelectedActivityId] = useState<string>('');
+
+  const persistedNavState = useMemo(() => {
+    const persisted = readNavState();
+    if (!persisted) return null;
+    let nextScreen = persisted.screen;
+    if (nextScreen === 'activity-detail' && !persisted.selectedActivityId) {
+      nextScreen = 'attivita';
+    }
+    if (nextScreen === 'event-confirmation' && !persisted.scannedEventId) {
+      nextScreen = 'turni';
+    }
+    nextScreen = getScreenToPersist(nextScreen, persisted.activeTab);
+    return { ...persisted, screen: nextScreen };
+  }, []);
+
+  const [currentScreen, setCurrentScreen] = useState<Screen>(() => persistedNavState?.screen ?? 'welcome');
+  const [legalReturnScreen, setLegalReturnScreen] = useState<LegalReturnScreen>(() => persistedNavState?.legalReturnScreen ?? 'welcome');
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(() => persistedNavState?.isPasswordRecovery ?? false);
+  const [activeTab, setActiveTab] = useState<Tab>(() => persistedNavState?.activeTab ?? 'home');
+  const [scannedEventId, setScannedEventId] = useState<string>(() => persistedNavState?.scannedEventId ?? events[0]?.id ?? '');
+  const [selectedActivityId, setSelectedActivityId] = useState<string>(() => persistedNavState?.selectedActivityId ?? '');
   const [authError, setAuthError] = useState<string | null>(null);
   const currentScreenRef = useRef(currentScreen);
 
@@ -94,6 +203,18 @@ function AppShell() {
   useEffect(() => {
     currentScreenRef.current = currentScreen;
   }, [currentScreen]);
+
+  useEffect(() => {
+    writeNavState({
+      version: NAV_STATE_VERSION,
+      screen: getScreenToPersist(currentScreen, activeTab),
+      activeTab,
+      legalReturnScreen,
+      isPasswordRecovery,
+      scannedEventId,
+      selectedActivityId,
+    });
+  }, [activeTab, currentScreen, isPasswordRecovery, legalReturnScreen, scannedEventId, selectedActivityId]);
 
   const handleStart = () => setCurrentScreen('signup');
 
@@ -254,7 +375,11 @@ function AppShell() {
         const user = data.session.user;
         const displayName = user.user_metadata?.name ?? state.profile.name;
         updateProfile({ name: displayName, email: user.email ?? state.profile.email });
-        setCurrentScreen('home');
+        const shouldAutoHome =
+          currentScreenRef.current === 'welcome' || currentScreenRef.current === 'login';
+        if (shouldAutoHome) {
+          setCurrentScreen('home');
+        }
       }
     });
 
