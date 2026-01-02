@@ -1,5 +1,6 @@
 import "../../../shared/styles/main.css";
 import { registerServiceWorker } from "./pwa/register-sw";
+import { promptServiceWorkerUpdate } from "./pwa/sw-update";
 import { renderAppBar } from "./components/app-bar";
 import {
   AvatarIcon,
@@ -17,6 +18,7 @@ import {
   roles,
   saveState,
 } from "./state";
+import { buildProgressCopy, getEarnedMilestones, getProgressState, repMilestones, xpMilestones } from "./progression";
 
 type ActivityChoice = { id: string; label: string; summary: string; rewards: Rewards };
 type Activity = { id: string; title: string; description: string; choices: ActivityChoice[] };
@@ -58,6 +60,8 @@ const devNav = [
 
 const devAppBar = renderAppBar({ eyebrow: "Turni di Palco", subtitle: "Dev playground", actions: devNav });
 
+const ACTIVITY_COOLDOWN_MS = 20000;
+const MAX_ACTIVITY_RUNS = 3;
 const activities: Activity[] = [
   {
     id: "ritardo",
@@ -184,8 +188,37 @@ root.innerHTML = `
           <li><span>Cachet</span><strong data-stat="cachet">0</strong></li>
           <li><span>Reputazione ATCL</span><strong data-stat="rep">0</strong></li>
         </ul>
+        <div class="progress-grid">
+          <div class="progress-track" data-track="xp">
+            <div class="progress-head">
+              <div>
+                <p class="eyebrow">Crescita XP</p>
+                <p class="muted" data-progress-copy="xp">Registrando turni e attivita sblocchi milestone XP.</p>
+              </div>
+              <strong data-progress-value="xp">0 XP</strong>
+            </div>
+            <div class="progress-bar" role="progressbar" aria-label="Progresso XP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <span class="progress-fill" data-progress-bar="xp" style="width: 0%"></span>
+            </div>
+          </div>
+          <div class="progress-track" data-track="rep">
+            <div class="progress-head">
+              <div>
+                <p class="eyebrow">Reputazione</p>
+                <p class="muted" data-progress-copy="rep">Cura i turni per ottenere badge di reputazione.</p>
+              </div>
+              <strong data-progress-value="rep">0 rep</strong>
+            </div>
+            <div class="progress-bar" role="progressbar" aria-label="Progresso reputazione" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <span class="progress-fill accent" data-progress-bar="rep" style="width: 0%"></span>
+            </div>
+          </div>
+        </div>
         <div class="pill-row" data-role-stats></div>
-        <p class="muted" data-career-note>Seleziona un ruolo per vedere le competenze chiave.</p>
+        <div class="badge-panel">
+          <div class="badge-grid" data-badge-list></div>
+          <p class="muted" data-career-note>Seleziona un ruolo per vedere le competenze chiave.</p>
+        </div>
       </article>
 
       <article class="card">
@@ -196,6 +229,17 @@ root.innerHTML = `
             <select data-field="activity-select"></select>
           </label>
           <p class="muted" data-activity-description>Seleziona uno scenario per avviare una micro-attivita narrativa.</p>
+          <div class="inline-alert" data-activity-tutorial>
+            <div>
+              <p class="eyebrow">Tutorial</p>
+              <p class="muted">Scegli una opzione per sbloccare le attivita e registrare la prima scelta guidata.</p>
+            </div>
+            <button class="button ghost small" type="button" data-action="dismiss-tutorial">Segna come letto</button>
+          </div>
+          <div class="meta-row">
+            <span class="meta-chip" data-activity-guard>Cooldown attivita pronto.</span>
+            <span class="meta-chip ghost" data-activity-limit>Limite sessione: 0 / ${MAX_ACTIVITY_RUNS}</span>
+          </div>
           <div class="cta-row" data-activity-choices></div>
           <div class="result-box" data-activity-result>Ancora nessuna attivita eseguita.</div>
         </div>
@@ -235,12 +279,22 @@ const avatarIconSelect = root.querySelector<HTMLSelectElement>('[data-avatar-ico
 const statXp = root.querySelector<HTMLElement>('[data-stat="xp"]');
 const statCachet = root.querySelector<HTMLElement>('[data-stat="cachet"]');
 const statRep = root.querySelector<HTMLElement>('[data-stat="rep"]');
+const progressCopyXp = root.querySelector<HTMLElement>('[data-progress-copy="xp"]');
+const progressCopyRep = root.querySelector<HTMLElement>('[data-progress-copy="rep"]');
+const progressValueXp = root.querySelector<HTMLElement>('[data-progress-value="xp"]');
+const progressValueRep = root.querySelector<HTMLElement>('[data-progress-value="rep"]');
+const progressBarXp = root.querySelector<HTMLElement>('[data-progress-bar="xp"]');
+const progressBarRep = root.querySelector<HTMLElement>('[data-progress-bar="rep"]');
+const badgeList = root.querySelector<HTMLElement>('[data-badge-list]');
 const roleStatsContainer = root.querySelector<HTMLElement>('[data-role-stats]');
 const careerNote = root.querySelector<HTMLElement>('[data-career-note]');
 const activitySelect = root.querySelector<HTMLSelectElement>('[data-field="activity-select"]');
 const activityDescription = root.querySelector<HTMLElement>('[data-activity-description]');
 const activityChoices = root.querySelector<HTMLElement>('[data-activity-choices]');
 const activityResultBox = root.querySelector<HTMLElement>('[data-activity-result]');
+const activityGuardChip = root.querySelector<HTMLElement>('[data-activity-guard]');
+const activityLimitChip = root.querySelector<HTMLElement>('[data-activity-limit]');
+const tutorialBox = root.querySelector<HTMLElement>('[data-activity-tutorial]');
 const eventSelect = root.querySelector<HTMLSelectElement>('[data-field="event-select"]');
 const turnRoleSelect = root.querySelector<HTMLSelectElement>('[data-field="turn-role"]');
 const turnFeedbackBox = root.querySelector<HTMLElement>('[data-turn-feedback]');
@@ -300,6 +354,30 @@ function renderAvatarOptions() {
   avatarIconSelect.innerHTML = avatarIcons.map((item) => `<option value="${item.id}">${item.label}</option>`).join("");
 }
 
+function getActivityStats(activityId: string) {
+  return gameState.activityStats[activityId] ?? { runs: 0, lastPlayedAt: undefined };
+}
+
+function renderActivityGuard(activityId: string) {
+  if (!activityGuardChip || !activityLimitChip) return;
+  const stats = getActivityStats(activityId);
+  const now = Date.now();
+  const remainingSeconds = stats.lastPlayedAt ? Math.max(0, Math.ceil((ACTIVITY_COOLDOWN_MS - (now - stats.lastPlayedAt)) / 1000)) : 0;
+  if (remainingSeconds > 0) {
+    activityGuardChip.textContent = `Cooldown: attendi ${remainingSeconds}s prima di ripetere.`;
+    activityGuardChip.dataset.state = "warn";
+  } else {
+    activityGuardChip.textContent = "Cooldown attivita pronto.";
+    activityGuardChip.dataset.state = "ok";
+  }
+  activityLimitChip.textContent = `Limite sessione: ${Math.min(stats.runs, MAX_ACTIVITY_RUNS)} / ${MAX_ACTIVITY_RUNS}`;
+  activityLimitChip.dataset.state = stats.runs >= MAX_ACTIVITY_RUNS ? "warn" : "info";
+}
+
+function renderTutorialBox() {
+  if (!tutorialBox) return;
+  tutorialBox.style.display = gameState.tutorial.firstChoiceComplete ? "none" : "grid";
+}
 function renderEvents() {
   if (!eventSelect) return;
   if (!devEvents.length) {
@@ -318,6 +396,41 @@ function renderCareerCard() {
   if (statXp) statXp.textContent = gameState.profile.xp.toString();
   if (statCachet) statCachet.textContent = gameState.profile.cachet.toString();
   if (statRep) statRep.textContent = gameState.profile.repAtcl.toString();
+
+  const xpProgress = getProgressState(gameState.profile.xp, xpMilestones);
+  const repProgress = getProgressState(gameState.profile.repAtcl, repMilestones);
+  if (progressValueXp) progressValueXp.textContent = `${gameState.profile.xp} XP`;
+  if (progressValueRep) progressValueRep.textContent = `${gameState.profile.repAtcl} rep`;
+  if (progressCopyXp) progressCopyXp.textContent = buildProgressCopy(xpProgress, "XP");
+  if (progressCopyRep) progressCopyRep.textContent = buildProgressCopy(repProgress, "punti rep");
+  if (progressBarXp) {
+    progressBarXp.style.width = `${xpProgress.percent}%`;
+    progressBarXp.parentElement?.setAttribute("aria-valuenow", xpProgress.percent.toString());
+  }
+  if (progressBarRep) {
+    progressBarRep.style.width = `${repProgress.percent}%`;
+    progressBarRep.parentElement?.setAttribute("aria-valuenow", repProgress.percent.toString());
+  }
+
+  const earnedXp = getEarnedMilestones(gameState.profile.xp, xpMilestones);
+  const earnedRep = getEarnedMilestones(gameState.profile.repAtcl, repMilestones);
+  const seen = new Set<string>();
+  const repIds = new Set(repMilestones.map((item) => item.id));
+  const badges = [...earnedXp, ...earnedRep].filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+  if (badgeList) {
+    badgeList.innerHTML = badges.length
+      ? badges
+          .map(
+            (badge) =>
+              `<span class="badge-chip">${badge.label}<small>${badge.target}${repIds.has(badge.id) ? " rep" : " XP"}</small></span>`
+          )
+          .join("")
+      : '<span class="badge-chip ghost">Completa una milestone XP/rep per sbloccare un badge.</span>';
+  }
 
   if (roleStatsContainer) {
     const role = resolveRole(gameState.profile.roleId);
@@ -369,8 +482,12 @@ function handleResetState() {
   syncProfileForm();
   renderCareerCard();
   renderActivityUI();
+  if (activities.length) {
+    renderActivityGuard(activities[0].id);
+  }
   renderTurnHistory();
   renderAvatarPreview();
+  renderTutorialBox();
   if (turnFeedbackBox) {
     turnFeedbackBox.textContent = "Stato locale resettato.";
   }
@@ -394,6 +511,7 @@ function renderActivityUI(activityId?: string) {
     if (activityChoices) {
       activityChoices.innerHTML = "";
     }
+    renderTutorialBox();
     return;
   }
 
@@ -408,6 +526,8 @@ function renderActivityUI(activityId?: string) {
     activityResultBox.textContent = "Scegli una delle opzioni per applicare ricompense.";
   }
   renderActivityOptions(activity);
+  renderActivityGuard(activity.id);
+  renderTutorialBox();
 }
 
 function handleActivityChoice(choiceId: string) {
@@ -418,9 +538,36 @@ function handleActivityChoice(choiceId: string) {
   if (!activity) return;
   const choice = activity.choices.find((item) => item.id === choiceId);
   if (!choice) return;
+  const stats = getActivityStats(activity.id);
+  const now = Date.now();
+  const remainingMs = stats.lastPlayedAt ? ACTIVITY_COOLDOWN_MS - (now - stats.lastPlayedAt) : 0;
+  if (remainingMs > 0) {
+    const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+    if (activityResultBox) {
+      activityResultBox.dataset.state = "warn";
+      activityResultBox.textContent = `Attendi ${remainingSeconds}s prima di ripetere l'attivita.`;
+    }
+    renderActivityGuard(activity.id);
+    return;
+  }
+  if (stats.runs >= MAX_ACTIVITY_RUNS) {
+    if (activityResultBox) {
+      activityResultBox.dataset.state = "warn";
+      activityResultBox.textContent = "Limite sessione raggiunto per questo scenario demo.";
+    }
+    renderActivityGuard(activity.id);
+    return;
+  }
   applyRewards(choice.rewards);
+  gameState = {
+    ...gameState,
+    activityStats: { ...gameState.activityStats, [activity.id]: { runs: stats.runs + 1, lastPlayedAt: now } },
+    tutorial: { ...gameState.tutorial, firstChoiceComplete: true },
+  };
   saveState(gameState);
   renderCareerCard();
+  renderActivityGuard(activity.id);
+  renderTutorialBox();
   if (activityResultBox) {
     activityResultBox.dataset.state = "ok";
     activityResultBox.textContent = `${choice.summary} (${formatRewards(choice.rewards)})`;
@@ -495,6 +642,7 @@ syncProfileForm();
 renderCareerCard();
 renderTurnHistory();
 renderAvatarPreview();
+renderTutorialBox();
 
 root.querySelector<HTMLButtonElement>('[data-action="save-profile"]')?.addEventListener("click", handleSaveProfile);
 root.querySelector<HTMLButtonElement>('[data-action="reset-state"]')?.addEventListener("click", handleResetState);
@@ -523,9 +671,17 @@ avatarIconSelect?.addEventListener("change", () => {
   handleSaveProfile();
 });
 
+root.querySelector<HTMLButtonElement>('[data-action="dismiss-tutorial"]')?.addEventListener("click", () => {
+  gameState = { ...gameState, tutorial: { ...gameState.tutorial, firstChoiceComplete: true } };
+  saveState(gameState);
+  renderTutorialBox();
+});
+
 registerServiceWorker({
   onReady: () => undefined,
-  onUpdate: () => undefined,
+  onUpdate: (registration) => {
+    promptServiceWorkerUpdate(registration);
+  },
   onError: (error) => {
     console.error("Service worker registration failed", error);
   },

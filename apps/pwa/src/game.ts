@@ -1,6 +1,8 @@
 import "../../../shared/styles/main.css";
 import { registerServiceWorker } from "./pwa/register-sw";
 import { renderPageHero } from "./components/page-hero";
+import { buildProgressCopy, getProgressState, repMilestones, xpMilestones } from "./progression";
+import { promptServiceWorkerUpdate } from "./pwa/sw-update";
 import { formatRewards, getAvatarVisual, loadState, resolveRole } from "./state";
 
 const root = document.querySelector<HTMLDivElement>("#app");
@@ -52,6 +54,26 @@ root.innerHTML = `
           <li><span>Cachet</span><strong>${state.profile.cachet}</strong></li>
           <li><span>Reputazione ATCL</span><strong>${state.profile.repAtcl}</strong></li>
         </ul>
+        <div class="progress-grid compact">
+          <div class="progress-track slim" data-track="xp">
+            <div class="progress-head">
+              <p class="muted" data-progress-copy="xp">Traguardi XP</p>
+              <strong data-progress-value="xp">${state.profile.xp} XP</strong>
+            </div>
+            <div class="progress-bar" role="progressbar" aria-label="Progresso XP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <span class="progress-fill" data-progress-bar="xp" style="width: 0%"></span>
+            </div>
+          </div>
+          <div class="progress-track slim" data-track="rep">
+            <div class="progress-head">
+              <p class="muted" data-progress-copy="rep">Traguardi reputazione</p>
+              <strong data-progress-value="rep">${state.profile.repAtcl} rep</strong>
+            </div>
+            <div class="progress-bar" role="progressbar" aria-label="Progresso reputazione" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <span class="progress-fill accent" data-progress-bar="rep" style="width: 0%"></span>
+            </div>
+          </div>
+        </div>
       </article>
 
       <article class="card layout-span-2">
@@ -61,6 +83,28 @@ root.innerHTML = `
     </section>
   </main>
 `;
+
+const progressCopyXp = root.querySelector<HTMLElement>('[data-progress-copy="xp"]');
+const progressCopyRep = root.querySelector<HTMLElement>('[data-progress-copy="rep"]');
+const progressValueXp = root.querySelector<HTMLElement>('[data-progress-value="xp"]');
+const progressValueRep = root.querySelector<HTMLElement>('[data-progress-value="rep"]');
+const progressBarXp = root.querySelector<HTMLElement>('[data-progress-bar="xp"]');
+const progressBarRep = root.querySelector<HTMLElement>('[data-progress-bar="rep"]');
+
+const xpProgress = getProgressState(state.profile.xp, xpMilestones);
+const repProgress = getProgressState(state.profile.repAtcl, repMilestones);
+if (progressCopyXp) progressCopyXp.textContent = buildProgressCopy(xpProgress, "XP");
+if (progressCopyRep) progressCopyRep.textContent = buildProgressCopy(repProgress, "punti rep");
+if (progressValueXp) progressValueXp.textContent = `${state.profile.xp} XP`;
+if (progressValueRep) progressValueRep.textContent = `${state.profile.repAtcl} rep`;
+if (progressBarXp) {
+  progressBarXp.style.width = `${xpProgress.percent}%`;
+  progressBarXp.parentElement?.setAttribute("aria-valuenow", xpProgress.percent.toString());
+}
+if (progressBarRep) {
+  progressBarRep.style.width = `${repProgress.percent}%`;
+  progressBarRep.parentElement?.setAttribute("aria-valuenow", repProgress.percent.toString());
+}
 
 const turnLog = root.querySelector<HTMLElement>('[data-turn-log]');
 if (turnLog) {
@@ -79,6 +123,10 @@ if (turnLog) {
 
 registerServiceWorker({
   onReady: () => undefined,
-  onUpdate: () => undefined,
-  onError: () => undefined,
+  onUpdate: (registration) => {
+    promptServiceWorkerUpdate(registration);
+  },
+  onError: (error) => {
+    console.error("Service worker registration failed", error);
+  },
 });
