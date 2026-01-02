@@ -1,5 +1,6 @@
 import "../../../shared/styles/main.css";
 import { registerServiceWorker } from "./pwa/register-sw";
+import { promptServiceWorkerUpdate } from "./pwa/sw-update";
 import { deriveRpmThumbnail, getAvatarVisual, loadState, saveState } from "./state";
 
 const RPM_ORIGIN = "https://readyplayer.me";
@@ -171,6 +172,10 @@ renderPreview();
 
 registerServiceWorker({
   onReady: () => undefined,
-  onUpdate: () => undefined,
-  onError: () => undefined,
+  onUpdate: (registration) => {
+    promptServiceWorkerUpdate(registration);
+  },
+  onError: (error) => {
+    console.error("Service worker registration failed", error);
+  },
 });
