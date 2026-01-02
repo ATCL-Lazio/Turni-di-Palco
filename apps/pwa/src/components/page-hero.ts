@@ -139,6 +139,9 @@ export function renderPageHero({
         </div>
       </div>
       ${ctas}
+      <div class="badges">
+        <span class="badge" data-sync-badge style="display:none">Stato aggiornato</span>
+      </div>
       ${quickbar}
     </header>
   `;

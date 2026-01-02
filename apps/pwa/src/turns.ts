@@ -1,7 +1,6 @@
 import "../../../shared/styles/main.css";
 import { renderPageHero } from "./components/page-hero";
-import { formatRewards, loadState, resolveRole } from "./state";
-import { formatRewards, loadState, resolveRole, roles } from "./state";
+import { formatRewards, loadState, resolveRole, roles, STORAGE_KEY } from "./state";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
@@ -81,6 +80,7 @@ root.innerHTML = `
 `;
 
 const turnList = root.querySelector<HTMLElement>('[data-turn-list]');
+const syncBadge = root.querySelector<HTMLElement>('[data-sync-badge]');
 const roleFilter = root.querySelector<HTMLSelectElement>('[data-filter-role]');
 const venueFilter = root.querySelector<HTMLSelectElement>('[data-filter-venue]');
 const sortFilter = root.querySelector<HTMLSelectElement>('[data-filter-sort]');
@@ -91,7 +91,20 @@ const sparklineXp = root.querySelector<HTMLElement>('[data-sparkline="xp"]');
 const sparklineCachet = root.querySelector<HTMLElement>('[data-sparkline="cachet"]');
 const chartTotalXp = root.querySelector<HTMLElement>('[data-chart-total="xp"]');
 const chartTotalCachet = root.querySelector<HTMLElement>('[data-chart-total="cachet"]');
-const state = loadState();
+let state = loadState();
+let syncBadgeTimeout: number | undefined;
+
+function showSyncBadge(message = "Stato aggiornato") {
+  if (!syncBadge) return;
+  syncBadge.textContent = message;
+  syncBadge.style.display = "inline-flex";
+  if (syncBadgeTimeout) {
+    window.clearTimeout(syncBadgeTimeout);
+  }
+  syncBadgeTimeout = window.setTimeout(() => {
+    if (syncBadge) syncBadge.style.display = "none";
+  }, 2500);
+}
 
 function safeDateValue(dateStr: string) {
   const parsed = Date.parse(dateStr);
@@ -99,21 +112,23 @@ function safeDateValue(dateStr: string) {
 }
 
 function populateFilters() {
+  const previousRole = roleFilter?.value ?? "all";
+  const previousVenue = venueFilter?.value ?? "all";
+  const previousSort = sortFilter?.value ?? "desc";
+
   if (roleFilter) {
-    roleFilter.innerHTML = `<option value="all">Tutti i ruoli</option>${roles
-      .map((role) => `<option value="${role.id}">${role.name}</option>`)
-      .join("")}`;
-    roleFilter.value = "all";
+    roleFilter.innerHTML = `<option value="all">Tutti i ruoli</option>${roles.map((role) => `<option value="${role.id}">${role.name}</option>`).join("")}`;
+    roleFilter.value = Array.from(roleFilter.options).some((option) => option.value === previousRole) ? previousRole : "all";
   }
+
   if (venueFilter) {
     const venues = Array.from(new Set(state.turns.map((turn) => turn.theatre)));
-    venueFilter.innerHTML = `<option value="all">Tutti i teatri</option>${
-      venues.length ? venues.map((venue) => `<option value="${venue}">${venue}</option>`).join("") : ""
-    }`;
-    venueFilter.value = "all";
+    venueFilter.innerHTML = `<option value="all">Tutti i teatri</option>${venues.length ? venues.map((venue) => `<option value="${venue}">${venue}</option>`).join("") : ""}`;
+    venueFilter.value = Array.from(venueFilter.options).some((option) => option.value === previousVenue) ? previousVenue : "all";
   }
+
   if (sortFilter) {
-    sortFilter.value = "desc";
+    sortFilter.value = Array.from(sortFilter.options).some((option) => option.value === previousSort) ? previousSort : "desc";
   }
 }
 
@@ -212,3 +227,11 @@ renderView();
 roleFilter?.addEventListener("change", renderView);
 venueFilter?.addEventListener("change", renderView);
 sortFilter?.addEventListener("change", renderView);
+
+window.addEventListener("storage", (event) => {
+  if (event.key !== STORAGE_KEY) return;
+  state = loadState();
+  populateFilters();
+  renderView();
+  showSyncBadge();
+});
