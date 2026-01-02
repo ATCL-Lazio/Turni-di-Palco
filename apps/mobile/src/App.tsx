@@ -61,9 +61,11 @@ function AppShell() {
     completeActivity,
     resetProgress,
     changePassword,
+    sendPasswordResetEmail,
   } = useGameState();
-  const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');        
   const [legalReturnScreen, setLegalReturnScreen] = useState<LegalReturnScreen>('welcome');
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [scannedEventId, setScannedEventId] = useState<string>(events[0]?.id ?? '');
   const [selectedActivityId, setSelectedActivityId] = useState<string>('');
@@ -216,6 +218,7 @@ function AppShell() {
     if (supabase) {
       supabase.auth.signOut();
     }
+    setIsPasswordRecovery(false);
     setCurrentScreen('welcome');
     setActiveTab('home');
   };
@@ -230,6 +233,11 @@ function AppShell() {
       const message = error instanceof Error ? error.message : 'Errore sconosciuto';
       window.alert(`Impossibile resettare i progressi: ${message}`);
     }
+  };
+
+  const handleCloseChangePassword = () => {
+    setIsPasswordRecovery(false);
+    setCurrentScreen(isPasswordRecovery ? 'home' : 'account-settings');
   };
 
   useEffect(() => {
@@ -253,8 +261,18 @@ function AppShell() {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
       if (event === 'SIGNED_OUT') {
+        setIsPasswordRecovery(false);
         setCurrentScreen('welcome');
         setActiveTab('home');
+        return;
+      }
+      if (event === 'PASSWORD_RECOVERY') {
+        if (session?.user) {
+          const displayName = session.user.user_metadata?.name ?? state.profile.name;
+          updateProfile({ name: displayName, email: session.user.email ?? state.profile.email });
+        }
+        setIsPasswordRecovery(true);
+        setCurrentScreen('change-password');
         return;
       }
       if (session?.user) {
@@ -407,7 +425,10 @@ function AppShell() {
             onBack={() => setCurrentScreen('profilo')}
             onViewTerms={() => openTerms('account-settings')}
             onViewPrivacy={() => openPrivacy('account-settings')}
-            onChangePassword={() => setCurrentScreen('change-password')}
+            onChangePassword={() => {
+              setIsPasswordRecovery(false);
+              setCurrentScreen('change-password');
+            }}
             onResetProgress={handleResetProgress}
             onLogout={handleLogout}
           />
@@ -417,8 +438,10 @@ function AppShell() {
         return (
           <ChangePassword
             email={state.profile.email}
-            onBack={() => setCurrentScreen('account-settings')}
-            onChangePassword={changePassword}
+            mode={isPasswordRecovery ? 'recovery' : 'change'}
+            onBack={handleCloseChangePassword}
+            onChangePassword={(currentPassword, newPassword) => changePassword(newPassword, currentPassword)}
+            onSendResetEmail={() => sendPasswordResetEmail(state.profile.email)}
           />
         );
 
