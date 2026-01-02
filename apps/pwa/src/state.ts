@@ -17,6 +17,7 @@ export type GameEvent = {
   date: string;
   lat: number;
   lng: number;
+  baseRewards: Rewards;
   focusRole?: RoleId;
 };
 export type TurnRecord = {
@@ -54,6 +55,7 @@ export const mockEvents: GameEvent[] = [
     date: "2025-12-15",
     lat: 41.4676,
     lng: 12.9037,
+    baseRewards: { xp: 35, cachet: 25, reputation: 8 },
     focusRole: "attrezzista",
   },
   {
@@ -63,6 +65,7 @@ export const mockEvents: GameEvent[] = [
     date: "2026-01-10",
     lat: 42.419,
     lng: 12.1077,
+    baseRewards: { xp: 45, cachet: 35, reputation: 12 },
     focusRole: "fonico",
   },
   {
@@ -72,6 +75,7 @@ export const mockEvents: GameEvent[] = [
     date: "2026-02-02",
     lat: 41.8581,
     lng: 12.4816,
+    baseRewards: { xp: 60, cachet: 50, reputation: 18 },
     focusRole: "luci",
   },
 ];
