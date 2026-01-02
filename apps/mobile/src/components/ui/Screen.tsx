@@ -23,7 +23,7 @@ export function Screen({
 }: ScreenProps) {
   return (
     <div
-      className={cn('min-h-screen min-h-[100dvh] app-gradient flex flex-col items-center justify-center', className)}
+      className={cn('min-h-screen min-h-[100dvh] flex flex-col items-center justify-center', className)}
       style={style}
     >
       {header}
