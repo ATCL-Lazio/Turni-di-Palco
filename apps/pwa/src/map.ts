@@ -243,6 +243,8 @@ function persistState(nextState: typeof state, feedback?: HTMLElement | null): S
     feedback.textContent = "Salvataggio locale non riuscito, manteniamo una copia in memoria.";
   }
   return result;
+}
+
 function toRadians(value: number) {
   return (value * Math.PI) / 180;
 }
