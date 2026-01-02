@@ -29,7 +29,14 @@ export type TurnRecord = {
   rewards: Rewards;
 };
 export type PlayerProfile = { name: string; roleId: RoleId; xp: number; cachet: number; repAtcl: number; avatar: AvatarSettings };
-export type GameState = { profile: PlayerProfile; turns: TurnRecord[] };
+export type ActivityStats = { runs: number; lastPlayedAt?: number };
+export type TutorialState = { firstChoiceComplete: boolean };
+export type GameState = {
+  profile: PlayerProfile;
+  turns: TurnRecord[];
+  activityStats: Record<string, ActivityStats>;
+  tutorial: TutorialState;
+};
 
 export const roles: Role[] = [
   { id: "attore", name: "Attore / Attrice", focus: "Presenza scenica", stats: ["Presenza", "Memoria", "Versatilita"] },
@@ -89,6 +96,8 @@ export function createDefaultState(): GameState {
       avatar: { hue: 210, icon: "mask", rpmUrl: "", rpmThumbnail: "", rpmId: "", updatedAt: undefined },
     },
     turns: [],
+    activityStats: {},
+    tutorial: { firstChoiceComplete: false },
   };
 }
 
@@ -148,6 +157,10 @@ export function loadState(): GameState {
     return {
       profile: { ...base.profile, ...parsed.profile, roleId: safeRole, avatar: safeAvatar },
       turns: Array.isArray(parsed.turns) ? parsed.turns : [],
+      activityStats: typeof parsed.activityStats === "object" && parsed.activityStats ? parsed.activityStats : base.activityStats,
+      tutorial: {
+        firstChoiceComplete: !!parsed.tutorial?.firstChoiceComplete,
+      },
     };
   } catch {
     return createDefaultState();
