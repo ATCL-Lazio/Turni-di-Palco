@@ -9,14 +9,14 @@ describe('PermissionsService', () => {
     it('should report notifications supported if Notification exists', () => {
         // Mock window.Notification
         const original = window.Notification;
-        Object.defineProperty(window, 'Notification', { value: {} as any, writable: true });
+        Object.defineProperty(window, 'Notification', { value: {} as unknown as typeof Notification, writable: true });
         expect(PermissionsService.supportsNotifications()).toBe(true);
         Object.defineProperty(window, 'Notification', { value: original, writable: true });
     });
 
     it('should check notification permission properly', () => {
         const original = window.Notification;
-        Object.defineProperty(window, 'Notification', { value: { permission: 'granted' } as any, writable: true });
+        Object.defineProperty(window, 'Notification', { value: { permission: 'granted' } as unknown as typeof Notification, writable: true });
         expect(PermissionsService.getNotificationPermission()).toBe('granted');
         Object.defineProperty(window, 'Notification', { value: original, writable: true });
     });
