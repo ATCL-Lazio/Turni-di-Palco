@@ -54,9 +54,9 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-8 flex w-full max-w-[300px] flex-col gap-6 mx-auto">
+        <form onSubmit={handleSubmit} autoComplete="on" className="mt-8 flex w-full max-w-[300px] flex-col gap-6 mx-auto">
           <div className="flex flex-col gap-2 w-full">
-            <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
+            <label htmlFor="login-email" className="text-[16px] leading-[24px] text-[#b8b2b3]">
               Email
             </label>
             <div
@@ -65,10 +65,16 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
               } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
             >
               <input
+                id="login-email"
+                name="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
+                autoComplete="username"
+                inputMode="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 aria-invalid={Boolean(errors.email)}
                 placeholder="tuo@email.com"
                 className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
@@ -77,7 +83,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
           </div>
 
           <div className="flex flex-col gap-2 w-full">
-            <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
+            <label htmlFor="login-password" className="text-[16px] leading-[24px] text-[#b8b2b3]">
               Password
             </label>
             <div
@@ -86,6 +92,8 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
               } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
             >
               <input
+                id="login-password"
+                name="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
