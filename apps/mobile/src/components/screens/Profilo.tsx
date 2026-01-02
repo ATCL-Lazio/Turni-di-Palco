@@ -171,7 +171,7 @@ export function Profilo({
           >
             <div className="flex items-center gap-[12px]">
               <Settings className="text-[#f4bf4f]" size={24} />
-              <div>
+              <div className="flex flex-col items-start text-left">
                 <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                   Gestisci account
                 </p>
