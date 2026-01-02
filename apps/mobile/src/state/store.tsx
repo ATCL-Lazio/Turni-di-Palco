@@ -429,6 +429,9 @@ type GameContextValue = {
   updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId'>>) => void;
   registerTurn: (eventId: string, roleId: RoleId) => TurnRecord | null;
   completeActivity: (activityId: string) => { activity: Activity; rewards: Rewards } | null;
+  resetProgress: () => Promise<void>;
+  changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
   resetState: () => void;
 };
 
@@ -1007,6 +1010,82 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     [catalog.activities, authUserId, persistProfile]
   );
 
+  const resetProgress = useCallback(async () => {
+    if (isSupabaseConfigured && supabase && authUserId) {
+      const { error } = await supabase.rpc('reset_my_progress');
+      if (error) throw error;
+    }
+
+    setState((prev) => ({
+      ...prev,
+      profile: {
+        ...prev.profile,
+        roleId: 'attore',
+        level: 1,
+        xp: 0,
+        xpToNextLevel: 1000,
+        xpTotal: 0,
+        xpField: 0,
+        reputation: 0,
+        cachet: 0,
+      },
+      turns: [],
+    }));
+
+    if (isSupabaseConfigured && supabase && authUserId) {
+      await Promise.all([refreshTurnStats(), refreshTheatreReputation(), refreshBadges()]);
+    }
+  }, [authUserId, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
+
+  const changePassword = useCallback(
+    async (newPassword: string, currentPassword?: string) => {
+      if (!isSupabaseConfigured || !supabase) {
+        throw new Error('Supabase non configurato');
+      }
+      if (!authUserId) {
+        throw new Error('Devi essere autenticato per cambiare la password');
+      }
+
+      if (currentPassword) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        const email = sessionData.session?.user.email;
+        if (!email) {
+          throw new Error('Email mancante');
+        }
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password: currentPassword,
+        });
+        if (signInError) {
+          throw new Error('Password attuale non valida');
+        }
+      }
+
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+    },
+    [authUserId]
+  );
+
+  const sendPasswordResetEmail = useCallback(async (email: string) => {
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Supabase non configurato');
+    }
+    if (!email) {
+      throw new Error('Email mancante');
+    }
+
+    const redirectTo =
+      typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : undefined;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email,
+      redirectTo ? { redirectTo } : undefined
+    );
+    if (error) throw error;
+  }, []);
+
   const resetState = useCallback(() => {
     const next = createDefaultState();
     setState(next);
@@ -1028,6 +1107,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       updateProfile,
       registerTurn,
       completeActivity,
+      resetProgress,
+      changePassword,
+      sendPasswordResetEmail,
       resetState,
     }),
     [
@@ -1043,6 +1125,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       updateProfile,
       registerTurn,
       completeActivity,
+      resetProgress,
+      changePassword,
+      sendPasswordResetEmail,
       resetState,
     ]
   );
