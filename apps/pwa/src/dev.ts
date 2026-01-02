@@ -1,5 +1,6 @@
 import "../../../shared/styles/main.css";
 import { registerServiceWorker } from "./pwa/register-sw";
+import { promptServiceWorkerUpdate } from "./pwa/sw-update";
 import { renderAppBar } from "./components/app-bar";
 import {
   AvatarIcon,
@@ -525,7 +526,9 @@ avatarIconSelect?.addEventListener("change", () => {
 
 registerServiceWorker({
   onReady: () => undefined,
-  onUpdate: () => undefined,
+  onUpdate: (registration) => {
+    promptServiceWorkerUpdate(registration);
+  },
   onError: (error) => {
     console.error("Service worker registration failed", error);
   },
