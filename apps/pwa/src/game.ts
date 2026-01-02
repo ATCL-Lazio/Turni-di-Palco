@@ -1,5 +1,6 @@
 import "../../../shared/styles/main.css";
 import { registerServiceWorker } from "./pwa/register-sw";
+import { renderPageHero } from "./components/page-hero";
 import { buildProgressCopy, getProgressState, repMilestones, xpMilestones } from "./progression";
 import { promptServiceWorkerUpdate } from "./pwa/sw-update";
 import { formatRewards, getAvatarVisual, loadState, resolveRole } from "./state";
@@ -13,22 +14,22 @@ if (!root) {
 const state = loadState();
 const role = resolveRole(state.profile.roleId);
 const avatarVisual = getAvatarVisual(state.profile.avatar);
+const pageHero = renderPageHero({
+  title: "Hub di navigazione",
+  description: "Accedi a mappa, profilo, eventi e registro turni.",
+  currentPage: "game",
+  breadcrumbs: [
+    { label: "Home", href: "/" },
+    { label: "Hub" },
+  ],
+  backHref: "/",
+  backLabel: "Torna alla landing",
+  quickActions: [{ id: "dev", label: "Dev playground", href: "/dev.html", icon: "🛠️" }],
+});
 
 root.innerHTML = `
   <main class="page page-game layout-shell">
-    <header class="hero layout-stack">
-      <p class="eyebrow">Turni di Palco</p>
-      <h1>Hub di navigazione</h1>
-      <p class="lede">Accedi a mappa, profilo, eventi e registro turni.</p>
-      <div class="cta-row">
-        <a class="button primary" href="/map.html">Apri mappa</a>
-        <a class="button ghost" href="/avatar.html">Avatar</a>
-        <a class="button ghost" href="/profile.html">Profilo</a>
-        <a class="button ghost" href="/events.html">Eventi</a>
-        <a class="button ghost" href="/turns.html">Turni</a>
-        <a class="button ghost" href="/">Landing</a>
-      </div>
-    </header>
+    ${pageHero}
 
     <section class="grid layout-grid">
       <article class="card">
