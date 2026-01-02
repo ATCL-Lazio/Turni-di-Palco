@@ -430,6 +430,7 @@ type GameContextValue = {
   registerTurn: (eventId: string, roleId: RoleId) => TurnRecord | null;
   completeActivity: (activityId: string) => { activity: Activity; rewards: Rewards } | null;
   resetProgress: () => Promise<void>;
+  changePassword: (newPassword: string) => Promise<void>;
   resetState: () => void;
 };
 
@@ -1035,6 +1036,21 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     }
   }, [authUserId, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
 
+  const changePassword = useCallback(
+    async (newPassword: string) => {
+      if (!isSupabaseConfigured || !supabase) {
+        throw new Error('Supabase non configurato');
+      }
+      if (!authUserId) {
+        throw new Error('Devi essere autenticato per cambiare la password');
+      }
+
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+    },
+    [authUserId]
+  );
+
   const resetState = useCallback(() => {
     const next = createDefaultState();
     setState(next);
@@ -1057,6 +1073,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       registerTurn,
       completeActivity,
       resetProgress,
+      changePassword,
       resetState,
     }),
     [
@@ -1073,6 +1090,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       registerTurn,
       completeActivity,
       resetProgress,
+      changePassword,
       resetState,
     ]
   );
