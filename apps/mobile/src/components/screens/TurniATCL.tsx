@@ -26,21 +26,16 @@ export function TurniATCL({ turns, roles, onScanQR }: TurniATCLProps) {
 
   return (
     <div
-      className="min-h-screen app-gradient"
+      className="min-h-screen"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
     >
-      {/* Header */}
-      <div className="bg-gradient-to-b from-[#2d0a0f] to-[#0f0d0e] p-6 pb-8">
-        <div className="w-full max-w-md mx-auto">
-          <h2 className="text-white mb-2" style={{ margin: "auto 0 20px" }}>Turni ATCL</h2>
-          <p className="text-[#b8b2b3]">
-            I tuoi eventi teatrali registrati
-          </p>
-        </div>
-      </div>
-      
       {/* Main Content */}
       <div className="w-full max-w-md mx-auto px-6 space-y-6 pt-6 pb-8">
+        <div>
+          <h2 className="text-white mb-2">Turni ATCL</h2>
+          <p className="text-[#b8b2b3]">I tuoi eventi teatrali registrati</p>
+        </div>
+
         {/* Scan Button */}
         <ScanQRCard onScanQR={onScanQR} />
         
