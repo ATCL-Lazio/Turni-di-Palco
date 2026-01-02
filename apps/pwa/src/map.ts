@@ -6,7 +6,7 @@ import markerIconPng from "leaflet/dist/images/marker-icon.png";
 import markerShadowPng from "leaflet/dist/images/marker-shadow.png";
 import { renderChip } from "./components/chip";
 import { renderStatPill } from "./components/stat-pill";
-import { formatRewards, getAvatarVisual, loadState, mockEvents, resolveRole, Rewards, saveState } from "./state";
+import { formatRewards, GameState, getAvatarVisual, loadState, mockEvents, resolveRole, Rewards, saveState, SaveStateResult, STORAGE_KEY } from "./state";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
@@ -50,6 +50,7 @@ root.innerHTML = `
           </div>
         </div>
         <div class="top-stats">${topStatsMarkup}</div>
+        <span class="badge" data-sync-badge style="display:none">Stato aggiornato</span>
         <a class="button ghost" href="/avatar.html">Avatar</a>
         <a class="button ghost" href="/">Landing</a>
         <a class="button ghost" href="/profile.html">Profilo</a>
@@ -125,10 +126,12 @@ const topStatCachet = root.querySelector<HTMLElement>('[data-top-stat="cachet"]'
 const topStatRep = root.querySelector<HTMLElement>('[data-top-stat="rep"]');
 const drawerTabs = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-drawer-tab]"));
 const drawerSections = Array.from(root.querySelectorAll<HTMLElement>("[data-section]"));
+const syncBadge = root.querySelector<HTMLElement>('[data-sync-badge]');
 
-let state = loadState();
+let state: GameState = loadState();
 let map: LeafletMap | null = null;
 let markerLayer: LayerGroup | null = null;
+let syncBadgeTimeout: number | undefined;
 const markerIcon = L.icon({
   iconUrl: markerIconPng,
   shadowUrl: markerShadowPng,
@@ -136,6 +139,30 @@ const markerIcon = L.icon({
   popupAnchor: [1, -28],
   tooltipAnchor: [12, -16],
 });
+
+function showSyncBadge(message = "Stato aggiornato") {
+  if (!syncBadge) return;
+  syncBadge.textContent = message;
+  syncBadge.style.display = "inline-flex";
+  if (syncBadgeTimeout) {
+    window.clearTimeout(syncBadgeTimeout);
+  }
+  syncBadgeTimeout = window.setTimeout(() => {
+    if (syncBadge) {
+      syncBadge.style.display = "none";
+    }
+  }, 2500);
+}
+
+function persistState(nextState: GameState, feedback?: HTMLElement): SaveStateResult {
+  const result = saveState(nextState);
+  state = result.state;
+  if (!result.ok && feedback) {
+    feedback.dataset.state = "warn";
+    feedback.textContent = "Salvataggio locale non riuscito, manteniamo una copia in memoria.";
+  }
+  return result;
+}
 
 function renderProfile() {
   const profile = state.profile;
@@ -265,11 +292,11 @@ function applyQuick(rewards: Rewards, label: string) {
       repAtcl: state.profile.repAtcl + rewards.reputation,
     },
   };
-  saveState(state);
+  const result = persistState(state, quickResult || profileState);
   renderProfile();
   if (quickResult) {
-    quickResult.dataset.state = "ok";
-    quickResult.textContent = `${label}: ${formatRewards(rewards)}`;
+    quickResult.dataset.state = result.ok ? "ok" : "warn";
+    quickResult.textContent = result.ok ? `${label}: ${formatRewards(rewards)}` : `${label}: salvato solo in memoria.`;
   }
 }
 
@@ -301,6 +328,7 @@ root.querySelector<HTMLButtonElement>('[data-action="sync-state"]')?.addEventLis
     quickResult.dataset.state = "info";
     quickResult.textContent = "Stato ricaricato dal profilo principale.";
   }
+  showSyncBadge("Stato aggiornato");
 });
 
 root.querySelector<HTMLButtonElement>('[data-action="quick-train"]')?.addEventListener("click", () => {
@@ -332,6 +360,19 @@ window.setTimeout(() => {
 }, 200);
 window.addEventListener("resize", () => {
   map?.invalidateSize();
+});
+
+window.addEventListener("storage", (event) => {
+  if (event.key !== STORAGE_KEY) return;
+  state = loadState();
+  renderProfile();
+  renderTurns();
+  renderMapMarkers();
+  showSyncBadge();
+  if (quickResult) {
+    quickResult.dataset.state = "info";
+    quickResult.textContent = "Sincronizzato da un'altra scheda.";
+  }
 });
 
 registerServiceWorker({
