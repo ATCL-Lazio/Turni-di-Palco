@@ -38,7 +38,7 @@ export function EventConfirmation({ event, role, onConfirm, onCancel }: EventCon
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen app-gradient flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-md w-full text-center animate-fade-in">
           <div className="w-24 h-24 bg-gradient-to-br from-[#52c41a] to-[#389e0d] rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
             <CheckCircle2 className="text-white" size={48} />
@@ -84,18 +84,16 @@ export function EventConfirmation({ event, role, onConfirm, onCancel }: EventCon
   }
 
   return (
-    <div className="min-h-screen app-gradient pb-24">
-      <div className="bg-gradient-to-b from-[#2d0a0f] to-[#0f0d0e] p-6 pb-8">
-        <div className="max-w-md mx-auto">
+    <div className="min-h-screen pb-24">
+      <div className="max-w-md mx-auto px-6 space-y-6 pt-6">
+        <div>
           <h2 className="text-white mb-2">Conferma turno</h2>
           <p className="text-[#b8b2b3]">Verifica i dettagli dell'evento</p>
         </div>
-      </div>
 
-      <div className="max-w-md mx-auto px-6 space-y-6">
         <Card>
           <div className="mb-4">
-            <h3 className="text-white mb-1">{resolvedEvent.name}</h3>
+            <h3 className="text-white mb-1">{resolvedEvent.name}</h3>        
             {resolvedEvent.genre ? <Badge variant="default" size="sm">{resolvedEvent.genre}</Badge> : null}
           </div>
 
