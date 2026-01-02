@@ -42,7 +42,7 @@ export function QRScanner({ onClose, onScanSuccess }: QRScannerProps) {
       case 'NotFoundError':
         return 'Nessuna fotocamera trovata su questo dispositivo.';
       case 'NotReadableError':
-        return 'Impossibile leggere dalla fotocamera (potrebbe essere già in uso).';
+        return "Impossibile leggere dalla fotocamera (potrebbe essere gia' in uso).";
       default:
         return error.message || "Errore durante l'accesso alla fotocamera.";
     }
@@ -77,6 +77,14 @@ export function QRScanner({ onClose, onScanSuccess }: QRScannerProps) {
     let cancelled = false;
 
     const startCameraAndScan = async () => {
+      if (!window.isSecureContext) {
+        setCameraError(
+          "La fotocamera richiede una connessione sicura (HTTPS). Apri questa pagina in https:// oppure usa localhost."
+        );
+        setIsStartingCamera(false);
+        return;
+      }
+
       if (!navigator.mediaDevices?.getUserMedia) {
         setCameraError('Fotocamera non supportata in questo browser/dispositivo.');
         setIsStartingCamera(false);
