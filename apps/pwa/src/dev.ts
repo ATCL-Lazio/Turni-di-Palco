@@ -7,6 +7,8 @@ import {
   GameState,
   Rewards,
   RoleId,
+  SaveStateResult,
+  STORAGE_KEY,
   TurnRecord,
   avatarIcons,
   createDefaultState,
@@ -141,6 +143,9 @@ root.innerHTML = `
       <div class="cta-row">
         <a class="button primary" href="/game.html">Vai all'hub</a>
         <a class="button ghost" href="/">Torna alla landing</a>
+      </div>
+      <div class="badges">
+        <span class="badge" data-sync-badge style="display:none">Stato aggiornato</span>
       </div>
     </section>
 
@@ -299,8 +304,34 @@ const eventSelect = root.querySelector<HTMLSelectElement>('[data-field="event-se
 const turnRoleSelect = root.querySelector<HTMLSelectElement>('[data-field="turn-role"]');
 const turnFeedbackBox = root.querySelector<HTMLElement>('[data-turn-feedback]');
 const turnLog = root.querySelector<HTMLElement>('[data-turn-log]');
+const syncBadge = root.querySelector<HTMLElement>('[data-sync-badge]');
 
 let gameState: GameState = loadState();
+let syncBadgeTimeout: number | undefined;
+
+function showSyncBadge(message = "Stato aggiornato") {
+  if (!syncBadge) return;
+  syncBadge.textContent = message;
+  syncBadge.style.display = "inline-flex";
+  if (syncBadgeTimeout) {
+    window.clearTimeout(syncBadgeTimeout);
+  }
+  syncBadgeTimeout = window.setTimeout(() => {
+    if (syncBadge) {
+      syncBadge.style.display = "none";
+    }
+  }, 2500);
+}
+
+function persistState(nextState: GameState, feedback?: HTMLElement): SaveStateResult {
+  const result = saveState(nextState);
+  gameState = result.state;
+  if (!result.ok && feedback) {
+    feedback.dataset.state = "warn";
+    feedback.textContent = "Salvataggio locale non riuscito: verrà usato un backup in memoria.";
+  }
+  return result;
+}
 
 function renderAvatarPreview() {
   if (!avatarPreview) return;
@@ -464,7 +495,7 @@ function handleSaveProfile() {
       avatar: { ...gameState.profile.avatar, hue: nextHue, icon: safeIcon },
     },
   };
-  saveState(gameState);
+  persistState(gameState, turnFeedbackBox);
   syncProfileForm();
   renderCareerCard();
   renderTurnHistory();
@@ -478,7 +509,7 @@ function handleResetState() {
   const confirmReset = window.confirm("Reset dello stato locale? Tutti i progressi mock verranno azzerati.");
   if (!confirmReset) return;
   gameState = createDefaultState();
-  saveState(gameState);
+  persistState(gameState, turnFeedbackBox);
   syncProfileForm();
   renderCareerCard();
   renderActivityUI();
@@ -564,7 +595,7 @@ function handleActivityChoice(choiceId: string) {
     activityStats: { ...gameState.activityStats, [activity.id]: { runs: stats.runs + 1, lastPlayedAt: now } },
     tutorial: { ...gameState.tutorial, firstChoiceComplete: true },
   };
-  saveState(gameState);
+  persistState(gameState, activityResultBox);
   renderCareerCard();
   renderActivityGuard(activity.id);
   renderTutorialBox();
@@ -623,13 +654,15 @@ function handleRegisterTurn() {
 
   applyRewards(rewards);
   gameState = { ...gameState, turns: [record, ...gameState.turns].slice(0, MAX_TURNS_STORED) };
-  saveState(gameState);
+  const result = persistState(gameState, turnFeedbackBox);
   renderCareerCard();
   renderTurnHistory();
   renderAvatarPreview();
   if (turnFeedbackBox) {
-    turnFeedbackBox.dataset.state = "ok";
-    turnFeedbackBox.textContent = `Turno registrato: ${selectedEvent.name} (${formatRewards(rewards)})`;
+    turnFeedbackBox.dataset.state = result.ok ? "ok" : "warn";
+    turnFeedbackBox.textContent = result.ok
+      ? `Turno registrato: ${selectedEvent.name} (${formatRewards(rewards)})`
+      : "Turno registrato ma salvataggio locale non riuscito: usa la stessa scheda.";
   }
 }
 
@@ -665,6 +698,17 @@ activityChoices?.addEventListener("click", (event) => {
 
 avatarHueInput?.addEventListener("input", () => {
   handleSaveProfile();
+});
+
+window.addEventListener("storage", (event) => {
+  if (event.key !== STORAGE_KEY) return;
+  gameState = loadState();
+  syncProfileForm();
+  renderCareerCard();
+  renderActivityUI();
+  renderTurnHistory();
+  renderAvatarPreview();
+  showSyncBadge();
 });
 
 avatarIconSelect?.addEventListener("change", () => {

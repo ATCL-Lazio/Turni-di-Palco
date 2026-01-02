@@ -18,6 +18,8 @@ import {
   roles,
   TurnRecord,
   saveState,
+  SaveStateResult,
+  STORAGE_KEY,
 } from "./state";
 
 type DecoratedEvent = (typeof mockEvents)[number] & { distanceKm: number };
@@ -80,6 +82,7 @@ root.innerHTML = `
           </div>
         </div>
         <div class="top-stats">${topStatsMarkup}</div>
+        <span class="badge" data-sync-badge style="display:none">Stato aggiornato</span>
         <a class="button ghost" href="/avatar.html">Avatar</a>
         <a class="button ghost" href="/">Landing</a>
         <a class="button ghost" href="/profile.html">Profilo</a>
@@ -184,6 +187,7 @@ const topStatCachet = root.querySelector<HTMLElement>('[data-top-stat="cachet"]'
 const topStatRep = root.querySelector<HTMLElement>('[data-top-stat="rep"]');
 const drawerTabs = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-drawer-tab]"));
 const drawerSections = Array.from(root.querySelectorAll<HTMLElement>("[data-section]"));
+const syncBadge = root.querySelector<HTMLElement>('[data-sync-badge]');
 const drawerTablist = root.querySelector<HTMLElement>('[data-tablist="drawer"]');
 const filterRoleSelect = root.querySelector<HTMLSelectElement>('[data-filter-role]');
 const filterDateInput = root.querySelector<HTMLInputElement>('[data-filter-date]');
@@ -200,6 +204,7 @@ const registerTurnButton = root.querySelector<HTMLButtonElement>('[data-action="
 let state = loadState();
 let map: LeafletMap | null = null;
 let markerLayer: LayerGroup | null = null;
+let syncBadgeTimeout: number | undefined;
 const markerMap = new Map<string, L.Marker>();
 let filteredEvents: DecoratedEvent[] = [];
 let selectedEventId: string | null = null;
@@ -215,6 +220,30 @@ const markerIcon = L.icon({
   popupAnchor: [1, -28],
   tooltipAnchor: [12, -16],
 });
+
+function showSyncBadge(message = "Stato aggiornato") {
+  if (!syncBadge) return;
+  syncBadge.textContent = message;
+  syncBadge.style.display = "inline-flex";
+  if (syncBadgeTimeout) {
+    window.clearTimeout(syncBadgeTimeout);
+  }
+  syncBadgeTimeout = window.setTimeout(() => {
+    if (syncBadge) {
+      syncBadge.style.display = "none";
+    }
+  }, 2500);
+}
+
+function persistState(nextState: typeof state, feedback?: HTMLElement | null): SaveStateResult {
+  const result = saveState(nextState);
+  state = result.state;
+  if (!result.ok && feedback) {
+    feedback.dataset.state = "warn";
+    feedback.textContent = "Salvataggio locale non riuscito, manteniamo una copia in memoria.";
+  }
+  return result;
+}
 
 function toRadians(value: number) {
   return (value * Math.PI) / 180;
@@ -537,11 +566,14 @@ function handleRegisterTurn() {
     },
     turns: [record, ...state.turns].slice(0, MAX_STORED_TURNS),
   };
-  saveState(state);
+  const saveResult = persistState(state, eventFeedback);
   renderProfile();
   renderTurns();
   renderEventDetail(target);
-  setEventFeedback("ok", `Turno registrato: ${target.name} (${formatRewards(rewards)})`);
+  setEventFeedback(
+    saveResult.ok ? "ok" : "warn",
+    `${saveResult.ok ? "Turno registrato" : "Turno registrato (solo memoria)"}: ${target.name} (${formatRewards(rewards)})`
+  );
 }
 
 function initMap() {
@@ -650,11 +682,11 @@ function applyQuick(rewards: Rewards, label: string) {
       repAtcl: state.profile.repAtcl + rewards.reputation,
     },
   };
-  saveState(state);
+  const result = persistState(state, quickResult || profileState);
   renderProfile();
   if (quickResult) {
-    quickResult.dataset.state = "ok";
-    quickResult.textContent = `${label}: ${formatRewards(rewards)}`;
+    quickResult.dataset.state = result.ok ? "ok" : "warn";
+    quickResult.textContent = result.ok ? `${label}: ${formatRewards(rewards)}` : `${label}: salvato solo in memoria.`;
   }
 }
 
@@ -690,6 +722,7 @@ root.querySelector<HTMLButtonElement>('[data-action="sync-state"]')?.addEventLis
     quickResult.dataset.state = "info";
     quickResult.textContent = "Stato ricaricato dal profilo principale.";
   }
+  showSyncBadge("Stato aggiornato");
 });
 
 root.querySelector<HTMLButtonElement>('[data-action="quick-train"]')?.addEventListener("click", () => {
@@ -770,6 +803,20 @@ window.setTimeout(() => {
 window.addEventListener("resize", () => {
   map?.invalidateSize();
   updateViewportNote();
+});
+
+window.addEventListener("storage", (event) => {
+  if (event.key !== STORAGE_KEY) return;
+  state = loadState();
+  renderProfile();
+  renderTurns();
+  applyFilters({ forceSelection: true });
+  showSyncBadge();
+  setEventFeedback("info", "Sincronizzato da un'altra scheda.");
+  if (quickResult) {
+    quickResult.dataset.state = "info";
+    quickResult.textContent = "Sincronizzato da un'altra scheda.";
+  }
 });
 
 registerServiceWorker({
