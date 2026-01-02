@@ -57,6 +57,7 @@ function AppShell() {
     updateProfile,
     registerTurn,
     completeActivity,
+    resetProgress,
   } = useGameState();
   const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');
   const [legalReturnScreen, setLegalReturnScreen] = useState<LegalReturnScreen>('welcome');
@@ -214,6 +215,18 @@ function AppShell() {
     }
     setCurrentScreen('welcome');
     setActiveTab('home');
+  };
+
+  const handleResetProgress = async () => {
+    if (typeof window === 'undefined') return;
+    try {
+      await resetProgress();
+      setActiveTab('home');
+      setCurrentScreen('role-selection');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Errore sconosciuto';
+      window.alert(`Impossibile resettare i progressi: ${message}`);
+    }
   };
 
   useEffect(() => {
@@ -391,6 +404,7 @@ function AppShell() {
             onBack={() => setCurrentScreen('profilo')}
             onViewTerms={() => openTerms('account-settings')}
             onViewPrivacy={() => openPrivacy('account-settings')}
+            onResetProgress={handleResetProgress}
             onLogout={handleLogout}
           />
         );
