@@ -46,7 +46,7 @@ interface ScreenHeaderProps {
   className?: string;
 }
 
-export function ScreenHeader({ children, gradient = true, className }: ScreenHeaderProps) {
+export function ScreenHeader({ children, gradient = false, className }: ScreenHeaderProps) {
   return (
     <div className={cn(gradient && 'bg-gradient-to-b from-[#2d0a0f] to-[#0f0d0e]', className)}>
       <div className="w-full max-w-md mx-auto px-5 pt-5 pb-6 space-y-5">{children}</div>
