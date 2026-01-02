@@ -12,6 +12,7 @@ import { Attivita } from './components/screens/Attivita';
 import { ActivityDetail } from './components/screens/ActivityDetail';
 import { Profilo } from './components/screens/Profilo';
 import { AccountSettings } from './components/screens/AccountSettings';
+import { ChangePassword } from './components/screens/ChangePassword';
 import { Carriera } from './components/screens/Carriera';
 import { TermsAndConditions } from './components/screens/TermsAndConditions';
 import { PrivacyPolicy } from './components/screens/PrivacyPolicy';
@@ -33,6 +34,7 @@ type Screen =
   | 'activity-detail'
   | 'profilo'
   | 'account-settings'
+  | 'change-password'
   | 'carriera'
   | 'terms'
   | 'privacy'
@@ -58,6 +60,7 @@ function AppShell() {
     registerTurn,
     completeActivity,
     resetProgress,
+    changePassword,
   } = useGameState();
   const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');
   const [legalReturnScreen, setLegalReturnScreen] = useState<LegalReturnScreen>('welcome');
@@ -404,8 +407,18 @@ function AppShell() {
             onBack={() => setCurrentScreen('profilo')}
             onViewTerms={() => openTerms('account-settings')}
             onViewPrivacy={() => openPrivacy('account-settings')}
+            onChangePassword={() => setCurrentScreen('change-password')}
             onResetProgress={handleResetProgress}
             onLogout={handleLogout}
+          />
+        );
+
+      case 'change-password':
+        return (
+          <ChangePassword
+            email={state.profile.email}
+            onBack={() => setCurrentScreen('account-settings')}
+            onChangePassword={changePassword}
           />
         );
 
