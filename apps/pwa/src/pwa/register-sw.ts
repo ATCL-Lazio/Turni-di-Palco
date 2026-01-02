@@ -1,21 +1,35 @@
 type ServiceWorkerCallbacks = {
   onReady?: () => void;
   onRegistered?: (registration: ServiceWorkerRegistration) => void;
-  onUpdate?: () => void;
+  onUpdate?: (registration: ServiceWorkerRegistration, worker?: ServiceWorker | null) => void;
   onError?: (error: unknown) => void;
 };
 
-export function registerServiceWorker(callbacks: ServiceWorkerCallbacks = {}) {
+type ServiceWorkerOptions = {
+  devMode?: "cleanup" | "register";
+  devCleanupRegistrations?: boolean;
+};
+
+export function registerServiceWorker(callbacks: ServiceWorkerCallbacks = {}, options: ServiceWorkerOptions = {}) {
   if (!("serviceWorker" in navigator)) {
     return;
   }
 
-  // In sviluppo: assicurati che eventuali SW vecchi vengano rimossi per evitare cache errate.
+  const devMode: ServiceWorkerOptions["devMode"] =
+    options.devMode ?? (import.meta.env.VITE_SW_DEV === "true" ? "register" : "cleanup");
+  const devCleanupRegistrations = options.devCleanupRegistrations ?? true;
+
+  // In sviluppo: consenti SW controllati solo quando esplicitamente richiesto.
   if (!import.meta.env.PROD) {
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach((registration) => registration.unregister().catch(() => undefined));
-    });
-    return;
+    if (devCleanupRegistrations) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => registration.unregister().catch(() => undefined));
+      });
+    }
+
+    if (devMode === "cleanup") {
+      return;
+    }
   }
 
   navigator.serviceWorker
@@ -23,7 +37,9 @@ export function registerServiceWorker(callbacks: ServiceWorkerCallbacks = {}) {
     .then((registration) => {
       callbacks.onRegistered?.(registration);
 
-      if (registration.active) {
+      if (registration.waiting && navigator.serviceWorker.controller) {
+        callbacks.onUpdate?.(registration, registration.waiting);
+      } else if (registration.active) {
         callbacks.onReady?.();
       }
 
@@ -36,7 +52,7 @@ export function registerServiceWorker(callbacks: ServiceWorkerCallbacks = {}) {
           const hasController = Boolean(navigator.serviceWorker.controller);
 
           if (isInstalled && hasController) {
-            callbacks.onUpdate?.();
+            callbacks.onUpdate?.(registration, registration.waiting ?? newWorker);
           } else if (isInstalled) {
             callbacks.onReady?.();
           }
