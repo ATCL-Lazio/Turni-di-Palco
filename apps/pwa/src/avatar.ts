@@ -1,6 +1,6 @@
 import "../../../shared/styles/main.css";
 import { registerServiceWorker } from "./pwa/register-sw";
-import { deriveRpmThumbnail, getAvatarVisual, loadState, saveState } from "./state";
+import { deriveRpmThumbnail, getAvatarVisual, loadState, saveState, SaveStateResult, STORAGE_KEY } from "./state";
 
 const RPM_ORIGIN = "https://readyplayer.me";
 const RPM_SRC = "https://readyplayer.me/avatar?frameApi";
@@ -22,6 +22,9 @@ root.innerHTML = `
         <a class="button ghost" href="/map.html">Mappa</a>
         <a class="button ghost" href="/profile.html">Profilo</a>
         <a class="button ghost" href="/game.html">Hub</a>
+      </div>
+      <div class="badges">
+        <span class="badge" data-sync-badge style="display:none">Stato aggiornato</span>
       </div>
     </header>
 
@@ -64,8 +67,32 @@ const avatarImg = root.querySelector<HTMLImageElement>('[data-avatar-img]');
 const avatarLabel = root.querySelector<HTMLElement>('[data-avatar-label]');
 const avatarMeta = root.querySelector<HTMLElement>('[data-avatar-meta]');
 const avatarUpdated = root.querySelector<HTMLElement>('[data-avatar-updated]');
+const syncBadge = root.querySelector<HTMLElement>('[data-sync-badge]');
 
 let state = loadState();
+let syncBadgeTimeout: number | undefined;
+
+function showSyncBadge(message = "Stato aggiornato") {
+  if (!syncBadge) return;
+  syncBadge.textContent = message;
+  syncBadge.style.display = "inline-flex";
+  if (syncBadgeTimeout) {
+    window.clearTimeout(syncBadgeTimeout);
+  }
+  syncBadgeTimeout = window.setTimeout(() => {
+    if (syncBadge) syncBadge.style.display = "none";
+  }, 2500);
+}
+
+function persistState(nextState: typeof state, feedback?: HTMLElement): SaveStateResult {
+  const result = saveState(nextState);
+  state = result.state;
+  if (!result.ok && feedback) {
+    feedback.dataset.state = "warn";
+    feedback.textContent = "Salvataggio locale non riuscito: manteniamo una copia in memoria.";
+  }
+  return result;
+}
 
 function renderPreview() {
   const avatarVisual = getAvatarVisual(state.profile.avatar);
@@ -130,11 +157,11 @@ function handleExported(url?: string, id?: string, thumb?: string) {
       avatar: { ...state.profile.avatar, rpmUrl: url, rpmThumbnail: derivedThumb, rpmId: id || "", updatedAt: Date.now() },
     },
   };
-  saveState(state);
+  const result = persistState(state, statusBox);
   renderPreview();
   if (statusBox) {
-    statusBox.dataset.state = "ok";
-    statusBox.textContent = "Avatar salvato nel profilo.";
+    statusBox.dataset.state = result.ok ? "ok" : "warn";
+    statusBox.textContent = result.ok ? "Avatar salvato nel profilo." : "Avatar salvato solo in memoria: riprova il salvataggio.";
   }
 }
 
@@ -159,15 +186,28 @@ root.querySelector<HTMLButtonElement>('[data-action="clear-avatar"]')?.addEventL
     ...state,
     profile: { ...state.profile, avatar: { ...state.profile.avatar, rpmUrl: "", rpmThumbnail: "", rpmId: "", updatedAt: undefined } },
   };
-  saveState(state);
+  const result = persistState(state, statusBox);
   renderPreview();
   if (statusBox) {
-    statusBox.dataset.state = "info";
-    statusBox.textContent = "Avatar RPM rimosso. Verrà usato il fallback locale.";
+    statusBox.dataset.state = result.ok ? "info" : "warn";
+    statusBox.textContent = result.ok
+      ? "Avatar RPM rimosso. Verrà usato il fallback locale."
+      : "Avatar rimosso solo in memoria: controlla i permessi di storage.";
   }
 });
 
 renderPreview();
+
+window.addEventListener("storage", (event) => {
+  if (event.key !== STORAGE_KEY) return;
+  state = loadState();
+  renderPreview();
+  showSyncBadge();
+  if (statusBox) {
+    statusBox.dataset.state = "info";
+    statusBox.textContent = "Stato aggiornato da un'altra scheda.";
+  }
+});
 
 registerServiceWorker({
   onReady: () => undefined,

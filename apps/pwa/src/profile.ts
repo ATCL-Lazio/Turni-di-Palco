@@ -1,5 +1,5 @@
 import "../../../shared/styles/main.css";
-import { formatRewards, getAvatarVisual, loadState, resolveRole } from "./state";
+import { formatRewards, getAvatarVisual, loadState, resolveRole, STORAGE_KEY } from "./state";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
@@ -19,6 +19,9 @@ root.innerHTML = `
         <a class="button ghost" href="/map.html">Mappa</a>
         <a class="button ghost" href="/events.html">Eventi</a>
         <a class="button ghost" href="/turns.html">Turni</a>
+      </div>
+      <div class="badges">
+        <span class="badge" data-sync-badge style="display:none">Stato aggiornato</span>
       </div>
     </header>
 
@@ -62,51 +65,77 @@ const statXp = root.querySelector<HTMLElement>('[data-stat="xp"]');
 const statCachet = root.querySelector<HTMLElement>('[data-stat="cachet"]');
 const statRep = root.querySelector<HTMLElement>('[data-stat="rep"]');
 const turnLog = root.querySelector<HTMLElement>('[data-turn-log]');
+const syncBadge = root.querySelector<HTMLElement>('[data-sync-badge]');
 
-const state = loadState();
-const avatarVisual = getAvatarVisual(state.profile.avatar);
-if (avatarDisplay) {
-  avatarDisplay.style.setProperty("--avatar-color", avatarVisual.color);
-  avatarDisplay.style.setProperty("--avatar-hue", `${state.profile.avatar.hue}deg`);
-  avatarDisplay.classList.toggle("has-image", !!avatarVisual.image);
+let state = loadState();
+let syncBadgeTimeout: number | undefined;
+
+function showSyncBadge(message = "Stato aggiornato") {
+  if (!syncBadge) return;
+  syncBadge.textContent = message;
+  syncBadge.style.display = "inline-flex";
+  if (syncBadgeTimeout) {
+    window.clearTimeout(syncBadgeTimeout);
+  }
+  syncBadgeTimeout = window.setTimeout(() => {
+    if (syncBadge) syncBadge.style.display = "none";
+  }, 2500);
 }
-if (avatarImg) {
-  if (avatarVisual.image) {
-    avatarImg.src = avatarVisual.image;
-    avatarImg.style.display = "block";
-  } else {
-    avatarImg.removeAttribute("src");
-    avatarImg.style.display = "none";
+
+function renderProfile() {
+  const avatarVisual = getAvatarVisual(state.profile.avatar);
+  if (avatarDisplay) {
+    avatarDisplay.style.setProperty("--avatar-color", avatarVisual.color);
+    avatarDisplay.style.setProperty("--avatar-hue", `${state.profile.avatar.hue}deg`);
+    avatarDisplay.classList.toggle("has-image", !!avatarVisual.image);
+  }
+  if (avatarImg) {
+    if (avatarVisual.image) {
+      avatarImg.src = avatarVisual.image;
+      avatarImg.style.display = "block";
+    } else {
+      avatarImg.removeAttribute("src");
+      avatarImg.style.display = "none";
+    }
+  }
+  if (avatarLabel) {
+    avatarLabel.textContent = avatarVisual.icon;
+  }
+
+  if (nameNode) {
+    nameNode.textContent = state.profile.name || "Profilo non configurato";
+  }
+  const role = resolveRole(state.profile.roleId);
+  if (roleNode) {
+    roleNode.textContent = `${role.name} - Focus: ${role.focus}`;
+  }
+  if (roleTags) {
+    roleTags.innerHTML = role.stats.map((stat) => `<span class="pill ghost">${stat}</span>`).join("");
+  }
+  if (statXp) statXp.textContent = state.profile.xp.toString();
+  if (statCachet) statCachet.textContent = state.profile.cachet.toString();
+  if (statRep) statRep.textContent = state.profile.repAtcl.toString();
+
+  if (turnLog) {
+    if (!state.turns.length) {
+      turnLog.innerHTML = `<li class="muted">Nessun turno registrato.</li>`;
+    } else {
+      turnLog.innerHTML = state.turns
+        .slice(0, 8)
+        .map(
+          (turn) =>
+            `<li><div><strong>${turn.eventName}</strong> - ${turn.theatre} - ${turn.date}</div><div class="muted">${resolveRole(turn.roleId).name} | ${formatRewards(turn.rewards)}</div></li>`
+        )
+        .join("");
+    }
   }
 }
-if (avatarLabel) {
-  avatarLabel.textContent = avatarVisual.icon;
-}
 
-if (nameNode) {
-  nameNode.textContent = state.profile.name || "Profilo non configurato";
-}
-const role = resolveRole(state.profile.roleId);
-if (roleNode) {
-  roleNode.textContent = `${role.name} - Focus: ${role.focus}`;
-}
-if (roleTags) {
-  roleTags.innerHTML = role.stats.map((stat) => `<span class="pill ghost">${stat}</span>`).join("");
-}
-if (statXp) statXp.textContent = state.profile.xp.toString();
-if (statCachet) statCachet.textContent = state.profile.cachet.toString();
-if (statRep) statRep.textContent = state.profile.repAtcl.toString();
+renderProfile();
 
-if (turnLog) {
-  if (!state.turns.length) {
-    turnLog.innerHTML = `<li class="muted">Nessun turno registrato.</li>`;
-  } else {
-    turnLog.innerHTML = state.turns
-      .slice(0, 8)
-      .map(
-        (turn) =>
-          `<li><div><strong>${turn.eventName}</strong> - ${turn.theatre} - ${turn.date}</div><div class="muted">${resolveRole(turn.roleId).name} | ${formatRewards(turn.rewards)}</div></li>`
-      )
-      .join("");
-  }
-}
+window.addEventListener("storage", (event) => {
+  if (event.key !== STORAGE_KEY) return;
+  state = loadState();
+  renderProfile();
+  showSyncBadge();
+});
