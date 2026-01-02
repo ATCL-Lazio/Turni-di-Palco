@@ -1,4 +1,5 @@
 import "../../../shared/styles/main.css";
+import { renderPageHero } from "./components/page-hero";
 import { formatRewards, loadState, resolveRole } from "./state";
 
 const root = document.querySelector<HTMLDivElement>("#app");
@@ -7,20 +8,21 @@ if (!root) {
   throw new Error("Root container missing");
 }
 
+const pageHero = renderPageHero({
+  title: "Registro turni",
+  description: "Ultimi turni registrati dal prototipo.",
+  currentPage: "turns",
+  breadcrumbs: [
+    { label: "Hub", href: "/game.html" },
+    { label: "Turni" },
+  ],
+  backHref: "/game.html",
+  backLabel: "Torna all'hub",
+});
+
 root.innerHTML = `
   <main class="page page-game layout-shell">
-    <header class="hero layout-stack">
-      <p class="eyebrow">Turni di Palco</p>
-      <h1>Registro turni</h1>
-      <p class="lede">Ultimi turni registrati dal prototipo.</p>
-      <div class="cta-row">
-        <a class="button ghost" href="/">Landing</a>
-        <a class="button ghost" href="/avatar.html">Avatar</a>
-        <a class="button ghost" href="/map.html">Mappa</a>
-        <a class="button ghost" href="/profile.html">Profilo</a>
-        <a class="button ghost" href="/events.html">Eventi</a>
-      </div>
-    </header>
+    ${pageHero}
 
     <section class="grid layout-grid">
       <article class="card layout-span-2">
