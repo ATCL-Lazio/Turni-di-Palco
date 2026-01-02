@@ -1,4 +1,5 @@
 import "../../../shared/styles/main.css";
+import { renderPageHero } from "./components/page-hero";
 import { registerServiceWorker } from "./pwa/register-sw";
 import { promptServiceWorkerUpdate } from "./pwa/sw-update";
 import { deriveRpmThumbnail, getAvatarVisual, loadState, saveState } from "./state";
@@ -12,19 +13,21 @@ if (!root) {
   throw new Error("Root container missing");
 }
 
+const pageHero = renderPageHero({
+  title: "Avatar ReadyPlayer.Me",
+  description: "Crea o aggiorna il tuo avatar 3D. Il risultato verrà salvato nel profilo e usato nelle altre pagine.",
+  currentPage: "avatar",
+  breadcrumbs: [
+    { label: "Hub", href: "/game.html" },
+    { label: "Avatar" },
+  ],
+  backHref: "/game.html",
+  backLabel: "Torna all'hub",
+});
+
 root.innerHTML = `
   <main class="page page-game layout-shell">
-    <header class="hero layout-stack">
-      <p class="eyebrow">Turni di Palco</p>
-      <h1>Avatar ReadyPlayer.Me</h1>
-      <p class="lede">Crea o aggiorna il tuo avatar 3D. Il risultato verrà salvato nel profilo e usato nelle altre pagine.</p>
-      <div class="cta-row">
-        <a class="button ghost" href="/">Landing</a>
-        <a class="button ghost" href="/map.html">Mappa</a>
-        <a class="button ghost" href="/profile.html">Profilo</a>
-        <a class="button ghost" href="/game.html">Hub</a>
-      </div>
-    </header>
+    ${pageHero}
 
     <section class="grid layout-grid">
       <article class="card layout-span-2">
