@@ -1,16 +1,7 @@
 import "../../../shared/styles/main.css";
-import { renderAppBar } from "./components/app-bar";
+import { renderPageHero } from "./components/page-hero";
 import { renderPermissionsCard, attachPermissionsListeners } from "./features/permissions-card";
 import { renderStatusCard, attachStatusListeners } from "./features/status-card";
-
-const mainNav = [
-  { label: "Home", href: "#hero", state: "active" as const },
-  { label: "Permessi", href: "#permissions" },
-  { label: "Dev playground", href: "/dev.html", icon: "🛠️" },
-  { label: "Pagina gioco", href: "/game.html", icon: "🎮" },
-];
-
-const appBar = renderAppBar({ eyebrow: "Turni di Palco", subtitle: "PWA shell", actions: mainNav });
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
@@ -18,27 +9,29 @@ if (!root) {
   throw new Error("Root container missing");
 }
 
+const hero = renderPageHero({
+  title: "Progressive Web App base",
+  description:
+    "Shell installabile e offline-ready per costruire il loop di gioco. I moduli demo (profilo, attivita simulate e turni) ora vivono nel playground dev.",
+  currentPage: "home",
+  breadcrumbs: [{ label: "Home" }],
+  quickActions: [
+    { id: "hero", label: "Hero", href: "#hero", icon: "⬆️" },
+    { id: "permissions", label: "Permessi", href: "#permissions", icon: "✅" },
+    { id: "dev", label: "Dev playground", href: "/dev.html", icon: "🛠️" },
+    { id: "game", label: "Hub", href: "/game.html", icon: "🎮" },
+  ],
+  ctaRow: [
+    { id: "open-dev", label: "Apri dev playground", href: "/dev.html", variant: "primary", icon: "🛠️" },
+    { id: "refresh", label: "Reload per update", kind: "button", dataAction: "refresh", variant: "ghost" },
+    { id: "open-game", label: "Apri interfaccia base", href: "/game.html", variant: "ghost", icon: "🎮" },
+  ],
+});
+
 root.innerHTML = `
   <main class="page">
-    ${appBar}
-
-    <section class="hero layout-stack" id="hero">
-      <p class="eyebrow">Turni di Palco</p>
-      <h1>Progressive Web App base</h1>
-      <p class="lede">
-        Shell installabile e offline-ready per costruire il loop di gioco. I moduli demo (profilo, attivita simulate e turni) ora vivono nel playground dev.
-      </p>
-      <div class="cta-row">
-        <a class="button primary" href="/dev.html">
-          Apri dev playground
-        </a>
-        <button class="button ghost" type="button" data-action="refresh">
-          Reload per update
-        </button>
-        <a class="button ghost" href="/game.html">
-          Apri interfaccia base
-        </a>
-      </div>
+    <section class="layout-stack" id="hero">
+      ${hero}
       <div class="badges">
         <span class="badge">Installable</span>
         <span class="badge">Offline friendly</span>
