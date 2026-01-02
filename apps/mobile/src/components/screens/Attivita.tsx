@@ -21,7 +21,7 @@ export function Attivita({ activities, onStartActivity }: AttivitaProps) {
 
   return (
     <div
-      className="min-h-screen app-gradient"
+      className="min-h-screen"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
     >
       <div className="w-full max-w-md mx-auto px-6 pt-6 pb-8 space-y-6">

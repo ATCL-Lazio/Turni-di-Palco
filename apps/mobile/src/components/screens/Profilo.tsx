@@ -41,7 +41,7 @@ export function Profilo({
 
   return (
     <div
-      className="min-h-screen app-gradient"
+      className="min-h-screen"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}
     >
       <div className="w-full max-w-[393px] mx-auto pt-[36px] pb-0 flex flex-col gap-[20px]">
@@ -59,26 +59,20 @@ export function Profilo({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-[12px] px-[25px]">
+        <div className="flex flex-col gap-[12px] px-[25px]">
           <button
             type="button"
             onClick={onViewCarriera}
-            className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] flex items-center gap-[10px] px-[10px] py-[8px]"
+            className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] flex items-center h-[48px] overflow-hidden"
           >
             <div className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-[16.4px] size-[48px] flex items-center justify-center">
               <BarChart3 className="text-[#f4bf4f]" size={24} />
             </div>
-            <span className="flex-1 text-center text-[16px] leading-[25.6px] text-white">Carriera</span>
-          </button>
-          <button
-            type="button"
-            onClick={onSettings}
-            className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] flex items-center gap-[10px] px-[10px] py-[8px]"
-          >
-            <div className="bg-[#241f20] rounded-[16.4px] size-[48px] flex items-center justify-center">
-              <Settings className="text-[#f4bf4f]" size={24} />
+            <div className="flex-1 relative h-full">
+              <p className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[16px] leading-[25.6px] text-white !m-0">
+                Carriera
+              </p>
             </div>
-            <span className="flex-1 text-center text-[16px] leading-[25.6px] text-white">Impostazioni</span>
           </button>
         </div>
 
@@ -171,7 +165,7 @@ export function Profilo({
           >
             <div className="flex items-center gap-[12px]">
               <Settings className="text-[#f4bf4f]" size={24} />
-              <div>
+              <div className="flex flex-col items-start text-left">
                 <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                   Gestisci account
                 </p>

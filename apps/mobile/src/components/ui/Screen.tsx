@@ -23,7 +23,7 @@ export function Screen({
 }: ScreenProps) {
   return (
     <div
-      className={cn('min-h-screen min-h-[100dvh] app-gradient flex flex-col items-center justify-center', className)}
+      className={cn('min-h-screen min-h-[100dvh] flex flex-col items-center justify-center', className)}
       style={style}
     >
       {header}
@@ -46,7 +46,7 @@ interface ScreenHeaderProps {
   className?: string;
 }
 
-export function ScreenHeader({ children, gradient = true, className }: ScreenHeaderProps) {
+export function ScreenHeader({ children, gradient = false, className }: ScreenHeaderProps) {
   return (
     <div className={cn(gradient && 'bg-gradient-to-b from-[#2d0a0f] to-[#0f0d0e]', className)}>
       <div className="w-full max-w-md mx-auto px-5 pt-5 pb-6 space-y-5">{children}</div>
