@@ -283,12 +283,15 @@ function AppShell() {
     }
   };
 
-  const handleQRScanSuccess = (code: string) => {
-    const resolved = events.find((event) => code.toLowerCase().includes(event.id.toLowerCase())) ?? events[0];
-    if (resolved) {
-      setScannedEventId(resolved.id);
+  const handleQRScanAttempt = (code: string) => {
+    const resolved = events.find((event) => code.toLowerCase().includes(event.id.toLowerCase()));
+    if (!resolved) {
+      return { ok: false as const, error: 'Questo QR non sembra appartenere a un biglietto ATCL.' };
     }
+
+    setScannedEventId(resolved.id);
     setCurrentScreen('event-confirmation');
+    return { ok: true as const };
   };
 
   const handleEventConfirm = () => {
@@ -491,7 +494,7 @@ function AppShell() {
               const previousTab = activeTab === 'home' ? 'home' : 'turni';
               handleTabChange(previousTab);
             }}
-            onScanSuccess={handleQRScanSuccess}
+            onScan={handleQRScanAttempt}
           />
         );
 
