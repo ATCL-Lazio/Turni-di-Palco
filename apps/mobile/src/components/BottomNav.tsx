@@ -15,8 +15,8 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#1a1617] border-t border-[#2d2728] z-50">
-      <div className="mx-auto flex items-end justify-center h-[80px] pb-[20px] pt-px">
+    <nav className="fixed bottom-0 left-0 right-0 w-full app-nav bg-[#1a1617] border-t border-[#2d2728] z-50">
+      <div className="app-content flex items-end justify-center h-[80px] pb-[20px] pt-px">
         <div className="flex items-center justify-between w-[280px]">
           {tabs.map((tab) => {
             const Icon = tab.icon;
