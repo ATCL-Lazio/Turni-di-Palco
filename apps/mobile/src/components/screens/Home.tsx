@@ -68,7 +68,7 @@ export function Home({
       className="min-h-screen flex flex-col justify-center items-center"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
     >
-      <div className="w-full max-w-md mx-auto px-6 pt-6 pb-8 space-y-6">
+      <div className="w-full app-content px-6 pt-6 pb-8 space-y-6">
         <header className="space-y-4 relative" style={{ marginBottom: '20px' }}>
           <div className="absolute top-0 right-0">
             <Popover>
