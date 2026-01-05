@@ -48,7 +48,7 @@ export function Profilo({
       className="min-h-screen"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}
     >
-      <div className="w-full max-w-[393px] mx-auto pt-[36px] pb-0 flex flex-col gap-[20px]">
+      <div className="w-full app-content pt-[36px] pb-0 flex flex-col gap-[20px]">
         <div className="flex items-center px-[25px]">
           <button
             type="button"

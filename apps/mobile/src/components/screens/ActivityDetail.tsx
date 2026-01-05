@@ -21,7 +21,7 @@ export function ActivityDetail({ activity, onStart, onClose }: ActivityDetailPro
         </button>
       </div>
 
-      <div className="max-w-md mx-auto px-6 py-6 space-y-6">
+      <div className="app-content px-6 py-6 space-y-6">
         <div>
           <h2 className="text-white mb-2">{activity.title}</h2>
           <div className="flex items-center gap-3">
