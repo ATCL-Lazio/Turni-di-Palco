@@ -67,7 +67,7 @@ export function AccountSettings({
 
       if (!isSupabaseConfigured || !supabase) {
         if (!mounted) return;
-        setAppInfo({ version: 'dev', repo: null, changelog: [] });
+        setAppInfo({ version: '0.0.5', repo: null, changelog: [] });
         setAppInfoStatus('idle');
         return;
       }
@@ -85,7 +85,7 @@ export function AccountSettings({
       }
 
       setAppInfo({
-        version: typeof data?.version === 'string' ? data.version : 'dev',
+        version: typeof data?.version === 'string' ? data.version : '0.0.5',
         repo: typeof data?.repo === 'string' ? data.repo : null,
         changelog: Array.isArray(data?.changelog) ? data.changelog : [],
       });
