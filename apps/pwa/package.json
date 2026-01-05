@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:https": "cross-env HTTPS=true vite --host 0.0.0.0 --port 5173 --strictPort --clearScreen false",
+    "dev": "cross-env HTTPS=true vite --host 0.0.0.0 --port 5173 --strictPort --clearScreen false",
+    "dev:https": "npm run dev",
     "build": "vite build",
-    "preview": "vite preview",
-    "preview:https": "cross-env HTTPS=true vite preview --host 0.0.0.0 --port 4173 --strictPort --clearScreen false",
+    "preview": "cross-env HTTPS=true vite preview --host 0.0.0.0 --port 4173 --strictPort --clearScreen false",
+    "preview:https": "npm run preview",
     "test": "vitest run --passWithNoTests",
     "lint": "eslint . --ext .ts",
     "format": "prettier . --write"
