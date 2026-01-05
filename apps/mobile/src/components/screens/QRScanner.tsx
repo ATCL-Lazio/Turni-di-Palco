@@ -6,29 +6,77 @@ import jsQR from 'jsqr';
 
 interface QRScannerProps {
   onClose: () => void;
-  onScanSuccess: (code: string) => void;
+  onScan: (code: string) => Promise<{ ok: true } | { ok: false; error: string }> | { ok: true } | { ok: false; error: string };
 }
 
-export function QRScanner({ onClose, onScanSuccess }: QRScannerProps) {
+export function QRScanner({ onClose, onScan }: QRScannerProps) {
   const [manualCode, setManualCode] = useState('');
   const [isScanning, setIsScanning] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [isStartingCamera, setIsStartingCamera] = useState(false);
+  const [isHandlingScan, setIsHandlingScan] = useState(false);
   const [cameraSessionId, setCameraSessionId] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanTimeoutRef = useRef<number | null>(null);
+  const resumeTimeoutRef = useRef<number | null>(null);
   const hasHandledScanRef = useRef(false);
-  
-  const handleManualSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (manualCode.trim()) {
-      onScanSuccess(manualCode.trim());
+  const resumeScanRef = useRef<(() => void) | null>(null);
+  const onScanRef = useRef(onScan);
+  const isScanningRef = useRef(isScanning);
+
+  useEffect(() => {
+    onScanRef.current = onScan;
+  }, [onScan]);
+
+  useEffect(() => {
+    isScanningRef.current = isScanning;
+  }, [isScanning]);
+
+  const handleScanAttempt = async (code: string) => {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+
+    setScanError(null);
+    setIsHandlingScan(true);
+    let shouldResume = true;
+
+    try {
+      const result = await onScanRef.current(trimmed);
+      if (result.ok) {
+        stopCamera();
+        shouldResume = false;
+        return;
+      }
+
+      setScanError(result.error);
+    } catch (error) {
+      setScanError(error instanceof Error ? error.message : 'QR non valido.');
+    } finally {
+      if (!shouldResume) {
+        setIsHandlingScan(false);
+        return;
+      }
+
+      if (resumeTimeoutRef.current != null) {
+        window.clearTimeout(resumeTimeoutRef.current);
+        resumeTimeoutRef.current = null;
+      }
+
+      resumeTimeoutRef.current = window.setTimeout(() => {
+        setIsHandlingScan(false);
+        if (isScanningRef.current) {
+          setScanError(null);
+          hasHandledScanRef.current = false;
+          resumeScanRef.current?.();
+        }
+      }, 1200);
     }
   };
-  
+
   const formatCameraError = (error: unknown) => {
     if (!(error instanceof Error)) {
       return "Errore sconosciuto durante l'accesso alla fotocamera.";
@@ -53,6 +101,13 @@ export function QRScanner({ onClose, onScanSuccess }: QRScannerProps) {
       window.clearTimeout(scanTimeoutRef.current);
       scanTimeoutRef.current = null;
     }
+
+    if (resumeTimeoutRef.current != null) {
+      window.clearTimeout(resumeTimeoutRef.current);
+      resumeTimeoutRef.current = null;
+    }
+
+    resumeScanRef.current = null;
 
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
@@ -126,6 +181,8 @@ export function QRScanner({ onClose, onScanSuccess }: QRScannerProps) {
         const scanOnce = () => {
           if (cancelled || hasHandledScanRef.current) return;
 
+          resumeScanRef.current = scanOnce;
+
           const currentVideo = videoRef.current;
           const canvas = canvasRef.current;
 
@@ -160,12 +217,11 @@ export function QRScanner({ onClose, onScanSuccess }: QRScannerProps) {
 
           const result = jsQR(imageData.data, scaledWidth, scaledHeight, {
             inversionAttempts: 'attemptBoth',
-          });
+          }); 
 
           if (result?.data) {
             hasHandledScanRef.current = true;
-            stopCamera();
-            onScanSuccess(result.data);
+            void handleScanAttempt(result.data);
             return;
           }
 
@@ -187,12 +243,18 @@ export function QRScanner({ onClose, onScanSuccess }: QRScannerProps) {
       cancelled = true;
       stopCamera();
     };
-  }, [cameraSessionId, isScanning, onScanSuccess]);
-  
+  }, [cameraSessionId, isScanning]);
+
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualCode.trim()) return;
+    await handleScanAttempt(manualCode);
+  };
+
   return (
     <div className="fixed inset-0 app-gradient z-50 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-[#1a1617]">
+      <div className="flex items-center justify-between p-4 bg-[#1a1617]">      
         <h3 className="text-white">Scansiona QR</h3>
         <button
           onClick={onClose}
@@ -240,11 +302,24 @@ export function QRScanner({ onClose, onScanSuccess }: QRScannerProps) {
                   <p className="text-sm text-[#b8b2b3]">Avvio fotocamera...</p>
                 </div>
               )}
+
+              {isHandlingScan && (
+                <div className="absolute inset-0 flex items-center justify-center bg-[#0f0d0e]/60">
+                  <p className="text-sm text-[#b8b2b3]">Verifica QR...</p>
+                </div>
+              )}
             </div>
-            
+
             {/* Instructions */}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0f0d0e] to-transparent p-6">
               <div className="max-w-md mx-auto text-center">
+                {scanError ? (
+                  <>
+                    <p className="text-white mb-2">QR non valido</p>
+                    <p className="text-sm text-[#b8b2b3] mb-6">{scanError}</p>
+                  </>
+                ) : null}
+
                 {cameraError ? (
                   <>
                     <p className="text-white mb-2">Impossibile avviare la fotocamera</p>
@@ -297,11 +372,18 @@ export function QRScanner({ onClose, onScanSuccess }: QRScannerProps) {
                 Trova il codice stampato sul tuo biglietto ATCL
               </p>
             </div>
-            
+
+            {scanError ? (
+              <div className="mb-4 rounded-xl border border-[#2d2728] bg-[#1a1617] px-4 py-3 text-center">
+                <p className="text-white mb-1">QR non valido</p>
+                <p className="text-sm text-[#b8b2b3]">{scanError}</p>
+              </div>
+            ) : null}
+
             <form onSubmit={handleManualSubmit} className="space-y-4">
               <Input
                 type="text"
-                placeholder="es. ATCL-EVENTO-20251215"
+                placeholder="es. ATCL-001"
                 value={manualCode}
                 onChange={(e) => setManualCode(e.target.value)}
                 className="text-center uppercase"
