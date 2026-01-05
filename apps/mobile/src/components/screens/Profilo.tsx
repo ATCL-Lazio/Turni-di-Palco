@@ -17,6 +17,8 @@ interface ProfiloProps {
   onViewCarriera: () => void;
   onViewTitoli: () => void;
   onSettings: () => void;
+  onViewAvatar: () => void;
+  avatarThumbUrl?: string | null;
   onLogout: () => void;
 }
 
@@ -34,6 +36,8 @@ export function Profilo({
   onViewCarriera,
   onViewTitoli,
   onSettings,
+  onViewAvatar,
+  avatarThumbUrl,
   onLogout
 }: ProfiloProps) {
   const safeXpTotal = Math.max(xpTotal, 1);
@@ -46,9 +50,18 @@ export function Profilo({
     >
       <div className="w-full max-w-[393px] mx-auto pt-[36px] pb-0 flex flex-col gap-[20px]">
         <div className="flex items-center px-[25px]">
-          <div className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-full shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] size-[96px] flex items-center justify-center">
-            <User className="text-[#f4bf4f]" size={48} />
-          </div>
+          <button
+            type="button"
+            onClick={onViewAvatar}
+            aria-label="Apri avatar"
+            className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-full shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] size-[96px] flex items-center justify-center overflow-hidden"
+          >
+            {avatarThumbUrl ? (
+              <img src={avatarThumbUrl} alt="Avatar" className="size-[96px] object-cover" />
+            ) : (
+              <User className="text-[#f4bf4f]" size={48} />
+            )}
+          </button>
           <div className="flex flex-col items-center w-[255px]">
             <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-white text-center">
               {userName || 'Utente'}
