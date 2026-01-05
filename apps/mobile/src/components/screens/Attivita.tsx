@@ -24,7 +24,7 @@ export function Attivita({ activities, onStartActivity }: AttivitaProps) {
       className="min-h-screen"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
     >
-      <div className="w-full max-w-md mx-auto px-6 pt-6 pb-8 space-y-6">
+      <div className="w-full app-content px-6 pt-6 pb-8 space-y-6">
         <header className="space-y-2">
           <h2 className="text-white">Attività simulate</h2>
           <p className="text-[#b8b2b3]">
