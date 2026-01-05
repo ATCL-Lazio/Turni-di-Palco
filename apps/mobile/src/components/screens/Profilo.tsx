@@ -44,7 +44,7 @@ export function Profilo({
       className="min-h-screen"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}
     >
-      <div className="w-full max-w-[393px] mx-auto pt-[36px] pb-0 flex flex-col gap-[20px]">
+      <div className="w-full app-content pt-[36px] pb-0 flex flex-col gap-[20px]">
         <div className="flex items-center px-[25px]">
           <div className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-full shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] size-[96px] flex items-center justify-center">
             <User className="text-[#f4bf4f]" size={48} />

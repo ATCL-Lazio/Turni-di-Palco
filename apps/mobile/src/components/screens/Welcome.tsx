@@ -13,7 +13,7 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
     <Screen
       withBottomNavPadding={false}
       className="relative items-start justify-start h-[100dvh] overflow-hidden"
-      contentClassName="relative w-full max-w-[393px] flex-1 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom,_0px)+32px)] space-y-0 box-border"
+      contentClassName="relative w-full flex-1 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom,_0px)+32px)] space-y-0 box-border"
     >
       <div className="relative flex h-full flex-col items-center text-center">
         <div className="flex flex-col items-center gap-[20px] pt-[12px]">
