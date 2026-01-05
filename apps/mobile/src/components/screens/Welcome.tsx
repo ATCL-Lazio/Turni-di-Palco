@@ -1,12 +1,12 @@
 ﻿import React from 'react';
 import { Screen } from '../ui/Screen';
+import welcomeLogo from '../../assets/figma/welcome-logo.svg';
 
 interface WelcomeProps {
   onStart: () => void;
   onLogin: () => void;
 }
 
-const welcomeLogo = 'https://www.figma.com/api/mcp/asset/38b244d2-d197-4a0b-8d19-239c55b6947f';
 
 export function Welcome({ onStart, onLogin }: WelcomeProps) {
   return (
@@ -70,3 +70,4 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
     </Screen>
   );
 }
+
