@@ -37,7 +37,7 @@ serve(async (req) => {
     return errorResponse('Metodo non consentito', 405);
   }
 
-  const appVersion = Deno.env.get('APP_VERSION') ?? 'dev';
+  const appVersion = Deno.env.get('APP_VERSION') ?? '0.0.5';
   const repo = Deno.env.get('APP_REPO') ?? 'Heartran/Turni-di-Palco';
   const githubToken = Deno.env.get('GITHUB_TOKEN');
 
