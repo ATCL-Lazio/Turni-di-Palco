@@ -1,6 +1,16 @@
-import React from 'react';
-import { ArrowLeft, ChevronRight, FileText, KeyRound, LogOut, Shield, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import {
+  ArrowLeft,
+  ChevronRight,
+  FileText,
+  History,
+  KeyRound,
+  LogOut,
+  Shield,
+  Trash2,
+} from 'lucide-react';
 import { Screen } from '../ui/Screen';
+import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 
 interface AccountSettingsProps {
   userName: string;
@@ -13,6 +23,27 @@ interface AccountSettingsProps {
   onLogout: () => void;
 }
 
+type ChangelogEntry = {
+  sha: string;
+  message: string;
+  date: string | null;
+  author: string;
+  url: string;
+};
+
+type AppInfo = {
+  version: string;
+  repo: string | null;
+  changelog: ChangelogEntry[];
+};
+
+function formatChangelogDate(value: string | null) {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString().slice(0, 10);
+}
+
 export function AccountSettings({
   userName,
   email,
@@ -23,6 +54,51 @@ export function AccountSettings({
   onResetProgress,
   onLogout,
 }: AccountSettingsProps) {
+  const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
+  const [appInfoStatus, setAppInfoStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [appInfoError, setAppInfoError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadAppInfo = async () => {
+      setAppInfoStatus('loading');
+      setAppInfoError(null);
+
+      if (!isSupabaseConfigured || !supabase) {
+        if (!mounted) return;
+        setAppInfo({ version: '0.0.5', repo: null, changelog: [] });
+        setAppInfoStatus('idle');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('app-version', {
+        body: { limit: 8 },
+      });
+
+      if (!mounted) return;
+
+      if (error) {
+        setAppInfoStatus('error');
+        setAppInfoError(error.message || 'Impossibile caricare la versione');
+        return;
+      }
+
+      setAppInfo({
+        version: typeof data?.version === 'string' ? data.version : '0.0.5',
+        repo: typeof data?.repo === 'string' ? data.repo : null,
+        changelog: Array.isArray(data?.changelog) ? data.changelog : [],
+      });
+      setAppInfoStatus('idle');
+    };
+
+    loadAppInfo();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const handleReset = () => {
     if (typeof window === 'undefined') return;
     const ok = window.confirm(
@@ -63,6 +139,57 @@ export function AccountSettings({
           <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
             <span>Email</span>
             <span className="text-white">{email || '—'}</span>
+          </div>
+        </div>
+
+        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[12px]">
+          <div className="flex items-center gap-[12px]">
+            <History className="text-[#f4bf4f]" size={24} />
+            <div className="text-left">
+              <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
+                Versione app
+              </p>
+              <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                {appInfo?.version ? `v${appInfo.version}` : 'vdev'}
+              </p>
+            </div>
+          </div>
+          <div className="border-t border-[#2d2728] pt-[10px] flex flex-col gap-[8px]">
+            <div className="flex items-center justify-between">
+              <p className="text-[16px] leading-[25.6px] text-white !m-0">Changelog</p>
+              {appInfo?.repo ? (
+                <span className="text-[12px] leading-[16px] text-[#7a7577]">{appInfo.repo}</span>
+              ) : null}
+            </div>
+            {appInfoStatus === 'loading' ? (
+              <p className="text-[14px] leading-[20px] text-[#b8b2b3]">Caricamento...</p>
+            ) : null}
+            {appInfoStatus === 'error' ? (
+              <p className="text-[14px] leading-[20px] text-[#ff4d4f]">
+                {appInfoError ?? 'Impossibile caricare il changelog'}
+              </p>
+            ) : null}
+            {appInfoStatus === 'idle' && appInfo?.changelog?.length ? (
+              <div className="flex flex-col gap-[10px]">
+                {appInfo.changelog.map((entry) => (
+                  <div key={entry.sha} className="flex flex-col gap-[2px]">
+                    <p className="text-[14px] leading-[20px] text-white !m-0">
+                      {entry.message}
+                    </p>
+                    <p className="text-[12px] leading-[16px] text-[#7a7577] !m-0">
+                      {entry.sha}
+                      {entry.date ? ` - ${formatChangelogDate(entry.date)}` : ''}
+                      {entry.author ? ` - ${entry.author}` : ''}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {appInfoStatus === 'idle' && !appInfo?.changelog?.length ? (
+              <p className="text-[14px] leading-[20px] text-[#7a7577]">
+                Nessun aggiornamento disponibile.
+              </p>
+            ) : null}
           </div>
         </div>
 
