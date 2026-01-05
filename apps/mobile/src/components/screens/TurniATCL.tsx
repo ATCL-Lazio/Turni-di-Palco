@@ -30,7 +30,7 @@ export function TurniATCL({ turns, roles, onScanQR }: TurniATCLProps) {
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
     >
       {/* Main Content */}
-      <div className="w-full max-w-md mx-auto px-6 space-y-6 pt-6 pb-8">
+      <div className="w-full app-content px-6 space-y-6 pt-6 pb-8">
         <div>
           <h2 className="text-white mb-2">Turni ATCL</h2>
           <p className="text-[#b8b2b3]">I tuoi eventi teatrali registrati</p>

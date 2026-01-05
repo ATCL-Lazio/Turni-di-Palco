@@ -312,7 +312,7 @@ export function QRScanner({ onClose, onScan }: QRScannerProps) {
 
             {/* Instructions */}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0f0d0e] to-transparent p-6">
-              <div className="max-w-md mx-auto text-center">
+              <div className="app-content text-center">
                 {scanError ? (
                   <>
                     <p className="text-white mb-2">QR non valido</p>
@@ -362,7 +362,7 @@ export function QRScanner({ onClose, onScan }: QRScannerProps) {
           </>
         ) : (
           // Manual Input
-          <div className="p-6 max-w-md mx-auto">
+          <div className="p-6 app-content">
             <div className="mb-6 text-center">
               <div className="w-16 h-16 bg-[#241f20] rounded-full flex items-center justify-center mx-auto mb-4">
                 <QrCode className="text-[#f4bf4f]" size={32} />

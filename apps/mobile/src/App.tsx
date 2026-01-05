@@ -617,10 +617,8 @@ function AppShell() {
   const showBottomNav = ['home', 'turni', 'attivita', 'profilo', 'carriera', 'titoli-ottenuti'].includes(currentScreen);
 
   return (
-    <div className="min-h-screen app-gradient flex items-start justify-center">
-      <div className="w-full">
-        <div className="w-full max-w-[393px] relative mx-auto min-h-screen">{renderScreen()}</div>
-      </div>
+    <div className="min-h-screen app-gradient app-shell">
+      <div className="app-frame">{renderScreen()}</div>
       {showBottomNav && <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />}
     </div>
   );
