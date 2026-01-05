@@ -14,6 +14,7 @@ import { Profilo } from './components/screens/Profilo';
 import { AccountSettings } from './components/screens/AccountSettings';
 import { ChangePassword } from './components/screens/ChangePassword';
 import { Carriera } from './components/screens/Carriera';
+import { AvatarEditor } from './components/screens/AvatarEditor';
 import { TermsAndConditions } from './components/screens/TermsAndConditions';
 import { PrivacyPolicy } from './components/screens/PrivacyPolicy';
 import { TitoliOttenuti } from './components/screens/TitoliOttenuti';
@@ -36,6 +37,7 @@ type Screen =
   | 'account-settings'
   | 'change-password'
   | 'carriera'
+  | 'avatar'
   | 'terms'
   | 'privacy'
   | 'titoli-ottenuti';
@@ -72,6 +74,7 @@ const VALID_SCREENS = new Set<Screen>([
   'account-settings',
   'change-password',
   'carriera',
+  'avatar',
   'terms',
   'privacy',
   'titoli-ottenuti',
@@ -94,6 +97,7 @@ const VALID_LEGAL_RETURN_SCREENS = new Set<LegalReturnScreen>([
   'account-settings',
   'change-password',
   'carriera',
+  'avatar',
   'titoli-ottenuti',
 ]);
 
@@ -179,6 +183,9 @@ function AppShell() {
   const [scannedEventId, setScannedEventId] = useState<string>(() => persistedNavState?.scannedEventId ?? events[0]?.id ?? '');
   const [selectedActivityId, setSelectedActivityId] = useState<string>(() => persistedNavState?.selectedActivityId ?? '');
   const [authError, setAuthError] = useState<string | null>(null);
+  const [avatarReturnScreen, setAvatarReturnScreen] = useState<'profilo' | 'account-settings'>(
+    'profilo'
+  );
   const currentScreenRef = useRef(currentScreen);
 
   const upcomingEvent = useMemo(() => events[0], [events]);
@@ -326,6 +333,11 @@ function AppShell() {
 
   const handleViewAccountSettings = () => {
     setCurrentScreen('account-settings');
+  };
+
+  const handleViewAvatar = (from: 'profilo' | 'account-settings') => {
+    setAvatarReturnScreen(from);
+    setCurrentScreen('avatar');
   };
 
   const openTerms = (from: LegalReturnScreen) => {
@@ -541,6 +553,8 @@ function AppShell() {
             onViewCarriera={handleViewCarriera}
             onViewTitoli={handleViewTitoli}
             onSettings={handleViewAccountSettings}
+            onViewAvatar={() => handleViewAvatar('profilo')}
+            avatarThumbUrl={state.profile.avatarThumbUrl}
             onLogout={handleLogout}
           />
         );
@@ -557,6 +571,7 @@ function AppShell() {
               setIsPasswordRecovery(false);
               setCurrentScreen('change-password');
             }}
+            onManageAvatar={() => handleViewAvatar('account-settings')}
             onResetProgress={handleResetProgress}
             onLogout={handleLogout}
           />
@@ -593,6 +608,22 @@ function AppShell() {
           />
         );
       }
+
+      case 'avatar':
+        return (
+          <AvatarEditor
+            avatarGlbUrl={state.profile.avatarGlbUrl}
+            avatarThumbUrl={state.profile.avatarThumbUrl}
+            onBack={() => setCurrentScreen(avatarReturnScreen)}
+            onSaved={({ glbUrl, thumbUrl, updatedAt }) =>
+              updateProfile({
+                avatarGlbUrl: glbUrl,
+                avatarThumbUrl: thumbUrl,
+                avatarUpdatedAt: updatedAt ? new Date(updatedAt).getTime() : null,
+              })
+            }
+          />
+        );
 
       case 'terms':
         return <TermsAndConditions onBack={() => setCurrentScreen(legalReturnScreen)} />;

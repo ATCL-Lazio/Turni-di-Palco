@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, ChevronRight, FileText, KeyRound, LogOut, Shield, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, FileText, KeyRound, LogOut, Shield, Trash2, User } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 
 interface AccountSettingsProps {
@@ -9,6 +9,7 @@ interface AccountSettingsProps {
   onViewTerms: () => void;
   onViewPrivacy: () => void;
   onChangePassword: () => void;
+  onManageAvatar: () => void;
   onResetProgress: () => void;
   onLogout: () => void;
 }
@@ -20,6 +21,7 @@ export function AccountSettings({
   onViewTerms,
   onViewPrivacy,
   onChangePassword,
+  onManageAvatar,
   onResetProgress,
   onLogout,
 }: AccountSettingsProps) {
@@ -107,6 +109,25 @@ export function AccountSettings({
         </div>
 
         <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
+          <button
+            type="button"
+            onClick={onManageAvatar}
+            className="h-[51px] flex items-center justify-between"
+          >
+            <div className="flex items-center gap-[12px]">
+              <User className="text-[#f4bf4f]" size={24} />
+              <div className="text-left">
+                <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
+                  Avatar e profilo
+                </p>
+                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                  Personalizza immagine e modello
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="text-[#7a7577]" size={20} />
+          </button>
+
           <button
             type="button"
             onClick={onChangePassword}

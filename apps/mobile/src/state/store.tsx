@@ -56,6 +56,9 @@ type PlayerProfile = {
   xpField: number;
   reputation: number;
   cachet: number;
+  avatarGlbUrl: string | null;
+  avatarThumbUrl: string | null;
+  avatarUpdatedAt: number | null;
 };
 
 export type GameState = {
@@ -228,6 +231,9 @@ function createInitialState(): GameState {
       xpField: 0,
       reputation: 0,
       cachet: 0,
+      avatarGlbUrl: null,
+      avatarThumbUrl: null,
+      avatarUpdatedAt: null,
     },
     turns: [],
   };
@@ -246,6 +252,9 @@ function createDemoState(): GameState {
       xpField: 1800,
       reputation: 75,
       cachet: 250,
+      avatarGlbUrl: null,
+      avatarThumbUrl: null,
+      avatarUpdatedAt: null,
     },
     turns: [
       {
@@ -426,7 +435,14 @@ type GameContextValue = {
   badges: Badge[];
   badgesLoading: boolean;
   markBadgesSeen: () => void;
-  updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId'>>) => void;
+  updateProfile: (
+    updates: Partial<
+      Pick<
+        PlayerProfile,
+        'name' | 'email' | 'roleId' | 'avatarGlbUrl' | 'avatarThumbUrl' | 'avatarUpdatedAt'
+      >
+    >
+  ) => void;
   registerTurn: (eventId: string, roleId: RoleId) => TurnRecord | null;
   completeActivity: (activityId: string) => { activity: Activity; rewards: Rewards } | null;
   resetProgress: () => Promise<void>;
@@ -744,6 +760,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             xpField: profileRow.xp_field ?? prev.profile.xpField,
             reputation: profileRow.reputation ?? prev.profile.reputation,
             cachet: profileRow.cachet ?? prev.profile.cachet,
+            avatarGlbUrl: profileRow.avatar_glb_url ?? prev.profile.avatarGlbUrl,
+            avatarThumbUrl: profileRow.avatar_thumb_url ?? prev.profile.avatarThumbUrl,
+            avatarUpdatedAt: profileRow.avatar_updated_at
+              ? new Date(profileRow.avatar_updated_at).getTime()
+              : prev.profile.avatarUpdatedAt,
           },
           turns: remoteTurns,
         }));
@@ -800,8 +821,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               xpToNextLevel: profile.xp_to_next_level ?? prev.profile.xpToNextLevel,
               xpTotal: profile.xp_total ?? prev.profile.xpTotal,
               xpField: profile.xp_field ?? prev.profile.xpField,
-              reputation: profile.reputation ?? prev.profile.reputation,        
+              reputation: profile.reputation ?? prev.profile.reputation,
               cachet: profile.cachet ?? prev.profile.cachet,
+              avatarGlbUrl: profile.avatar_glb_url ?? prev.profile.avatarGlbUrl,
+              avatarThumbUrl: profile.avatar_thumb_url ?? prev.profile.avatarThumbUrl,
+              avatarUpdatedAt: profile.avatar_updated_at
+                ? new Date(profile.avatar_updated_at).getTime()
+                : prev.profile.avatarUpdatedAt,
             },
           }));
           setHasHydratedRemote(true);
@@ -878,6 +904,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             xp_field: profile.xpField,
             reputation: profile.reputation,
             cachet: profile.cachet,
+            avatar_glb_url: profile.avatarGlbUrl,
+            avatar_thumb_url: profile.avatarThumbUrl,
+            avatar_updated_at: profile.avatarUpdatedAt
+              ? new Date(profile.avatarUpdatedAt).toISOString()
+              : null,
           },
           { onConflict: 'id' }
         )
@@ -891,7 +922,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateProfile = useCallback(
-    (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId'>>) => {
+    (
+      updates: Partial<
+        Pick<
+          PlayerProfile,
+          'name' | 'email' | 'roleId' | 'avatarGlbUrl' | 'avatarThumbUrl' | 'avatarUpdatedAt'
+        >
+      >
+    ) => {
       let nextProfile: PlayerProfile | null = null;
       setState((prev) => {
         const nextRole =
