@@ -99,7 +99,7 @@ export function Carriera({
   return (
     <Screen
       className="relative items-start justify-start"
-      contentClassName="relative w-full max-w-[393px] flex-1 px-6 pt-8 space-y-0 box-border"
+      contentClassName="relative w-full flex-1 px-6 pt-8 space-y-0 box-border"
     >
       <div className="flex flex-col">
         <button
