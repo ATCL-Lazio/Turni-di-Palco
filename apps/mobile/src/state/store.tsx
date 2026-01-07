@@ -551,6 +551,29 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     setBadgesLoading(false);
   }, [authUserId]);
 
+  const refreshLeaderboard = useCallback(async () => {
+    if (!supabase) return;
+    setLeaderboardLoading(true);
+    const { data, error } = await supabase!
+      .from('profiles')
+      .select('id,name,xp_total,level,role_id,profile_image')
+      .order('xp_total', { ascending: false })
+      .limit(50);
+
+    if (!error && data) {
+      const nextLeaderboard: LeaderboardEntry[] = data.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        xpTotal: row.xp_total ?? 0,
+        level: row.level ?? 1,
+        roleId: (row.role_id as RoleId) ?? 'attore',
+        profileImage: row.profile_image,
+      }));
+      setLeaderboard(nextLeaderboard);
+    }
+    setLeaderboardLoading(false);
+  }, []);
+
   const markBadgesSeen = useCallback(async () => {
     if (!supabase || !authUserId) return;
     try {
