@@ -1,5 +1,5 @@
-﻿import React from 'react';
-import { Award, BarChart3, ChevronRight, LogOut, Settings, Theater, User } from 'lucide-react';
+﻿import React, { useRef, useState } from 'react';
+import { Award, BarChart3, Camera, ChevronRight, LogOut, Settings, Theater, User } from 'lucide-react';
 import { ProgressBar } from '../ui/ProgressBar';
 
 interface ProfiloProps {
@@ -14,10 +14,12 @@ interface ProfiloProps {
   theatreReputationLoading: boolean;
   badgesUnlockedCount: number;
   newBadgesCount: number;
+  profileImage?: string;
   onViewCarriera: () => void;
   onViewTitoli: () => void;
   onSettings: () => void;
   onLogout: () => void;
+  onUploadProfileImage: (file: File) => void;
 }
 
 export function Profilo({
@@ -31,13 +33,49 @@ export function Profilo({
   theatreReputationLoading,
   badgesUnlockedCount,
   newBadgesCount,
+  profileImage,
   onViewCarriera,
   onViewTitoli,
   onSettings,
-  onLogout
+  onLogout,
+  onUploadProfileImage
 }: ProfiloProps) {
   const safeXpTotal = Math.max(xpTotal, 1);
   const roleLabel = (userRole ?? 'Ruolo').replace(/\s*\/\s*/g, '/');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImageSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Seleziona un file immagine valido.');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('L\'immagine deve essere inferiore a 5MB.');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      await onUploadProfileImage(file);
+    } catch (error) {
+      console.error('Errore durante il caricamento:', error);
+      alert('Errore durante il caricamento dell\'immagine.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div
@@ -46,8 +84,33 @@ export function Profilo({
     >
       <div className="w-full app-content pt-[36px] pb-0 flex flex-col gap-[20px]">
         <div className="flex items-center px-[25px]">
-          <div className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-full shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] size-[96px] flex items-center justify-center">
-            <User className="text-[#f4bf4f]" size={48} />
+          <div className="relative">
+            <div className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-full shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] size-[96px] flex items-center justify-center overflow-hidden">
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt="Profilo"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="text-[#f4bf4f]" size={48} />
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleImageSelect}
+              disabled={isUploading}
+              className="absolute bottom-0 right-0 bg-[#f4bf4f] rounded-full p-2 shadow-lg disabled:opacity-50"
+            >
+              <Camera className="text-[#0f0d0e]" size={16} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
           </div>
           <div className="flex flex-col items-center w-[255px]">
             <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-white text-center">
