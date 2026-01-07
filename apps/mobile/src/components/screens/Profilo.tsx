@@ -1,12 +1,14 @@
 ﻿import React, { useRef, useState } from 'react';
 import { Award, BarChart3, Camera, ChevronRight, LogOut, Settings, Theater, User } from 'lucide-react';
 import { ProgressBar } from '../ui/ProgressBar';
+import { ImageCropper } from '../ui/ImageCropper';
 
 interface ProfiloProps {
   userName: string;
   userRole: string;
   level: number;
   xp: number;
+  xpToNextLevel: number;
   xpTotal: number;
   xpSulCampo: number;
   reputationGlobal: number;
@@ -26,6 +28,8 @@ export function Profilo({
   userName,
   userRole,
   level,
+  xp,
+  xpToNextLevel,
   xpTotal,
   xpSulCampo,
   reputationGlobal,
@@ -45,12 +49,13 @@ export function Profilo({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const handleImageSelect = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -66,8 +71,24 @@ export function Profilo({
       return;
     }
 
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      setSelectedImage(reader.result as string);
+    });
+    reader.readAsDataURL(file);
+
+    // Reset input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setSelectedImage(null);
     setIsUploading(true);
     try {
+      // Convert Blob to File for compatibility with upload handler
+      const file = new File([croppedBlob], 'profile_image.jpg', { type: 'image/jpeg' });
       await onUploadProfileImage(file);
     } catch (error) {
       console.error('Errore durante il caricamento:', error);
@@ -144,28 +165,26 @@ export function Profilo({
             <p className="text-[18px] leading-[25.2px] font-semibold text-white">
               Statistiche generali
             </p>
-            <div className="flex items-center justify-between px-[5px] text-[14px] leading-[20px] text-[#b8b2b3]">
-              <span>Livello</span>
-              <span className="text-white">{level}</span>
-            </div>
-            <div className="flex items-center justify-between px-[5px] text-[14px] leading-[20px] text-[#b8b2b3]">
-              <span>XP totale</span>
-              <span className="text-white">{xpTotal}</span>
-            </div>
-            <div className="flex flex-col gap-[4px] px-[5px]">
-              <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
-                <span className="flex items-center gap-[8px]">
-                  <Theater size={14} />
-                  XP sul campo (eventi ATCL)
-                </span>
-                <span className="text-[#f4bf4f]">{xpSulCampo}</span>
+            <div className="flex flex-col gap-[4px] px-[5px] mt-[10px]">
+              <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3] mb-1">
+                <span className="font-semibold text-white">Livello {level}</span>
+                <span className="text-[12px]">{xp} / {xpToNextLevel} XP</span>
               </div>
-              <ProgressBar value={xpSulCampo} max={safeXpTotal} color="gold" size="md" />
+              <ProgressBar value={xp} max={xpToNextLevel} color="gold" size="md" />
             </div>
-            <div className="flex flex-col gap-[4px] px-[5px]">
+
+            <div className="flex items-center justify-between px-[5px] pt-[8px] border-t border-white/5 text-[14px] leading-[20px] text-[#b8b2b3]">
+              <span className="flex items-center gap-[8px]">
+                <Theater size={14} />
+                XP sul campo (ATCL)
+              </span>
+              <span className="text-white font-medium">{xpSulCampo}</span>
+            </div>
+
+            <div className="flex flex-col gap-[4px] px-[5px] pb-[10px]">
               <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
                 <span>Reputazione ATCL globale</span>
-                <span className="text-white">{reputationGlobal}/100</span>
+                <span className="text-white font-medium">{reputationGlobal}/100</span>
               </div>
               <ProgressBar value={reputationGlobal} max={100} color="burgundy" size="md" />
             </div>
@@ -250,6 +269,14 @@ export function Profilo({
           </button>
         </div>
       </div>
+
+      {selectedImage && (
+        <ImageCropper
+          image={selectedImage}
+          onCropComplete={handleCropComplete}
+          onCancel={() => setSelectedImage(null)}
+        />
+      )}
     </div>
   );
 }

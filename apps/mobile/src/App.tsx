@@ -141,6 +141,7 @@ function getScreenToPersist(screen: Screen, activeTab: Tab): Screen {
 function AppShell() {
   const {
     state,
+    authUserId,
     roles,
     events,
     activities,
@@ -348,13 +349,13 @@ function AppShell() {
   };
 
   const handleUploadProfileImage = async (file: File) => {
-    if (!supabase || !state.authUserId) {
+    if (!supabase || !authUserId) {
       throw new Error('Supabase non configurato o utente non autenticato');
     }
 
     // Create a unique filename
     const fileExt = file.name.split('.').pop();
-    const fileName = `${state.authUserId}/profile.${fileExt}`;
+    const fileName = `${authUserId}/profile.${fileExt}`;
 
     // Upload to Supabase storage
     const { data, error } = await supabase.storage
@@ -565,6 +566,7 @@ function AppShell() {
             userRole={roles.find((role) => role.id === state.profile.roleId)?.name ?? 'Ruolo'}
             level={state.profile.level}
             xp={state.profile.xp}
+            xpToNextLevel={state.profile.xpToNextLevel}
             xpTotal={state.profile.xpTotal}
             xpSulCampo={state.profile.xpField}
             reputationGlobal={state.profile.reputation}
