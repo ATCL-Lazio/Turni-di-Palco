@@ -564,13 +564,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     const restoreSession = async () => {
       const stored = readStoredSession();
       if (stored) {
-        await supabase.auth.setSession({
+        await supabase!.auth.setSession({
           access_token: stored.access_token,
           refresh_token: stored.refresh_token,
         });
       }
 
-      const { data } = await supabase.auth.getSession();
+      const { data } = await supabase!.auth.getSession();
       if (!isMounted) return;
       persistStoredSession(data.session ?? null);
       setAuthUserId(data.session?.user.id ?? null);
