@@ -32,6 +32,24 @@ export type TurnRecord = {
 export type PlayerProfile = { name: string; roleId: RoleId; xp: number; cachet: number; repAtcl: number; avatar: AvatarSettings };
 export type ActivityStats = { runs: number; lastPlayedAt?: number };
 export type TutorialState = { firstChoiceComplete: boolean };
+export type LeaderboardEntry = {
+  id: string;
+  name: string;
+  roleId: RoleId;
+  xpTotal: number;
+  cachet: number;
+  reputation: number;
+  turnsCount: number;
+  lastActivityAt?: number;
+  profileImage?: string;
+};
+export type LeaderboardStats = {
+  totalPlayers: number;
+  averageXp: number;
+  topXp: number;
+  averageReputation: number;
+  topReputation: number;
+};
 export type GameState = {
   version: number;
   profile: PlayerProfile;
@@ -319,4 +337,36 @@ export function saveState(state: GameState): SaveStateResult {
     memoryFallback = prepared;
     return { ok: false, state: prepared, error: error instanceof Error ? error.message : "Unknown storage error" };
   }
+}
+
+export function calculateLeaderboardStats(entries: LeaderboardEntry[]): LeaderboardStats {
+  if (entries.length === 0) {
+    return {
+      totalPlayers: 0,
+      averageXp: 0,
+      topXp: 0,
+      averageReputation: 0,
+      topReputation: 0
+    };
+  }
+
+  const totalXp = entries.reduce((sum, entry) => sum + entry.xpTotal, 0);
+  const totalReputation = entries.reduce((sum, entry) => sum + entry.reputation, 0);
+  const topXp = Math.max(...entries.map((entry) => entry.xpTotal));
+  const topReputation = Math.max(...entries.map((entry) => entry.reputation));
+
+  return {
+    totalPlayers: entries.length,
+    averageXp: Math.round(totalXp / entries.length),
+    topXp,
+    averageReputation: Math.round(totalReputation / entries.length),
+    topReputation
+  };
+}
+
+export function formatLeaderboardPosition(position: number): string {
+  if (position === 1) return "🥇";
+  if (position === 2) return "🥈";
+  if (position === 3) return "🥉";
+  return `${position}`;
 }
