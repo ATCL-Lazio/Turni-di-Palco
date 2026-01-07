@@ -347,6 +347,40 @@ function AppShell() {
     setActiveTab('home');
   };
 
+  const handleUploadProfileImage = async (file: File) => {
+    if (!supabase || !state.authUserId) {
+      throw new Error('Supabase non configurato o utente non autenticato');
+    }
+
+    // Create a unique filename
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${state.authUserId}/profile.${fileExt}`;
+
+    // Upload to Supabase storage
+    const { data, error } = await supabase.storage
+      .from('profile-images')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('profile-images')
+      .getPublicUrl(fileName);
+
+    if (!urlData.publicUrl) {
+      throw new Error('Impossibile ottenere l\'URL pubblico');
+    }
+
+    // Update profile with the image URL
+    updateProfile({ profileImage: urlData.publicUrl });
+  };
+
   const handleResetProgress = async () => {
     if (typeof window === 'undefined') return;
     try {
@@ -538,10 +572,12 @@ function AppShell() {
             theatreReputationLoading={theatreReputationLoading}
             badgesUnlockedCount={unlockedBadges.length}
             newBadgesCount={newBadges.length}
+            profileImage={state.profile.profileImage}
             onViewCarriera={handleViewCarriera}
             onViewTitoli={handleViewTitoli}
             onSettings={handleViewAccountSettings}
             onLogout={handleLogout}
+            onUploadProfileImage={handleUploadProfileImage}
           />
         );
 
