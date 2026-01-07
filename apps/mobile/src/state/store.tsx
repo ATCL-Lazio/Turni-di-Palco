@@ -57,6 +57,7 @@ type PlayerProfile = {
   reputation: number;
   cachet: number;
   profileImage?: string;
+  lastActivityAt: number;
 };
 
 export type GameState = {
@@ -230,6 +231,7 @@ function createInitialState(): GameState {
       reputation: 0,
       cachet: 0,
       profileImage: undefined,
+      lastActivityAt: Date.now(),
     },
     turns: [],
   };
@@ -249,6 +251,7 @@ function createDemoState(): GameState {
       reputation: 75,
       cachet: 250,
       profileImage: undefined,
+      lastActivityAt: Date.now(),
     },
     turns: [
       {
@@ -405,6 +408,7 @@ function applyRewards(profile: PlayerProfile, rewards: Rewards, source: 'turn' |
     xpField: source === 'turn' ? profile.xpField + rewards.xp : profile.xpField,
     cachet: profile.cachet + rewards.cachet,
     reputation: Math.min(100, profile.reputation + rewards.reputation),
+    lastActivityAt: Date.now(),
   };
 }
 
@@ -748,6 +752,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             reputation: profileRow.reputation ?? prev.profile.reputation,
             cachet: profileRow.cachet ?? prev.profile.cachet,
             profileImage: profileRow.profile_image ?? prev.profile.profileImage,
+            lastActivityAt: profileRow.last_activity_at ? new Date(profileRow.last_activity_at).getTime() : Date.now(),
           },
           turns: remoteTurns,
         }));
@@ -807,6 +812,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               reputation: profile.reputation ?? prev.profile.reputation,
               cachet: profile.cachet ?? prev.profile.cachet,
               profileImage: profile.profile_image ?? prev.profile.profileImage,
+              lastActivityAt: profile.last_activity_at ? new Date(profile.last_activity_at).getTime() : prev.profile.lastActivityAt,
             },
           }));
           setHasHydratedRemote(true);
@@ -884,6 +890,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             reputation: profile.reputation,
             cachet: profile.cachet,
             profile_image: profile.profileImage,
+            last_activity_at: new Date(profile.lastActivityAt).toISOString(),
           },
           { onConflict: 'id' }
         )
@@ -1096,6 +1103,46 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     const next = createDefaultState();
     setState(next);
   }, []);
+
+  // Gestione decadimento reputazione per inattività
+  useEffect(() => {
+    if (!state.profile || state.profile.reputation <= 0) return;
+
+    const checkReputationDecay = () => {
+      const now = Date.now();
+      const lastActivity = state.profile.lastActivityAt;
+      const daysInactive = Math.floor((now - lastActivity) / (1000 * 60 * 60 * 24));
+
+      // Se inattivo per più di 14 giorni, perde 2 punti di reputazione al giorno extra
+      if (daysInactive > 14) {
+        const decayDays = daysInactive - 14;
+        const totalDecay = decayDays * 2;
+
+        if (totalDecay > 0) {
+          setState((prev: GameState) => {
+            const currentRep = prev.profile.reputation;
+            const newRep = Math.max(0, currentRep - totalDecay);
+
+            if (newRep === currentRep) return prev; // Evita loop infiniti se non cambia nulla
+
+            return {
+              ...prev,
+              profile: {
+                ...prev.profile,
+                reputation: newRep,
+              }
+            };
+          });
+        }
+      }
+    };
+
+    // Controllo ogni ora
+    const interval = setInterval(checkReputationDecay, 1000 * 60 * 60);
+    checkReputationDecay();
+
+    return () => clearInterval(interval);
+  }, [state.profile.lastActivityAt, state.profile.reputation]);
 
   const value = useMemo<GameContextValue>(
     () => ({
