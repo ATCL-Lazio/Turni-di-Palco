@@ -56,6 +56,7 @@ type PlayerProfile = {
   xpField: number;
   reputation: number;
   cachet: number;
+  profileImage?: string;
 };
 
 export type GameState = {
@@ -228,6 +229,7 @@ function createInitialState(): GameState {
       xpField: 0,
       reputation: 0,
       cachet: 0,
+      profileImage: undefined,
     },
     turns: [],
   };
@@ -246,6 +248,7 @@ function createDemoState(): GameState {
       xpField: 1800,
       reputation: 75,
       cachet: 250,
+      profileImage: undefined,
     },
     turns: [
       {
@@ -744,6 +747,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             xpField: profileRow.xp_field ?? prev.profile.xpField,
             reputation: profileRow.reputation ?? prev.profile.reputation,
             cachet: profileRow.cachet ?? prev.profile.cachet,
+            profileImage: profileRow.profile_image ?? prev.profile.profileImage,
           },
           turns: remoteTurns,
         }));
@@ -802,6 +806,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               xpField: profile.xp_field ?? prev.profile.xpField,
               reputation: profile.reputation ?? prev.profile.reputation,        
               cachet: profile.cachet ?? prev.profile.cachet,
+              profileImage: profile.profile_image ?? prev.profile.profileImage,
             },
           }));
           setHasHydratedRemote(true);
@@ -878,6 +883,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             xp_field: profile.xpField,
             reputation: profile.reputation,
             cachet: profile.cachet,
+            profile_image: profile.profileImage,
           },
           { onConflict: 'id' }
         )
@@ -891,7 +897,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateProfile = useCallback(
-    (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId'>>) => {
+    (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage'>>) => {
       let nextProfile: PlayerProfile | null = null;
       setState((prev) => {
         const nextRole =
