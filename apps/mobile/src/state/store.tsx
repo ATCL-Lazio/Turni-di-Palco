@@ -484,7 +484,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const refreshTurnStats = useCallback(async () => {
     if (!supabase || !authUserId) return;
     setStatsLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await supabase!
       .from('my_turn_stats')
       .select('total_turns,turns_this_month,unique_theatres')
       .single();
@@ -501,7 +501,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const refreshTheatreReputation = useCallback(async () => {
     if (!supabase || !authUserId) return;
     setTheatreReputationLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await supabase!
       .from('my_theatre_reputation')
       .select('theatre,reputation,total_turns');
     if (!error && data) {
@@ -526,12 +526,12 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const refreshBadges = useCallback(async () => {
     if (!supabase || !authUserId) return;
     setBadgesLoading(true);
-    await supabase.rpc('evaluate_my_badges');
-    const { data, error } = await supabase
+    await supabase!.rpc('evaluate_my_badges');
+    const { data, error } = await supabase!
       .from('my_badges')
       .select('id,title,description,icon,metric,threshold,unlocked_at,seen_at,unlocked');
     if (!error && data) {
-      const nextBadges: Badge[] = data.map((row) => ({
+      const nextBadges: Badge[] = data.map((row: any) => ({
         id: row.id,
         title: row.title,
         description: row.description ?? null,
@@ -547,14 +547,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     setBadgesLoading(false);
   }, [authUserId]);
 
-  const markBadgesSeen = useCallback(() => {
+  const markBadgesSeen = useCallback(async () => {
     if (!supabase || !authUserId) return;
-    supabase
-      .rpc('mark_my_badges_seen')
-      .then(() => refreshBadges())
-      .catch((error) => {
-        console.warn('Supabase mark badges seen failed', error);
-      });
+    try {
+      await supabase.rpc('mark_my_badges_seen');
+      await refreshBadges();
+    } catch (error) {
+      console.warn('Supabase mark badges seen failed', error);
+    }
   }, [authUserId, refreshBadges]);
 
   useEffect(() => {
@@ -564,13 +564,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     const restoreSession = async () => {
       const stored = readStoredSession();
       if (stored) {
-        await supabase.auth.setSession({
+        await supabase!.auth.setSession({
           access_token: stored.access_token,
           refresh_token: stored.refresh_token,
         });
       }
 
-      const { data } = await supabase.auth.getSession();
+      const { data } = await supabase!.auth.getSession();
       if (!isMounted) return;
       persistStoredSession(data.session ?? null);
       setAuthUserId(data.session?.user.id ?? null);
@@ -578,7 +578,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
     restoreSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase!.auth.onAuthStateChange((_event, session) => {
       persistStoredSession(session ?? null);
       if (!isMounted) return;
       setAuthUserId(session?.user.id ?? null);
@@ -612,11 +612,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
     const loadCatalog = async () => {
       const [rolesRes, eventsRes, activitiesRes] = await Promise.all([
-        supabase.from('roles').select('id,name,focus,stats'),
-        supabase
+        supabase!.from('roles').select('id,name,focus,stats'),
+        supabase!
           .from('events')
           .select('id,name,theatre,event_date,event_time,genre,base_rewards,focus_role'),
-        supabase
+        supabase!
           .from('activities')
           .select('id,title,description,duration,xp_reward,cachet_reward,difficulty'),
       ]);
@@ -626,48 +626,48 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       const nextRoles =
         rolesRes.error || !rolesRes.data?.length
           ? roles
-          : rolesRes.data.map((role) => ({
-              id: role.id as RoleId,
-              name: role.name,
-              focus: role.focus,
-              stats: {
-                presence: Number(role.stats?.presence ?? 0),
-                precision: Number(role.stats?.precision ?? 0),
-                leadership: Number(role.stats?.leadership ?? 0),
-                creativity: Number(role.stats?.creativity ?? 0),
-              },
-            }));
+          : rolesRes.data.map((role: any) => ({
+            id: role.id as RoleId,
+            name: role.name,
+            focus: role.focus,
+            stats: {
+              presence: Number(role.stats?.presence ?? 0),
+              precision: Number(role.stats?.precision ?? 0),
+              leadership: Number(role.stats?.leadership ?? 0),
+              creativity: Number(role.stats?.creativity ?? 0),
+            },
+          }));
 
       const nextEvents =
         eventsRes.error || !eventsRes.data?.length
           ? events
-          : eventsRes.data.map((event) => ({
-              id: event.id,
-              name: event.name,
-              theatre: event.theatre,
-              date: event.event_date,
-              time: event.event_time,
-              genre: event.genre,
-              baseRewards: {
-                xp: Number(event.base_rewards?.xp ?? 0),
-                reputation: Number(event.base_rewards?.reputation ?? 0),
-                cachet: Number(event.base_rewards?.cachet ?? 0),
-              },
-              focusRole: event.focus_role ?? undefined,
-            }));
+          : eventsRes.data.map((event: any) => ({
+            id: event.id,
+            name: event.name,
+            theatre: event.theatre,
+            date: event.event_date,
+            time: event.event_time,
+            genre: event.genre,
+            baseRewards: {
+              xp: Number(event.base_rewards?.xp ?? 0),
+              reputation: Number(event.base_rewards?.reputation ?? 0),
+              cachet: Number(event.base_rewards?.cachet ?? 0),
+            },
+            focusRole: event.focus_role ?? undefined,
+          }));
 
       const nextActivities =
         activitiesRes.error || !activitiesRes.data?.length
           ? activities
-          : activitiesRes.data.map((activity) => ({
-              id: activity.id,
-              title: activity.title,
-              description: activity.description,
-              duration: activity.duration,
-              xpReward: activity.xp_reward,
-              cachetReward: activity.cachet_reward,
-              difficulty: activity.difficulty as Activity['difficulty'],
-            }));
+          : activitiesRes.data.map((activity: any) => ({
+            id: activity.id,
+            title: activity.title,
+            description: activity.description,
+            duration: activity.duration,
+            xpReward: activity.xp_reward,
+            cachetReward: activity.cachet_reward,
+            difficulty: activity.difficulty as Activity['difficulty'],
+          }));
 
       setCatalog({
         roles: nextRoles,
@@ -689,9 +689,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
     const loadRemoteState = async () => {
       const [userRes, profileRes, turnsRes] = await Promise.all([
-        supabase.auth.getUser(),
-        supabase.from('profiles').select('*').eq('id', authUserId).maybeSingle(),
-        supabase.from('turns').select('*').eq('user_id', authUserId).order('created_at', { ascending: false }),
+        supabase!.auth.getUser(),
+        supabase!.from('profiles').select('*').eq('id', authUserId).maybeSingle(),
+        supabase!.from('turns').select('*').eq('user_id', authUserId).order('created_at', { ascending: false }),
       ]);
 
       if (!isMounted) return;
@@ -700,11 +700,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       if (!profileRow && userRes.data?.user?.email) {
         const user = userRes.data.user;
-        const insertRes = await supabase
+        const insertRes = await supabase!
           .from('profiles')
           .insert({
             id: authUserId,
-            name: user.user_metadata?.name ?? user.email.split('@')[0] ?? 'Player',
+            name: user.user_metadata?.name ?? user.email!.split('@')[0] ?? 'Player',
             email: user.email,
             role_id: 'attore',
           })
@@ -716,25 +716,25 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       if (!isMounted) return;
 
       const remoteTurns = Array.isArray(turnsRes.data)
-        ? turnsRes.data.map((turn) => ({
-            id: turn.id,
-            eventId: turn.event_id ?? '',
-            eventName: turn.event_name ?? '',
-            theatre: turn.theatre ?? '',
-            date: turn.event_date ?? '',
-            time: turn.event_time ?? '',
-            roleId: (turn.role_id as RoleId) ?? 'attore',
-            rewards: {
-              xp: Number(turn.rewards?.xp ?? 0),
-              reputation: Number(turn.rewards?.reputation ?? 0),
-              cachet: Number(turn.rewards?.cachet ?? 0),
-            },
-            createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
-          }))
+        ? turnsRes.data.map((turn: any) => ({
+          id: turn.id,
+          eventId: turn.event_id ?? '',
+          eventName: turn.event_name ?? '',
+          theatre: turn.theatre ?? '',
+          date: turn.event_date ?? '',
+          time: turn.event_time ?? '',
+          roleId: (turn.role_id as RoleId) ?? 'attore',
+          rewards: {
+            xp: Number(turn.rewards?.xp ?? 0),
+            reputation: Number(turn.rewards?.reputation ?? 0),
+            cachet: Number(turn.rewards?.cachet ?? 0),
+          },
+          createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
+        }))
         : [];
 
       if (profileRow) {
-        setState((prev) => ({
+        setState((prev: GameState) => ({
           profile: {
             ...prev.profile,
             name: profileRow.name ?? prev.profile.name,
@@ -792,19 +792,19 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         (payload) => {
           if (!payload.new) return;
           const profile = payload.new as any;
-          setState((prev) => ({
+          setState((prev: GameState) => ({
             ...prev,
             profile: {
               ...prev.profile,
               name: profile.name ?? prev.profile.name,
               email: profile.email ?? prev.profile.email,
-              roleId: (profile.role_id as RoleId) ?? prev.profile.roleId,       
+              roleId: (profile.role_id as RoleId) ?? prev.profile.roleId,
               level: profile.level ?? prev.profile.level,
               xp: profile.xp ?? prev.profile.xp,
               xpToNextLevel: profile.xp_to_next_level ?? prev.profile.xpToNextLevel,
               xpTotal: profile.xp_total ?? prev.profile.xpTotal,
               xpField: profile.xp_field ?? prev.profile.xpField,
-              reputation: profile.reputation ?? prev.profile.reputation,        
+              reputation: profile.reputation ?? prev.profile.reputation,
               cachet: profile.cachet ?? prev.profile.cachet,
               profileImage: profile.profile_image ?? prev.profile.profileImage,
             },
@@ -818,31 +818,31 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         (payload) => {
           if (payload.eventType === 'INSERT' && payload.new) {
             const nextTurn = mapTurnRow(payload.new);
-            setState((prev) => {
-              if (prev.turns.some((turn) => turn.id === nextTurn.id)) {
+            setState((prev: GameState) => {
+              if (prev.turns.some((turn: TurnRecord) => turn.id === nextTurn.id)) {
                 return prev;
               }
-              const merged = [nextTurn, ...prev.turns].sort((a, b) => b.createdAt - a.createdAt);
+              const merged = [nextTurn, ...prev.turns].sort((a: TurnRecord, b: TurnRecord) => b.createdAt - a.createdAt);
               return { ...prev, turns: merged.slice(0, MAX_TURNS) };
             });
           }
 
           if (payload.eventType === 'UPDATE' && payload.new) {
             const nextTurn = mapTurnRow(payload.new);
-            setState((prev) => ({
+            setState((prev: GameState) => ({
               ...prev,
               turns: prev.turns
-                .map((turn) => (turn.id === nextTurn.id ? nextTurn : turn))
-                .sort((a, b) => b.createdAt - a.createdAt),
+                .map((turn: TurnRecord) => (turn.id === nextTurn.id ? nextTurn : turn))
+                .sort((a: TurnRecord, b: TurnRecord) => b.createdAt - a.createdAt),
             }));
           }
 
           if (payload.eventType === 'DELETE' && payload.old) {
             const deletedId = (payload.old as any).id as string | undefined;
             if (!deletedId) return;
-            setState((prev) => ({
+            setState((prev: GameState) => ({
               ...prev,
-              turns: prev.turns.filter((turn) => turn.id !== deletedId),
+              turns: prev.turns.filter((turn: TurnRecord) => turn.id !== deletedId),
             }));
           }
 
@@ -861,7 +861,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase!.removeChannel(channel);
     };
   }, [authUserId, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
 
@@ -899,9 +899,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const updateProfile = useCallback(
     (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage'>>) => {
       let nextProfile: PlayerProfile | null = null;
-      setState((prev) => {
+      setState((prev: GameState) => {
         const nextRole =
-          updates.roleId && catalog.roles.some((role) => role.id === updates.roleId)
+          updates.roleId && catalog.roles.some((role: Role) => role.id === updates.roleId)
             ? updates.roleId
             : prev.profile.roleId;
         nextProfile = { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId };
@@ -939,7 +939,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       };
 
       let nextProfile: PlayerProfile | null = null;
-      setState((prev) => {
+      setState((prev: GameState) => {
         nextProfile = applyRewards(prev.profile, rewards, 'turn');
         return {
           profile: nextProfile,
@@ -988,7 +988,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         supabase && authUserId && globalThis.crypto?.randomUUID
           ? globalThis.crypto.randomUUID()
           : `activity-${Date.now()}`;
-      setState((prev) => {
+      setState((prev: GameState) => {
         nextProfile = applyRewards(prev.profile, rewards, 'activity');
         return {
           ...prev,
@@ -1022,7 +1022,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
     }
 
-    setState((prev) => ({
+    setState((prev: GameState) => ({
       ...prev,
       profile: {
         ...prev.profile,
