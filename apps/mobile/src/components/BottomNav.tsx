@@ -1,15 +1,16 @@
 ﻿import React from 'react';
-import { Home, ListChecks, Ticket, User } from 'lucide-react';
+import { Home, ListChecks, Ticket, Trophy, User } from 'lucide-react';
 
 interface BottomNavProps {
-  activeTab: 'home' | 'turni' | 'attivita' | 'profilo';
-  onTabChange: (tab: 'home' | 'turni' | 'attivita' | 'profilo') => void;
+  activeTab: 'home' | 'turni' | 'leaderboard' | 'attivita' | 'profilo';
+  onTabChange: (tab: 'home' | 'turni' | 'leaderboard' | 'attivita' | 'profilo') => void;
 }
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   const tabs = [
     { id: 'home' as const, icon: Home, label: 'Home' },
     { id: 'turni' as const, icon: Ticket, label: 'Turni ATCL' },
+    { id: 'leaderboard' as const, icon: Trophy, label: 'Classifica' },
     { id: 'attivita' as const, icon: ListChecks, label: 'Attività' },
     { id: 'profilo' as const, icon: User, label: 'Profilo' }
   ];
@@ -17,7 +18,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 w-full app-nav bg-[#1a1617] border-t border-[#2d2728] z-50">
       <div className="app-content flex items-end justify-center h-[80px] pb-[20px] pt-px">
-        <div className="flex items-center justify-between w-[280px]">
+        <div className="flex items-center justify-between w-[350px]">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;

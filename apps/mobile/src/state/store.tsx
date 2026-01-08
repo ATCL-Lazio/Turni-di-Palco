@@ -77,6 +77,18 @@ export type TheatreReputation = {
   totalTurns: number;
 };
 
+export type LeaderboardEntry = {
+  id: string;
+  name: string;
+  roleId: RoleId;
+  xpTotal: number;
+  cachet: number;
+  reputation: number;
+  turnsCount: number;
+  profileImage?: string;
+  lastActivityAt?: number;
+};
+
 export type BadgeMetric = 'total_turns' | 'turns_this_month' | 'unique_theatres' | 'manual';
 
 export type Badge = {
@@ -422,6 +434,7 @@ export function computeTurnRewards(event: GameEvent, roleId: RoleId): Rewards {
 }
 
 type GameContextValue = {
+  authUserId: string | null;
   state: GameState;
   roles: Role[];
   events: GameEvent[];
@@ -430,10 +443,13 @@ type GameContextValue = {
   statsLoading: boolean;
   theatreReputation: TheatreReputation[];
   theatreReputationLoading: boolean;
+  leaderboard: LeaderboardEntry[];
+  leaderboardLoading: boolean;
+  refreshLeaderboard: () => Promise<void>;
   badges: Badge[];
   badgesLoading: boolean;
   markBadgesSeen: () => void;
-  updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId'>>) => void;
+  updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage'>>) => void;
   registerTurn: (eventId: string, roleId: RoleId) => TurnRecord | null;
   completeActivity: (activityId: string) => { activity: Activity; rewards: Rewards } | null;
   resetProgress: () => Promise<void>;
@@ -462,6 +478,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [statsLoading, setStatsLoading] = useState(false);
   const [remoteTheatreReputation, setRemoteTheatreReputation] = useState<TheatreReputation[]>([]);
   const [theatreReputationLoading, setTheatreReputationLoading] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [remoteBadges, setRemoteBadges] = useState<Badge[]>([]);
   const [badgesLoading, setBadgesLoading] = useState(false);
 
@@ -551,27 +569,52 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     setBadgesLoading(false);
   }, [authUserId]);
 
+  type LeaderboardRow = {
+    id: string;
+    name: string | null;
+    role_id: string | null;
+    xp_total: number | null;
+    cachet: number | null;
+    reputation: number | null;
+    profile_image: string | null;
+    last_activity_at: string | null;
+    turns_count: number | null;
+  };
+
   const refreshLeaderboard = useCallback(async () => {
     if (!supabase) return;
     setLeaderboardLoading(true);
-    const { data, error } = await supabase!
-      .from('profiles')
-      .select('id,name,xp_total,level,role_id,profile_image')
-      .order('xp_total', { ascending: false })
-      .limit(50);
 
-    if (!error && data) {
-      const nextLeaderboard: LeaderboardEntry[] = data.map((row: any) => ({
-        id: row.id,
-        name: row.name,
-        xpTotal: row.xp_total ?? 0,
-        level: row.level ?? 1,
-        roleId: (row.role_id as RoleId) ?? 'attore',
-        profileImage: row.profile_image,
-      }));
+    try {
+      const { data, error } = await supabase.rpc('get_leaderboard', { p_limit: 50 });
+      if (error) throw error;
+
+      const rows = (data as LeaderboardRow[]) ?? [];
+      const nextLeaderboard: LeaderboardEntry[] = rows.map((row) => {
+        const roleCandidate = row.role_id ?? 'attore';
+        const roleId: RoleId = (roleCandidate === 'attore' || roleCandidate === 'luci' || roleCandidate === 'fonico' || roleCandidate === 'attrezzista' || roleCandidate === 'palco')
+          ? (roleCandidate as RoleId)
+          : 'attore';
+        const lastActivityAt = row.last_activity_at ? new Date(row.last_activity_at).getTime() : undefined;
+        return {
+          id: row.id,
+          name: row.name ?? 'Player',
+          roleId,
+          xpTotal: row.xp_total ?? 0,
+          cachet: row.cachet ?? 0,
+          reputation: row.reputation ?? 0,
+          turnsCount: row.turns_count ?? 0,
+          profileImage: row.profile_image ?? undefined,
+          lastActivityAt,
+        };
+      });
       setLeaderboard(nextLeaderboard);
+    } catch (error) {
+      console.warn('Supabase leaderboard fetch failed', error);
+      setLeaderboard([]);
+    } finally {
+      setLeaderboardLoading(false);
     }
-    setLeaderboardLoading(false);
   }, []);
 
   const markBadgesSeen = useCallback(async () => {
@@ -631,6 +674,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     refreshTurnStats();
     refreshTheatreReputation();
     refreshBadges();
+    refreshLeaderboard();
   }, [authUserId, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
 
   useEffect(() => {
@@ -1169,6 +1213,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<GameContextValue>(
     () => ({
+      authUserId,
       state,
       roles: catalog.roles,
       events: catalog.events,
@@ -1177,6 +1222,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       statsLoading,
       theatreReputation,
       theatreReputationLoading,
+      leaderboard,
+      leaderboardLoading,
+      refreshLeaderboard,
       badges,
       badgesLoading,
       markBadgesSeen,
@@ -1189,12 +1237,16 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       resetState,
     }),
     [
+      authUserId,
       state,
       catalog,
       turnStats,
       statsLoading,
       theatreReputation,
       theatreReputationLoading,
+      leaderboard,
+      leaderboardLoading,
+      refreshLeaderboard,
       badges,
       badgesLoading,
       markBadgesSeen,
