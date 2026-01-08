@@ -26,6 +26,7 @@ const pageHero = renderPageHero({
     { id: "avatar", label: "Avatar", href: "/avatar.html", variant: "ghost" },
     { id: "profile", label: "Profilo", href: "/profile.html", variant: "ghost" },
     { id: "turns", label: "Turni", href: "/turns.html", variant: "ghost" },
+    { id: "leaderboard", label: "Classifica", href: "/leaderboard.html", variant: "ghost" },
   ],
   quickActions: [{ id: "dev", label: "Dev playground", href: "/dev.html", icon: "🛠️" }],
 });
