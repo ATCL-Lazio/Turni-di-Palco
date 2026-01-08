@@ -62,7 +62,7 @@ export function Leaderboard() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-white font-semibold truncate">{entry.name}</p>
+                      <p className="text-white font-semibold truncate" style={{ marginBottom: 0 }}>{entry.name}</p>
                       <p className="text-xs text-[#b8b2b3] truncate">{roleName}</p>
                     </div>
 
