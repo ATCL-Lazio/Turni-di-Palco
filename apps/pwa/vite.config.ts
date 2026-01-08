@@ -1,12 +1,13 @@
 import fs from "fs";
 import path from "path";
+import type { ServerOptions as HttpsServerOptions } from "https";
 import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 
-function resolveHttps() {
+function resolveHttps(): HttpsServerOptions | undefined {
   const httpsEnv = process.env.HTTPS;
   if (httpsEnv === "false" || httpsEnv === "0") {
-    return false;
+    return undefined;
   }
 
   const flag = httpsEnv === "true" || httpsEnv === "1";
@@ -37,7 +38,8 @@ function resolveHttps() {
     }
   }
 
-  return flag || true;
+  if (flag) return {};
+  return {};
 }
 
 const httpsOption = resolveHttps();
@@ -56,6 +58,7 @@ export default defineConfig({
         profile: path.resolve(__dirname, "profile.html"),
         events: path.resolve(__dirname, "events.html"),
         turns: path.resolve(__dirname, "turns.html"),
+        leaderboard: path.resolve(__dirname, "leaderboard.html"),
       },
     },
   },
