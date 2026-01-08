@@ -22,7 +22,7 @@ export function Card({ children, className = '', onClick, hoverable = false, sty
 
   return (
     <div
-      className={cn('transition-all duration-200 p-4', hoverClass, className)}
+      className={cn('relative transition-all duration-200 p-4', hoverClass, className)}
       onClick={onClick}
       style={defaultStyles}
     >
