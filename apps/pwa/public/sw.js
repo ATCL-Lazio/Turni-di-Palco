@@ -1,4 +1,4 @@
-const CACHE_NAME = "turni-di-palco-v16f4505d";
+const CACHE_NAME = "turni-di-palco-v26442dfc";
 const OFFLINE_URL = "/index.html";
 const CORE_ASSETS = [
   "/",
@@ -29,6 +29,12 @@ self.addEventListener("activate", (event) => {
       .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
       .then(() => self.clients.claim())
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data === "skipWaiting" || event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("fetch", (event) => {

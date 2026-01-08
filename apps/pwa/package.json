@@ -4,18 +4,18 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:https": "cross-env HTTPS=true vite --host 0.0.0.0 --port 5173 --strictPort --clearScreen false",
+    "dev": "node ../../tools/with-https-env.js vite --host 0.0.0.0 --port 5173 --strictPort --clearScreen false",
+    "dev:https": "npm run dev",
     "build": "vite build",
-    "preview": "vite preview",
-    "preview:https": "cross-env HTTPS=true vite preview --host 0.0.0.0 --port 4173 --strictPort --clearScreen false",
+    "preview": "node ../../tools/with-https-env.js vite preview --host 0.0.0.0 --port 4173 --strictPort --clearScreen false",
+    "preview:https": "npm run preview",
     "test": "vitest run --passWithNoTests",
     "lint": "eslint . --ext .ts",
     "format": "prettier . --write"
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
-    "@rollup/rollup-linux-x64-gnu": "^4.54.0",
+    "@tailwindcss/vite": "^4.1.18",
     "@typescript-eslint/eslint-plugin": "^8.8.1",
     "@typescript-eslint/parser": "^8.8.1",
     "cross-env": "^7.0.3",
@@ -25,13 +25,13 @@
     "globals": "^15.12.0",
     "jsdom": "^25.0.1",
     "prettier": "^3.3.3",
-    "rollup": "^4.54.0",
     "typescript": "^5.6.3",
-    "vite": "^5.4.8",
-    "vitest": "^2.1.2"
+    "vite": "^7.3.0",
+    "vitest": "^4.0.16"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",
+    "@supabase/supabase-js": "^2.50.0",
     "leaflet": "^1.9.4"
   }
 }

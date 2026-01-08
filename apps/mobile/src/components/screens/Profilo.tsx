@@ -1,19 +1,6 @@
-import React from 'react';
-import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
+﻿import React, { useRef, useState } from 'react';
+import { Award, BarChart3, Camera, ChevronRight, LogOut, Settings, Theater, User } from 'lucide-react';
 import { ProgressBar } from '../ui/ProgressBar';
-import { 
-  User,
-  ChevronRight,
-  Award,
-  BarChart3,
-  Settings,
-  LogOut,
-  MapPin,
-  TrendingUp,
-  Theater
-} from 'lucide-react';
 
 interface ProfiloProps {
   userName: string;
@@ -23,195 +10,245 @@ interface ProfiloProps {
   xpTotal: number;
   xpSulCampo: number;
   reputationGlobal: number;
+  theatreReputation: Array<{ name: string; reputation: number }>;
+  theatreReputationLoading: boolean;
+  badgesUnlockedCount: number;
+  newBadgesCount: number;
+  profileImage?: string;
   onViewCarriera: () => void;
+  onViewTitoli: () => void;
   onSettings: () => void;
   onLogout: () => void;
+  onUploadProfileImage: (file: File) => void;
 }
 
-const theatreReputation = [
-  { name: 'Teatro Argentina', reputation: 85 },
-  { name: 'Teatro Valle', reputation: 72 },
-  { name: 'Teatro Quirino', reputation: 68 }
-];
-
-const achievements = [
-  { id: '1', title: 'Ha lavorato in 3 teatri diversi', icon: MapPin },
-  { id: '2', title: 'Prima stagione completata', icon: Award },
-  { id: '3', title: '10 turni registrati', icon: Theater }
-];
-
-export function Profilo({ 
-  userName, 
-  userRole, 
-  level, 
-  xp,
+export function Profilo({
+  userName,
+  userRole,
+  level,
   xpTotal,
   xpSulCampo,
   reputationGlobal,
+  theatreReputation,
+  theatreReputationLoading,
+  badgesUnlockedCount,
+  newBadgesCount,
+  profileImage,
   onViewCarriera,
+  onViewTitoli,
   onSettings,
-  onLogout 
+  onLogout,
+  onUploadProfileImage
 }: ProfiloProps) {
+  const safeXpTotal = Math.max(xpTotal, 1);
+  const roleLabel = (userRole ?? 'Ruolo').replace(/\s*\/\s*/g, '/');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImageSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Seleziona un file immagine valido.');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('L\'immagine deve essere inferiore a 5MB.');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      await onUploadProfileImage(file);
+    } catch (error) {
+      console.error('Errore durante il caricamento:', error);
+      alert('Errore durante il caricamento dell\'immagine.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#0f0d0e]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}>
-      {/* Header */}
-      <div className="bg-gradient-to-b from-[#2d0a0f] to-[#0f0d0e] p-6 pb-8">
-        <div className="w-full max-w-md mx-auto text-center">
-          {/* Avatar */}
-          <div className="w-24 h-24 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <User className="text-[#f4bf4f]" size={48} />
+    <div
+      className="min-h-screen"
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}
+    >
+      <div className="w-full app-content pt-[36px] pb-0 flex flex-col gap-[20px]">
+        <div className="flex items-center px-[25px]">
+          <div className="relative">
+            <div className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-full shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] size-[96px] flex items-center justify-center overflow-hidden">
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt="Profilo"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="text-[#f4bf4f]" size={48} />
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleImageSelect}
+              disabled={isUploading}
+              className="absolute bottom-0 right-0 bg-[#f4bf4f] rounded-full p-2 shadow-lg disabled:opacity-50"
+            >
+              <Camera className="text-[#0f0d0e]" size={16} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
           </div>
-          
-          <h2 className="text-white mb-1">{userName}</h2>
-          <p className="text-[#f4bf4f] mb-4">{userRole}</p>
-          
-          <div className="flex items-center justify-center gap-4">
-            <Badge variant="gold" size="md">
-              Livello {level}
-            </Badge>
-            <Badge variant="outline" size="md">
-              {reputationGlobal} Rep
-            </Badge>
+          <div className="flex flex-col items-center w-[255px]">
+            <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-white text-center">
+              {userName || 'Utente'}
+            </p>
+            <p className="text-[16px] leading-[25.6px] text-[#f4bf4f] text-center">
+              {roleLabel}
+            </p>
           </div>
         </div>
-      </div>
-      
-      {/* Main Content */}
-      <div className="w-full max-w-md mx-auto px-6 space-y-6 pt-6 pb-8">
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3">
-          <Card hoverable onClick={onViewCarriera}>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center mx-auto mb-3">
-                <BarChart3 className="text-[#f4bf4f]" size={24} />
-              </div>
-              <p className="text-white">Carriera</p>
+
+        <div className="flex flex-col gap-[12px] px-[25px]">
+          <button
+            type="button"
+            onClick={onViewCarriera}
+            className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] flex items-center h-[48px] overflow-hidden"
+          >
+            <div className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-[16.4px] size-[48px] flex items-center justify-center">
+              <BarChart3 className="text-[#f4bf4f]" size={24} />
             </div>
-          </Card>
-          
-          <Card hoverable onClick={onSettings}>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-[#241f20] rounded-xl flex items-center justify-center mx-auto mb-3">
-                <Settings className="text-[#f4bf4f]" size={24} />
-              </div>
-              <p className="text-white">Impostazioni</p>
+            <div className="flex-1 relative h-full">
+              <p className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[16px] leading-[25.6px] text-white !m-0">
+                Carriera
+              </p>
             </div>
-          </Card>
+          </button>
         </div>
-        
-        {/* Stats Overview */}
-        <Card>
-          <h4 className="text-white mb-4">Statistiche generali</h4>
-          
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm text-[#b8b2b3] mb-2">
-                <span>XP totale</span>
-                <span className="text-white">{xpTotal}</span>
-              </div>
+
+        <div className="flex flex-col gap-[20px] px-[25px]">
+          <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[5px] py-[2px] flex flex-col gap-[8px]">
+            <p className="text-[18px] leading-[25.2px] font-semibold text-white">
+              Statistiche generali
+            </p>
+            <div className="flex items-center justify-between px-[5px] text-[14px] leading-[20px] text-[#b8b2b3]">
+              <span>Livello</span>
+              <span className="text-white">{level}</span>
             </div>
-            
-            <div>
-              <div className="flex justify-between text-sm text-[#b8b2b3] mb-2">
-                <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between px-[5px] text-[14px] leading-[20px] text-[#b8b2b3]">
+              <span>XP totale</span>
+              <span className="text-white">{xpTotal}</span>
+            </div>
+            <div className="flex flex-col gap-[4px] px-[5px]">
+              <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
+                <span className="flex items-center gap-[8px]">
                   <Theater size={14} />
-                  <span>XP sul campo (eventi ATCL)</span>
-                </div>
+                  XP sul campo (eventi ATCL)
+                </span>
                 <span className="text-[#f4bf4f]">{xpSulCampo}</span>
               </div>
-              <ProgressBar 
-                value={xpSulCampo} 
-                max={xpTotal} 
-                color="gold" 
-              />
+              <ProgressBar value={xpSulCampo} max={safeXpTotal} color="gold" size="md" />
             </div>
-            
-            <div>
-              <div className="flex justify-between text-sm text-[#b8b2b3] mb-2">
+            <div className="flex flex-col gap-[4px] px-[5px]">
+              <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
                 <span>Reputazione ATCL globale</span>
                 <span className="text-white">{reputationGlobal}/100</span>
               </div>
-              <ProgressBar 
-                value={reputationGlobal} 
-                max={100} 
-                color="burgundy" 
-              />
+              <ProgressBar value={reputationGlobal} max={100} color="burgundy" size="md" />
             </div>
           </div>
-        </Card>
-        
-        {/* Theatre Reputation */}
-        <Card>
-          <h4 className="text-white mb-4">Reputazione per teatro</h4>
-          
-          <div className="space-y-4">
-            {theatreReputation.map((theatre) => (
-              <div key={theatre.name}>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-[#b8b2b3]">{theatre.name}</span>
-                  <span className="text-white">{theatre.reputation}/100</span>
-                </div>
-                <ProgressBar 
-                  value={theatre.reputation} 
-                  max={100} 
-                  color="burgundy" 
-                  size="sm"
-                />
-              </div>
-            ))}
-          </div>
-        </Card>
-        
-        {/* Achievements */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-white">Titoli ottenuti</h4>
-            <Badge variant="gold" size="sm">{achievements.length}</Badge>
-          </div>
-          
-          <div className="space-y-3">
-            {achievements.map((achievement) => {
-              const Icon = achievement.icon;
-              return (
-                <div 
-                  key={achievement.id} 
-                  className="flex items-center gap-3 p-3 bg-[#241f20] rounded-lg"
-                >
-                  <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#e6a23c] to-[#f4bf4f] rounded-lg flex items-center justify-center">
-                    <Icon className="text-[#0f0d0e]" size={20} />
+
+          <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[5px] py-[2px] flex flex-col gap-[8px]">
+            <p className="text-[18px] leading-[25.2px] font-semibold text-white">
+              Reputazione per teatro
+            </p>
+            {theatreReputationLoading ? (
+              <p className="px-[5px] text-[14px] leading-[20px] text-[#b8b2b3]">
+                Caricamento...
+              </p>
+            ) : null}
+            <div className="flex flex-col gap-[10px]">
+              {theatreReputation.map((theatre) => (
+                <div key={theatre.name} className="flex flex-col gap-[4px]">
+                  <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
+                    <span>{theatre.name}</span>
+                    <span className="text-white">{theatre.reputation}/100</span>
                   </div>
-                  <span className="text-[#b8b2b3]">{achievement.title}</span>
+                  <ProgressBar value={theatre.reputation} max={100} color="burgundy" size="sm" />
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
-        </Card>
-        
-        {/* Account Settings */}
-        <Card hoverable onClick={onSettings}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+
+          <button
+            type="button"
+            onClick={onViewTitoli}
+            className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex items-center justify-between"
+          >
+            <div className="flex items-center gap-[12px]">
+              <div className="bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f] rounded-[12px] size-[44px] flex items-center justify-center">
+                <Award className="text-[#0f0d0e]" size={22} />
+              </div>
+              <div className="flex flex-col items-start">
+                <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
+                  Titoli ottenuti
+                </p>
+                <p className="text-[14px] leading-[20px] text-[#b8b2b3] !m-0">
+                  {badgesUnlockedCount} badge sbloccati
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-[8px]">
+              {newBadgesCount > 0 ? (
+                <span className="bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f] rounded-full size-[20px] flex items-center justify-center text-[12px] leading-[16px] text-[#0f0d0e]">
+                  {newBadgesCount}
+                </span>
+              ) : null}
+              <ChevronRight className="text-[#7a7577]" size={20} />
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={onSettings}
+            className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] h-[51px] flex items-center justify-between px-[12px]"
+          >
+            <div className="flex items-center gap-[12px]">
               <Settings className="text-[#f4bf4f]" size={24} />
-              <div>
-                <h4 className="text-white">Gestisci account</h4>
-                <p className="text-sm text-[#b8b2b3]">Impostazioni e privacy</p>
+              <div className="flex flex-col items-start text-left">
+                <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
+                  Gestisci account
+                </p>
+                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                  Impostazioni e privacy
+                </p>
               </div>
             </div>
             <ChevronRight className="text-[#7a7577]" size={20} />
-          </div>
-        </Card>
-        
-        {/* Logout Button */}
-        <Button
-          variant="ghost"
-          size="lg"
-          fullWidth
-          onClick={onLogout}
-          className="text-[#ff4d4f] hover:bg-[#ff4d4f]/10 mt-4"
-        >
-          <LogOut size={20} />
-          Esci
-        </Button>
+          </button>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[18px] leading-[28px] text-[#ff4d4f]"
+          >
+            <LogOut size={20} />
+            Esci
+          </button>
+        </div>
       </div>
     </div>
   );

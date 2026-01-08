@@ -1,14 +1,14 @@
 import React from 'react';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
-import { ProgressBar } from '../ui/ProgressBar';
 import { Tag } from '../ui/Tag';
 import { MetricTile } from '../ui/MetricTile';
 import { Skeleton } from '../ui/skeleton';
 import { Button } from '../ui/Button';
-import { QrCode, Play, Calendar, TrendingUp, Award, ChevronRight, MapPin, Clock, Navigation, CalendarPlus, X, Bell } from 'lucide-react';
+import { Play, Calendar, TrendingUp, Award, ChevronRight, Navigation, CalendarPlus, X, Bell } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { GameEvent } from '../../state/store';
+import { ScanQRCard } from '../ScanQRCard';
 
 type EventState = 'loading' | 'error' | 'empty' | 'ready';
 
@@ -20,6 +20,11 @@ interface HomeProps {
   xpToNextLevel: number;
   reputation: number;
   totalTurns: number;
+  turnsThisMonth: number;
+  uniqueTheatres: number;
+  newBadgesCount?: number;
+  newBadgeTitle?: string;
+  onDismissBadgeNotification?: () => void;
   upcomingEvent?: GameEvent;
   activitiesCount: number;
   eventLoading?: boolean;
@@ -38,6 +43,11 @@ export function Home({
   xpToNextLevel,
   reputation,
   totalTurns,
+  turnsThisMonth,
+  uniqueTheatres,
+  newBadgesCount = 0,
+  newBadgeTitle,
+  onDismissBadgeNotification,
   upcomingEvent,
   activitiesCount,
   eventLoading = false,
@@ -49,34 +59,41 @@ export function Home({
 }: HomeProps) {
   const xpToNext = Math.max(xpToNextLevel - xp, 0);
   const [showBadge, setShowBadge] = React.useState(true);
+  const hasNewBadges = newBadgesCount > 0;
 
   const eventState: EventState = eventError ? 'error' : eventLoading ? 'loading' : !upcomingEvent ? 'empty' : 'ready';
 
   return (
     <div
-      className="min-h-screen bg-[#0f0d0e] flex flex-col justify-center items-center"
+      className="min-h-screen flex flex-col justify-center items-center"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
     >
-      <div className="w-full max-w-md mx-auto px-6 pt-6 pb-8 space-y-6">
+      <div className="w-full app-content px-6 pt-6 pb-8 space-y-6">
         <header className="space-y-4 relative" style={{ marginBottom: '20px' }}>
           <div className="absolute top-0 right-0">
             <Popover>
               <PopoverTrigger asChild>
-                <button className="p-2 rounded-lg hover:bg-[#241f20] transition">
+                <button className="flex items-center justify-center size-[44px] rounded-lg hover:bg-[#241f20] transition">
                   <Bell size={20} className="text-[#f4bf4f]" />
                 </button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-80 bg-[#1a1617] border-[#3d3a3b] p-3">
-                {showBadge ? (
+                {showBadge && hasNewBadges ? (
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#f4bf4f] to-[#e6a23c] rounded-lg flex items-center justify-center">
                       <Award className="text-[#0f0d0e]" size={20} />
                     </div>
                     <div className="flex-1">
                       <p className="text-xs text-[#f4bf4f] mb-1 font-semibold">Nuovo titolo ottenuto</p>
-                      <p className="text-white text-sm">Ha lavorato in 3 teatri diversi</p>
+                      <p className="text-white text-sm">{newBadgeTitle ?? 'Hai sbloccato un nuovo badge'}</p>
                     </div>
-                    <button onClick={() => setShowBadge(false)} className="text-[#7a7577] p-1 hover:text-white flex-shrink-0">
+                    <button
+                      onClick={() => {
+                        setShowBadge(false);
+                        onDismissBadgeNotification?.();
+                      }}
+                      className="text-[#7a7577] p-1 hover:text-white flex-shrink-0"
+                    >
                       <X size={16} />
                     </button>
                   </div>
@@ -113,27 +130,7 @@ export function Home({
           </div>
         </header>
 
-        <Card className="bg-gradient-to-r from-[#8c1c38] to-[#a82847] border border-[#f4bf4f]/30" style={{ marginTop: '20px' }}>
-          <div className="flex items-center gap-3">
-            <div className="flex-shrink-0 w-12 h-12 bg-[#f4bf4f] rounded-xl flex items-center justify-center" style={{ margin: '5px 0 5px 5px' }}>
-              <QrCode className="text-[#2d0a0f]" size={24} />
-            </div>
-            <div className="flex-1">
-              <button
-                onClick={onScanQR}
-                className="w-full text-left text-white hover:opacity-90 transition"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="font-semibold text-base">Scansiona QR</p>
-                    <p className="text-sm text-[#f4bf4f]/90">Registra un turno dal biglietto</p>
-                  </div>
-                  <ChevronRight className="text-white" size={22} />
-                </div>
-              </button>
-            </div>
-          </div>
-        </Card>
+        <ScanQRCard onScanQR={onScanQR} className="mt-5" />
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
@@ -141,7 +138,7 @@ export function Home({
             {eventState === 'ready' ? (
               <button
                 onClick={onViewTurni}
-                className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-2 py-1 rounded-lg"
+                className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
                 style={{ margin: '20px 0 5px' }}
               >
                 Dettagli
@@ -180,9 +177,9 @@ export function Home({
             ) : (
               <div className="space-y-2">
                 <div className="flex items-start gap-3" style={{ marginBottom: '20px' }}>
-                  <div className="flex-shrink-0 bg-[#241f20] rounded-lg flex flex-col items-center justify-center" style={{ width: '70px', height: '70px' }}>
-                    <Calendar className="text-[#f4bf4f]" size={50} />
-                    <p className="text-xs text-[#f4bf4f] mt-1">{upcomingEvent?.date?.slice(0, 6)}</p>
+                  <div className="flex-shrink-0 bg-[#241f20] rounded-lg flex flex-col items-center justify-center w-[70px] h-[70px] gap-1">
+                    <Calendar className="text-[#f4bf4f] block" size={50} />
+                    <p className="text-xs leading-none text-[#f4bf4f] !m-0">{upcomingEvent?.date?.slice(0, 6)}</p>
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-white text-lg leading-tight line-clamp-2">{upcomingEvent?.name}</h4>
@@ -200,11 +197,11 @@ export function Home({
                   </div>
                 </div>
                 <div className="flex gap-2 pt-1">
-                  <Button variant="secondary" size="sm" className="flex-1 justify-center" onClick={onViewTurni} style={{ backgroundColor: '#a72847' }}>
+                  <Button variant="secondary" size="sm" className="flex-1 justify-center min-h-[44px]" onClick={onViewTurni} style={{ backgroundColor: '#a72847' }}>
                     <Navigation size={16} className="text-white" />
                     <div className="text-white">Naviga</div>
                   </Button>
-                  <Button variant="ghost" size="sm" className="flex-1 justify-center" onClick={onViewTurni}>
+                  <Button variant="ghost" size="sm" className="flex-1 justify-center min-h-[44px]" onClick={onViewTurni}>
                     <CalendarPlus size={16} />
                     Aggiungi
                   </Button>
@@ -219,13 +216,13 @@ export function Home({
             <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>Turni ATCL</h3>
             <button
               onClick={onViewTurni}
-              className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-2 py-1 rounded-lg"
+              className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
               style={{ marginTop: '20px' }}
             >
               Vedi tutti
             </button>
           </div>
-          <Card style={{ padding: '5px' }}>
+          <Card>
             {statsLoading ? (
               <div className="grid grid-cols-3 gap-3">
                 <Skeleton className="h-16 rounded-xl" />
@@ -235,8 +232,8 @@ export function Home({
             ) : (
               <div className="grid grid-cols-3 gap-3">
                 <MetricTile label="Totale turni" value={totalTurns} onClick={onViewTurni} />
-                <MetricTile label="Questo mese" value={Math.max(0, totalTurns - 7)} onClick={onViewTurni} />
-                <MetricTile label="Teatri diversi" value={Math.min(3, totalTurns || 1)} onClick={onViewTurni} />
+                <MetricTile label="Questo mese" value={turnsThisMonth} onClick={onViewTurni} />
+                <MetricTile label="Teatri diversi" value={uniqueTheatres} onClick={onViewTurni} />
               </div>
             )}
           </Card>
@@ -244,7 +241,7 @@ export function Home({
 
         <section className="space-y-3">
           <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>Attività simulate</h3>
-          <Card hoverable onClick={onViewActivities} style={{ marginBottom: '20px', padding: '5px' }}>
+          <Card hoverable onClick={onViewActivities} className="mb-5">
             <div className="flex items-center gap-4">
               <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
                 <Play className="text-[#f4bf4f]" size={24} />
