@@ -168,7 +168,7 @@ export function attachPermissionsListeners(root: HTMLElement) {
                 icon: "/icons/pwa-192.png"
             });
             renderResult("Notifica di prova inviata.", "ok");
-        } catch (e) {
+        } catch {
             renderResult("Invio notifica fallito.", "error");
         }
     });

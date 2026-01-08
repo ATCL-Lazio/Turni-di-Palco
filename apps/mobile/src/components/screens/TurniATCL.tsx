@@ -2,15 +2,17 @@ import React, { useMemo } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
+import { ScanQRCard } from '../ScanQRCard';
 import { QrCode, MapPin, Calendar, TrendingUp, Theater } from 'lucide-react';
-import { TurnRecord, RoleId, roles } from '../../state/store';
+import { TurnRecord, Role, RoleId } from '../../state/store';
 
 interface TurniATCLProps {
   turns: TurnRecord[];
+  roles: Role[];
   onScanQR: () => void;
 }
 
-export function TurniATCL({ turns, onScanQR }: TurniATCLProps) {
+export function TurniATCL({ turns, roles, onScanQR }: TurniATCLProps) {
   const stats = useMemo(() => {
     const totalXp = turns.reduce((acc, turn) => acc + turn.rewards.xp, 0);
     const theatreCount = new Set(turns.map((turn) => turn.theatre)).size;
@@ -18,37 +20,24 @@ export function TurniATCL({ turns, onScanQR }: TurniATCLProps) {
     return { totalXp, theatreCount, totalTurns };
   }, [turns]);
 
-  const resolveRoleName = (roleId: RoleId) => roles.find((role) => role.id === roleId)?.name ?? 'Ruolo';
+  const resolveRoleName = (roleId: RoleId) =>
+    roles.find((role) => role.id === roleId)?.name ?? 'Ruolo';
   const sortedTurns = useMemo(() => [...turns].sort((a, b) => b.createdAt - a.createdAt), [turns]);
 
   return (
     <div
-      className="min-h-screen bg-[#0f0d0e]"
+      className="min-h-screen"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
     >
-      {/* Header */}
-      <div className="bg-gradient-to-b from-[#2d0a0f] to-[#0f0d0e] p-6 pb-8">
-        <div className="w-full max-w-md mx-auto">
-          <h2 className="text-white mb-2" style={{ margin: "auto 0 20px" }}>Turni ATCL</h2>
-          <p className="text-[#b8b2b3]">
-            I tuoi eventi teatrali registrati
-          </p>
-        </div>
-      </div>
-      
       {/* Main Content */}
-      <div className="w-full max-w-md mx-auto px-6 space-y-6 pt-6 pb-8">
+      <div className="w-full app-content px-6 space-y-6 pt-6 pb-8">
+        <div>
+          <h2 className="text-white mb-2">Turni ATCL</h2>
+          <p className="text-[#b8b2b3]">I tuoi eventi teatrali registrati</p>
+        </div>
+
         {/* Scan Button */}
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          onClick={onScanQR}
-          style={{ padding: "0 5px" }}
-        >
-          <QrCode size={20} />
-          Registra nuovo turno (Scansiona QR)
-        </Button>
+        <ScanQRCard onScanQR={onScanQR} />
         
         {/* Stats Summary */}
         <Card>

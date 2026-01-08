@@ -10,6 +10,6 @@ Code bundle for the Turni di Palco mobile experience.
 
 ## Authentication and state persistence
 
-- The login view only edits the profile email; there is no backend authentication and no password handling.
+- The login view only edits the profile email; when Supabase is configured it uses Supabase Auth for sign-up/sign-in.
 - All gameplay and profile data are stored locally in the browser under the `tdp-mobile-ui-state` key via `window.localStorage` (see `src/state/store.tsx`).
   
