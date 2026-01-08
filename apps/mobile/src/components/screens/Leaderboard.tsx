@@ -62,12 +62,15 @@ export function Leaderboard() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-white font-semibold truncate">{entry.name}</p>
-                        {isMe ? <Tag size="sm">Tu</Tag> : null}
-                      </div>
-                      <p className="text-sm text-[#b8b2b3] truncate">{roleName}</p>
+                      <p className="text-white font-semibold truncate" style={{ marginBottom: 0 }}>{entry.name}</p>
+                      <p className="text-xs text-[#b8b2b3] truncate">{roleName}</p>
                     </div>
+
+                    {isMe ? (
+                      <div className="absolute top-2 right-2">
+                        <Tag size="sm">Tu</Tag>
+                      </div>
+                    ) : null}
 
                     <div className="flex items-center gap-2 text-[#f4bf4f]">
                       <Trophy size={18} />
