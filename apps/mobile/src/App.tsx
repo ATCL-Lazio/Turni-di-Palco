@@ -10,6 +10,7 @@ import { QRScanner } from './components/screens/QRScanner';
 import { EventConfirmation } from './components/screens/EventConfirmation';
 import { Attivita } from './components/screens/Attivita';
 import { ActivityDetail } from './components/screens/ActivityDetail';
+import { Leaderboard } from './components/screens/Leaderboard';
 import { Profilo } from './components/screens/Profilo';
 import { AccountSettings } from './components/screens/AccountSettings';
 import { ChangePassword } from './components/screens/ChangePassword';
@@ -28,6 +29,7 @@ type Screen =
   | 'role-selection'
   | 'home'
   | 'turni'
+  | 'leaderboard'
   | 'qr-scanner'
   | 'event-confirmation'
   | 'attivita'
@@ -40,7 +42,7 @@ type Screen =
   | 'privacy'
   | 'titoli-ottenuti';
 
-type Tab = 'home' | 'turni' | 'attivita' | 'profilo';
+type Tab = 'home' | 'turni' | 'leaderboard' | 'attivita' | 'profilo';
 
 type LegalReturnScreen = Exclude<Screen, 'terms' | 'privacy'>;
 
@@ -64,6 +66,7 @@ const VALID_SCREENS = new Set<Screen>([
   'role-selection',
   'home',
   'turni',
+  'leaderboard',
   'qr-scanner',
   'event-confirmation',
   'attivita',
@@ -77,7 +80,7 @@ const VALID_SCREENS = new Set<Screen>([
   'titoli-ottenuti',
 ]);
 
-const VALID_TABS = new Set<Tab>(['home', 'turni', 'attivita', 'profilo']);
+const VALID_TABS = new Set<Tab>(['home', 'turni', 'leaderboard', 'attivita', 'profilo']);
 
 const VALID_LEGAL_RETURN_SCREENS = new Set<LegalReturnScreen>([
   'welcome',
@@ -140,6 +143,7 @@ function getScreenToPersist(screen: Screen, activeTab: Tab): Screen {
 
 function AppShell() {
   const {
+    authUserId,
     state,
     roles,
     events,
@@ -274,6 +278,9 @@ function AppShell() {
       case 'turni':
         setCurrentScreen('turni');
         break;
+      case 'leaderboard':
+        setCurrentScreen('leaderboard');
+        break;
       case 'attivita':
         setCurrentScreen('attivita');
         break;
@@ -348,13 +355,13 @@ function AppShell() {
   };
 
   const handleUploadProfileImage = async (file: File) => {
-    if (!supabase || !state.authUserId) {
+    if (!supabase || !authUserId) {
       throw new Error('Supabase non configurato o utente non autenticato');
     }
 
     // Create a unique filename
     const fileExt = file.name.split('.').pop();
-    const fileName = `${state.authUserId}/profile.${fileExt}`;
+    const fileName = `${authUserId}/profile.${fileExt}`;
 
     // Upload to Supabase storage
     const { data, error } = await supabase.storage
@@ -521,6 +528,9 @@ function AppShell() {
           />
         );
 
+      case 'leaderboard':
+        return <Leaderboard />;
+
       case 'qr-scanner':
         return (
           <QRScanner
@@ -650,7 +660,7 @@ function AppShell() {
     }
   };
 
-  const showBottomNav = ['home', 'turni', 'attivita', 'profilo', 'carriera', 'titoli-ottenuti'].includes(currentScreen);
+  const showBottomNav = ['home', 'turni', 'leaderboard', 'attivita', 'profilo', 'carriera', 'titoli-ottenuti'].includes(currentScreen);
 
   return (
     <div className="min-h-screen app-gradient app-shell">
