@@ -48,3 +48,5 @@
 |-------|:--------------------------------------:|----------------------------------------|
 | Codex | Codex                                | codex@users.noreply.github.com         |
 | Gemini | Gemini | gemini-code-assist@users.noreply.github.com |
+| Cascade | Cascade | cascade@users.noreply.github.com |
+| GitHub Copilot | GitHub Copilot | github-copilot@users.noreply.github.com |
