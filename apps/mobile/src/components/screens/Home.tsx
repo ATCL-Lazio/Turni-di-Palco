@@ -33,6 +33,8 @@ interface HomeProps {
   onScanQR: () => void;
   onViewActivities: () => void;
   onViewTurni: () => void;
+  onViewEventDetails: () => void;
+  onNavigateToEvent: () => void;
 }
 
 export function Home({
@@ -56,6 +58,8 @@ export function Home({
   onScanQR,
   onViewActivities,
   onViewTurni,
+  onViewEventDetails,
+  onNavigateToEvent,
 }: HomeProps) {
   const xpToNext = Math.max(xpToNextLevel - xp, 0);
   const [showBadge, setShowBadge] = React.useState(true);
@@ -137,7 +141,7 @@ export function Home({
             <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>Prossimo evento</h3>
             {eventState === 'ready' ? (
               <button
-                onClick={onViewTurni}
+                onClick={onViewEventDetails}
                 className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
                 style={{ margin: '20px 0 5px' }}
               >
@@ -197,7 +201,7 @@ export function Home({
                   </div>
                 </div>
                 <div className="flex gap-2 pt-1">
-                  <Button variant="secondary" size="sm" className="flex-1 justify-center min-h-[44px]" onClick={onViewTurni} style={{ backgroundColor: '#a72847' }}>
+                  <Button variant="secondary" size="sm" className="flex-1 justify-center min-h-[44px]" onClick={onNavigateToEvent} style={{ backgroundColor: '#a72847' }}>
                     <Navigation size={16} className="text-white" />
                     <div className="text-white">Naviga</div>
                   </Button>
