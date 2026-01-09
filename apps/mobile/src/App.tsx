@@ -8,6 +8,7 @@ import { Home } from './components/screens/Home';
 import { TurniATCL } from './components/screens/TurniATCL';
 import { QRScanner } from './components/screens/QRScanner';
 import { EventConfirmation } from './components/screens/EventConfirmation';
+import { EventDetails } from './components/screens/EventDetails';
 import { Attivita } from './components/screens/Attivita';
 import { ActivityDetail } from './components/screens/ActivityDetail';
 import { Leaderboard } from './components/screens/Leaderboard';
@@ -32,6 +33,7 @@ type Screen =
   | 'leaderboard'
   | 'qr-scanner'
   | 'event-confirmation'
+  | 'event-details'
   | 'attivita'
   | 'activity-detail'
   | 'profilo'
@@ -69,6 +71,7 @@ const VALID_SCREENS = new Set<Screen>([
   'leaderboard',
   'qr-scanner',
   'event-confirmation',
+  'event-details',
   'attivita',
   'activity-detail',
   'profilo',
@@ -335,6 +338,21 @@ function AppShell() {
     setCurrentScreen('carriera');
   };
 
+  const handleViewEventDetails = () => {
+    if (!upcomingEvent) return;
+    setScannedEventId(upcomingEvent.id);
+    setCurrentScreen('event-details');
+  };
+
+  const handleNavigateToEvent = () => {
+    if (!upcomingEvent) return;
+    const query = encodeURIComponent(upcomingEvent.theatre);
+    const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener');
+    }
+  };
+
   const handleViewTitoli = () => {
     setCurrentScreen('titoli-ottenuti');
   };
@@ -515,6 +533,8 @@ function AppShell() {
             onScanQR={() => setCurrentScreen('qr-scanner')}
             onViewActivities={() => handleTabChange('attivita')}
             onViewTurni={() => handleTabChange('turni')}
+            onViewEventDetails={handleViewEventDetails}
+            onNavigateToEvent={handleNavigateToEvent}
             upcomingEvent={upcomingEvent}
             totalTurns={turnStats.totalTurns}
             turnsThisMonth={turnStats.turnsThisMonth}
@@ -561,6 +581,15 @@ function AppShell() {
           />
         );
       }
+
+      case 'event-details':
+        return (
+          <EventDetails
+            event={selectedEvent}
+            onBack={() => setCurrentScreen('home')}
+            onNavigate={handleNavigateToEvent}
+          />
+        );
 
       case 'attivita':
         return <Attivita activities={activities} onStartActivity={handleStartActivity} />;
