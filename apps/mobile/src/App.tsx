@@ -349,9 +349,10 @@ function AppShell() {
     setCurrentScreen('event-details');
   };
 
-  const handleNavigateToEvent = () => {
-    if (!upcomingEvent) return;
-    const destination = encodeURIComponent(upcomingEvent.theatre);
+  const handleNavigateToEvent = (event?: { theatre: string } | null) => {
+    const targetEvent = event ?? upcomingEvent;
+    if (!targetEvent) return;
+    const destination = encodeURIComponent(targetEvent.theatre);
     if (typeof window === 'undefined') return;
     const geoUrl = `geo:0,0?q=${destination}`;
     const webFallback = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
@@ -550,7 +551,7 @@ function AppShell() {
             onViewActivities={() => handleTabChange('attivita')}
             onViewTurni={() => handleTabChange('turni')}
             onViewEventDetails={handleViewEventDetails}
-            onNavigateToEvent={handleNavigateToEvent}
+            onNavigateToEvent={() => handleNavigateToEvent(upcomingEvent)}
             upcomingEvent={upcomingEvent}
             totalTurns={turnStats.totalTurns}
             turnsThisMonth={turnStats.turnsThisMonth}
@@ -609,7 +610,7 @@ function AppShell() {
           <EventDetails
             event={selectedEvent}
             onBack={() => setCurrentScreen('home')}
-            onNavigate={handleNavigateToEvent}
+            onNavigate={() => handleNavigateToEvent(selectedEvent)}
           />
         );
 
