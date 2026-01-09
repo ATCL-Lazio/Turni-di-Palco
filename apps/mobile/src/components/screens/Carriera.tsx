@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Screen } from '../ui/Screen';
-import type { Badge as GameBadge, Role, RoleId, TurnStats } from '../../state/store';
+import type { Badge as GameBadge, Role, RoleId, TurnRecord, TurnStats } from '../../state/store';
 
 interface CarrieraProps {
   userRole: string;
@@ -25,6 +25,8 @@ interface CarrieraProps {
   roleStats: Role['stats'];
   turnStats: TurnStats;
   badges: GameBadge[];
+  turns: TurnRecord[];
+  roles: Role[];
   level: number;
   xp: number;
   xpToNextLevel: number;
@@ -78,6 +80,8 @@ export function Carriera({
   roleStats,
   turnStats,
   badges,
+  turns,
+  roles,
   level,
   xp,
   xpToNextLevel,
@@ -87,6 +91,9 @@ export function Carriera({
   onBack,
 }: CarrieraProps) {
   const RoleIcon = ROLE_ICONS[roleId] ?? Users;
+  const sortedTurns = React.useMemo(() => [...turns].sort((a, b) => b.createdAt - a.createdAt), [turns]);
+  const resolveRoleName = (roleIdValue: RoleId) =>
+    roles.find((role) => role.id === roleIdValue)?.name ?? 'Ruolo';
   const milestones = React.useMemo(() => {
     return [...badges].sort(
       (a, b) =>
@@ -263,6 +270,45 @@ export function Carriera({
                 <p className="text-sm text-[#b8b2b3]">Nessun traguardo disponibile</p>
               )}
             </div>
+          </Card>
+
+          <Card>
+            <h4 className="text-white mb-4">Storia turni</h4>
+            {sortedTurns.length ? (
+              <div className="space-y-3">
+                {sortedTurns.map((turno) => (
+                  <div key={turno.id} className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-12 h-12 bg-[#241f20] rounded-lg flex items-center justify-center">
+                      <Theater className="text-[#f4bf4f]" size={24} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-white mb-1">{turno.eventName}</h4>
+                      <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mb-2">
+                        <MapPin size={14} />
+                        <span>{turno.theatre}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mb-3">
+                        <Calendar size={14} />
+                        <span>{turno.date} · {turno.time}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline" size="sm">
+                          {resolveRoleName(turno.roleId)}
+                        </Badge>
+                        <Badge variant="gold" size="sm">
+                          +{turno.rewards.xp} XP
+                        </Badge>
+                        <Badge variant="success" size="sm">
+                          +{turno.rewards.reputation} Rep
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-[#b8b2b3]">Nessun turno registrato</p>
+            )}
           </Card>
         </div>
       </div>
