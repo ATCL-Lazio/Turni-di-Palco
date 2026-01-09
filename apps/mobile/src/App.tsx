@@ -8,6 +8,7 @@ import { Home } from './components/screens/Home';
 import { TurniATCL } from './components/screens/TurniATCL';
 import { QRScanner } from './components/screens/QRScanner';
 import { EventConfirmation } from './components/screens/EventConfirmation';
+import { EventDetails } from './components/screens/EventDetails';
 import { Attivita } from './components/screens/Attivita';
 import { ActivityDetail } from './components/screens/ActivityDetail';
 import { Leaderboard } from './components/screens/Leaderboard';
@@ -32,6 +33,7 @@ type Screen =
   | 'leaderboard'
   | 'qr-scanner'
   | 'event-confirmation'
+  | 'event-details'
   | 'attivita'
   | 'activity-detail'
   | 'profilo'
@@ -69,6 +71,7 @@ const VALID_SCREENS = new Set<Screen>([
   'leaderboard',
   'qr-scanner',
   'event-confirmation',
+  'event-details',
   'attivita',
   'activity-detail',
   'profilo',
@@ -153,6 +156,11 @@ function AppShell() {
     theatreReputation,
     theatreReputationLoading,
     badges,
+    followedEvents,
+    followedEventsLoading,
+    followEvent,
+    unfollowEvent,
+    isEventFollowed,
     markBadgesSeen,
     updateProfile,
     registerTurn,
@@ -185,7 +193,7 @@ function AppShell() {
   const [authError, setAuthError] = useState<string | null>(null);
   const currentScreenRef = useRef(currentScreen);
 
-  const upcomingEvent = useMemo(() => events[0], [events]);
+  const upcomingEvent = useMemo(() => followedEvents[0], [followedEvents]);
   const unlockedBadges = useMemo(() => badges.filter((badge) => badge.unlocked), [badges]);
   const newBadges = useMemo(() => unlockedBadges.filter((badge) => !badge.seenAt), [unlockedBadges]);
   const theatreReputationForProfile = useMemo(
@@ -198,7 +206,12 @@ function AppShell() {
   }, [newBadges]);
 
   useEffect(() => {
-    if (!events.length) return;
+    if (!events.length) {
+      if (scannedEventId) {
+        setScannedEventId('');
+      }
+      return;
+    }
     if (!scannedEventId || !events.some((event) => event.id === scannedEventId)) {
       setScannedEventId(events[0].id);
     }
@@ -291,6 +304,9 @@ function AppShell() {
   };
 
   const handleQRScanAttempt = (code: string) => {
+    if (!events.length) {
+      return { ok: false as const, error: 'Nessun evento disponibile al momento.' };
+    }
     const resolved = events.find((event) => code.toLowerCase().includes(event.id.toLowerCase()));
     if (!resolved) {
       return { ok: false as const, error: 'Questo QR non sembra appartenere a un biglietto ATCL.' };
@@ -325,6 +341,37 @@ function AppShell() {
 
   const handleViewCarriera = () => {
     setCurrentScreen('carriera');
+  };
+
+  const handleViewEventDetails = () => {
+    if (!upcomingEvent) return;
+    setScannedEventId(upcomingEvent.id);
+    setCurrentScreen('event-details');
+  };
+
+  const handleNavigateToEvent = (event?: { theatre: string } | null) => {
+    const targetEvent = event ?? upcomingEvent;
+    if (!targetEvent) return;
+    const destination = encodeURIComponent(targetEvent.theatre);
+    if (typeof window === 'undefined') return;
+    const isAppleDevice = /iPad|iPhone|iPod/i.test(navigator.userAgent);
+    if (isAppleDevice) {
+      window.location.href = `maps://?q=${destination}`;
+      return;
+    }
+    if (/Android/i.test(navigator.userAgent)) {
+      window.location.href = `geo:0,0?q=${destination}`;
+      return;
+    }
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}`, '_blank', 'noopener');
+  };
+
+  const handleToggleFollow = (eventId: string) => {
+    if (isEventFollowed(eventId)) {
+      void unfollowEvent(eventId);
+    } else {
+      void followEvent(eventId);
+    }
   };
 
   const handleViewTitoli = () => {
@@ -461,7 +508,7 @@ function AppShell() {
     };
   }, [updateProfile, state.profile.email, state.profile.name]);
 
-  const selectedEvent = events.find((event) => event.id === scannedEventId) ?? events[0];
+  const selectedEvent = events.find((event) => event.id === scannedEventId) ?? undefined;
   const currentActivity = activities.find((item) => item.id === selectedActivityId);
 
   const renderScreen = () => {
@@ -507,11 +554,14 @@ function AppShell() {
             onScanQR={() => setCurrentScreen('qr-scanner')}
             onViewActivities={() => handleTabChange('attivita')}
             onViewTurni={() => handleTabChange('turni')}
+            onViewEventDetails={handleViewEventDetails}
+            onNavigateToEvent={() => handleNavigateToEvent(upcomingEvent)}
             upcomingEvent={upcomingEvent}
             totalTurns={turnStats.totalTurns}
             turnsThisMonth={turnStats.turnsThisMonth}
             uniqueTheatres={turnStats.uniqueTheatres}
             activitiesCount={activities.length}
+            eventLoading={followedEventsLoading}
             statsLoading={statsLoading}
             newBadgesCount={newBadges.length}
             newBadgeTitle={newestNewBadge?.title ?? undefined}
@@ -522,8 +572,13 @@ function AppShell() {
       case 'turni':
         return (
           <TurniATCL
-            turns={state.turns}
-            roles={roles}
+            events={events}
+            isEventFollowed={isEventFollowed}
+            onToggleFollow={handleToggleFollow}
+            onViewEvent={(eventId) => {
+              setScannedEventId(eventId);
+              setCurrentScreen('event-details');
+            }}
             onScanQR={() => setCurrentScreen('qr-scanner')}
           />
         );
@@ -553,6 +608,15 @@ function AppShell() {
           />
         );
       }
+
+      case 'event-details':
+        return (
+          <EventDetails
+            event={selectedEvent}
+            onBack={() => setCurrentScreen('home')}
+            onNavigate={() => handleNavigateToEvent(selectedEvent)}
+          />
+        );
 
       case 'attivita':
         return <Attivita activities={activities} onStartActivity={handleStartActivity} />;
@@ -629,6 +693,8 @@ function AppShell() {
             roleStats={selectedRole?.stats ?? fallbackRoleStats}
             turnStats={turnStats}
             badges={badges}
+            turns={state.turns}
+            roles={roles}
             level={state.profile.level}
             xp={state.profile.xp}
             xpToNextLevel={state.profile.xpToNextLevel}
