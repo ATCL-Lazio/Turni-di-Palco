@@ -354,12 +354,16 @@ function AppShell() {
     if (!targetEvent) return;
     const destination = encodeURIComponent(targetEvent.theatre);
     if (typeof window === 'undefined') return;
-    const geoUrl = `geo:0,0?q=${destination}`;
-    const webFallback = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
-    window.location.href = geoUrl;
-    window.setTimeout(() => {
-      window.open(webFallback, '_blank', 'noopener');
-    }, 600);
+    const isAppleDevice = /iPad|iPhone|iPod/i.test(navigator.userAgent);
+    if (isAppleDevice) {
+      window.location.href = `maps://?q=${destination}`;
+      return;
+    }
+    if (/Android/i.test(navigator.userAgent)) {
+      window.location.href = `geo:0,0?q=${destination}`;
+      return;
+    }
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}`, '_blank', 'noopener');
   };
 
   const handleToggleFollow = (eventId: string) => {
