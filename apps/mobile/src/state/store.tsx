@@ -711,7 +711,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       const nextEvents =
         eventsRes.error || !eventsRes.data?.length
-          ? events
+          ? (isSupabaseConfigured ? [] : events)
           : eventsRes.data.map((event: any) => ({
             id: event.id,
             name: event.name,

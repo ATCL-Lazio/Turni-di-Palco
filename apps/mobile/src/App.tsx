@@ -198,7 +198,12 @@ function AppShell() {
   }, [newBadges]);
 
   useEffect(() => {
-    if (!events.length) return;
+    if (!events.length) {
+      if (scannedEventId) {
+        setScannedEventId('');
+      }
+      return;
+    }
     if (!scannedEventId || !events.some((event) => event.id === scannedEventId)) {
       setScannedEventId(events[0].id);
     }
@@ -291,6 +296,9 @@ function AppShell() {
   };
 
   const handleQRScanAttempt = (code: string) => {
+    if (!events.length) {
+      return { ok: false as const, error: 'Nessun evento disponibile al momento.' };
+    }
     const resolved = events.find((event) => code.toLowerCase().includes(event.id.toLowerCase()));
     if (!resolved) {
       return { ok: false as const, error: 'Questo QR non sembra appartenere a un biglietto ATCL.' };
@@ -461,7 +469,7 @@ function AppShell() {
     };
   }, [updateProfile, state.profile.email, state.profile.name]);
 
-  const selectedEvent = events.find((event) => event.id === scannedEventId) ?? events[0];
+  const selectedEvent = events.find((event) => event.id === scannedEventId) ?? undefined;
   const currentActivity = activities.find((item) => item.id === selectedActivityId);
 
   const renderScreen = () => {
