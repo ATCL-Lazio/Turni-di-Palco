@@ -55,3 +55,18 @@ Nota: attualmente l’elenco eventi è mock (`apps/mobile/src/state/store.tsx`, 
 - verifica stato (attivo/non attivo),
 - redemption atomico con associamento all’utente.
 
+
+## Eventi ATCL: feed, import e follow
+- Script import: `tools/import-spazio-rossellini-events.js` (usa `.env` con `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`). Supporta `DRY_RUN` per test.
+- Edge Function: `supabase/functions/import-spazio-rossellini` (deployata). Endpoint: `https://<project>.supabase.co/functions/v1/import-spazio-rossellini`.
+- Automatizzazione consigliata via cron: `0 * * * *` (import orario).
+- Follow eventi: tabella `public.followed_events` (RLS per user). Home mostra solo eventi seguiti, Turni ATCL mostra tutti gli eventi e permette follow/unfollow.
+
+## Eventi: dettaglio e calendario
+- Pagina dettagli evento: `apps/mobile/src/components/screens/EventDetails.tsx`.
+- Export calendario: genera un file `.ics` locale usando `event_date` + `event_time` dal feed/DB. Parsing date gestisce formati tipo `01 Feb 2026` e varianti numeriche.
+
+## Navigazione mappe (mobile)
+- iOS: usa `maps://?q=...` per Apple Maps (nessun fallback web per evitare doppio launch).
+- Android: usa `geo:0,0?q=...`.
+- Desktop: fallback su Google Maps web.
