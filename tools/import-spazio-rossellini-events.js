@@ -3,6 +3,8 @@ const { createClient } = require('@supabase/supabase-js');
 const SITEMAP_URL = 'https://www.spaziorossellini.it/tribe_events-sitemap.xml';
 const EVENTS_API_URL =
   'https://www.spaziorossellini.it/wp-json/tribe/events/v1/events?per_page=50';
+const CATEGORY_SITEMAP_URL =
+  'https://www.spaziorossellini.it/tribe_events_cat-sitemap.xml';
 
 const DEFAULT_REWARDS = { xp: 140, reputation: 20, cachet: 100 };
 const DRY_RUN = process.env.DRY_RUN === '1';
@@ -57,10 +59,16 @@ const formatTime = (details, fallback) => {
   return '20:30';
 };
 
-const resolveGenre = (categories = []) => {
+const resolveGenre = (categories = [], allowedSlugs) => {
   const preferred = categories.find((category) => {
     const name = (category?.name ?? '').toString();
-    return name && name.toUpperCase() !== 'IN EVIDENZA';
+    const slug = (category?.slug ?? '').toString();
+    if (!name) return false;
+    if (name.toUpperCase() === 'IN EVIDENZA' || slug === 'in-evidenza') return false;
+    if (allowedSlugs && allowedSlugs.size > 0 && !allowedSlugs.has(slug)) {
+      return false;
+    }
+    return true;
   });
   return (preferred?.name ?? categories[0]?.name ?? 'Teatro').toString();
 };
@@ -91,6 +99,25 @@ const fetchSitemapUrls = async () => {
   return urls;
 };
 
+const fetchCategorySlugs = async () => {
+  const res = await fetch(CATEGORY_SITEMAP_URL);
+  if (!res.ok) {
+    return new Set();
+  }
+  const xml = await res.text();
+  const slugs = new Set();
+  const regex = /<loc>(?:<!\[CDATA\[)?([^<\]]+)(?:\]\]>)?<\/loc>/g;
+  let match;
+  while ((match = regex.exec(xml))) {
+    const url = match[1].trim();
+    const slugMatch = url.match(/\/events\/categoria\/([^/]+)\//);
+    if (slugMatch?.[1]) {
+      slugs.add(slugMatch[1]);
+    }
+  }
+  return slugs;
+};
+
 const fetchAllEvents = async () => {
   const events = [];
   let nextUrl = EVENTS_API_URL;
@@ -112,13 +139,13 @@ const fetchAllEvents = async () => {
   return events;
 };
 
-const mapEvent = (event) => ({
+const mapEvent = (event, allowedCategories) => ({
   id: `SR-${event.id}`,
   name: event.title,
   theatre: event.venue?.venue ?? 'Spazio Rossellini',
   event_date: formatDate(event.start_date_details, event.start_date),
   event_time: formatTime(event.start_date_details, event.start_date),
-  genre: resolveGenre(event.categories),
+  genre: resolveGenre(event.categories, allowedCategories),
   base_rewards: DEFAULT_REWARDS,
   focus_role: null,
 });
@@ -139,11 +166,12 @@ const upsertEvents = async (rows) => {
 
 const run = async () => {
   const sitemapUrls = await fetchSitemapUrls();
+  const categorySlugs = await fetchCategorySlugs();
   const apiEvents = await fetchAllEvents();
   const filtered = apiEvents.filter((event) =>
     sitemapUrls.has(normalizeUrl(event.url ?? ''))
   );
-  const mapped = filtered.map(mapEvent);
+  const mapped = filtered.map((event) => mapEvent(event, categorySlugs));
 
   console.log(`Sitemap URLs: ${sitemapUrls.size}`);
   console.log(`API events: ${apiEvents.length}`);
