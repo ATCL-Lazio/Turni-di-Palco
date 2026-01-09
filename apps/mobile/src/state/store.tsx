@@ -109,6 +109,20 @@ type CatalogState = {
   activities: Activity[];
 };
 
+type FollowedEventRow = {
+  event_id: string;
+  events?: {
+    id: string;
+    name: string;
+    theatre: string;
+    event_date: string;
+    event_time: string;
+    genre: string;
+    base_rewards: { xp?: number; reputation?: number; cachet?: number };
+    focus_role?: string | null;
+  } | null;
+};
+
 export const roles: Role[] = [
   { id: 'attore', name: 'Attore / Attrice', focus: 'Presenza scenica', stats: { presence: 90, precision: 70, leadership: 60, creativity: 85 } },
   { id: 'luci', name: 'Tecnico Luci', focus: 'Precisione cue', stats: { presence: 50, precision: 95, leadership: 65, creativity: 75 } },
@@ -448,6 +462,11 @@ type GameContextValue = {
   refreshLeaderboard: () => Promise<void>;
   badges: Badge[];
   badgesLoading: boolean;
+  followedEvents: GameEvent[];
+  followedEventsLoading: boolean;
+  followEvent: (eventId: string) => Promise<void>;
+  unfollowEvent: (eventId: string) => Promise<void>;
+  isEventFollowed: (eventId: string) => boolean;
   markBadgesSeen: () => void;
   updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage'>>) => void;
   registerTurn: (eventId: string, roleId: RoleId) => TurnRecord | null;
@@ -482,6 +501,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [remoteBadges, setRemoteBadges] = useState<Badge[]>([]);
   const [badgesLoading, setBadgesLoading] = useState(false);
+  const [followedEvents, setFollowedEvents] = useState<GameEvent[]>([]);
+  const [followedEventsLoading, setFollowedEventsLoading] = useState(false);
 
   const turnStats = useMemo(
     () => (isSupabaseConfigured && authUserId ? remoteTurnStats ?? localTurnStats : localTurnStats),
@@ -664,6 +685,90 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     setHasHydratedRemote(false);
   }, [authUserId]);
 
+  const refreshFollowedEvents = useCallback(
+    async (catalogEvents: GameEvent[]) => {
+      if (!isSupabaseConfigured || !supabase || !authUserId) {
+        setFollowedEvents(catalogEvents);
+        return;
+      }
+      setFollowedEventsLoading(true);
+      const { data, error } = await supabase
+        .from('followed_events')
+        .select('event_id, events:events(id,name,theatre,event_date,event_time,genre,base_rewards,focus_role)')
+        .eq('user_id', authUserId);
+      if (!error && data) {
+        const mapped = (data as FollowedEventRow[])
+          .map((row) => {
+            if (!row.events) return null;
+            return {
+              id: row.events.id,
+              name: row.events.name,
+              theatre: row.events.theatre,
+              date: row.events.event_date,
+              time: row.events.event_time,
+              genre: row.events.genre,
+              baseRewards: {
+                xp: Number(row.events.base_rewards?.xp ?? 0),
+                reputation: Number(row.events.base_rewards?.reputation ?? 0),
+                cachet: Number(row.events.base_rewards?.cachet ?? 0),
+              },
+              focusRole: row.events.focus_role ?? undefined,
+            } as GameEvent;
+          })
+          .filter(Boolean) as GameEvent[];
+        setFollowedEvents(mapped);
+      }
+      setFollowedEventsLoading(false);
+    },
+    [authUserId]
+  );
+
+  const followEvent = useCallback(
+    async (eventId: string) => {
+      if (!isSupabaseConfigured || !supabase || !authUserId) {
+        setFollowedEvents((prev) => {
+          if (prev.some((item) => item.id === eventId)) return prev;
+          const event = catalog.events.find((item) => item.id === eventId);
+          return event ? [event, ...prev] : prev;
+        });
+        return;
+      }
+      const { error } = await supabase
+        .from('followed_events')
+        .insert({ user_id: authUserId, event_id: eventId });
+      if (!error) {
+        const event = catalog.events.find((item) => item.id === eventId);
+        if (event) {
+          setFollowedEvents((prev) => [event, ...prev.filter((item) => item.id !== eventId)]);
+        }
+      }
+    },
+    [authUserId, catalog.events]
+  );
+
+  const unfollowEvent = useCallback(
+    async (eventId: string) => {
+      if (!isSupabaseConfigured || !supabase || !authUserId) {
+        setFollowedEvents((prev) => prev.filter((item) => item.id !== eventId));
+        return;
+      }
+      const { error } = await supabase
+        .from('followed_events')
+        .delete()
+        .eq('user_id', authUserId)
+        .eq('event_id', eventId);
+      if (!error) {
+        setFollowedEvents((prev) => prev.filter((item) => item.id !== eventId));
+      }
+    },
+    [authUserId]
+  );
+
+  const isEventFollowed = useCallback(
+    (eventId: string) => followedEvents.some((event) => event.id === eventId),
+    [followedEvents]
+  );
+
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !authUserId) {
       setRemoteTurnStats(null);
@@ -676,6 +781,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     refreshBadges();
     refreshLeaderboard();
   }, [authUserId, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !authUserId) {
+      setFollowedEvents(catalog.events);
+      return;
+    }
+    refreshFollowedEvents(catalog.events);
+  }, [authUserId, catalog.events, refreshFollowedEvents]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -745,6 +858,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         events: nextEvents,
         activities: nextActivities,
       });
+      refreshFollowedEvents(nextEvents);
     };
 
     loadCatalog();
@@ -931,12 +1045,26 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           refreshBadges();
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'followed_events', filter: `user_id=eq.${authUserId}` },
+        () => {
+          refreshFollowedEvents(catalog.events);
+        }
+      )
       .subscribe();
 
     return () => {
       supabase!.removeChannel(channel);
     };
-  }, [authUserId, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
+  }, [
+    authUserId,
+    catalog.events,
+    refreshBadges,
+    refreshFollowedEvents,
+    refreshTheatreReputation,
+    refreshTurnStats,
+  ]);
 
   const persistProfile = useCallback(
     (profile: PlayerProfile) => {
@@ -1227,6 +1355,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       refreshLeaderboard,
       badges,
       badgesLoading,
+      followedEvents,
+      followedEventsLoading,
+      followEvent,
+      unfollowEvent,
+      isEventFollowed,
       markBadgesSeen,
       updateProfile,
       registerTurn,
@@ -1249,6 +1382,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       refreshLeaderboard,
       badges,
       badgesLoading,
+      followedEvents,
+      followedEventsLoading,
+      followEvent,
+      unfollowEvent,
+      isEventFollowed,
       markBadgesSeen,
       updateProfile,
       registerTurn,

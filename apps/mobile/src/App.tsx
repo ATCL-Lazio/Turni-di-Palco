@@ -156,6 +156,11 @@ function AppShell() {
     theatreReputation,
     theatreReputationLoading,
     badges,
+    followedEvents,
+    followedEventsLoading,
+    followEvent,
+    unfollowEvent,
+    isEventFollowed,
     markBadgesSeen,
     updateProfile,
     registerTurn,
@@ -188,7 +193,7 @@ function AppShell() {
   const [authError, setAuthError] = useState<string | null>(null);
   const currentScreenRef = useRef(currentScreen);
 
-  const upcomingEvent = useMemo(() => events[0], [events]);
+  const upcomingEvent = useMemo(() => followedEvents[0], [followedEvents]);
   const unlockedBadges = useMemo(() => badges.filter((badge) => badge.unlocked), [badges]);
   const newBadges = useMemo(() => unlockedBadges.filter((badge) => !badge.seenAt), [unlockedBadges]);
   const theatreReputationForProfile = useMemo(
@@ -346,10 +351,21 @@ function AppShell() {
 
   const handleNavigateToEvent = () => {
     if (!upcomingEvent) return;
-    const query = encodeURIComponent(upcomingEvent.theatre);
-    const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
-    if (typeof window !== 'undefined') {
-      window.open(url, '_blank', 'noopener');
+    const destination = encodeURIComponent(upcomingEvent.theatre);
+    if (typeof window === 'undefined') return;
+    const geoUrl = `geo:0,0?q=${destination}`;
+    const webFallback = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+    window.location.href = geoUrl;
+    window.setTimeout(() => {
+      window.open(webFallback, '_blank', 'noopener');
+    }, 600);
+  };
+
+  const handleToggleFollow = (eventId: string) => {
+    if (isEventFollowed(eventId)) {
+      void unfollowEvent(eventId);
+    } else {
+      void followEvent(eventId);
     }
   };
 
@@ -540,6 +556,7 @@ function AppShell() {
             turnsThisMonth={turnStats.turnsThisMonth}
             uniqueTheatres={turnStats.uniqueTheatres}
             activitiesCount={activities.length}
+            eventLoading={followedEventsLoading}
             statsLoading={statsLoading}
             newBadgesCount={newBadges.length}
             newBadgeTitle={newestNewBadge?.title ?? undefined}
@@ -550,8 +567,13 @@ function AppShell() {
       case 'turni':
         return (
           <TurniATCL
-            turns={state.turns}
-            roles={roles}
+            events={events}
+            isEventFollowed={isEventFollowed}
+            onToggleFollow={handleToggleFollow}
+            onViewEvent={(eventId) => {
+              setScannedEventId(eventId);
+              setCurrentScreen('event-details');
+            }}
             onScanQR={() => setCurrentScreen('qr-scanner')}
           />
         );
@@ -666,6 +688,8 @@ function AppShell() {
             roleStats={selectedRole?.stats ?? fallbackRoleStats}
             turnStats={turnStats}
             badges={badges}
+            turns={state.turns}
+            roles={roles}
             level={state.profile.level}
             xp={state.profile.xp}
             xpToNextLevel={state.profile.xpToNextLevel}
