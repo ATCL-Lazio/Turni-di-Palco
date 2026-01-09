@@ -1,4 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs');
+const path = require('path');
 
 const SITEMAP_URL = 'https://www.spaziorossellini.it/tribe_events-sitemap.xml';
 const EVENTS_API_URL =
@@ -7,6 +9,26 @@ const CATEGORY_SITEMAP_URL =
   'https://www.spaziorossellini.it/tribe_events_cat-sitemap.xml';
 
 const DEFAULT_REWARDS = { xp: 140, reputation: 20, cachet: 100 };
+
+const loadEnv = () => {
+  const envPath = path.join(process.cwd(), '.env');
+  if (!fs.existsSync(envPath)) return;
+  const content = fs.readFileSync(envPath, 'utf8');
+  content.split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) return;
+    const index = trimmed.indexOf('=');
+    if (index === -1) return;
+    const key = trimmed.slice(0, index).trim();
+    const value = trimmed.slice(index + 1).trim();
+    if (!process.env[key]) {
+      process.env[key] = value;
+    }
+  });
+};
+
+loadEnv();
+
 const DRY_RUN = process.env.DRY_RUN === '1';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
