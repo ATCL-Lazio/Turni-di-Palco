@@ -7,7 +7,7 @@
     "dev": "node ../../tools/with-https-env.js vite --host 0.0.0.0 --port 5173 --strictPort --clearScreen false",
     "dev:https": "npm run dev",
     "build": "vite build",
-    "preview": "node ../../tools/with-https-env.js vite preview --host 0.0.0.0 --port 4173 --strictPort --clearScreen false",
+    "preview": "node ../../tools/with-https-env.js node ../../tools/serve-dist.js",
     "preview:https": "npm run preview",
     "test": "vitest run --passWithNoTests",
     "lint": "eslint . --ext .ts",
