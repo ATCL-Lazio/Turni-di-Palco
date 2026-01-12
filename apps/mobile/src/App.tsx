@@ -21,6 +21,7 @@ import { PrivacyPolicy } from './components/screens/PrivacyPolicy';
 import { TitoliOttenuti } from './components/screens/TitoliOttenuti';
 import { GameStateProvider, useGameState } from './state/store';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
+import { getPermission, notify } from './lib/notifications';
 
 
 type Screen =
@@ -192,6 +193,8 @@ function AppShell() {
   const [selectedActivityId, setSelectedActivityId] = useState<string>(() => persistedNavState?.selectedActivityId ?? '');
   const [authError, setAuthError] = useState<string | null>(null);
   const currentScreenRef = useRef(currentScreen);
+  const lastNotifiedBadgeId = useRef<string | null>(null);
+  const lastNotifiedEventId = useRef<string | null>(null);
 
   const upcomingEvent = useMemo(() => followedEvents[0], [followedEvents]);
   const unlockedBadges = useMemo(() => badges.filter((badge) => badge.unlocked), [badges]);
@@ -220,6 +223,30 @@ function AppShell() {
   useEffect(() => {
     currentScreenRef.current = currentScreen;
   }, [currentScreen]);
+
+  useEffect(() => {
+    if (!newestNewBadge) return;
+    if (lastNotifiedBadgeId.current === newestNewBadge.id) return;
+    if (getPermission() !== 'granted') return;
+
+    notify('Nuovo badge sbloccato', {
+      body: newestNewBadge.title,
+      tag: `badge-${newestNewBadge.id}`,
+    });
+    lastNotifiedBadgeId.current = newestNewBadge.id;
+  }, [newestNewBadge]);
+
+  useEffect(() => {
+    if (!upcomingEvent) return;
+    if (lastNotifiedEventId.current === upcomingEvent.id) return;
+    if (getPermission() !== 'granted') return;
+
+    notify('Nuovo evento in agenda', {
+      body: `${upcomingEvent.name} · ${upcomingEvent.date} ${upcomingEvent.time}`,
+      tag: `event-${upcomingEvent.id}`,
+    });
+    lastNotifiedEventId.current = upcomingEvent.id;
+  }, [upcomingEvent]);
 
   useEffect(() => {
     writeNavState({
