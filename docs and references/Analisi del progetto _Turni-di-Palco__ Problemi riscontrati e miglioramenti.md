@@ -99,4 +99,53 @@
 **File sensibili nel repository:** Verificando i contenuti, non è chiaro se esista un file di configurazione con credenziali/API key. Se tali file (es. `.env` o file di config con password) fossero versionati nel repo, sarebbe un grave rischio di sicurezza. Anche l’eventuale presenza della cartella `node_modules/` committata nel repository sarebbe una bad practice (oltre che un peso inutile).
 **Soluzione:** assicurarsi di utilizzare un file `.gitignore` ben configurato per escludere credenziali, file di configurazione sensibili e dipendenze compilate. Le chiavi segrete dovrebbero risiedere in variabili d’ambiente, non nel codice. Se per errore credenziali sono finite in commit pubblici, invalidarle immediatamente e rimuoverle dalla cronologia riscrivendola (GitHub offre strumenti per questo). Inoltre, non committare le dipendenze: usare un package manager e distribuire solo il codice sorgente; questo migliora la sicurezza perché le dipendenze vengono gestite tramite checksum verificati dal registry invece di file binari di provenienza incerta.
 
+
+## Ottimizzazioni avanzate per PWA mobile
+
+- **Code splitting e lazy loading:** Suddividere il bundle JavaScript in chunk più piccoli (per route o componenti pesanti come il QR scanner) usando gli import dinamici di Vite. Abilitare il lazy loading per immagini e moduli non critici, così da ridurre il tempo di caricamento iniziale, soprattutto su reti mobili lente.
+
+- **Preloading e prefetching:** Aggiungere `<link rel="preload">` per risorse critiche (font, icone, CSS principali) e prefetch per pagine anticipate durante la navigazione. Usare Intersection Observer per caricare contenuti on-demand quando entrano nel viewport.
+
+- **Ottimizzazione degli asset:** Analizzare il bundle con strumenti come `vite-bundle-analyzer` e rimuovere dipendenze inutilizzate. Convertire immagini in formati moderni (WebP/AVIF) con fallback, e attivare compressione e minificazione nel processo di build.
+
+## Monitoraggio, analytics e feedback
+
+- **Analytics e performance:** Integrare una soluzione di analytics (Google Analytics o alternativa privacy-friendly come Plausible) per monitorare installazioni PWA, uso offline, errori di caricamento e abbandoni. Registrare Core Web Vitals (anche via Lighthouse) per misurare regressioni di performance.
+
+- **Logging degli errori client-side:** Adottare servizi come Sentry o Rollbar per catturare errori JavaScript, crash del service worker e problemi di rete. Includere contesto (device, versione, stato della rete) per facilitare il debugging su dispositivi reali.
+
+- **Feedback in-app:** Aggiungere un modulo di feedback interno per segnalazioni specifiche su mobile, collegato a un sistema di ticketing (es. GitHub Issues o strumenti esterni) per tracciare i problemi in modo strutturato.
+
+## Accessibilità e inclusività avanzate
+
+- **Supporto screen reader e navigazione vocale:** Oltre agli attributi ARIA, testare con VoiceOver (iOS) e TalkBack (Android). Fornire descrizioni alternative per elementi visivi e gestire la navigazione touch in modo intuitivo (gesti, carousel, focus states).
+
+- **Temi e preferenze utente:** Implementare tema chiaro/scuro basato su `prefers-color-scheme` e supportare l’adattamento dinamico della dimensione font (Dynamic Type) per utenti con disabilità visive.
+
+- **Audit di accessibilità:** Integrare audit con axe-core o Lighthouse nelle pipeline CI e prevedere sessioni di test manuali con utenti che usano tecnologie assistive.
+
+## Sicurezza estesa e privacy
+
+- **Gestione permessi granulare:** Oltre alla fotocamera, gestire permessi per geolocalizzazione (se introdotta), notifiche push e storage locale. Fornire opzioni per revocare permessi e spiegare chiaramente le motivazioni della richiesta.
+
+- **Protezione dati locali:** Utilizzare IndexedDB con cifratura tramite Web Crypto API per dati sensibili offline, prevedendo auto-cancellazione dopo periodi di inattività o logout.
+
+- **Audit di sicurezza:** Pianificare scansioni periodiche con strumenti come OWASP ZAP e mantenere aggiornate le dipendenze per ridurre il rischio di vulnerabilità note.
+
+## Funzionalità mobile avanzate
+
+- **Offline avanzato:** Oltre al caching, implementare una coda di sincronizzazione per azioni pendenti (es. registrazione turni) con indicatori visivi di stato e risoluzione dei conflitti al ritorno online.
+
+- **Integrazione con API native:** Valutare Capacitor per accedere ad API native (fotocamera avanzata, vibrazione, notifiche), mantenendo la PWA come base e creando wrapper per gli store.
+
+- **Supporto multi-touch e gesture:** Aggiungere gesture personalizzate (es. pinch-to-zoom) e ottimizzare layout per dispositivi con schermi grandi (tablet).
+
+## Processi di sviluppo e manutenzione
+
+- **CI/CD per mobile:** Estendere le pipeline per includere test su dispositivi reali tramite BrowserStack o Sauce Labs e build separate per wrapper iOS/Android, se adottati.
+
+- **Documentazione tecnica mobile:** Aggiornare `docs and references/` con guide su deployment mobile, troubleshooting e changelog delle modifiche PWA.
+
+- **Formazione del team:** Pianificare sessioni di training su best practice PWA con focus sulle differenze tra iOS e Android per prevenire regressioni.
+
 **Conclusione:** Il progetto *Turni-di-Palco* ha buone potenzialità, ma presenta diverse criticità a livello di struttura, qualità del codice e processi. Affrontando i problemi evidenziati – riorganizzando il codice in modo modulare, introducendo test e CI, migliorando la documentazione e aggiornando le dipendenze – si otterrà un codice più robusto, mantenibile e pronto per crescere. Implementare queste migliorie non solo risolverà i problemi attuali, ma faciliterà anche lo sviluppo di nuove funzionalità in futuro, assicurando al progetto una base solida su cui iterare.
