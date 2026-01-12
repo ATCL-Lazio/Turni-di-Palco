@@ -72,12 +72,12 @@ export function TurniATCL({
           </div>
         </Card>
 
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-white mb-4">Eventi disponibili</h3>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h3 className="text-white">Eventi disponibili</h3>
           <button
             type="button"
             onClick={onViewMap}
-            className="flex items-center gap-2 text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
+            className="flex shrink-0 items-center gap-2 text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
             aria-label="Vedi mappa eventi"
           >
             <Map size={16} />
