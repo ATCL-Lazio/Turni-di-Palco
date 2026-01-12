@@ -19,6 +19,7 @@
     "sync:mobile": "node tools/sync-mobile.js"
   },
   "devDependencies": {
+    "qrcode": "^1.5.4",
     "qrcode-terminal": "^0.12.0"
   }
 }
