@@ -1,4 +1,4 @@
-﻿import React, { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -157,7 +157,6 @@ export function TurniATCL({
               </Button>
             </Card>
           )}
-        </div>
       </div>
     </div>
   );
