@@ -4,7 +4,8 @@ const path = require('path');
 
 const PUBLIC_DIR = path.resolve('apps/pwa/public');
 const SERVICE_WORKER_PATH = path.join(PUBLIC_DIR, 'sw.js');
-const CACHE_PREFIX = 'turni-di-palco-v';
+const CORE_CACHE_PREFIX = 'turni-di-palco-v';
+const TILE_CACHE_PREFIX = 'turni-di-palco-tiles-v';
 
 async function collectFiles(dir) {
   const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -35,19 +36,52 @@ async function calculateHash(filePaths) {
 
 async function updateServiceWorker(cacheSuffix) {
   const swContent = await fs.readFile(SERVICE_WORKER_PATH, 'utf8');
-  const match = swContent.match(/const CACHE_NAME = "([^"]*)";/);
-  if (!match) {
-    throw new Error('CACHE_NAME pattern not found in service worker');
+  const cacheNameMatch = swContent.match(/const CACHE_NAME = "([^"]*)";/);
+  const coreCacheNameMatch = swContent.match(/const CORE_CACHE_NAME = "([^"]*)";/);
+  const tileCacheNameMatch = swContent.match(/const TILE_CACHE_NAME = "([^"]*)";/);
+
+  if (!cacheNameMatch && !coreCacheNameMatch) {
+    throw new Error(
+      'CACHE_NAME/CORE_CACHE_NAME pattern not found in service worker'
+    );
   }
 
-  const nextCacheName = `${CACHE_PREFIX}${cacheSuffix}`;
-  if (match[1] === nextCacheName) {
-    return nextCacheName;
+  const nextCoreCacheName = `${CORE_CACHE_PREFIX}${cacheSuffix}`;
+  const nextTileCacheName = `${TILE_CACHE_PREFIX}${cacheSuffix}`;
+
+  const currentCoreName = cacheNameMatch?.[1] ?? coreCacheNameMatch?.[1];
+  const currentTileName = tileCacheNameMatch?.[1] ?? null;
+
+  if (
+    currentCoreName === nextCoreCacheName &&
+    (!tileCacheNameMatch || currentTileName === nextTileCacheName)
+  ) {
+    return nextCoreCacheName;
   }
 
-  const updatedContent = swContent.replace(match[0], `const CACHE_NAME = "${nextCacheName}";`);
+  let updatedContent = swContent;
+
+  if (cacheNameMatch) {
+    updatedContent = updatedContent.replace(
+      cacheNameMatch[0],
+      `const CACHE_NAME = "${nextCoreCacheName}";`
+    );
+  } else if (coreCacheNameMatch) {
+    updatedContent = updatedContent.replace(
+      coreCacheNameMatch[0],
+      `const CORE_CACHE_NAME = "${nextCoreCacheName}";`
+    );
+  }
+
+  if (tileCacheNameMatch) {
+    updatedContent = updatedContent.replace(
+      tileCacheNameMatch[0],
+      `const TILE_CACHE_NAME = "${nextTileCacheName}";`
+    );
+  }
+
   await fs.writeFile(SERVICE_WORKER_PATH, updatedContent);
-  return nextCacheName;
+  return nextCoreCacheName;
 }
 
 async function main() {
