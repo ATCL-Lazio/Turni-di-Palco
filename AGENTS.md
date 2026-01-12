@@ -1,4 +1,5 @@
 # Repository Guidelines
+Template developed by [Heartran](https://github.com/heartran)
 
 ## Project Structure & Module Organization
 
