@@ -30,7 +30,7 @@ export function Screen({
       <div
         className={cn(
           'w-full app-content space-y-5 px-5 pt-5 pb-6',
-          withBottomNavPadding && 'pb-[calc(env(safe-area-inset-bottom,_0px)+116px)]',
+          withBottomNavPadding && 'pb-[calc(var(--safe-area-inset-bottom)+96px)]',
           contentClassName
         )}
       >
