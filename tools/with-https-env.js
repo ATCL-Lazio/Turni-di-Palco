@@ -1,7 +1,10 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+const crypto = require('crypto');
 const { spawn } = require('child_process');
 const qrcode = require('qrcode-terminal');
+const qrImage = require('qrcode');
 
 const args = process.argv.slice(2);
 if (args.length === 0) {
@@ -45,9 +48,49 @@ const enableQr =
   process.env.NO_QR !== '1';
 
 const seenQrUrls = new Set();
+const qrDir = process.env.QR_DIR || path.join(os.tmpdir(), 'turni-di-palco-qrs');
+let qrDirAnnounced = false;
+
+try {
+  fs.mkdirSync(qrDir, { recursive: true });
+  for (const entry of fs.readdirSync(qrDir)) {
+    if (entry.endsWith('.png')) {
+      fs.rmSync(path.join(qrDir, entry), { force: true });
+    }
+  }
+} catch {
+  // Best-effort: QR files are optional.
+}
 
 function stripAnsi(value) {
   return value.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '');
+}
+
+function buildQrUrl(rawUrl) {
+  try {
+    const url = new URL(rawUrl);
+    if (url.pathname.startsWith('/mobile/')) {
+      url.searchParams.set('from', 'qr');
+    }
+    return url.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
+function writeQrPng(url) {
+  try {
+    if (!qrDirAnnounced && fs.existsSync(qrDir)) {
+      qrDirAnnounced = true;
+      process.stdout.write(`\nQR_DIR: ${qrDir}\n\n`);
+    }
+
+    const hash = crypto.createHash('sha256').update(url).digest('hex').slice(0, 10);
+    const filePath = path.join(qrDir, `qr-${hash}.png`);
+    return qrImage.toFile(filePath, url, { margin: 2, width: 320 }).catch(() => undefined);
+  } catch {
+    return Promise.resolve();
+  }
 }
 
 function maybePrintQrForLine(line) {
@@ -56,13 +99,14 @@ function maybePrintQrForLine(line) {
   const match = clean.match(/\b(?:Local|Network):\s+(https?:\/\/\S+)/);
   if (!match) return;
 
-  const url = match[1];
+  const url = buildQrUrl(match[1]);
   if (seenQrUrls.has(url)) return;
   seenQrUrls.add(url);
 
   process.stdout.write(`\nQR: ${url}\n`);
   qrcode.generate(url, { small: true });
   process.stdout.write('\n');
+  void writeQrPng(url);
 }
 
 function forwardAndParse(stream, writeTo) {
