@@ -71,9 +71,17 @@ Nota: attualmente l’elenco eventi è mock (`apps/mobile/src/state/store.tsx`, 
 ## Eventi ATCL: feed, import e follow
 
 - Script import: `tools/import-spazio-rossellini-events.js` (usa `.env` con `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`). Supporta `DRY_RUN` per test.
-- Edge Function: `supabase/functions/import-spazio-rossellini` (deployata). Endpoint: `https://<project>.supabase.co/functions/v1/import-spazio-rossellini`.
-- Automatizzazione consigliata via cron: `0 * * * *` (import orario).
+- Edge Function: `supabase/functions/import-spazio-rossellini` (deployata). Endpoint: `https://<project>.supabase.co/functions/v1/import-spazio-rossellini`.    
+- Automatizzazione consigliata via cron: `*/30 * * * *` (import ogni 30 minuti).
 - Follow eventi: tabella `public.followed_events` (RLS per user). Home mostra solo eventi seguiti, Turni ATCL mostra tutti gli eventi e permette follow/unfollow.
+
+## Supabase: pg_net e cron import (2026-01-12)
+
+- `pg_net` spostato fuori da `public` tramite drop/recreate in schema `extensions` (non supporta `ALTER EXTENSION ... SET SCHEMA`).
+- Le funzioni restano in schema `net` (es. `net.http_post`), con grant gestiti dall'event trigger `issue_pg_net_access`.
+- Cron job attivo: `import-spazio-rossellini-every-30-min` con schedule `*/30 * * * *`, usa `net.http_post` per chiamare l'edge function `import-spazio-rossellini`.
+- Nota: se `pg_net` viene droppato, il job fallisce finche' non viene ricreato.
+- Advisors performance: aggiunti indici FK mancanti (incluso `followed_events.event_id`), policy RLS aggiornate con `(select auth.uid())` per evitare re-evaluation per riga. Le segnalazioni di "unused index" possono persistere finche' le query non usano gli indici.
 
 ## Eventi: dettaglio e calendario
 
