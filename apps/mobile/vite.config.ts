@@ -99,13 +99,13 @@ export default defineConfig({
     host: true,
     port: 3000,
     https: httpsOption,
-    allowedHosts: true,
+    allowedHosts: ['turni-di-palco.onrender.com', '.onrender.com'],
     open: true,
   },
   preview: {
     host: true,
     port: 4174,
     https: httpsOption,
-    allowedHosts: true,
+    allowedHosts: ['turni-di-palco.onrender.com', '.onrender.com'],
   },
 });
