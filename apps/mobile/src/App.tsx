@@ -16,6 +16,7 @@ import { Profilo } from './components/screens/Profilo';
 import { AccountSettings } from './components/screens/AccountSettings';
 import { ChangePassword } from './components/screens/ChangePassword';
 import { Carriera } from './components/screens/Carriera';
+import { InstallApp } from './components/screens/InstallApp';
 import { TermsAndConditions } from './components/screens/TermsAndConditions';
 import { PrivacyPolicy } from './components/screens/PrivacyPolicy';
 import { TitoliOttenuti } from './components/screens/TitoliOttenuti';
@@ -28,6 +29,7 @@ type Screen =
   | 'welcome'
   | 'login'
   | 'signup'
+  | 'install'
   | 'role-selection'
   | 'home'
   | 'turni'
@@ -66,6 +68,7 @@ const VALID_SCREENS = new Set<Screen>([
   'welcome',
   'login',
   'signup',
+  'install',
   'role-selection',
   'home',
   'turni',
@@ -139,6 +142,9 @@ function writeNavState(state: PersistedNavState) {
 }
 
 function getScreenToPersist(screen: Screen, activeTab: Tab): Screen {
+  if (screen === 'install') {
+    return activeTab === 'home' ? 'home' : 'turni';
+  }
   if (screen === 'qr-scanner') {
     return activeTab === 'home' ? 'home' : 'turni';
   }
@@ -259,6 +265,19 @@ function AppShell() {
       selectedActivityId,
     });
   }, [activeTab, currentScreen, isPasswordRecovery, legalReturnScreen, scannedEventId, selectedActivityId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const search = new URLSearchParams(window.location.search);
+    if (search.get('from') !== 'qr') return;
+
+    setCurrentScreen('install');
+    try {
+      window.history.replaceState({}, '', window.location.pathname);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const handleStart = () => setCurrentScreen('signup');
 
@@ -579,6 +598,15 @@ function AppShell() {
             onViewTerms={() => openTerms('signup')}
             onViewPrivacy={() => openPrivacy('signup')}
             errorMessage={authError}
+          />
+        );
+
+      case 'install':
+        return (
+          <InstallApp
+            onContinue={() => {
+              setCurrentScreen(state.profile.roleId ? 'home' : 'welcome');
+            }}
           />
         );
 
