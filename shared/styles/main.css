@@ -55,6 +55,11 @@
   --heading-3-line: 1.4;
   --heading-3-weight: 600;
   --heading-3-track: -0.01em;
+
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
 }
 
 @layer base {
@@ -240,6 +245,10 @@
 
   .app-shell {
     min-height: 100dvh;
+    padding-top: var(--safe-area-inset-top);
+    padding-right: var(--safe-area-inset-right);
+    padding-bottom: var(--safe-area-inset-bottom);
+    padding-left: var(--safe-area-inset-left);
     display: flex;
     justify-content: center;
     align-items: stretch;
@@ -247,7 +256,9 @@
 
   .app-frame {
     width: 100%;
-    min-height: 100dvh;
+    min-height: calc(
+      100dvh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom)
+    );
     position: relative;
   }
 
@@ -259,6 +270,7 @@
 
   .app-nav {
     width: 100%;
+    padding-bottom: var(--safe-area-inset-bottom);
   }
 
   @media (min-width: 768px) {
