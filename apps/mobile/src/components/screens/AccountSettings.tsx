@@ -16,6 +16,12 @@ import {
 import { Screen } from '../ui/Screen';
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 import { requestPermission } from '../../services/notifications';
+import { Switch } from '../ui/switch';
+import {
+  getPermission,
+  requestPermission,
+  type NotificationPermissionState,
+} from '../../lib/notifications';
 
 interface AccountSettingsProps {
   userName: string;
@@ -89,6 +95,20 @@ export function AccountSettings({
     camera: null,
     geolocation: null,
   });
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermissionState>(() => getPermission());
+
+  const notificationStatusLabel = (() => {
+    switch (notificationPermission) {
+      case 'granted':
+        return 'Attive';
+      case 'denied':
+        return 'Bloccate';
+      case 'default':
+        return 'Da abilitare';
+      default:
+        return 'Non supportate';
+    }
+  })();
 
   useEffect(() => {
     let mounted = true;
@@ -213,6 +233,27 @@ export function AccountSettings({
       ...prev,
       [key]: status,
     }));
+    setNotificationPermission(getPermission());
+  }, []);
+
+  const handleNotificationToggle = async (checked: boolean) => {
+    if (notificationPermission === 'unsupported') {
+      window.alert('Le notifiche di sistema non sono supportate su questo dispositivo.');
+      return;
+    }
+
+    if (!checked) {
+      window.alert('Puoi disattivare le notifiche dalle impostazioni del browser o del dispositivo.');
+      setNotificationPermission(getPermission());
+      return;
+    }
+
+    const nextPermission = await requestPermission();
+    setNotificationPermission(nextPermission);
+
+    if (nextPermission !== 'granted') {
+      window.alert('Permesso notifiche non concesso.');
+    }
   };
 
   const handleReset = () => {
@@ -469,6 +510,35 @@ export function AccountSettings({
               </button>
             </div>
           </div>
+        </div>
+
+        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-[12px]">
+              <Bell className="text-[#f4bf4f]" size={24} />
+              <div className="text-left">
+                <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
+                  Notifiche di sistema
+                </p>
+                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                  Aggiornamenti su badge ed eventi
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={notificationPermission === 'granted'}
+              onCheckedChange={handleNotificationToggle}
+              disabled={notificationPermission === 'unsupported'}
+            />
+          </div>
+          <p className="text-[14px] leading-[20px] text-[#b8b2b3]">
+            Stato: {notificationStatusLabel}
+          </p>
+          {notificationPermission === 'unsupported' ? (
+            <p className="text-[14px] leading-[20px] text-[#ff4d4f]">
+              Le notifiche di sistema non sono disponibili su questo dispositivo.
+            </p>
+          ) : null}
         </div>
 
         <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
