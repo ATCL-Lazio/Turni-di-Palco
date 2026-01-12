@@ -1,9 +1,9 @@
-﻿import React, { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { ScanQRCard } from '../ScanQRCard';
-import { QrCode, MapPin, Calendar, TrendingUp, Theater, Bookmark } from 'lucide-react';
+import { QrCode, MapPin, Calendar, TrendingUp, Theater, Bookmark, Map } from 'lucide-react';
 import { GameEvent } from '../../state/store';
 
 interface TurniATCLProps {
@@ -11,6 +11,7 @@ interface TurniATCLProps {
   isEventFollowed: (eventId: string) => boolean;
   onToggleFollow: (eventId: string) => void;
   onViewEvent: (eventId: string) => void;
+  onViewMap: () => void;
   onScanQR: () => void;
 }
 
@@ -19,6 +20,7 @@ export function TurniATCL({
   isEventFollowed,
   onToggleFollow,
   onViewEvent,
+  onViewMap,
   onScanQR,
 }: TurniATCLProps) {
   const stats = useMemo(() => {
@@ -70,8 +72,18 @@ export function TurniATCL({
           </div>
         </Card>
 
-        <div>
-          <h3 className="text-white mb-4">Eventi disponibili</h3>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h3 className="text-white">Eventi disponibili</h3>
+          <button
+            type="button"
+            onClick={onViewMap}
+            className="flex shrink-0 items-center gap-2 text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
+            aria-label="Vedi mappa eventi"
+          >
+            <Map size={16} />
+            Mappa
+          </button>
+        </div>
 
           {sortedEvents.length > 0 ? (
             <div className="space-y-3">
@@ -145,7 +157,6 @@ export function TurniATCL({
               </Button>
             </Card>
           )}
-        </div>
       </div>
     </div>
   );
