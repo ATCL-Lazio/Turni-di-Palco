@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 const qrcode = require('qrcode-terminal');
@@ -48,7 +47,8 @@ const enableQr =
   process.env.NO_QR !== '1';
 
 const seenQrUrls = new Set();
-const qrDir = process.env.QR_DIR || path.join(os.tmpdir(), 'turni-di-palco-qrs');
+const repoRoot = path.resolve(__dirname, '..');
+const qrDir = process.env.QR_DIR || path.join(repoRoot, '.temp', 'qrcodes');
 let qrDirAnnounced = false;
 
 try {
@@ -78,6 +78,26 @@ function buildQrUrl(rawUrl) {
   }
 }
 
+function filenameFromUrl(url) {
+  const normalized = url
+    .replace(/^https?:\/\//, '')
+    .replace(/\/$/, '');
+
+  const slug = normalized
+    .replace(/[\\/:*?"<>|]/g, '_')
+    .replace(/[&=]/g, '-')
+    .replace(/[?#]/g, '__')
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/-+/g, '-')
+    .slice(0, 160);
+
+  const hash = crypto.createHash('sha256').update(url).digest('hex').slice(0, 8);
+  const safeSlug = slug.length ? slug : `url-${hash}`;
+  const suffix = slug.length >= 160 ? `--${hash}` : '';
+  return `${safeSlug}${suffix}.png`;
+}
+
 function writeQrPng(url) {
   try {
     if (!qrDirAnnounced && fs.existsSync(qrDir)) {
@@ -85,8 +105,7 @@ function writeQrPng(url) {
       process.stdout.write(`\nQR_DIR: ${qrDir}\n\n`);
     }
 
-    const hash = crypto.createHash('sha256').update(url).digest('hex').slice(0, 10);
-    const filePath = path.join(qrDir, `qr-${hash}.png`);
+    const filePath = path.join(qrDir, filenameFromUrl(url));
     return qrImage.toFile(filePath, url, { margin: 2, width: 320 }).catch(() => undefined);
   } catch {
     return Promise.resolve();
