@@ -2,6 +2,12 @@
 **/node_modules/
 **/dist/
 
+# Temporary files
+.temp/
+
+# Keep empty directories
+!*/.gitkeep
+
 # IDE / editor
 .DS_Store
 .idea/
