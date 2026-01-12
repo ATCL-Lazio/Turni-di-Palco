@@ -366,6 +366,22 @@ function AppShell() {
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}`, '_blank', 'noopener');
   };
 
+  const handleViewEventsMap = () => {
+    if (typeof window === 'undefined') return;
+    const uniqueTheatres = Array.from(new Set(events.map((event) => event.theatre).filter(Boolean)));
+    if (!uniqueTheatres.length) return;
+    const origin = encodeURIComponent('My Location');
+    const destination = encodeURIComponent(uniqueTheatres[uniqueTheatres.length - 1]);
+    const waypoints = uniqueTheatres
+      .slice(0, -1)
+      .map((value) => encodeURIComponent(value))
+      .join('|');
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${
+      waypoints ? `&waypoints=${waypoints}` : ''
+    }`;
+    window.location.href = url;
+  };
+
   const handleToggleFollow = (eventId: string) => {
     if (isEventFollowed(eventId)) {
       void unfollowEvent(eventId);
@@ -575,6 +591,7 @@ function AppShell() {
             events={events}
             isEventFollowed={isEventFollowed}
             onToggleFollow={handleToggleFollow}
+            onViewMap={handleViewEventsMap}
             onViewEvent={(eventId) => {
               setScannedEventId(eventId);
               setCurrentScreen('event-details');
