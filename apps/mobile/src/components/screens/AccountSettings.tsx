@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ArrowLeft,
   Bell,
@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
-import { requestPermission } from '../../services/notifications';
 import { Switch } from '../ui/switch';
 import {
   getPermission,
@@ -228,13 +227,16 @@ export function AccountSettings({
     }));
   };
 
-  const updatePermissionStatus = (key: PermissionKey, status: PermissionStatus) => {
-    setPermissionStatuses((prev) => ({
-      ...prev,
-      [key]: status,
-    }));
-    setNotificationPermission(getPermission());
-  }, []);
+  const updatePermissionStatus = useCallback(
+    (key: PermissionKey, status: PermissionStatus) => {
+      setPermissionStatuses((prev) => ({
+        ...prev,
+        [key]: status,
+      }));
+      setNotificationPermission(getPermission());
+    },
+    []
+  );
 
   const handleNotificationToggle = async (checked: boolean) => {
     if (notificationPermission === 'unsupported') {
