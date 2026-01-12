@@ -1,4 +1,4 @@
-const CACHE_NAME = "turni-di-palco-ve2139a5d";
+const CACHE_NAME = "turni-di-palco-v7cf9f1d9";
 const OFFLINE_URL = "/index.html";
 const CORE_ASSETS = [
   "/",
@@ -10,8 +10,14 @@ const CORE_ASSETS = [
   "/dev.html",
   "/events.html",
   "/turns.html",
+  "/leaderboard.html",
   "/mobile/index.html",
   "/manifest.webmanifest",
+  "/favicon.ico",
+  "/apple-touch-icon.png",
+  "/icons/pwa-48.png",
+  "/icons/pwa-96.png",
+  "/icons/pwa-144.png",
   "/icons/pwa-192.png",
   "/icons/pwa-512.png",
 ];
@@ -41,6 +47,9 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   const { request } = event;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
   const isNavigation = request.mode === "navigate";
 
   if (isNavigation) {
@@ -48,29 +57,48 @@ self.addEventListener("fetch", (event) => {
       fetch(request)
         .then((response) => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(OFFLINE_URL, copy).catch(() => undefined));
+          event.waitUntil(
+            caches
+              .open(CACHE_NAME)
+              .then((cache) => cache.put(request, copy))
+              .catch(() => undefined)
+          );
           return response;
         })
-        .catch(() => caches.match(OFFLINE_URL))
+        .catch(() =>
+          caches.match(request).then((cached) => cached || caches.match(OFFLINE_URL))
+        )
     );
     return;
   }
 
   event.respondWith(
     caches.match(request).then((cached) => {
-      if (cached) return cached;
+      if (cached) {
+        event.waitUntil(
+          fetch(request)
+            .then((response) => {
+              if (!response || !response.ok) return;
+              return caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+            })
+            .catch(() => undefined)
+        );
+        return cached;
+      }
 
       return fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy).catch(() => undefined));
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy).catch(() => undefined));
+          }
           return response;
         })
         .catch(() => {
           if (request.destination === "document") {
             return caches.match(OFFLINE_URL);
           }
-          return caches.match(request);
+          return new Response("", { status: 504, statusText: "Offline" });
         });
     })
   );
