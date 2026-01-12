@@ -54,7 +54,13 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} autoComplete="on" className="mt-8 flex w-full max-w-[300px] flex-col gap-6 mx-auto">
+        <form
+          onSubmit={handleSubmit}
+          method="post"
+          action="/login"
+          autoComplete="on"
+          className="mt-8 flex w-full max-w-[300px] flex-col gap-6 mx-auto"
+        >
           <div className="flex flex-col gap-2 w-full">
             <label htmlFor="login-email" className="text-[16px] leading-[24px] text-[#b8b2b3]">
               Email
@@ -66,7 +72,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
             >
               <input
                 id="login-email"
-                name="email"
+                name="username"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -77,6 +83,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
                 spellCheck={false}
                 aria-invalid={Boolean(errors.email)}
                 placeholder="tuo@email.com"
+                enterKeyHint="next"
                 className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
               />
             </div>
@@ -100,6 +107,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
                 autoComplete="current-password"
                 aria-invalid={Boolean(errors.password)}
                 placeholder="••••••••"
+                enterKeyHint="go"
                 className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
               />
             </div>
