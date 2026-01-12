@@ -296,11 +296,13 @@ function createDemoState(): GameState {
 }
 
 function createDefaultState(): GameState {
-  return isSupabaseConfigured ? createInitialState() : createDemoState();
-}
+  if (isSupabaseConfigured) return createInitialState();
+  return import.meta.env.DEV ? createDemoState() : createInitialState();
+} 
 
 function loadState(): GameState {
   if (isSupabaseConfigured) return createInitialState();
+  if (!import.meta.env.DEV) return createInitialState();
   if (typeof window === 'undefined') return createDefaultState();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -824,7 +826,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       const nextEvents =
         eventsRes.error || !eventsRes.data?.length
-          ? (isSupabaseConfigured ? [] : events)
+          ? (isSupabaseConfigured ? [] : import.meta.env.DEV ? events : [])
           : eventsRes.data.map((event: any) => ({
             id: event.id,
             name: event.name,
@@ -842,7 +844,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       const nextActivities =
         activitiesRes.error || !activitiesRes.data?.length
-          ? activities
+          ? import.meta.env.DEV ? activities : []
           : activitiesRes.data.map((activity: any) => ({
             id: activity.id,
             title: activity.title,
