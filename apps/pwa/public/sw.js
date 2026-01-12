@@ -1,4 +1,11 @@
-const CACHE_NAME = "turni-di-palco-v7cf9f1d9";
+const CORE_CACHE_NAME = "turni-di-palco-vf2b7fbb8";
+const TILE_CACHE_NAME = "turni-di-palco-tiles-vf2b7fbb8";
+const TILE_HOSTS = new Set([
+  "tile.openstreetmap.org",
+  "a.tile.openstreetmap.org",
+  "b.tile.openstreetmap.org",
+  "c.tile.openstreetmap.org",
+]);
 const OFFLINE_URL = "/index.html";
 const CORE_ASSETS = [
   "/",
@@ -24,7 +31,7 @@ const CORE_ASSETS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS)).then(() => self.skipWaiting())
+    caches.open(CORE_CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS)).then(() => self.skipWaiting())
   );
 });
 
@@ -32,7 +39,13 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => ![CORE_CACHE_NAME, TILE_CACHE_NAME].includes(key))
+            .map((key) => caches.delete(key))
+        )
+      )
       .then(() => self.clients.claim())
   );
 });
@@ -48,7 +61,10 @@ self.addEventListener("fetch", (event) => {
 
   const { request } = event;
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;
+  const isSameOrigin = url.origin === self.location.origin;
+  const isTileHost = TILE_HOSTS.has(url.hostname);
+
+  if (!isSameOrigin && !isTileHost) return;
 
   const isNavigation = request.mode === "navigate";
 
@@ -59,7 +75,7 @@ self.addEventListener("fetch", (event) => {
           const copy = response.clone();
           event.waitUntil(
             caches
-              .open(CACHE_NAME)
+              .open(CORE_CACHE_NAME)
               .then((cache) => cache.put(request, copy))
               .catch(() => undefined)
           );
@@ -72,6 +88,26 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (!isSameOrigin && isTileHost) {
+    event.respondWith(
+      caches.open(TILE_CACHE_NAME).then((cache) =>
+        cache.match(request).then((cached) => {
+          const fetchRequest = fetch(request)
+            .then((response) => {
+              if (response && (response.ok || response.type === "opaque")) {
+                cache.put(request, response.clone()).catch(() => undefined);
+              }
+              return response;
+            })
+            .catch(() => cached);
+
+          return cached || fetchRequest;
+        })
+      )
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) {
@@ -79,7 +115,7 @@ self.addEventListener("fetch", (event) => {
           fetch(request)
             .then((response) => {
               if (!response || !response.ok) return;
-              return caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+              return caches.open(CORE_CACHE_NAME).then((cache) => cache.put(request, response.clone()));
             })
             .catch(() => undefined)
         );
@@ -90,7 +126,7 @@ self.addEventListener("fetch", (event) => {
         .then((response) => {
           if (response && response.ok) {
             const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy).catch(() => undefined));
+            caches.open(CORE_CACHE_NAME).then((cache) => cache.put(request, copy).catch(() => undefined));
           }
           return response;
         })
