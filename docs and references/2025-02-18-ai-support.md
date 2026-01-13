@@ -76,10 +76,11 @@ Se il backend non esiste, creare un handler che:
 
 ## Supporto in app (mobile)
 - La schermata "Supporto" in `apps/mobile` usa `POST /api/ai/chat` e un prompt dedicato all'utente finale (linguaggio semplice, niente dettagli tecnici).
-- Avvio locale: `npm run dev:mobile` avvia sia Vite che il server Codex locale.
-- Avvio manuale separato: `npm run ai:support` (porta configurabile con `AI_SUPPORT_PORT`, default `8787`).
+- Avvio locale separato: `npm --prefix apps/mobile run dev` e `npm run ai:support`.
+- Avvio combinato: `npm --prefix apps/mobile run dev:with-ai`.
 - Il dev server mobile fa proxy `/api/ai/chat` verso `http://localhost:${AI_SUPPORT_PORT}`.
 - Per un endpoint remoto, impostare `VITE_AI_SUPPORT_ENDPOINT` in `apps/mobile/.env`.
+ - Se il client chiama un endpoint assoluto, configurare `AI_SUPPORT_ALLOWED_ORIGINS` sul server (comma-separated).
 
 ## Gestione credenziali GitHub
 Token e repo devono vivere lato server (mai nel browser):
