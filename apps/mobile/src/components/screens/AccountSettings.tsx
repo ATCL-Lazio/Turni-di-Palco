@@ -582,7 +582,7 @@ export function AccountSettings({
                   Supporto
                 </p>
                 <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
-                  Chat automatizzata con assistente
+                  Chat con Maxwell
                 </p>
               </div>
             </div>

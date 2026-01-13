@@ -22,7 +22,7 @@ function buildMessageId() {
 export function SupportChat({ userName, onBack }: SupportChatProps) {
   const displayName = userName || 'Utente';
   const greeting = useMemo(
-    () => `Ciao ${displayName}, come posso aiutarti?`,
+    () => `Ciao ${displayName}, sono Maxwell. Come posso aiutarti?`,
     [displayName]
   );
   const [messages, setMessages] = useState<SupportMessage[]>([
@@ -112,10 +112,10 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
           </p>
           <div className="flex items-center gap-2 text-[13px] leading-[18px] text-[#b8b2b3]">
             <Bot className="text-[#f4bf4f]" size={16} />
-            <span>Chat automatizzata</span>
+            <span>Chat con Maxwell</span>
           </div>
           <p className="text-[14px] leading-[20px] text-[#7a7577]">
-            Un assistente virtuale ti aiuta a risolvere problemi e richieste comuni.
+            Maxwell ti aiuta a risolvere problemi e richieste comuni.
           </p>
         </div>
 
