@@ -16,6 +16,22 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
+function parseAllowedOrigins() {
+  const raw = process.env.AI_SUPPORT_ALLOWED_ORIGINS;
+  if (!raw) return ['*'];
+  return raw
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+function resolveCorsOrigin(origin, allowedOrigins) {
+  if (!origin) return allowedOrigins.includes('*') ? '*' : '';
+  if (allowedOrigins.includes('*')) return '*';
+  if (allowedOrigins.includes(origin)) return origin;
+  return '';
+}
+
 function buildPrompt({ prompt, messages, context }) {
   const systemParts = [];
   if (typeof prompt === 'string' && prompt.trim()) {
@@ -114,6 +130,22 @@ function runCodex(prompt) {
 }
 
 const server = http.createServer((req, res) => {
+  const allowedOrigins = parseAllowedOrigins();
+  const origin = req.headers.origin;
+  const corsOrigin = resolveCorsOrigin(origin, allowedOrigins);
+
+  if (corsOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', corsOrigin);
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  }
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
   if (req.url === '/health') {
     sendJson(res, 200, { status: 'ok' });
     return;
