@@ -80,7 +80,8 @@ Se il backend non esiste, creare un handler che:
 - Avvio combinato: `npm --prefix apps/mobile run dev:with-ai`.
 - Il dev server mobile fa proxy `/api/ai/chat` verso `http://localhost:${AI_SUPPORT_PORT}`.
 - Per un endpoint remoto, impostare `VITE_AI_SUPPORT_ENDPOINT` in `apps/mobile/.env`.
- - Se il client chiama un endpoint assoluto, configurare `AI_SUPPORT_ALLOWED_ORIGINS` sul server (comma-separated).
+- Se il client chiama un endpoint assoluto, configurare `AI_SUPPORT_ALLOWED_ORIGINS` sul server (comma-separated).
+ - HTTPS locale: impostare `AI_SUPPORT_HTTPS=1` e usare certificati da `.cert/` oppure `SSL_CRT_FILE`/`SSL_KEY_FILE`.
 
 ## Gestione credenziali GitHub
 Token e repo devono vivere lato server (mai nel browser):
