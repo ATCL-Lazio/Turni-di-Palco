@@ -43,6 +43,7 @@ function resolveHttps() {
 }
 
 const httpsOption = resolveHttps();
+const aiSupportPort = Number(process.env.AI_SUPPORT_PORT) || 8787;
 
 export default defineConfig({
   base: '/mobile/',
@@ -101,6 +102,12 @@ export default defineConfig({
     https: httpsOption,
     allowedHosts: ['turni-di-palco.onrender.com', '.onrender.com'],
     open: true,
+    proxy: {
+      '/api/ai/chat': {
+        target: `http://localhost:${aiSupportPort}`,
+        changeOrigin: true,
+      },
+    },
   },
   preview: {
     host: true,

@@ -14,6 +14,7 @@ import { ActivityDetail } from './components/screens/ActivityDetail';
 import { Leaderboard } from './components/screens/Leaderboard';
 import { Profilo } from './components/screens/Profilo';
 import { AccountSettings } from './components/screens/AccountSettings';
+import { SupportChat } from './components/screens/SupportChat';
 import { ChangePassword } from './components/screens/ChangePassword';
 import { Carriera } from './components/screens/Carriera';
 import { InstallApp } from './components/screens/InstallApp';
@@ -41,6 +42,7 @@ type Screen =
   | 'activity-detail'
   | 'profilo'
   | 'account-settings'
+  | 'support'
   | 'change-password'
   | 'carriera'
   | 'terms'
@@ -80,6 +82,7 @@ const VALID_SCREENS = new Set<Screen>([
   'activity-detail',
   'profilo',
   'account-settings',
+  'support',
   'change-password',
   'carriera',
   'terms',
@@ -102,6 +105,7 @@ const VALID_LEGAL_RETURN_SCREENS = new Set<LegalReturnScreen>([
   'activity-detail',
   'profilo',
   'account-settings',
+  'support',
   'change-password',
   'carriera',
   'titoli-ottenuti',
@@ -466,6 +470,10 @@ function AppShell() {
     setCurrentScreen('account-settings');
   };
 
+  const handleViewSupport = () => {
+    setCurrentScreen('support');
+  };
+
   const handleOpenQRScanner = () => {
     if (!authReady) {
       return;
@@ -789,12 +797,21 @@ function AppShell() {
             onBack={() => setCurrentScreen('profilo')}
             onViewTerms={() => openTerms('account-settings')}
             onViewPrivacy={() => openPrivacy('account-settings')}
+            onViewSupport={handleViewSupport}
             onChangePassword={() => {
               setIsPasswordRecovery(false);
               setCurrentScreen('change-password');
             }}
             onResetProgress={handleResetProgress}
             onLogout={handleLogout}
+          />
+        );
+
+      case 'support':
+        return (
+          <SupportChat
+            userName={state.profile.name}
+            onBack={() => setCurrentScreen('account-settings')}
           />
         );
 
