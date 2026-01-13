@@ -451,6 +451,8 @@ export function computeTurnRewards(event: GameEvent, roleId: RoleId): Rewards {
 
 type GameContextValue = {
   authUserId: string | null;
+  authReady: boolean;
+  hasHydratedRemote: boolean;
   state: GameState;
   roles: Role[];
   events: GameEvent[];
@@ -489,6 +491,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     activities,
   }));
   const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
   const [hasHydratedRemote, setHasHydratedRemote] = useState(false);
   const localTurnStats = useMemo(() => computeTurnStatsFromTurns(state.turns), [state.turns]);
   const localTheatreReputation = useMemo(
@@ -667,6 +670,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       if (!isMounted) return;
       persistStoredSession(data.session ?? null);
       setAuthUserId(data.session?.user.id ?? null);
+      setAuthReady(true);
     };
 
     restoreSession();
@@ -675,6 +679,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       persistStoredSession(session ?? null);
       if (!isMounted) return;
       setAuthUserId(session?.user.id ?? null);
+      setAuthReady(true);
     });
 
     return () => {
@@ -1344,6 +1349,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<GameContextValue>(
     () => ({
       authUserId,
+      authReady,
+      hasHydratedRemote,
       state,
       roles: catalog.roles,
       events: catalog.events,
@@ -1373,6 +1380,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       authUserId,
+      authReady,
+      hasHydratedRemote,
       state,
       catalog,
       turnStats,
