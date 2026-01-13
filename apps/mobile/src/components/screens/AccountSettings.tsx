@@ -9,6 +9,7 @@ import {
   KeyRound,
   LogOut,
   MapPin,
+  MessageCircle,
   Shield,
   ShieldCheck,
   Trash2,
@@ -21,6 +22,7 @@ import {
   requestPermission,
   type NotificationPermissionState,
 } from '../../lib/notifications';
+import { checkAiSupportAvailability } from '../../services/ai';
 
 interface AccountSettingsProps {
   userName: string;
@@ -28,6 +30,7 @@ interface AccountSettingsProps {
   onBack: () => void;
   onViewTerms: () => void;
   onViewPrivacy: () => void;
+  onViewSupport: () => void;
   onChangePassword: () => void;
   onResetProgress: () => void;
   onLogout: () => void;
@@ -73,6 +76,7 @@ export function AccountSettings({
   onBack,
   onViewTerms,
   onViewPrivacy,
+  onViewSupport,
   onChangePassword,
   onResetProgress,
   onLogout,
@@ -95,6 +99,9 @@ export function AccountSettings({
     geolocation: null,
   });
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermissionState>(() => getPermission());
+  const [supportStatus, setSupportStatus] = useState<
+    'checking' | 'available' | 'unavailable'
+  >('checking');
 
   const notificationStatusLabel = (() => {
     switch (notificationPermission) {
@@ -144,6 +151,22 @@ export function AccountSettings({
     };
 
     loadAppInfo();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const checkSupport = async () => {
+      const available = await checkAiSupportAvailability();
+      if (!mounted) return;
+      setSupportStatus(available ? 'available' : 'unavailable');
+    };
+
+    checkSupport();
 
     return () => {
       mounted = false;
@@ -336,6 +359,8 @@ export function AccountSettings({
     typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
   const canRequestGeolocation =
     typeof navigator !== 'undefined' && !!navigator.geolocation;
+  const supportUnavailable = supportStatus === 'unavailable';
+  const supportChecking = supportStatus === 'checking';
 
   return (
     <Screen
@@ -544,6 +569,31 @@ export function AccountSettings({
         </div>
 
         <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
+          <button
+            type="button"
+            onClick={onViewSupport}
+            disabled={supportUnavailable || supportChecking}
+            className="h-[51px] flex items-center justify-between disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <div className="flex items-center gap-[12px]">
+              <MessageCircle className="text-[#f4bf4f]" size={24} />
+              <div className="text-left">
+                <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
+                  Supporto
+                </p>
+                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                  Chat con Maxwell
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="text-[#7a7577]" size={20} />
+          </button>
+          {supportUnavailable ? (
+            <p className="text-[14px] leading-[20px] text-[#ff4d4f]">
+              Supporto AI attualmente non disponibile.
+            </p>
+          ) : null}
+
           <button
             type="button"
             onClick={onViewTerms}
