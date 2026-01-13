@@ -16,7 +16,8 @@
     "format": "npm --workspace apps/pwa run format",
     "dev:mobile": "npm --workspace apps/mobile run dev",
     "build:mobile": "npm --workspace apps/mobile run build && npm run sync:mobile",
-    "sync:mobile": "node tools/sync-mobile.js"
+    "sync:mobile": "node tools/sync-mobile.js",
+    "ai:codex": "node tools/ai-codex.js"
   },
   "devDependencies": {
     "qrcode": "^1.5.4",
