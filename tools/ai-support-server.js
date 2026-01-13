@@ -1,19 +1,59 @@
 #!/usr/bin/env node
 const http = require('node:http');
-const { spawn } = require('node:child_process');
+const https = require('node:https');
+const { spawn, spawnSync } = require('node:child_process');
 const os = require('node:os');
 const path = require('node:path');
 const fs = require('node:fs');
 
 const port = Number(process.env.AI_SUPPORT_PORT) || 8787;
 const host = process.env.AI_SUPPORT_HOST || '127.0.0.1';
-const codexBin = process.env.CODEX_BIN || 'codex';
+const codexBin = resolveCodexBin();
 const codexArgs = process.env.CODEX_ARGS ? process.env.CODEX_ARGS.split(' ') : [];
 const maxBodySize = 1_000_000;
+const verbose =
+  process.env.AI_SUPPORT_VERBOSE !== '0' &&
+  process.env.AI_SUPPORT_VERBOSE !== 'false';
+const logMessages =
+  process.env.AI_SUPPORT_LOG_MESSAGES === '1' ||
+  process.env.AI_SUPPORT_LOG_MESSAGES === 'true';
 
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(payload));
+}
+
+function resolveCodexBin() {
+  if (process.env.CODEX_BIN) {
+    return process.env.CODEX_BIN;
+  }
+
+  if (process.platform === 'win32') {
+    const whereResult = spawnSync('where.exe', ['codex'], { encoding: 'utf8' });
+    if (whereResult.status === 0 && whereResult.stdout) {
+      const first = whereResult.stdout.split(/\r?\n/).find(Boolean);
+      if (first) return first.trim();
+    }
+
+    const appData = process.env.APPDATA;
+    if (appData) {
+      const candidate = path.join(appData, 'npm', 'codex.cmd');
+      if (fs.existsSync(candidate)) return candidate;
+    }
+  }
+
+  return 'codex';
+}
+
+function logLine(message) {
+  if (!verbose) return;
+  const stamp = new Date().toISOString();
+  process.stdout.write(`[${stamp}] ${message}\n`);
+}
+
+function logError(message) {
+  const stamp = new Date().toISOString();
+  process.stderr.write(`[${stamp}] ${message}\n`);
 }
 
 function parseAllowedOrigins() {
@@ -30,6 +70,51 @@ function resolveCorsOrigin(origin, allowedOrigins) {
   if (allowedOrigins.includes('*')) return '*';
   if (allowedOrigins.includes(origin)) return origin;
   return '';
+}
+
+function resolveHttpsOptions() {
+  const httpsEnv = process.env.AI_SUPPORT_HTTPS;
+  if (httpsEnv === 'false' || httpsEnv === '0') {
+    return null;
+  }
+
+  const flag = httpsEnv === 'true' || httpsEnv === '1';
+  const certPath = process.env.SSL_CRT_FILE;
+  const keyPath = process.env.SSL_KEY_FILE;
+
+  if (certPath && keyPath && fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+    return {
+      cert: fs.readFileSync(path.resolve(certPath)),
+      key: fs.readFileSync(path.resolve(keyPath)),
+    };
+  }
+
+  const repoRoot = path.resolve(__dirname, '..');
+  const certRoot = path.join(repoRoot, '.cert');
+  if (fs.existsSync(certRoot)) {
+    const keyFile = fs
+      .readdirSync(certRoot)
+      .find((name) => name.endsWith('-key.pem'));
+    if (keyFile) {
+      const keyBase = path.basename(keyFile, '.pem').replace(/-key$/, '');
+      const certFile = path.join(certRoot, `${keyBase}.pem`);
+      const keyFilePath = path.join(certRoot, keyFile);
+      if (fs.existsSync(certFile)) {
+        return {
+          cert: fs.readFileSync(certFile),
+          key: fs.readFileSync(keyFilePath),
+        };
+      }
+    }
+  }
+
+  if (flag) {
+    throw new Error(
+      'AI_SUPPORT_HTTPS is enabled but no certificate was found.'
+    );
+  }
+
+  return null;
 }
 
 function buildPrompt({ prompt, messages, context }) {
@@ -129,7 +214,10 @@ function runCodex(prompt) {
   });
 }
 
-const server = http.createServer((req, res) => {
+const httpsOptions = resolveHttpsOptions();
+const requestHandler = (req, res) => {
+  const start = Date.now();
+  const requestId = `${start}-${Math.random().toString(16).slice(2, 8)}`;
   const allowedOrigins = parseAllowedOrigins();
   const origin = req.headers.origin;
   const corsOrigin = resolveCorsOrigin(origin, allowedOrigins);
@@ -147,16 +235,23 @@ const server = http.createServer((req, res) => {
   }
 
   if (req.url === '/health') {
+    logLine(`${requestId} GET /health 200 ${Date.now() - start}ms`);
     sendJson(res, 200, { status: 'ok' });
     return;
   }
 
   if (req.url !== '/api/ai/chat') {
+    logLine(
+      `${requestId} ${req.method} ${req.url} 404 ${Date.now() - start}ms`
+    );
     sendJson(res, 404, { error: 'Not found' });
     return;
   }
 
   if (req.method !== 'POST') {
+    logLine(
+      `${requestId} ${req.method} ${req.url} 405 ${Date.now() - start}ms`
+    );
     sendJson(res, 405, { error: 'Method not allowed' });
     return;
   }
@@ -165,6 +260,7 @@ const server = http.createServer((req, res) => {
   req.on('data', (chunk) => {
     body += chunk.toString();
     if (body.length > maxBodySize) {
+      logLine(`${requestId} payload too large (${body.length} bytes)`);
       res.writeHead(413);
       res.end();
       req.destroy();
@@ -172,26 +268,70 @@ const server = http.createServer((req, res) => {
   });
 
   req.on('end', async () => {
+    logLine(
+      `${requestId} POST /api/ai/chat from ${origin ?? 'unknown'} size=${body.length}`
+    );
     let payload;
     try {
       payload = body ? JSON.parse(body) : {};
     } catch (error) {
+      logError(`${requestId} invalid JSON body`);
       sendJson(res, 400, { error: 'Invalid JSON body' });
       return;
     }
 
     try {
+      const summary = {
+        messages: Array.isArray(payload?.messages)
+          ? payload.messages.length
+          : 0,
+        userName: payload?.context?.userName ?? null,
+        promptLength:
+          typeof payload?.prompt === 'string' ? payload.prompt.length : 0,
+      };
+      logLine(`${requestId} payload ${JSON.stringify(summary)}`);
+      if (logMessages && Array.isArray(payload?.messages)) {
+        const preview = payload.messages
+          .map((message) => ({
+            role: message?.role ?? 'unknown',
+            length: typeof message?.content === 'string' ? message.content.length : 0,
+          }))
+          .slice(0, 10);
+        logLine(`${requestId} messages ${JSON.stringify(preview)}`);
+      }
       const prompt = buildPrompt(payload ?? {});
+      logLine(`${requestId} codex exec start`);
+      const codexStart = Date.now();
       const reply = await runCodex(prompt);
+      const codexElapsed = Date.now() - codexStart;
+      logLine(
+        `${requestId} codex exec done ${codexElapsed}ms reply=${reply.length}`
+      );
       sendJson(res, 200, { reply });
+      logLine(`${requestId} POST /api/ai/chat 200 ${Date.now() - start}ms`);
     } catch (error) {
+      logError(
+        `${requestId} POST /api/ai/chat 500 ${Date.now() - start}ms ${error.message}`
+      );
       sendJson(res, 500, { error: error.message || 'Codex failed' });
     }
   });
-});
+};
+
+const server = httpsOptions
+  ? https.createServer(httpsOptions, requestHandler)
+  : http.createServer(requestHandler);
 
 server.listen(port, host, () => {
+  const protocol = httpsOptions ? 'https' : 'http';
   process.stdout.write(
-    `AI support server listening on http://${host}:${port}\n`
+    `AI support server listening on ${protocol}://${host}:${port}\n`
   );
+  if (verbose) {
+    logLine(`Verbose logging enabled`);
+    if (logMessages) {
+      logLine(`Message length logging enabled`);
+    }
+    logLine(`Codex binary: ${codexBin}`);
+  }
 });
