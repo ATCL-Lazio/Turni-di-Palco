@@ -1,12 +1,13 @@
-# 2025-02-18 — AI Support (Codex) Setup
+# 2025-02-18 - AI Support (Codex) Setup
 
 ## Changelog
 - Added prompt template and CLI workflow placeholders.
 - Documented backend endpoint plan and GitHub issue helper usage.
 - Captured manual verification steps for the end-to-end flow.
+- Documented the local AI support server used by mobile.
 
 ## Obiettivo
-Definire un flusso per generare prompt consistenti, invocare Codex/LLM da CLI o backend, e aprire issue GitHub dal risultato.
+Definire un flusso per generare prompt consistenti, invocare Codex da CLI o backend, e aprire issue GitHub dal risultato.
 
 ## Prompt template
 Template file:
@@ -21,7 +22,7 @@ Placeholder previsti:
 Script:
 - `npm run ai:codex`
 
-Variabili d’ambiente usate dal renderer:
+Variabili d'ambiente usate dal renderer:
 - `AI_PROMPT_TEMPLATE` (opzionale, path template)
 - `AI_REPO_NAME`
 - `AI_BRANCH`
@@ -35,7 +36,7 @@ Variabili d’ambiente usate dal renderer:
 - `AI_CONSTRAINTS`
 - `AI_ADDITIONAL_CONTEXT`
 
-Variabili d’ambiente per eseguire Codex:
+Variabili d'ambiente per eseguire Codex:
 - `CODEX_BIN` (opzionale, default `codex`)
 - `CODEX_ARGS` (opzionale, argomenti extra per la CLI)
 
@@ -53,7 +54,7 @@ node tools/ai-codex.js --print
 ```
 
 ## Collegamento template a UI/servizio
-Nel frontend è disponibile un service che costruisce il prompt e lo invia a un endpoint:
+Nel frontend e' disponibile un service che costruisce il prompt e lo invia a un endpoint:
 - `apps/pwa/src/services/ai.ts`
 
 Endpoint previsto:
@@ -70,8 +71,15 @@ Payload suggerito:
 
 Se il backend non esiste, creare un handler che:
 1. Riceve il template compilato.
-2. Inoltra la richiesta a Codex/LLM.
+2. Inoltra la richiesta a Codex.
 3. Restituisce la risposta al frontend.
+
+## Supporto in app (mobile)
+- La schermata "Supporto" in `apps/mobile` usa `POST /api/ai/chat` e un prompt dedicato all'utente finale (linguaggio semplice, niente dettagli tecnici).
+- Avvio locale: `npm run dev:mobile` avvia sia Vite che il server Codex locale.
+- Avvio manuale separato: `npm run ai:support` (porta configurabile con `AI_SUPPORT_PORT`, default `8787`).
+- Il dev server mobile fa proxy `/api/ai/chat` verso `http://localhost:${AI_SUPPORT_PORT}`.
+- Per un endpoint remoto, impostare `VITE_AI_SUPPORT_ENDPOINT` in `apps/mobile/.env`.
 
 ## Gestione credenziali GitHub
 Token e repo devono vivere lato server (mai nel browser):
@@ -84,7 +92,7 @@ Helper disponibile:
 - `apps/pwa/src/lib/githubIssue.ts`
 
 ## Verifica manuale (end-to-end)
-1. Eseguire `npm run ai:codex` con variabili d’ambiente compilate.
+1. Eseguire `npm run ai:codex` con variabili d'ambiente compilate.
 2. Inviare il prompt al backend `/api/ai/chat` e ottenere una risposta.
 3. Validare la risposta (completezza, tono, rispetto template).
 4. Usare il modulo `createGithubIssue` dal backend per aprire una issue.
