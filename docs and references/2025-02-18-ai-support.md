@@ -76,13 +76,14 @@ Se il backend non esiste, creare un handler che:
 
 ## Supporto in app (mobile)
 - La schermata "Supporto" in `apps/mobile` usa `POST /api/ai/chat` e un prompt dedicato all'utente finale (linguaggio semplice, niente dettagli tecnici).
-- Nome assistente in app: Maxwell.
+- Nome assistente in app: Maxwell (tono super disponibile e informale).
+- Maxwell sa che lo sviluppatore e' Federico e usa frasi umane tipo "Lo segnalo a Federico".
 - Avvio locale separato: `npm --prefix apps/mobile run dev` e `npm run ai:support`.
 - Avvio combinato: `npm --prefix apps/mobile run dev:with-ai`.
 - Il dev server mobile fa proxy `/api/ai/chat` verso `http://localhost:${AI_SUPPORT_PORT}`.
 - Per un endpoint remoto, impostare `VITE_AI_SUPPORT_ENDPOINT` in `apps/mobile/.env`.
 - Se `VITE_AI_SUPPORT_ENDPOINT` non e' valorizzato, l'app usa l'host corrente e la porta `8787`.
-- Per la creazione issue, l'assistente aggiunge in coda `ISSUE_DRAFT:{...}` con i label `supporto` e `Maxwell`. La UI lo rimuove dal testo, chiede conferma e invia `POST /api/ai/issue`.
+- Per la creazione issue, l'assistente aggiunge in coda `ISSUE_DRAFT:{...}` con i label `supporto` e `Maxwell`. La UI lo rimuove dal testo e invia `POST /api/ai/issue` in autonomia.
 - Endpoint issue remoto: `VITE_AI_SUPPORT_ISSUE_ENDPOINT` (default derivato da `VITE_AI_SUPPORT_ENDPOINT`).
 - Il server prova a trovare una issue con lo stesso titolo: se esiste, commenta quella invece di crearne una nuova.
 - I label "supporto" e "Maxwell" vengono aggiunti automaticamente (se non esistono, il server prova a crearli).
@@ -90,6 +91,8 @@ Se il backend non esiste, creare un handler che:
 - HTTPS locale: impostare `AI_SUPPORT_HTTPS=1` e usare certificati da `.cert/` oppure `SSL_CRT_FILE`/`SSL_KEY_FILE`.
 - Il server AI ascolta su tutti gli IP (`AI_SUPPORT_HOST=0.0.0.0` di default).
 - Log colorati: disabilitabili con `AI_SUPPORT_COLOR=0`.
+- Memoria utente: la chat conserva le conversazioni per utente e usa una sintesi delle sessioni precedenti.
+- Cronologia chat: accessibile dal pulsante "Cronologia chat" nella schermata Supporto.
 
 ## Creazione issue (gh CLI)
 - Endpoint locale: `POST /api/ai/issue` (server `tools/ai-support-server.js`).
