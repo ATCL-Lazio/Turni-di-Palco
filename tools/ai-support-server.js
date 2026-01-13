@@ -7,8 +7,9 @@ const path = require('node:path');
 const fs = require('node:fs');
 
 const port = Number(process.env.AI_SUPPORT_PORT) || 8787;
-const host = process.env.AI_SUPPORT_HOST || '127.0.0.1';
+const host = process.env.AI_SUPPORT_HOST || '0.0.0.0';
 const codexBin = resolveCodexBin();
+const ghBin = resolveGhBin();
 const codexArgs = process.env.CODEX_ARGS ? process.env.CODEX_ARGS.split(' ') : [];
 const maxBodySize = 1_000_000;
 const verbose =
@@ -55,6 +56,53 @@ function resolveCodexBin() {
   }
 
   return 'codex';
+}
+
+function resolveGhBin() {
+  if (process.env.AI_SUPPORT_GH_BIN) {
+    return process.env.AI_SUPPORT_GH_BIN;
+  }
+
+  if (process.platform === 'win32') {
+    const whereResult = spawnSync('where.exe', ['gh'], { encoding: 'utf8' });
+    if (whereResult.status === 0 && whereResult.stdout) {
+      const candidates = whereResult.stdout
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const cmdCandidate = candidates.find((line) => line.endsWith('.cmd'));
+      if (cmdCandidate) return cmdCandidate;
+      const exeCandidate = candidates.find((line) => line.endsWith('.exe'));
+      if (exeCandidate) return exeCandidate;
+      if (candidates[0]) {
+        const base = candidates[0];
+        if (fs.existsSync(`${base}.cmd`)) return `${base}.cmd`;
+        if (fs.existsSync(`${base}.exe`)) return `${base}.exe`;
+        return base;
+      }
+    }
+
+    const appData = process.env.APPDATA;
+    if (appData) {
+      const candidate = path.join(appData, 'npm', 'gh.cmd');
+      if (fs.existsSync(candidate)) return candidate;
+    }
+  }
+
+  return 'gh';
+}
+
+function resolveGithubRepo() {
+  if (process.env.AI_SUPPORT_GH_REPO) {
+    return process.env.AI_SUPPORT_GH_REPO;
+  }
+  if (process.env.GITHUB_REPO) {
+    return process.env.GITHUB_REPO;
+  }
+  if (process.env.GITHUB_REPO_OWNER && process.env.GITHUB_REPO_NAME) {
+    return `${process.env.GITHUB_REPO_OWNER}/${process.env.GITHUB_REPO_NAME}`;
+  }
+  return null;
 }
 
 function logLine(message) {
@@ -224,6 +272,54 @@ function runCodex(prompt) {
   });
 }
 
+function runGhIssueCreate({ title, body, labels }) {
+  return new Promise((resolve, reject) => {
+    const repo = resolveGithubRepo();
+    const args = ['issue', 'create', '--title', title, '--body', body];
+
+    if (repo) {
+      args.push('--repo', repo);
+    }
+
+    if (Array.isArray(labels)) {
+      labels
+        .map((label) => String(label).trim())
+        .filter(Boolean)
+        .forEach((label) => {
+          args.push('--label', label);
+        });
+    }
+
+    const child = spawnGhProcess(args);
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on('error', (error) => {
+      reject(error);
+    });
+
+    child.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(stderr || `gh exited with code ${code}`));
+        return;
+      }
+      const urlMatch = stdout.match(/https?:\/\/\S+/);
+      resolve({
+        url: urlMatch ? urlMatch[0] : null,
+        output: stdout.trim(),
+      });
+    });
+  });
+}
+
 function spawnCodexProcess(args) {
   if (process.platform === 'win32') {
     const lower = codexBin.toLowerCase();
@@ -234,6 +330,20 @@ function spawnCodexProcess(args) {
     }
   }
   return spawn(codexBin, args, {
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+}
+
+function spawnGhProcess(args) {
+  if (process.platform === 'win32') {
+    const lower = ghBin.toLowerCase();
+    if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
+      return spawn('cmd.exe', ['/c', ghBin, ...args], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+    }
+  }
+  return spawn(ghBin, args, {
     stdio: ['pipe', 'pipe', 'pipe'],
   });
 }
@@ -264,7 +374,7 @@ const requestHandler = (req, res) => {
     return;
   }
 
-  if (req.url !== '/api/ai/chat') {
+  if (req.url !== '/api/ai/chat' && req.url !== '/api/ai/issue') {
     logLine(
       `${requestId} ${req.method} ${req.url} 404 ${Date.now() - start}ms`
     );
@@ -293,7 +403,7 @@ const requestHandler = (req, res) => {
 
   req.on('end', async () => {
     logLine(
-      `${requestId} POST /api/ai/chat from ${origin ?? 'unknown'} size=${body.length}`
+      `${requestId} POST ${req.url} from ${origin ?? 'unknown'} size=${body.length}`
     );
     let payload;
     try {
@@ -305,6 +415,27 @@ const requestHandler = (req, res) => {
     }
 
     try {
+      if (req.url === '/api/ai/issue') {
+        const title = typeof payload?.title === 'string' ? payload.title.trim() : '';
+        const issueBody =
+          typeof payload?.body === 'string' ? payload.body.trim() : '';
+        const labels = payload?.labels;
+
+        if (!title || !issueBody) {
+          sendJson(res, 400, { error: 'Missing title or body' });
+          return;
+        }
+
+        logLine(`${requestId} gh issue create start`);
+        const ghStart = Date.now();
+        const result = await runGhIssueCreate({ title, body: issueBody, labels });
+        const ghElapsed = Date.now() - ghStart;
+        logLine(`${requestId} gh issue create done ${ghElapsed}ms`);
+        sendJson(res, 200, result);
+        logLine(`${requestId} POST /api/ai/issue 200 ${Date.now() - start}ms`);
+        return;
+      }
+
       const summary = {
         messages: Array.isArray(payload?.messages)
           ? payload.messages.length
