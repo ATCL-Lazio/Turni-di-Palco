@@ -82,10 +82,10 @@ Se il backend non esiste, creare un handler che:
 - Il dev server mobile fa proxy `/api/ai/chat` verso `http://localhost:${AI_SUPPORT_PORT}`.
 - Per un endpoint remoto, impostare `VITE_AI_SUPPORT_ENDPOINT` in `apps/mobile/.env`.
 - Se `VITE_AI_SUPPORT_ENDPOINT` non e' valorizzato, l'app usa l'host corrente e la porta `8787`.
-- Per la creazione issue, l'assistente aggiunge in coda `ISSUE_DRAFT:{...}`. La UI lo rimuove dal testo, chiede conferma e invia `POST /api/ai/issue`.
+- Per la creazione issue, l'assistente aggiunge in coda `ISSUE_DRAFT:{...}` con i label `supporto` e `Maxwell`. La UI lo rimuove dal testo, chiede conferma e invia `POST /api/ai/issue`.
 - Endpoint issue remoto: `VITE_AI_SUPPORT_ISSUE_ENDPOINT` (default derivato da `VITE_AI_SUPPORT_ENDPOINT`).
 - Il server prova a trovare una issue con lo stesso titolo: se esiste, commenta quella invece di crearne una nuova.
-- Il label "Maxwell" viene aggiunto automaticamente (se non esiste, il server prova a crearlo).
+- I label "supporto" e "Maxwell" vengono aggiunti automaticamente (se non esistono, il server prova a crearli).
 - Se il client chiama un endpoint assoluto, configurare `AI_SUPPORT_ALLOWED_ORIGINS` sul server (comma-separated).
 - HTTPS locale: impostare `AI_SUPPORT_HTTPS=1` e usare certificati da `.cert/` oppure `SSL_CRT_FILE`/`SSL_KEY_FILE`.
 - Il server AI ascolta su tutti gli IP (`AI_SUPPORT_HOST=0.0.0.0` di default).
