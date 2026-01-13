@@ -59,7 +59,7 @@
     "vite": "^7.3.0"
   },
   "scripts": {
-    "dev": "node ../../tools/with-https-env.js vite --host 0.0.0.0 --port 4174 --strictPort --clearScreen false",
+    "dev": "node ../../tools/dev-mobile.js",
     "build": "vite build"
   }
 }
