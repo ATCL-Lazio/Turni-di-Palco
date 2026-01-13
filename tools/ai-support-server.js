@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 const http = require('node:http');
 const { spawn } = require('node:child_process');
+const os = require('node:os');
+const path = require('node:path');
+const fs = require('node:fs');
 
 const port = Number(process.env.AI_SUPPORT_PORT) || 8787;
 const host = process.env.AI_SUPPORT_HOST || '127.0.0.1';
@@ -40,9 +43,37 @@ function buildPrompt({ prompt, messages, context }) {
   return lines.join('\n');
 }
 
+function buildTempReplyPath() {
+  const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return path.join(os.tmpdir(), `codex-reply-${id}.txt`);
+}
+
+async function readReplyFile(filePath) {
+  const data = await fs.promises.readFile(filePath, 'utf8');
+  return data.trim();
+}
+
+async function cleanupFile(filePath) {
+  try {
+    await fs.promises.unlink(filePath);
+  } catch {
+    // Ignore cleanup errors.
+  }
+}
+
 function runCodex(prompt) {
   return new Promise((resolve, reject) => {
-    const child = spawn(codexBin, codexArgs, {
+    const replyPath = buildTempReplyPath();
+    const args = [
+      'exec',
+      ...codexArgs,
+      '--output-last-message',
+      replyPath,
+      '--color',
+      'never',
+      '-',
+    ];
+    const child = spawn(codexBin, args, {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
@@ -61,12 +92,20 @@ function runCodex(prompt) {
       reject(error);
     });
 
-    child.on('close', (code) => {
+    child.on('close', async (code) => {
       if (code !== 0) {
+        await cleanupFile(replyPath);
         reject(new Error(stderr || `Codex exited with code ${code}`));
         return;
       }
-      resolve(stdout.trim());
+      try {
+        const reply = await readReplyFile(replyPath);
+        await cleanupFile(replyPath);
+        resolve(reply);
+      } catch (error) {
+        await cleanupFile(replyPath);
+        reject(error);
+      }
     });
 
     child.stdin.write(prompt);
