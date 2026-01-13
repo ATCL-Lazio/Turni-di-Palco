@@ -31,8 +31,20 @@ function resolveCodexBin() {
   if (process.platform === 'win32') {
     const whereResult = spawnSync('where.exe', ['codex'], { encoding: 'utf8' });
     if (whereResult.status === 0 && whereResult.stdout) {
-      const first = whereResult.stdout.split(/\r?\n/).find(Boolean);
-      if (first) return first.trim();
+      const candidates = whereResult.stdout
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const cmdCandidate = candidates.find((line) => line.endsWith('.cmd'));
+      if (cmdCandidate) return cmdCandidate;
+      const exeCandidate = candidates.find((line) => line.endsWith('.exe'));
+      if (exeCandidate) return exeCandidate;
+      if (candidates[0]) {
+        const base = candidates[0];
+        if (fs.existsSync(`${base}.cmd`)) return `${base}.cmd`;
+        if (fs.existsSync(`${base}.exe`)) return `${base}.exe`;
+        return base;
+      }
     }
 
     const appData = process.env.APPDATA;
@@ -174,9 +186,7 @@ function runCodex(prompt) {
       'never',
       '-',
     ];
-    const child = spawn(codexBin, args, {
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    const child = spawnCodexProcess(args);
 
     let stdout = '';
     let stderr = '';
@@ -211,6 +221,20 @@ function runCodex(prompt) {
 
     child.stdin.write(prompt);
     child.stdin.end();
+  });
+}
+
+function spawnCodexProcess(args) {
+  if (process.platform === 'win32') {
+    const lower = codexBin.toLowerCase();
+    if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
+      return spawn('cmd.exe', ['/c', codexBin, ...args], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+    }
+  }
+  return spawn(codexBin, args, {
+    stdio: ['pipe', 'pipe', 'pipe'],
   });
 }
 
