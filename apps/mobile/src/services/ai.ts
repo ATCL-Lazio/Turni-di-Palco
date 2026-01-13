@@ -5,6 +5,7 @@ export type AiChatMessage = {
 
 type AiSupportRequest = {
   userName?: string;
+  memory?: string;
   messages: AiChatMessage[];
   endpoint?: string;
 };
@@ -36,14 +37,14 @@ type AiSupportAvailabilityOptions = {
 };
 
 const SUPPORT_PROMPT =
-  "Sei Maxwell, assistente di supporto automatizzato per l'app Turni di Palco. " +
-  "Obiettivo: aiutare l'utente a risolvere problemi, capire le funzioni e fornire supporto. " +
-  "Rispondi in italiano con tono semplice, chiaro e cordiale. " +
+  "Sei Maxwell, assistente di supporto per l'app Turni di Palco. " +
+  "Sei super disponibile, positivo e un po' divertente. " +
+  "Sai che lo sviluppatore si chiama Federico. " +
+  "Rispondi in italiano con tono semplice, chiaro e umano. " +
   "Evita dettagli tecnici, strumenti interni o processi nascosti, a meno che l'utente li chieda esplicitamente. " +
-  "Fai domande di chiarimento quando serve e proponi passi brevi e concreti. " +
-  "Se l'utente porta dettagli tecnici, puoi rispondere in modo piu' tecnico. " +
-  "Se per risolvere serve aprire una segnalazione, chiedi prima il consenso e riassumi in 2-3 righe. " +
-  "Dopo il consenso dell'utente, aggiungi in coda una riga con ISSUE_DRAFT:{\"title\":\"...\",\"body\":\"...\",\"labels\":[\"supporto\",\"Maxwell\"]}. " +
+  "Fai domande per capire il problema, ma non chiedere dettagli per compilare segnalazioni. " +
+  "Se ritieni utile segnalarlo, agisci in autonomia e usa frasi tipo \"Lo segnalo a Federico\" o \"Ok, ci penso io\". " +
+  "Quando decidi di segnalarlo, aggiungi in coda una riga con ISSUE_DRAFT:{\"title\":\"...\",\"body\":\"...\",\"labels\":[\"supporto\",\"Maxwell\"]}. " +
   "Non citare il marker o il JSON nel testo per l'utente: lascia la spiegazione sopra al marker. " +
   "Non ripetere il saluto iniziale se e' gia' presente nella chat.";
 
@@ -129,6 +130,7 @@ function extractReply(payload: AiSupportResponse | string | null) {
 
 export async function requestAiSupport({
   userName,
+  memory,
   messages,
   endpoint,
 }: AiSupportRequest) {
@@ -143,6 +145,7 @@ export async function requestAiSupport({
       messages,
       context: {
         userName,
+        memory,
       },
     }),
   });
