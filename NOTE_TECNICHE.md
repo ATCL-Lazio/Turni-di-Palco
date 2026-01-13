@@ -16,7 +16,18 @@
   - Preview: `npm run preview:pwa`
 - Mobile:
   - Dev/build: `npm --workspace apps/mobile run dev|build`
+  - AI support server (local): `npm run ai:support` (default port 8787)
+  - Dev + AI support together: `npm --workspace apps/mobile run dev:with-ai`
   - Build+sync in PWA: `npm run build:mobile`
+
+## AI support (mobile)
+
+- Client calls `POST /api/ai/chat` (proxy in `apps/mobile/vite.config.ts`).
+- Local server: `tools/ai-support-server.js` uses `codex exec`.
+- Optional env:
+  - `AI_SUPPORT_PORT` (server port, default 8787)
+  - `AI_SUPPORT_ALLOWED_ORIGINS` (comma-separated, use when calling absolute URLs)
+  - `VITE_AI_SUPPORT_ENDPOINT` (remote endpoint override)
 
 ## PWA, cache e aggiornamenti
 
