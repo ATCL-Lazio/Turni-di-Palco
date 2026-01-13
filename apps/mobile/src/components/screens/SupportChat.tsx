@@ -153,6 +153,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
     try {
       const result = await requestAiIssue({ payload: issueDraft });
       const issueUrl = result?.url;
+      const usedExisting = result?.existing;
       setIssueDraft(null);
       setMessages((prev) => [
         ...prev,
@@ -160,7 +161,9 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
           id: buildMessageId(),
           role: 'assistant',
           content: issueUrl
-            ? `Ho aperto una segnalazione. Puoi seguirla qui: ${issueUrl}`
+            ? usedExisting
+              ? `Ho aggiunto la segnalazione a quella esistente: ${issueUrl}`
+              : `Ho aperto una segnalazione. Puoi seguirla qui: ${issueUrl}`
             : 'Ho aperto una segnalazione per il team.',
         },
       ]);

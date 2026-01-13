@@ -18,6 +18,10 @@ const verbose =
 const logMessages =
   process.env.AI_SUPPORT_LOG_MESSAGES === '1' ||
   process.env.AI_SUPPORT_LOG_MESSAGES === 'true';
+const enableColor =
+  process.env.AI_SUPPORT_COLOR !== '0' &&
+  process.env.AI_SUPPORT_COLOR !== 'false' &&
+  process.stdout.isTTY;
 
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
@@ -114,6 +118,20 @@ function logLine(message) {
 function logError(message) {
   const stamp = new Date().toISOString();
   process.stderr.write(`[${stamp}] ${message}\n`);
+}
+
+function colorize(text, code) {
+  if (!enableColor) return text;
+  return `\u001b[${code}m${text}\u001b[0m`;
+}
+
+function formatStatus(status) {
+  if (!Number.isFinite(status)) return String(status);
+  if (status >= 500) return colorize(String(status), 31);
+  if (status >= 400) return colorize(String(status), 33);
+  if (status >= 300) return colorize(String(status), 36);
+  if (status >= 200) return colorize(String(status), 32);
+  return colorize(String(status), 35);
 }
 
 function parseAllowedOrigins() {
@@ -320,6 +338,176 @@ function runGhIssueCreate({ title, body, labels }) {
   });
 }
 
+function runGhJson(args) {
+  return new Promise((resolve, reject) => {
+    const repo = resolveGithubRepo();
+    const fullArgs = [...args];
+    if (repo && !fullArgs.includes('--repo')) {
+      fullArgs.push('--repo', repo);
+    }
+    const child = spawnGhProcess(fullArgs);
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on('error', (error) => {
+      reject(error);
+    });
+
+    child.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(stderr || `gh exited with code ${code}`));
+        return;
+      }
+      try {
+        resolve(JSON.parse(stdout || 'null'));
+      } catch (error) {
+        reject(error);
+      }
+    });
+  });
+}
+
+function runGhIssueComment({ number, body }) {
+  return new Promise((resolve, reject) => {
+    const repo = resolveGithubRepo();
+    const args = ['issue', 'comment', String(number), '--body', body];
+    if (repo) {
+      args.push('--repo', repo);
+    }
+    const child = spawnGhProcess(args);
+    let stderr = '';
+
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on('error', (error) => {
+      reject(error);
+    });
+
+    child.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(stderr || `gh exited with code ${code}`));
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+function runGhIssueAddLabels({ number, labels }) {
+  return new Promise((resolve, reject) => {
+    if (!labels.length) {
+      resolve();
+      return;
+    }
+    const repo = resolveGithubRepo();
+    const args = ['issue', 'edit', String(number)];
+    labels.forEach((label) => {
+      args.push('--add-label', label);
+    });
+    if (repo) {
+      args.push('--repo', repo);
+    }
+    const child = spawnGhProcess(args);
+    let stderr = '';
+
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on('error', (error) => {
+      reject(error);
+    });
+
+    child.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(stderr || `gh exited with code ${code}`));
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+async function listGhLabels() {
+  const data = await runGhJson(['label', 'list', '--json', 'name']);
+  if (!Array.isArray(data)) {
+    return new Set();
+  }
+  return new Set(
+    data
+      .map((label) => label?.name)
+      .filter((name) => typeof name === 'string')
+  );
+}
+
+async function ensureGhLabel(label) {
+  if (!label) return false;
+  const labels = await listGhLabels();
+  if (labels.has(label)) {
+    return true;
+  }
+  return new Promise((resolve) => {
+    const repo = resolveGithubRepo();
+    const args = ['label', 'create', label, '--color', 'FBCA04'];
+    if (repo) {
+      args.push('--repo', repo);
+    }
+    const child = spawnGhProcess(args);
+    let stderr = '';
+
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on('error', () => {
+      resolve(false);
+    });
+
+    child.on('close', (code) => {
+      if (code !== 0) {
+        logError(`Label create failed (${label}): ${stderr.trim()}`);
+        resolve(false);
+        return;
+      }
+      resolve(true);
+    });
+  });
+}
+
+async function findExistingIssueByTitle(title) {
+  const data = await runGhJson([
+    'issue',
+    'list',
+    '--state',
+    'open',
+    '--limit',
+    '50',
+    '--search',
+    `in:title "${title.replace(/"/g, '\\"')}"`,
+    '--json',
+    'number,title,url',
+  ]);
+  if (!Array.isArray(data)) return null;
+  const normalized = title.trim().toLowerCase();
+  return (
+    data.find(
+      (issue) =>
+        typeof issue?.title === 'string' &&
+        issue.title.trim().toLowerCase() === normalized
+    ) ?? null
+  );
+}
+
 function spawnCodexProcess(args) {
   if (process.platform === 'win32') {
     const lower = codexBin.toLowerCase();
@@ -378,7 +566,7 @@ const requestHandler = (req, res) => {
 
   if (req.url === '/health') {
     logLine(
-      `${requestId} GET /health client=${clientIp} 200 ${Date.now() - start}ms`
+      `${requestId} GET /health\n  client=${clientIp}\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms`
     );
     sendJson(res, 200, { status: 'ok' });
     return;
@@ -386,9 +574,7 @@ const requestHandler = (req, res) => {
 
   if (req.url !== '/api/ai/chat' && req.url !== '/api/ai/issue') {
     logLine(
-      `${requestId} ${req.method} ${req.url} client=${clientIp} 404 ${
-        Date.now() - start
-      }ms`
+      `${requestId} ${req.method} ${req.url}\n  client=${clientIp}\n  status=${formatStatus(404)}\n  duration=${Date.now() - start}ms`
     );
     sendJson(res, 404, { error: 'Not found' });
     return;
@@ -396,9 +582,7 @@ const requestHandler = (req, res) => {
 
   if (req.method !== 'POST') {
     logLine(
-      `${requestId} ${req.method} ${req.url} client=${clientIp} 405 ${
-        Date.now() - start
-      }ms`
+      `${requestId} ${req.method} ${req.url}\n  client=${clientIp}\n  status=${formatStatus(405)}\n  duration=${Date.now() - start}ms`
     );
     sendJson(res, 405, { error: 'Method not allowed' });
     return;
@@ -417,7 +601,7 @@ const requestHandler = (req, res) => {
 
   req.on('end', async () => {
     logLine(
-      `${requestId} POST ${req.url} client=${clientIp} from ${origin ?? 'unknown'} size=${body.length}`
+      `${requestId} POST ${req.url}\n  client=${clientIp}\n  origin=${origin ?? 'unknown'}\n  size=${body.length}`
     );
     let payload;
     try {
@@ -440,13 +624,65 @@ const requestHandler = (req, res) => {
           return;
         }
 
+        const requestedLabels = Array.isArray(labels)
+          ? labels.map((label) => String(label).trim()).filter(Boolean)
+          : [];
+        const targetLabels = Array.from(
+          new Set([...requestedLabels, 'Maxwell'])
+        );
+
+        const labelReady = await ensureGhLabel('Maxwell');
+        if (!labelReady) {
+          logError('Label Maxwell not available; proceeding without label');
+        }
+
+        const existing = await findExistingIssueByTitle(title);
+        if (existing) {
+          logLine(`${requestId} gh issue comment start`);
+          const ghStart = Date.now();
+          await runGhIssueComment({ number: existing.number, body: issueBody });
+          if (labelReady) {
+            await runGhIssueAddLabels({
+              number: existing.number,
+              labels: ['Maxwell'],
+            });
+          }
+          const ghElapsed = Date.now() - ghStart;
+          logLine(`${requestId} gh issue comment done ${ghElapsed}ms`);
+          sendJson(res, 200, {
+            url: existing.url,
+            existing: true,
+            action: 'commented',
+          });
+          logLine(
+            `${requestId} POST /api/ai/issue\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms`
+          );
+          return;
+        }
+
+        const usableLabels = [];
+        if (labelReady) {
+          usableLabels.push('Maxwell');
+        }
+        for (const label of targetLabels) {
+          if (label === 'Maxwell') continue;
+          const ok = await ensureGhLabel(label);
+          if (ok) usableLabels.push(label);
+        }
+
         logLine(`${requestId} gh issue create start`);
         const ghStart = Date.now();
-        const result = await runGhIssueCreate({ title, body: issueBody, labels });
+        const result = await runGhIssueCreate({
+          title,
+          body: issueBody,
+          labels: usableLabels,
+        });
         const ghElapsed = Date.now() - ghStart;
         logLine(`${requestId} gh issue create done ${ghElapsed}ms`);
-        sendJson(res, 200, result);
-        logLine(`${requestId} POST /api/ai/issue 200 ${Date.now() - start}ms`);
+        sendJson(res, 200, { ...result, existing: false, action: 'created' });
+        logLine(
+          `${requestId} POST /api/ai/issue\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms`
+        );
         return;
       }
 
@@ -477,10 +713,13 @@ const requestHandler = (req, res) => {
         `${requestId} codex exec done ${codexElapsed}ms reply=${reply.length}`
       );
       sendJson(res, 200, { reply });
-      logLine(`${requestId} POST /api/ai/chat 200 ${Date.now() - start}ms`);
+      logLine(
+        `${requestId} POST /api/ai/chat\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms`
+      );
     } catch (error) {
+      const route = req.url === '/api/ai/issue' ? '/api/ai/issue' : '/api/ai/chat';
       logError(
-        `${requestId} POST /api/ai/chat 500 ${Date.now() - start}ms ${error.message}`
+        `${requestId} POST ${route}\n  status=${formatStatus(500)}\n  duration=${Date.now() - start}ms\n  error=${error.message}`
       );
       sendJson(res, 500, { error: error.message || 'Codex failed' });
     }
