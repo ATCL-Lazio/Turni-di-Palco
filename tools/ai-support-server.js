@@ -355,6 +355,14 @@ const requestHandler = (req, res) => {
   const allowedOrigins = parseAllowedOrigins();
   const origin = req.headers.origin;
   const corsOrigin = resolveCorsOrigin(origin, allowedOrigins);
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const forwardedIp = Array.isArray(forwardedFor)
+    ? forwardedFor[0]
+    : typeof forwardedFor === 'string'
+      ? forwardedFor.split(',')[0].trim()
+      : '';
+  const remoteIp = req.socket?.remoteAddress || req.connection?.remoteAddress;
+  const clientIp = forwardedIp || remoteIp || 'unknown';
 
   if (corsOrigin) {
     res.setHeader('Access-Control-Allow-Origin', corsOrigin);
@@ -369,14 +377,18 @@ const requestHandler = (req, res) => {
   }
 
   if (req.url === '/health') {
-    logLine(`${requestId} GET /health 200 ${Date.now() - start}ms`);
+    logLine(
+      `${requestId} GET /health client=${clientIp} 200 ${Date.now() - start}ms`
+    );
     sendJson(res, 200, { status: 'ok' });
     return;
   }
 
   if (req.url !== '/api/ai/chat' && req.url !== '/api/ai/issue') {
     logLine(
-      `${requestId} ${req.method} ${req.url} 404 ${Date.now() - start}ms`
+      `${requestId} ${req.method} ${req.url} client=${clientIp} 404 ${
+        Date.now() - start
+      }ms`
     );
     sendJson(res, 404, { error: 'Not found' });
     return;
@@ -384,7 +396,9 @@ const requestHandler = (req, res) => {
 
   if (req.method !== 'POST') {
     logLine(
-      `${requestId} ${req.method} ${req.url} 405 ${Date.now() - start}ms`
+      `${requestId} ${req.method} ${req.url} client=${clientIp} 405 ${
+        Date.now() - start
+      }ms`
     );
     sendJson(res, 405, { error: 'Method not allowed' });
     return;
@@ -403,7 +417,7 @@ const requestHandler = (req, res) => {
 
   req.on('end', async () => {
     logLine(
-      `${requestId} POST ${req.url} from ${origin ?? 'unknown'} size=${body.length}`
+      `${requestId} POST ${req.url} client=${clientIp} from ${origin ?? 'unknown'} size=${body.length}`
     );
     let payload;
     try {
