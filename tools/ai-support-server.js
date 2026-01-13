@@ -203,6 +203,9 @@ function buildPrompt({ prompt, messages, context }) {
   if (context?.userName) {
     systemParts.push(`Nome utente: ${context.userName}`);
   }
+  if (context?.memory) {
+    systemParts.push(`Memoria utente:\n${context.memory}`);
+  }
 
   const systemPrompt = systemParts.join('\n\n');
   const history = Array.isArray(messages) ? messages : [];
