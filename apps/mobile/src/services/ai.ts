@@ -26,6 +26,8 @@ type AiSupportIssuePayload = {
 type AiSupportIssueResponse = {
   url?: string | null;
   output?: string;
+  existing?: boolean;
+  action?: string;
 };
 
 type AiSupportAvailabilityOptions = {
@@ -41,7 +43,7 @@ const SUPPORT_PROMPT =
   "Fai domande di chiarimento quando serve e proponi passi brevi e concreti. " +
   "Se l'utente porta dettagli tecnici, puoi rispondere in modo piu' tecnico. " +
   "Se per risolvere serve aprire una segnalazione, chiedi prima il consenso e riassumi in 2-3 righe. " +
-  "Dopo il consenso dell'utente, aggiungi in coda una riga con ISSUE_DRAFT:{\"title\":\"...\",\"body\":\"...\",\"labels\":[\"supporto\"]}. " +
+  "Dopo il consenso dell'utente, aggiungi in coda una riga con ISSUE_DRAFT:{\"title\":\"...\",\"body\":\"...\",\"labels\":[\"Maxwell\"]}. " +
   "Non citare il marker o il JSON nel testo per l'utente: lascia la spiegazione sopra al marker. " +
   "Non ripetere il saluto iniziale se e' gia' presente nella chat.";
 
