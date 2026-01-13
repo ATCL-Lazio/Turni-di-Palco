@@ -2,12 +2,22 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Bot, Send } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { Textarea } from '../ui/textarea';
-import { requestAiSupport, type AiChatMessage } from '../../services/ai';
+import {
+  requestAiIssue,
+  requestAiSupport,
+  type AiChatMessage,
+} from '../../services/ai';
 
 type SupportMessage = {
   id: string;
   role: 'assistant' | 'user';
   content: string;
+};
+
+type IssueDraft = {
+  title: string;
+  body: string;
+  labels?: string[];
 };
 
 interface SupportChatProps {
@@ -17,6 +27,42 @@ interface SupportChatProps {
 
 function buildMessageId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+const ISSUE_DRAFT_MARKER = 'ISSUE_DRAFT:';
+
+function extractIssueDraft(reply: string) {
+  const markerIndex = reply.indexOf(ISSUE_DRAFT_MARKER);
+  if (markerIndex === -1) {
+    return { text: reply.trim(), draft: null };
+  }
+
+  const before = reply.slice(0, markerIndex).trim();
+  const raw = reply.slice(markerIndex + ISSUE_DRAFT_MARKER.length).trim();
+  if (!raw) {
+    return { text: before || reply.trim(), draft: null };
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.title !== 'string' || typeof parsed?.body !== 'string') {
+      return { text: before || reply.trim(), draft: null };
+    }
+    const labels = Array.isArray(parsed.labels)
+      ? parsed.labels.map((label) => String(label))
+      : undefined;
+    const text = before || 'Ricevuto. Sto preparando una segnalazione.';
+    return {
+      text,
+      draft: {
+        title: parsed.title.trim(),
+        body: parsed.body.trim(),
+        labels,
+      },
+    };
+  } catch {
+    return { text: before || reply.trim(), draft: null };
+  }
 }
 
 export function SupportChat({ userName, onBack }: SupportChatProps) {
@@ -31,6 +77,9 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [issueDraft, setIssueDraft] = useState<IssueDraft | null>(null);
+  const [issueError, setIssueError] = useState<string | null>(null);
+  const [isCreatingIssue, setIsCreatingIssue] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,6 +107,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
     const content = input.trim();
     setInput('');
     setErrorMessage(null);
+    setIssueError(null);
 
     const userMessage: SupportMessage = {
       id: buildMessageId(),
@@ -73,9 +123,15 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
         userName: displayName,
         messages: buildChatPayload(nextMessages),
       });
+      const { text, draft } = extractIssueDraft(reply);
+      if (draft) {
+        setIssueDraft(draft);
+      }
+      const displayText =
+        text || (draft ? 'Ricevuto. Sto preparando una segnalazione.' : reply);
       setMessages((prev) => [
         ...prev,
-        { id: buildMessageId(), role: 'assistant', content: reply },
+        { id: buildMessageId(), role: 'assistant', content: displayText },
       ]);
     } catch {
       const fallback =
@@ -88,6 +144,39 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleIssueCreate = async () => {
+    if (!issueDraft || isCreatingIssue) return;
+    setIsCreatingIssue(true);
+    setIssueError(null);
+    try {
+      const result = await requestAiIssue({ payload: issueDraft });
+      const issueUrl = result?.url;
+      setIssueDraft(null);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: buildMessageId(),
+          role: 'assistant',
+          content: issueUrl
+            ? `Ho aperto una segnalazione. Puoi seguirla qui: ${issueUrl}`
+            : 'Ho aperto una segnalazione per il team.',
+        },
+      ]);
+    } catch {
+      setIssueError(
+        "Non riesco ad aprire la segnalazione in questo momento. Riprova tra poco."
+      );
+    } finally {
+      setIsCreatingIssue(false);
+    }
+  };
+
+  const handleIssueDismiss = () => {
+    if (isCreatingIssue) return;
+    setIssueDraft(null);
+    setIssueError(null);
   };
 
   return (
@@ -148,6 +237,40 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
           ) : null}
           <div ref={scrollRef} />
         </div>
+
+        {issueDraft ? (
+          <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-3 space-y-2">
+            <div className="text-[14px] leading-[20px] text-white font-semibold">
+              Vuoi aprire una segnalazione?
+            </div>
+            <div className="text-[12px] leading-[18px] text-[#b8b2b3]">
+              Titolo: {issueDraft.title}
+            </div>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleIssueCreate}
+                disabled={isCreatingIssue}
+                className="px-3 py-2 rounded-[12px] bg-gradient-to-b from-[#8c1c38] to-[#a82847] text-[13px] leading-[18px] text-white disabled:opacity-60"
+              >
+                {isCreatingIssue ? 'Apro...' : 'Apri segnalazione'}
+              </button>
+              <button
+                type="button"
+                onClick={handleIssueDismiss}
+                disabled={isCreatingIssue}
+                className="px-3 py-2 rounded-[12px] bg-[#0f0d0e] border border-[#2d2728] text-[13px] leading-[18px] text-[#b8b2b3] disabled:opacity-60"
+              >
+                Non ora
+              </button>
+            </div>
+            {issueError ? (
+              <p className="text-[12px] leading-[18px] text-[#ff4d4f]">
+                {issueError}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-3 flex items-end gap-3">
           <Textarea
