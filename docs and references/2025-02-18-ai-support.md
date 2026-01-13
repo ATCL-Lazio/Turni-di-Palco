@@ -76,13 +76,25 @@ Se il backend non esiste, creare un handler che:
 
 ## Supporto in app (mobile)
 - La schermata "Supporto" in `apps/mobile` usa `POST /api/ai/chat` e un prompt dedicato all'utente finale (linguaggio semplice, niente dettagli tecnici).
-- Nome utente esposto in app: Maxwell.
+- Nome assistente in app: Maxwell.
 - Avvio locale separato: `npm --prefix apps/mobile run dev` e `npm run ai:support`.
 - Avvio combinato: `npm --prefix apps/mobile run dev:with-ai`.
 - Il dev server mobile fa proxy `/api/ai/chat` verso `http://localhost:${AI_SUPPORT_PORT}`.
 - Per un endpoint remoto, impostare `VITE_AI_SUPPORT_ENDPOINT` in `apps/mobile/.env`.
+- Se `VITE_AI_SUPPORT_ENDPOINT` non e' valorizzato, l'app usa l'host corrente e la porta `8787`.
+- Per la creazione issue, l'assistente aggiunge in coda `ISSUE_DRAFT:{...}`. La UI lo rimuove dal testo, chiede conferma e invia `POST /api/ai/issue`.
+- Endpoint issue remoto: `VITE_AI_SUPPORT_ISSUE_ENDPOINT` (default derivato da `VITE_AI_SUPPORT_ENDPOINT`).
 - Se il client chiama un endpoint assoluto, configurare `AI_SUPPORT_ALLOWED_ORIGINS` sul server (comma-separated).
- - HTTPS locale: impostare `AI_SUPPORT_HTTPS=1` e usare certificati da `.cert/` oppure `SSL_CRT_FILE`/`SSL_KEY_FILE`.
+- HTTPS locale: impostare `AI_SUPPORT_HTTPS=1` e usare certificati da `.cert/` oppure `SSL_CRT_FILE`/`SSL_KEY_FILE`.
+- Il server AI ascolta su tutti gli IP (`AI_SUPPORT_HOST=0.0.0.0` di default).
+
+## Creazione issue (gh CLI)
+- Endpoint locale: `POST /api/ai/issue` (server `tools/ai-support-server.js`).
+- Usa GitHub CLI (`gh issue create`) e quindi richiede `gh auth login` gia' configurato.
+- Variabili opzionali:
+  - `AI_SUPPORT_GH_REPO` (es. `Heartran/Turni-di-Palco`)
+  - `AI_SUPPORT_GH_BIN` (override path del binario `gh`)
+  - `GITHUB_REPO_OWNER` + `GITHUB_REPO_NAME` (fallback repo)
 
 ## Gestione credenziali GitHub
 Token e repo devono vivere lato server (mai nel browser):
@@ -98,5 +110,5 @@ Helper disponibile:
 1. Eseguire `npm run ai:codex` con variabili d'ambiente compilate.
 2. Inviare il prompt al backend `/api/ai/chat` e ottenere una risposta.
 3. Validare la risposta (completezza, tono, rispetto template).
-4. Usare il modulo `createGithubIssue` dal backend per aprire una issue.
+4. Usare `POST /api/ai/issue` o il modulo `createGithubIssue` dal backend per aprire una issue.
 5. Annotare limiti emersi (token mancanti, rate limit, prompt troppo lungo).
