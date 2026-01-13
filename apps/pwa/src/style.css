@@ -1424,3 +1424,52 @@ code {
     justify-items: start;
   }
 }
+
+.dev-gate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.dev-gate-card {
+  width: min(480px, 100%);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  padding: 2rem;
+  display: grid;
+  gap: 1.5rem;
+  box-shadow: var(--shadow-card);
+}
+
+.dev-gate-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.dev-gate-form.is-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.dev-gate-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dev-gate-message {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.dev-gate-message[data-tone="error"] {
+  color: var(--color-error);
+}
+
+.dev-gate-message[data-tone="success"] {
+  color: var(--color-success);
+}
