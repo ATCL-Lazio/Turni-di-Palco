@@ -1,4 +1,4 @@
-# 2025-02-18 - AI Support (Codex) Setup
+# 2025-02-18 - AI Support (Maxwell) Setup
 
 ## Changelog
 - Added prompt template and CLI workflow placeholders.
@@ -76,6 +76,7 @@ Se il backend non esiste, creare un handler che:
 
 ## Supporto in app (mobile)
 - La schermata "Supporto" in `apps/mobile` usa `POST /api/ai/chat` e un prompt dedicato all'utente finale (linguaggio semplice, niente dettagli tecnici).
+- Nome utente esposto in app: Maxwell.
 - Avvio locale separato: `npm --prefix apps/mobile run dev` e `npm run ai:support`.
 - Avvio combinato: `npm --prefix apps/mobile run dev:with-ai`.
 - Il dev server mobile fa proxy `/api/ai/chat` verso `http://localhost:${AI_SUPPORT_PORT}`.
