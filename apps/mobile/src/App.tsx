@@ -154,6 +154,8 @@ function getScreenToPersist(screen: Screen, activeTab: Tab): Screen {
 function AppShell() {
   const {
     authUserId,
+    authReady,
+    hasHydratedRemote,
     state,
     roles,
     events,
@@ -201,6 +203,7 @@ function AppShell() {
   const currentScreenRef = useRef(currentScreen);
   const lastNotifiedBadgeId = useRef<string | null>(null);
   const lastNotifiedEventId = useRef<string | null>(null);
+  const hasHandledQrLanding = useRef(false);
 
   const upcomingEvent = useMemo(() => followedEvents[0], [followedEvents]);
   const unlockedBadges = useMemo(() => badges.filter((badge) => badge.unlocked), [badges]);
@@ -213,6 +216,12 @@ function AppShell() {
     if (!newBadges.length) return null;
     return [...newBadges].sort((a, b) => (b.unlockedAt ?? 0) - (a.unlockedAt ?? 0))[0];
   }, [newBadges]);
+  const hasValidEmail = Boolean(state.profile.email && state.profile.email.includes('@'));
+  const isAuthValid = useMemo(() => {
+    if (!isSupabaseConfigured) return true;
+    if (!authReady) return false;
+    return Boolean(authUserId && hasHydratedRemote && hasValidEmail);
+  }, [authReady, authUserId, hasHydratedRemote, hasValidEmail]);
 
   useEffect(() => {
     if (!events.length) {
@@ -268,16 +277,22 @@ function AppShell() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (hasHandledQrLanding.current) return;
     const search = new URLSearchParams(window.location.search);
     if (search.get('from') !== 'qr') return;
-
-    setCurrentScreen('install');
+    if (!authReady) return;
+    hasHandledQrLanding.current = true;
+    if (!isAuthValid) {
+      setCurrentScreen('welcome');
+    } else {
+      setCurrentScreen('install');
+    }
     try {
       window.history.replaceState({}, '', window.location.pathname);
     } catch {
       // ignore
     }
-  }, []);
+  }, [authReady, isAuthValid]);
 
   const handleStart = () => setCurrentScreen('signup');
 
@@ -350,6 +365,13 @@ function AppShell() {
   };
 
   const handleQRScanAttempt = (code: string) => {
+    if (!authReady) {
+      return { ok: false as const, error: 'Sto verificando la sessione, riprova tra poco.' };
+    }
+    if (!isAuthValid) {
+      setCurrentScreen('welcome');
+      return { ok: false as const, error: 'Effettua il login per continuare.' };
+    }
     if (!events.length) {
       return { ok: false as const, error: 'Nessun evento disponibile al momento.' };
     }
@@ -444,6 +466,17 @@ function AppShell() {
     setCurrentScreen('account-settings');
   };
 
+  const handleOpenQRScanner = () => {
+    if (!authReady) {
+      return;
+    }
+    if (!isAuthValid) {
+      setCurrentScreen('welcome');
+      return;
+    }
+    setCurrentScreen('qr-scanner');
+  };
+
   const openTerms = (from: LegalReturnScreen) => {
     setLegalReturnScreen(from);
     setCurrentScreen('terms');
@@ -462,6 +495,23 @@ function AppShell() {
     setCurrentScreen('welcome');
     setActiveTab('home');
   };
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    if (!authReady || !authUserId) return;
+    if (hasHydratedRemote && hasValidEmail) return;
+    if (typeof window === 'undefined') return;
+
+    const timeoutId = window.setTimeout(() => {
+      if (!hasHydratedRemote || !hasValidEmail) {
+        handleLogout();
+      }
+    }, 4000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [authReady, authUserId, handleLogout, hasHydratedRemote, hasValidEmail]);
 
   const handleUploadProfileImage = async (file: File) => {
     if (!supabase || !authUserId) {
@@ -605,6 +655,10 @@ function AppShell() {
         return (
           <InstallApp
             onContinue={() => {
+              if (!isAuthValid) {
+                setCurrentScreen('welcome');
+                return;
+              }
               setCurrentScreen(state.profile.roleId ? 'home' : 'welcome');
             }}
           />
@@ -622,7 +676,7 @@ function AppShell() {
             xp={state.profile.xp}
             xpToNextLevel={state.profile.xpToNextLevel}
             reputation={state.profile.reputation}
-            onScanQR={() => setCurrentScreen('qr-scanner')}
+            onScanQR={handleOpenQRScanner}
             onViewActivities={() => handleTabChange('attivita')}
             onViewTurni={() => handleTabChange('turni')}
             onViewEventDetails={handleViewEventDetails}
@@ -651,7 +705,7 @@ function AppShell() {
               setScannedEventId(eventId);
               setCurrentScreen('event-details');
             }}
-            onScanQR={() => setCurrentScreen('qr-scanner')}
+            onScanQR={handleOpenQRScanner}
           />
         );
 
