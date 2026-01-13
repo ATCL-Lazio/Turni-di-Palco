@@ -627,13 +627,22 @@ const requestHandler = (req, res) => {
         const requestedLabels = Array.isArray(labels)
           ? labels.map((label) => String(label).trim()).filter(Boolean)
           : [];
+        const baseLabels = ['supporto', 'Maxwell'];
         const targetLabels = Array.from(
-          new Set([...requestedLabels, 'Maxwell'])
+          new Set([...requestedLabels, ...baseLabels])
         );
 
-        const labelReady = await ensureGhLabel('Maxwell');
-        if (!labelReady) {
+        const usableLabels = [];
+        for (const label of targetLabels) {
+          const ok = await ensureGhLabel(label);
+          if (ok) usableLabels.push(label);
+        }
+
+        if (!usableLabels.includes('Maxwell')) {
           logError('Label Maxwell not available; proceeding without label');
+        }
+        if (!usableLabels.includes('supporto')) {
+          logError('Label supporto not available; proceeding without label');
         }
 
         const existing = await findExistingIssueByTitle(title);
@@ -641,10 +650,10 @@ const requestHandler = (req, res) => {
           logLine(`${requestId} gh issue comment start`);
           const ghStart = Date.now();
           await runGhIssueComment({ number: existing.number, body: issueBody });
-          if (labelReady) {
+          if (usableLabels.length) {
             await runGhIssueAddLabels({
               number: existing.number,
-              labels: ['Maxwell'],
+              labels: usableLabels,
             });
           }
           const ghElapsed = Date.now() - ghStart;
@@ -658,16 +667,6 @@ const requestHandler = (req, res) => {
             `${requestId} POST /api/ai/issue\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms`
           );
           return;
-        }
-
-        const usableLabels = [];
-        if (labelReady) {
-          usableLabels.push('Maxwell');
-        }
-        for (const label of targetLabels) {
-          if (label === 'Maxwell') continue;
-          const ok = await ensureGhLabel(label);
-          if (ok) usableLabels.push(label);
         }
 
         logLine(`${requestId} gh issue create start`);
