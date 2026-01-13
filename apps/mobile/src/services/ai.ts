@@ -17,6 +17,11 @@ type AiSupportResponse = {
   choices?: Array<{ message?: { content?: string } }>;
 };
 
+type AiSupportAvailabilityOptions = {
+  endpoint?: string;
+  timeoutMs?: number;
+};
+
 const SUPPORT_PROMPT =
   "Sei un assistente di supporto automatizzato per l'app Turni di Palco. " +
   "Rispondi in italiano con tono semplice e cordiale. " +
@@ -24,6 +29,20 @@ const SUPPORT_PROMPT =
   "Fai domande di chiarimento quando serve. " +
   "Se l'utente porta dettagli tecnici, puoi rispondere in modo piu' tecnico. " +
   "Se per risolvere serve aprire una segnalazione, chiedi conferma e riassumi il problema in modo breve.";
+
+const DEFAULT_ENDPOINT =
+  import.meta.env.VITE_AI_SUPPORT_ENDPOINT ?? '/api/ai/chat';
+
+function resolveEndpoint(override?: string) {
+  return override ?? DEFAULT_ENDPOINT;
+}
+
+function resolveHealthEndpoint(endpoint: string) {
+  if (endpoint.includes('/api/ai/chat')) {
+    return endpoint.replace(/\/api\/ai\/chat\/?$/, '/health');
+  }
+  return endpoint;
+}
 
 function extractReply(payload: AiSupportResponse | string | null) {
   if (!payload) return null;
@@ -42,7 +61,7 @@ export async function requestAiSupport({
   messages,
   endpoint,
 }: AiSupportRequest) {
-  const target = endpoint ?? import.meta.env.VITE_AI_SUPPORT_ENDPOINT ?? '/api/ai/chat';
+  const target = resolveEndpoint(endpoint);
   const response = await fetch(target, {
     method: 'POST',
     headers: {
@@ -68,4 +87,25 @@ export async function requestAiSupport({
     throw new Error('Missing AI reply');
   }
   return reply;
+}
+
+export async function checkAiSupportAvailability({
+  endpoint,
+  timeoutMs = 2500,
+}: AiSupportAvailabilityOptions = {}) {
+  const target = resolveHealthEndpoint(resolveEndpoint(endpoint));
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(target, {
+      method: 'GET',
+      signal: controller.signal,
+    });
+    return response.ok;
+  } catch {
+    return false;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
