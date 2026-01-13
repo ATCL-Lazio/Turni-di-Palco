@@ -22,6 +22,7 @@ import {
   requestPermission,
   type NotificationPermissionState,
 } from '../../lib/notifications';
+import { checkAiSupportAvailability } from '../../services/ai';
 
 interface AccountSettingsProps {
   userName: string;
@@ -98,6 +99,9 @@ export function AccountSettings({
     geolocation: null,
   });
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermissionState>(() => getPermission());
+  const [supportStatus, setSupportStatus] = useState<
+    'checking' | 'available' | 'unavailable'
+  >('checking');
 
   const notificationStatusLabel = (() => {
     switch (notificationPermission) {
@@ -147,6 +151,22 @@ export function AccountSettings({
     };
 
     loadAppInfo();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const checkSupport = async () => {
+      const available = await checkAiSupportAvailability();
+      if (!mounted) return;
+      setSupportStatus(available ? 'available' : 'unavailable');
+    };
+
+    checkSupport();
 
     return () => {
       mounted = false;
@@ -339,6 +359,8 @@ export function AccountSettings({
     typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
   const canRequestGeolocation =
     typeof navigator !== 'undefined' && !!navigator.geolocation;
+  const supportUnavailable = supportStatus === 'unavailable';
+  const supportChecking = supportStatus === 'checking';
 
   return (
     <Screen
@@ -550,7 +572,8 @@ export function AccountSettings({
           <button
             type="button"
             onClick={onViewSupport}
-            className="h-[51px] flex items-center justify-between"
+            disabled={supportUnavailable || supportChecking}
+            className="h-[51px] flex items-center justify-between disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <div className="flex items-center gap-[12px]">
               <MessageCircle className="text-[#f4bf4f]" size={24} />
@@ -565,6 +588,11 @@ export function AccountSettings({
             </div>
             <ChevronRight className="text-[#7a7577]" size={20} />
           </button>
+          {supportUnavailable ? (
+            <p className="text-[14px] leading-[20px] text-[#ff4d4f]">
+              Supporto AI attualmente non disponibile.
+            </p>
+          ) : null}
 
           <button
             type="button"
