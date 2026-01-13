@@ -9,6 +9,7 @@ import {
   KeyRound,
   LogOut,
   MapPin,
+  MessageCircle,
   Shield,
   ShieldCheck,
   Trash2,
@@ -28,6 +29,7 @@ interface AccountSettingsProps {
   onBack: () => void;
   onViewTerms: () => void;
   onViewPrivacy: () => void;
+  onViewSupport: () => void;
   onChangePassword: () => void;
   onResetProgress: () => void;
   onLogout: () => void;
@@ -73,6 +75,7 @@ export function AccountSettings({
   onBack,
   onViewTerms,
   onViewPrivacy,
+  onViewSupport,
   onChangePassword,
   onResetProgress,
   onLogout,
@@ -544,6 +547,25 @@ export function AccountSettings({
         </div>
 
         <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
+          <button
+            type="button"
+            onClick={onViewSupport}
+            className="h-[51px] flex items-center justify-between"
+          >
+            <div className="flex items-center gap-[12px]">
+              <MessageCircle className="text-[#f4bf4f]" size={24} />
+              <div className="text-left">
+                <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
+                  Supporto
+                </p>
+                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                  Chat automatizzata con assistente
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="text-[#7a7577]" size={20} />
+          </button>
+
           <button
             type="button"
             onClick={onViewTerms}
