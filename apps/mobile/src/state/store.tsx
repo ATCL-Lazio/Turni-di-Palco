@@ -208,6 +208,52 @@ const MAX_TURNS = 20;
 const SUPABASE_SESSION_KEY = 'tdp-supabase-session';
 const SUPABASE_SESSION_ID_KEY = 'tdp-supabase-session-id';
 
+const HTML_ENTITY_MAP: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+};
+
+function decodeUnicodeEscapes(value: string) {
+  if (!value.includes('\\u')) return value;
+  return value.replace(/\\u([0-9a-fA-F]{4})/g, (match, codePoint: string) => {
+    const parsed = Number.parseInt(codePoint, 16);
+    if (!Number.isFinite(parsed)) return match;
+    return String.fromCodePoint(parsed);
+  });
+}
+
+function decodeHtmlEntities(value: string) {
+  if (!value.includes('&')) return value;
+  let decoded = value;
+  for (let i = 0; i < 2; i += 1) {
+    const next = decoded.replace(/&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity) => {
+      if (entity[0] === '#') {
+        const isHex = entity[1]?.toLowerCase() === 'x';
+        const number = Number.parseInt(entity.slice(isHex ? 2 : 1), isHex ? 16 : 10);
+        if (!Number.isFinite(number)) return match;
+        try {
+          return String.fromCodePoint(number);
+        } catch {
+          return match;
+        }
+      }
+      return HTML_ENTITY_MAP[entity] ?? match;
+    });
+    if (next === decoded) break;
+    decoded = next;
+  }
+  return decoded;
+}
+
+function normalizeText(value: string | null | undefined) {
+  if (!value) return '';
+  return decodeHtmlEntities(decodeUnicodeEscapes(value));
+}
+
 type StoredSession = { access_token: string; refresh_token: string; user_id?: string };
 
 function readStoredSession(): StoredSession | null {
@@ -709,11 +755,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             if (!row.events) return null;
             return {
               id: row.events.id,
-              name: row.events.name,
-              theatre: row.events.theatre,
-              date: row.events.event_date,
-              time: row.events.event_time,
-              genre: row.events.genre,
+              name: normalizeText(row.events.name),
+              theatre: normalizeText(row.events.theatre),
+              date: normalizeText(row.events.event_date),
+              time: normalizeText(row.events.event_time),
+              genre: normalizeText(row.events.genre),
               baseRewards: {
                 xp: Number(row.events.base_rewards?.xp ?? 0),
                 reputation: Number(row.events.base_rewards?.reputation ?? 0),
@@ -834,11 +880,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           ? (isSupabaseConfigured ? [] : import.meta.env.DEV ? events : [])
           : eventsRes.data.map((event: any) => ({
             id: event.id,
-            name: event.name,
-            theatre: event.theatre,
-            date: event.event_date,
-            time: event.event_time,
-            genre: event.genre,
+            name: normalizeText(event.name),
+            theatre: normalizeText(event.theatre),
+            date: normalizeText(event.event_date),
+            time: normalizeText(event.event_time),
+            genre: normalizeText(event.genre),
             baseRewards: {
               xp: Number(event.base_rewards?.xp ?? 0),
               reputation: Number(event.base_rewards?.reputation ?? 0),
@@ -911,10 +957,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         ? turnsRes.data.map((turn: any) => ({
           id: turn.id,
           eventId: turn.event_id ?? '',
-          eventName: turn.event_name ?? '',
-          theatre: turn.theatre ?? '',
-          date: turn.event_date ?? '',
-          time: turn.event_time ?? '',
+          eventName: normalizeText(turn.event_name),
+          theatre: normalizeText(turn.theatre),
+          date: normalizeText(turn.event_date),
+          time: normalizeText(turn.event_time),
           roleId: (turn.role_id as RoleId) ?? 'attore',
           rewards: {
             xp: Number(turn.rewards?.xp ?? 0),
@@ -964,10 +1010,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     const mapTurnRow = (turn: any): TurnRecord => ({
       id: turn.id,
       eventId: turn.event_id ?? '',
-      eventName: turn.event_name ?? '',
-      theatre: turn.theatre ?? '',
-      date: turn.event_date ?? '',
-      time: turn.event_time ?? '',
+      eventName: normalizeText(turn.event_name),
+      theatre: normalizeText(turn.theatre),
+      date: normalizeText(turn.event_date),
+      time: normalizeText(turn.event_time),
       roleId: (turn.role_id as RoleId) ?? 'attore',
       rewards: {
         xp: Number(turn.rewards?.xp ?? 0),
