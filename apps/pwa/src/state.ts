@@ -165,12 +165,17 @@ function sanitizeRewards(raw: Partial<Rewards> | undefined): Rewards {
   };
 }
 
+function decodeUnicodeEscapes(value: string) {
+  if (!value.includes("\\u")) return value;
+  return value.replace(/\\u([0-9a-fA-F]{4})/g, (_, codePoint: string) => String.fromCharCode(Number.parseInt(codePoint, 16)));
+}
+
 function sanitizeTurn(raw: unknown, fallbackRole: RoleId): TurnRecord | null {
   if (!raw || typeof raw !== "object") return null;
   const turn = raw as Partial<TurnRecord>;
   const id = typeof turn.id === "string" ? turn.id : "";
   const eventId = typeof turn.eventId === "string" ? turn.eventId : "";
-  const eventName = typeof turn.eventName === "string" ? turn.eventName : "";
+  const eventName = typeof turn.eventName === "string" ? decodeUnicodeEscapes(turn.eventName) : "";
   const theatre = typeof turn.theatre === "string" ? turn.theatre : "";
   const date = typeof turn.date === "string" ? turn.date : "";
   if (!id || !eventId || !eventName || !theatre || !date) return null;
