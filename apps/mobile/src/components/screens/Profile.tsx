@@ -2,7 +2,12 @@
 import { Award, BarChart3, Camera, ChevronRight, LogOut, Settings, Theater, User } from 'lucide-react';
 import { ProgressBar } from '../ui/ProgressBar';
 
-interface ProfiloProps {
+interface TheatreReputation {
+  name: string;
+  reputation: number;
+}
+
+interface ProfileProps {
   userName: string;
   userRole: string;
   level: number;
@@ -10,7 +15,7 @@ interface ProfiloProps {
   xpTotal: number;
   xpSulCampo: number;
   reputationGlobal: number;
-  theatreReputation: Array<{ name: string; reputation: number }>;
+  theatreReputation: TheatreReputation[];
   theatreReputationLoading: boolean;
   badgesUnlockedCount: number;
   newBadgesCount: number;
@@ -22,10 +27,11 @@ interface ProfiloProps {
   onUploadProfileImage: (file: File) => void;
 }
 
-export function Profilo({
+export function Profile({
   userName,
   userRole,
   level,
+  xp,
   xpTotal,
   xpSulCampo,
   reputationGlobal,
@@ -39,7 +45,7 @@ export function Profilo({
   onSettings,
   onLogout,
   onUploadProfileImage
-}: ProfiloProps) {
+}: ProfileProps) {
   const safeXpTotal = Math.max(xpTotal, 1);
   const roleLabel = (userRole ?? 'Ruolo').replace(/\s*\/\s*/g, '/');
 
