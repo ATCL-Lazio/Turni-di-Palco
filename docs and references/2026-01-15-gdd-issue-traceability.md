@@ -1,12 +1,15 @@
 # GDD → Issue Traceability (2026-01-15)
 
 ## Changelog
+
 - 2026-01-15: initial extraction of GDD features and proposed GitHub issue list.
 
 ## Fonte
+
 - Documento: `Gdd - Turni di Palco.pdf`.
 
 ## Caratteristiche chiave dal GDD (estratto)
+
 - Gioco mobile single-player con progressione carriera teatrale, collegata alla partecipazione reale agli eventi ATCL tramite scansione QR su biglietto/locandina.
 - Creazione profilo con ruoli professionali (attore/attrice, tecnico luci, fonico, attrezzista/scenografo, assistente di palco), statistiche di ruolo e albero skill semplificato.
 - Due macro-componenti: attività simulate sempre disponibili e turni certificati ATCL vincolati a QR.
@@ -21,6 +24,7 @@
 - Roadmap MVP: creazione profilo, sistema base XP/monete, 1–2 minigiochi, flusso QR con evento test.
 
 ## Proposta issue backlog (da creare/sincronizzare in GitHub)
+
 1. **Profilo giocatore + scelta ruolo iniziale**
    - Include ruoli, statistiche base, scelta ruolo iniziale e possibilità di cambio ruolo.
 2. **Sistema XP/leveling e XP sul campo**
@@ -53,11 +57,13 @@
     - Task aggregata: profilo, XP/monete base, 1–2 minigiochi, QR test.
 
 ## Note operative
+
 - Questa lista va verificata contro le issue esistenti e aggiornata in GitHub.
 - Aggiungere label dedicate (es. `gdd`, `mvp`, `backend`, `frontend`, `gameplay`).
 - Per creare/sincronizzare le issue serve configurare `GH_TOKEN`/`GITHUB_TOKEN` e l'owner/repo GitHub.
 
 ## Command log (per tracciamento analisi)
+
 - `python` con PyPDF2 per estrarre il testo dal PDF GDD.
 - `rg` per individuare riferimenti a configurazione GitHub nel repo.
 - `python` per verificare la presenza di `GH_TOKEN`/`GITHUB_TOKEN` nell'ambiente.
