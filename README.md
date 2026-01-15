@@ -1,6 +1,6 @@
 # Turni di Palco - Monorepo
 
-Turni di Palco e una Progressive Web App pensata per gestire i turni teatrali con meccaniche di gioco (XP, livelli, ruoli) per rendere l'organizzazione piu coinvolgente.
+Turni di Palco è una Progressive Web App pensata per gestire i turni teatrali con meccaniche di gioco (XP, livelli, ruoli) per rendere l'organizzazione piu coinvolgente.
 
 Il monorepo contiene:
 - `apps/pwa`: shell PWA multipagina (Vite + TypeScript + Vanilla).
