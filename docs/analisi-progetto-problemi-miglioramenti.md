@@ -145,7 +145,7 @@
 
 - **CI/CD per mobile:** Estendere le pipeline per includere test su dispositivi reali tramite BrowserStack o Sauce Labs e build separate per wrapper iOS/Android, se adottati.
 
-- **Documentazione tecnica mobile:** Aggiornare `docs and references/` con guide su deployment mobile, troubleshooting e changelog delle modifiche PWA.
+- Documentazione tecnica mobile: Aggiornare `docs/` con guide su deployment mobile, troubleshooting e changelog delle modifiche PWA.
 
 - **Formazione del team:** Pianificare sessioni di training su best practice PWA con focus sulle differenze tra iOS e Android per prevenire regressioni.
 
