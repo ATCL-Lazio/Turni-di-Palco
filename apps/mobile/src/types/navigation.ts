@@ -5,23 +5,23 @@ export type Screen =
     | 'install'
     | 'role-selection'
     | 'home'
-    | 'turni'
+    | 'turns'
     | 'leaderboard'
     | 'qr-scanner'
     | 'event-confirmation'
     | 'event-details'
-    | 'attivita'
+    | 'activities'
     | 'activity-detail'
-    | 'profilo'
+    | 'profile'
     | 'account-settings'
     | 'support'
     | 'change-password'
-    | 'carriera'
+    | 'career'
     | 'terms'
     | 'privacy'
-    | 'titoli-ottenuti';
+    | 'earned-titles';
 
-export type Tab = 'home' | 'turni' | 'leaderboard' | 'attivita' | 'profilo';
+export type Tab = 'home' | 'turns' | 'leaderboard' | 'activities' | 'profile';
 
 export type LegalReturnScreen = Exclude<Screen, 'terms' | 'privacy'>;
 
