@@ -6,7 +6,7 @@
 
 ## Fonte
 
-- Documento: `Gdd - Turni di Palco.pdf`.
+- Documento: `gdd-turni-di-palco.pdf`.
 
 ## Caratteristiche chiave dal GDD (estratto)
 
