@@ -6,19 +6,19 @@ const NAV_STATE_VERSION = 1 as const;
 
 const VALID_SCREENS = new Set<Screen>([
     'welcome', 'login', 'signup', 'install', 'role-selection',
-    'home', 'turni', 'leaderboard', 'qr-scanner', 'event-confirmation',
-    'event-details', 'attivita', 'activity-detail', 'profilo',
-    'account-settings', 'support', 'change-password', 'carriera',
-    'terms', 'privacy', 'titoli-ottenuti',
+    'home', 'turns', 'leaderboard', 'qr-scanner', 'event-confirmation',
+    'event-details', 'activities', 'activity-detail', 'profile',
+    'account-settings', 'support', 'change-password', 'career',
+    'terms', 'privacy', 'earned-titles',
 ]);
 
-const VALID_TABS = new Set<Tab>(['home', 'turni', 'leaderboard', 'attivita', 'profilo']);
+const VALID_TABS = new Set<Tab>(['home', 'turns', 'leaderboard', 'activities', 'profile']);
 
 const VALID_LEGAL_RETURN_SCREENS = new Set<LegalReturnScreen>([
-    'welcome', 'login', 'signup', 'role-selection', 'home', 'turni',
-    'qr-scanner', 'event-confirmation', 'attivita', 'activity-detail',
-    'profilo', 'account-settings', 'support', 'change-password',
-    'carriera', 'titoli-ottenuti',
+    'welcome', 'login', 'signup', 'role-selection', 'home', 'turns',
+    'qr-scanner', 'event-confirmation', 'activities', 'activity-detail',
+    'profile', 'account-settings', 'support', 'change-password',
+    'career', 'earned-titles',
 ]);
 
 function readNavState(): PersistedNavState | null {
@@ -57,7 +57,7 @@ function writeNavState(state: PersistedNavState) {
 
 function getScreenToPersist(screen: Screen, activeTab: Tab): Screen {
     if (screen === 'install' || screen === 'qr-scanner') {
-        return activeTab === 'home' ? 'home' : 'turni';
+        return activeTab === 'home' ? 'home' : 'turns';
     }
     return screen;
 }
@@ -67,8 +67,8 @@ export function useNavigation(initialEvents: { id: string }[]) {
         const persisted = readNavState();
         if (!persisted) return null;
         let nextScreen = persisted.screen;
-        if (nextScreen === 'activity-detail' && !persisted.selectedActivityId) nextScreen = 'attivita';
-        if (nextScreen === 'event-confirmation' && !persisted.scannedEventId) nextScreen = 'turni';
+        if (nextScreen === 'activity-detail' && !persisted.selectedActivityId) nextScreen = 'activities';
+        if (nextScreen === 'event-confirmation' && !persisted.scannedEventId) nextScreen = 'turns';
         nextScreen = getScreenToPersist(nextScreen, persisted.activeTab);
         return { ...persisted, screen: nextScreen };
     }, []);
