@@ -82,7 +82,7 @@ Nota: attualmente l’elenco eventi è mock (`apps/mobile/src/state/store.tsx`, 
 ## Eventi ATCL: feed, import e follow
 
 - Script import: `tools/import-spazio-rossellini-events.js` (usa `.env` con `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`). Supporta `DRY_RUN` per test.
-- Edge Function: `supabase/functions/import-spazio-rossellini` (deployata). Endpoint: `https://<project>.supabase.co/functions/v1/import-spazio-rossellini`.    
+- Edge Function: `supabase/functions/import-spazio-rossellini` (deployata). Endpoint: `https://<project>.supabase.co/functions/v1/import-spazio-rossellini`.
 - Automatizzazione consigliata via cron: `*/30 * * * *` (import ogni 30 minuti).
 - Follow eventi: tabella `public.followed_events` (RLS per user). Home mostra solo eventi seguiti, Turni ATCL mostra tutti gli eventi e permette follow/unfollow.
 
