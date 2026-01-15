@@ -155,7 +155,7 @@ function normalizeState(raw: Partial<GameState> | null | undefined): GameState {
     if (!t || typeof t !== "object") return null;
     const roleId = typeof t.roleId === "string" && t.roleId in roleMap ? t.roleId : profile.roleId;
     return { ...t, roleId, rewards: sanitizeRewards(t.rewards) } as TurnRecord;
-  }).filter(Boolean).slice(0, MAX_TURNS_PERSISTED) : [];
+  }).filter((t): t is TurnRecord => !!t).slice(0, MAX_TURNS_PERSISTED) : [];
 
   const activityStats = raw?.activityStats && typeof raw.activityStats === "object" ? Object.entries(raw.activityStats).reduce((acc, [k, v]) => {
     const r = v as any;
