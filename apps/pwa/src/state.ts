@@ -221,3 +221,12 @@ export function calculateLeaderboardStats(entries: LeaderboardEntry[]): Leaderbo
     topReputation: Math.max(...entries.map(e => e.reputation))
   };
 }
+
+export function getAvatarVisual(avatar: AvatarSettings) {
+  const icon = avatarIcons.find(item => item.id === avatar.icon);
+  return {
+    color: `hsl(${avatar.hue}, 70%, 50%)`,
+    image: avatar.rpmThumbnail || "",
+    icon: icon?.symbol || "?"
+  };
+}
