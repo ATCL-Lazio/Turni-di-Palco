@@ -3,16 +3,19 @@
 Turni di Palco è una Progressive Web App pensata per gestire i turni teatrali con meccaniche di gioco (XP, livelli, ruoli) per rendere l'organizzazione piu coinvolgente.
 
 Il monorepo contiene:
+
 - `apps/pwa`: shell PWA multipagina (Vite + TypeScript + Vanilla).
 - `apps/mobile`: UI mobile React/Vite; il bundle statico finisce in `apps/pwa/public/mobile/`.
 - `shared`: codice e stili condivisi.
-- `docs and references/`: documenti di design e GDD.
+- `docs/`: documenti di design e GDD.
 
 ## Requisiti
+
 - Node.js 18+ (setup corrente: 22.14.0).
 - npm.
 
 ## Installazione
+
 Installa tutte le dipendenze dei workspace dalla root:
 
 ```bash
@@ -20,12 +23,15 @@ npm install
 ```
 
 ## Comandi disponibili
+
 Tutti gli script vanno eseguiti dalla root con `npm run <script>`.
 
 ### Manutenzione
+
 - `clean:builds`: elimina gli output di build standard (`dist/`, `apps/pwa/dist`, `apps/mobile/dist`) per partire da un albero pulito.
 
 ### PWA (`apps/pwa`)
+
 - `dev:pwa`: avvia il dev server Vite su `http://localhost:5173` (host 0.0.0.0) con ricarica a caldo.
 - `dev:pwa:https`: stesso server ma in HTTPS; usa le variabili `SSL_CRT_FILE`/`SSL_KEY_FILE` se impostate, altrimenti un certificato generato da Vite.
 - `build:pwa`: aggiorna il nome della cache nel service worker (`apps/pwa/public/sw.js`) in base agli asset pubblici e compila la PWA in `apps/pwa/dist`.
@@ -35,19 +41,20 @@ Tutti gli script vanno eseguiti dalla root con `npm run <script>`.
 - `format`: formatta i file del workspace PWA con Prettier (modifica i file in-place).
 
 ### UI mobile (`apps/mobile`)
+
 - `dev:mobile`: avvia il dev server Vite React su `http://localhost:3000` con base `/mobile/`.
 - `build:mobile`: build Vite in `apps/mobile/build` e copia il bundle statico in `apps/pwa/public/mobile/` tramite `sync:mobile`.
 - `sync:mobile`: solo copia l'ultimo build da `apps/mobile/build` a `apps/pwa/public/mobile/` (scrive un checksum per saltare copie inutili).
 
 ## Struttura del codice PWA
+
 Il sorgente della PWA vive in `apps/pwa/src` ed e suddiviso in:
+
 - `components/`: componenti UI riutilizzabili.
 - `features/`: moduli funzionali (es. gestione permessi, schede stato).
 - `services/`: logica di business e integrazioni browser/API.
 - `utils/`: funzioni di utilita generiche.
 
 ## Contributi
-Consulta `CONTRIBUTING.md` per stile del codice, convenzioni di commit e setup ambiente. Per note di design vedi `docs and references/`.
 
-# Live Preview
-<iframe src="https://turni-di-palco.onrender.com/mobile/" width="430px" height="932px"></iframe>
+Consulta `contributing.md` per stile del codice, convenzioni di commit e setup ambiente. Per note di design vedi `docs/`.
