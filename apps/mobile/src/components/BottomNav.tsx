@@ -1,18 +1,19 @@
 ﻿import React from 'react';
 import { Home, ListChecks, Ticket, Trophy, User } from 'lucide-react';
+import { Tab } from '../types/navigation';
 
 interface BottomNavProps {
-  activeTab: 'home' | 'turni' | 'leaderboard' | 'attivita' | 'profilo';
-  onTabChange: (tab: 'home' | 'turni' | 'leaderboard' | 'attivita' | 'profilo') => void;
+  activeTab: Tab;
+  onTabChange: (tab: Tab) => void;
 }
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   const tabs = [
     { id: 'home' as const, icon: Home, label: 'Home' },
-    { id: 'turni' as const, icon: Ticket, label: 'Turni ATCL' },
+    { id: 'turns' as const, icon: Ticket, label: 'Turni ATCL' },
     { id: 'leaderboard' as const, icon: Trophy, label: 'Classifica' },
-    { id: 'attivita' as const, icon: ListChecks, label: 'Attività' },
-    { id: 'profilo' as const, icon: User, label: 'Profilo' }
+    { id: 'activities' as const, icon: ListChecks, label: 'Attività' },
+    { id: 'profile' as const, icon: User, label: 'Profilo' }
   ];
 
   return (
@@ -26,9 +27,8 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`flex h-[44px] flex-1 min-w-0 flex-col items-center justify-end gap-[4px] rounded-[10px] text-[12px] leading-[14px] transition-colors ${
-                isActive ? 'text-[#f4bf4f]' : 'text-[#7a7577] hover:text-[#b8b2b3]'
-              }`}
+              className={`flex h-[44px] flex-1 min-w-0 flex-col items-center justify-end gap-[4px] rounded-[10px] text-[12px] leading-[14px] transition-colors ${isActive ? 'text-[#f4bf4f]' : 'text-[#7a7577] hover:text-[#b8b2b3]'
+                }`}
             >
               <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
               <span className="w-full px-1 text-center truncate">{tab.label}</span>
