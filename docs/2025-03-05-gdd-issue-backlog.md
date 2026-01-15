@@ -90,7 +90,7 @@
    - **ISSUE_DRAFT:**
      `ISSUE_DRAFT:{"title":"[GDD-007] Attività simulate: scelte narrative rapide","body":"## Obiettivo\nImplementare dialoghi a bivi con bonus/malus temporanei.\n\n## Dettagli GDD\nSituazioni quotidiane di compagnia, sessioni brevi.\n\n## Acceptance criteria\n- Almeno 1 scenario giocabile con 2–3 scelte.\n- Applicazione di un bonus/malus temporaneo.\n- Reward di XP/cachet minima.\n","labels":["gdd","feature","mvp"]}`
 
-3. **[GDD-008] Attività simulate: minigioco “tempismo luci”**
+3. **[GDD-008] Attività simulate: minigioco “tempismo luci” (GitHub Issue #130)**
    - **Obiettivo:** prototipo di minigioco con input a tempo.
    - **Dettagli GDD:** accendere alla battuta corretta.
    - **Acceptance criteria:**
@@ -132,7 +132,7 @@
     - **ISSUE_DRAFT:**
       `ISSUE_DRAFT:{"title":"[GDD-011] Questionario/mini scena post-scan","body":"## Obiettivo\nMostrare un breve questionario o mini scena legata al ruolo.\n\n## Dettagli GDD\nEsperienza immersiva facoltativa ma consigliata.\n\n## Acceptance criteria\n- Almeno 1 flusso di domanda legato a un ruolo.\n- Possibilità di saltare il questionario.\n- Reward finale dopo completamento.\n","labels":["gdd","feature","mvp"]}`
 
-3. **[GDD-012] Anti-abuso: limitazione per evento e finestra temporale**
+3. **[GDD-012] Anti-abuso: limitazione per evento e finestra temporale (GitHub Issue #131)**
     - **Obiettivo:** prevenire registrazioni multiple e fuori tempo.
     - **Dettagli GDD:** 1 turno per evento, QR valido entro intervallo, GPS opzionale.
     - **Acceptance criteria:**
@@ -205,6 +205,17 @@
       - Ricompensa o badge associato.
     - **ISSUE_DRAFT:**
       `ISSUE_DRAFT:{"title":"[GDD-018] Eventi narrativi speciali legati ai teatri","body":"## Obiettivo\nSbloccare contenuti narrativi dopo visite o reputazione.\n\n## Dettagli GDD\nContenuti speciali per teatro visitato.\n\n## Acceptance criteria\n- Almeno 1 evento narrativo sbloccabile.\n- Trigger basato su reputazione o numero di visite.\n- Ricompensa o badge associato.\n","labels":["gdd","feature","mvp"]}`
+
+### Miglioramenti Tecnici (Proposti via GitHub CLI)
+
+1. **[TECH-001] Offline Sync Queue (GitHub Issue #132)**
+   - Gestione scansioni QR senza rete con sincronizzazione ritardata.
+2. **[TECH-002] Avatar ReadyPlayer.Me su Mobile (GitHub Issue #133)**
+   - Porting dell'integrazione avatar PWA sulla UI mobile.
+3. **[TECH-003] GitHub Actions CI/CD (GitHub Issue #134)**
+   - Automazione test e build per il monorepo.
+4. **[TECH-004] PWA Deep Linking (GitHub Issue #135)**
+   - Apertura diretta dei flussi registrazione da URL QR.
 
 ## Note operative
 
