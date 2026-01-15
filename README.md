@@ -50,4 +50,4 @@ Il sorgente della PWA vive in `apps/pwa/src` ed e suddiviso in:
 Consulta `CONTRIBUTING.md` per stile del codice, convenzioni di commit e setup ambiente. Per note di design vedi `docs and references/`.
 
 # Live Preview
-<iframe src="https://100.76.11.81:4174/mobile/" width="430px" height="932px"></iframe>
+<iframe src="https://turni-di-palco.onrender.com/mobile/" width="430px" height="932px"></iframe>
