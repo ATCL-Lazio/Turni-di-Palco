@@ -45,7 +45,7 @@ export type TurnRecord = {
   createdAt: number;
 };
 
-type PlayerProfile = {
+export type PlayerProfile = {
   name: string;
   email: string;
   roleId: RoleId;
@@ -111,16 +111,7 @@ type CatalogState = {
 
 type FollowedEventRow = {
   event_id: string;
-  events?: {
-    id: string;
-    name: string;
-    theatre: string;
-    event_date: string;
-    event_time: string;
-    genre: string;
-    base_rewards: { xp?: number; reputation?: number; cachet?: number };
-    focus_role?: string | null;
-  } | null;
+  events?: any;
 };
 
 export const roles: Role[] = [
@@ -344,7 +335,7 @@ function createDemoState(): GameState {
 function createDefaultState(): GameState {
   if (isSupabaseConfigured) return createInitialState();
   return import.meta.env.DEV ? createDemoState() : createInitialState();
-} 
+}
 
 function loadState(): GameState {
   if (isSupabaseConfigured) return createInitialState();
@@ -750,25 +741,26 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         .select('event_id, events:events(id,name,theatre,event_date,event_time,genre,base_rewards,focus_role)')
         .eq('user_id', authUserId);
       if (!error && data) {
-        const mapped = (data as FollowedEventRow[])
+        const mapped = (data as any[])
           .map((row) => {
-            if (!row.events) return null;
+            const eventData = Array.isArray(row.events) ? row.events[0] : row.events;
+            if (!eventData) return null;
             return {
-              id: row.events.id,
-              name: normalizeText(row.events.name),
-              theatre: normalizeText(row.events.theatre),
-              date: normalizeText(row.events.event_date),
-              time: normalizeText(row.events.event_time),
-              genre: normalizeText(row.events.genre),
+              id: eventData.id,
+              name: normalizeText(eventData.name),
+              theatre: normalizeText(eventData.theatre),
+              date: normalizeText(eventData.event_date),
+              time: normalizeText(eventData.event_time),
+              genre: normalizeText(eventData.genre),
               baseRewards: {
-                xp: Number(row.events.base_rewards?.xp ?? 0),
-                reputation: Number(row.events.base_rewards?.reputation ?? 0),
-                cachet: Number(row.events.base_rewards?.cachet ?? 0),
+                xp: Number(eventData.base_rewards?.xp ?? 0),
+                reputation: Number(eventData.base_rewards?.reputation ?? 0),
+                cachet: Number(eventData.base_rewards?.cachet ?? 0),
               },
-              focusRole: row.events.focus_role ?? undefined,
+              focusRole: eventData.focus_role ?? undefined,
             } as GameEvent;
           })
-          .filter(Boolean) as GameEvent[];
+          .filter((e): e is GameEvent => !!e);
         setFollowedEvents(mapped);
       }
       setFollowedEventsLoading(false);

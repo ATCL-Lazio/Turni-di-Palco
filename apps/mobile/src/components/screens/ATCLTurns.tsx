@@ -6,7 +6,7 @@ import { ScanQRCard } from '../ScanQRCard';
 import { QrCode, MapPin, Calendar, TrendingUp, Theater, Bookmark, Map } from 'lucide-react';
 import { GameEvent } from '../../state/store';
 
-interface TurniATCLProps {
+interface ATCLTurnsProps {
   events: GameEvent[];
   isEventFollowed: (eventId: string) => boolean;
   onToggleFollow: (eventId: string) => void;
@@ -15,14 +15,14 @@ interface TurniATCLProps {
   onScanQR: () => void;
 }
 
-export function TurniATCL({
+export function ATCLTurns({
   events,
   isEventFollowed,
   onToggleFollow,
   onViewEvent,
   onViewMap,
   onScanQR,
-}: TurniATCLProps) {
+}: ATCLTurnsProps) {
   const stats = useMemo(() => {
     const totalXp = events.reduce((acc, event) => acc + event.baseRewards.xp, 0);
     const theatreCount = new Set(events.map((event) => event.theatre)).size;
@@ -85,78 +85,77 @@ export function TurniATCL({
           </button>
         </div>
 
-          {sortedEvents.length > 0 ? (
-            <div className="space-y-3">
-              {sortedEvents.map((evento) => (
-                <Card key={evento.id} hoverable onClick={() => onViewEvent(evento.id)}>
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-12 h-12 bg-[#241f20] rounded-lg flex items-center justify-center">
-                      <Theater className="text-[#f4bf4f]" size={24} />
+        {sortedEvents.length > 0 ? (
+          <div className="space-y-3">
+            {sortedEvents.map((evento) => (
+              <Card key={evento.id} hoverable onClick={() => onViewEvent(evento.id)}>
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-12 h-12 bg-[#241f20] rounded-lg flex items-center justify-center">
+                    <Theater className="text-[#f4bf4f]" size={24} />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-white mb-1">{evento.name}</h4>
+                      <button
+                        type="button"
+                        aria-label="Segui evento"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onToggleFollow(evento.id);
+                        }}
+                        className={`flex items-center justify-center size-9 rounded-lg border ${isEventFollowed(evento.id)
+                            ? 'border-[#f4bf4f] text-[#f4bf4f]'
+                            : 'border-[#2d2728] text-[#7a7577]'
+                          }`}
+                      >
+                        <Bookmark size={16} />
+                      </button>
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <h4 className="text-white mb-1">{evento.name}</h4>
-                        <button
-                          type="button"
-                          aria-label="Segui evento"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onToggleFollow(evento.id);
-                          }}
-                          className={`flex items-center justify-center size-9 rounded-lg border ${
-                            isEventFollowed(evento.id)
-                              ? 'border-[#f4bf4f] text-[#f4bf4f]'
-                              : 'border-[#2d2728] text-[#7a7577]'
-                          }`}
-                        >
-                          <Bookmark size={16} />
-                        </button>
-                      </div>
+                    <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mb-2">
+                      <MapPin size={14} />
+                      <span>{evento.theatre}</span>
+                    </div>
 
-                      <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mb-2">
-                        <MapPin size={14} />
-                        <span>{evento.theatre}</span>
-                      </div>
+                    <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mb-3">
+                      <Calendar size={14} />
+                      <span>{evento.date} - {evento.time}</span>
+                    </div>
 
-                      <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mb-3">
-                        <Calendar size={14} />
-                        <span>{evento.date} - {evento.time}</span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        {evento.genre ? (
-                          <Badge variant="outline" size="sm">
-                            {evento.genre}
-                          </Badge>
-                        ) : null}
-                        <Badge variant="gold" size="sm">
-                          +{evento.baseRewards.xp} XP
+                    <div className="flex flex-wrap gap-2">
+                      {evento.genre ? (
+                        <Badge variant="outline" size="sm">
+                          {evento.genre}
                         </Badge>
-                        <Badge variant="success" size="sm">
-                          +{evento.baseRewards.reputation} Rep
-                        </Badge>
-                      </div>
+                      ) : null}
+                      <Badge variant="gold" size="sm">
+                        +{evento.baseRewards.xp} XP
+                      </Badge>
+                      <Badge variant="success" size="sm">
+                        +{evento.baseRewards.reputation} Rep
+                      </Badge>
                     </div>
                   </div>
-                </Card>
-              ))}
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="text-center py-12">
+            <div className="w-16 h-16 bg-[#241f20] rounded-full flex items-center justify-center mx-auto mb-4">
+              <QrCode className="text-[#7a7577]" size={32} />
             </div>
-          ) : (
-            <Card className="text-center py-12">
-              <div className="w-16 h-16 bg-[#241f20] rounded-full flex items-center justify-center mx-auto mb-4">
-                <QrCode className="text-[#7a7577]" size={32} />
-              </div>
-              <h4 className="text-white mb-2">Nessun evento disponibile</h4>
-              <p className="text-[#b8b2b3] mb-6 max-w-xs mx-auto">
-                Torna piu tardi o aggiorna la lista eventi.
-              </p>
-              <Button variant="primary" onClick={onScanQR}>
-                <QrCode size={18} />
-                Scansiona QR
-              </Button>
-            </Card>
-          )}
+            <h4 className="text-white mb-2">Nessun evento disponibile</h4>
+            <p className="text-[#b8b2b3] mb-6 max-w-xs mx-auto">
+              Torna piu tardi o aggiorna la lista eventi.
+            </p>
+            <Button variant="primary" onClick={onScanQR}>
+              <QrCode size={18} />
+              Scansiona QR
+            </Button>
+          </Card>
+        )}
       </div>
     </div>
   );
