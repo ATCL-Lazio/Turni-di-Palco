@@ -7,7 +7,7 @@ Il monorepo contiene:
 - `apps/pwa`: shell PWA multipagina (Vite + TypeScript + Vanilla).
 - `apps/mobile`: UI mobile React/Vite; il bundle statico finisce in `apps/pwa/public/mobile/`.
 - `shared`: codice e stili condivisi.
-- `docs and references/`: documenti di design e GDD.
+- `docs/`: documenti di design e GDD.
 
 ## Requisiti
 
@@ -57,4 +57,4 @@ Il sorgente della PWA vive in `apps/pwa/src` ed e suddiviso in:
 
 ## Contributi
 
-Consulta `CONTRIBUTING.md` per stile del codice, convenzioni di commit e setup ambiente. Per note di design vedi `docs and references/`.
+Consulta `CONTRIBUTING.md` per stile del codice, convenzioni di commit e setup ambiente. Per note di design vedi `docs/`.
