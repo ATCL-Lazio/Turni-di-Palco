@@ -1,64 +1,8 @@
-export type RoleId = "attore" | "luci" | "fonico" | "attrezzista" | "palco";
-export type Rewards = { xp: number; cachet: number; reputation: number };
-export type Role = { id: RoleId; name: string; focus: string; stats: string[] };
-export type AvatarIcon = "mask" | "spot" | "gear" | "note";
-export type AvatarSettings = {
-  hue: number;
-  icon: AvatarIcon;
-  rpmUrl?: string;
-  rpmThumbnail?: string;
-  rpmId?: string;
-  updatedAt?: number;
-};
-export type GameEvent = {
-  id: string;
-  name: string;
-  theatre: string;
-  date: string;
-  lat: number;
-  lng: number;
-  baseRewards: Rewards;
-  focusRole?: RoleId;
-};
-export type TurnRecord = {
-  id: string;
-  eventId: string;
-  eventName: string;
-  theatre: string;
-  date: string;
-  roleId: RoleId;
-  rewards: Rewards;
-};
-export type PlayerProfile = { name: string; roleId: RoleId; xp: number; cachet: number; repAtcl: number; avatar: AvatarSettings };
-export type ActivityStats = { runs: number; lastPlayedAt?: number };
-export type TutorialState = { firstChoiceComplete: boolean };
-export type LeaderboardEntry = {
-  id: string;
-  name: string;
-  roleId: RoleId;
-  xpTotal: number;
-  cachet: number;
-  reputation: number;
-  turnsCount: number;
-  lastActivityAt?: number;
-  profileImage?: string;
-};
-export type LeaderboardStats = {
-  totalPlayers: number;
-  averageXp: number;
-  topXp: number;
-  averageReputation: number;
-  topReputation: number;
-};
-export type GameState = {
-  version: number;
-  profile: PlayerProfile;
-  turns: TurnRecord[];
-  activityStats: Record<string, ActivityStats>;
-  tutorial: TutorialState;
-  checksum: string;
-};
-export type SaveStateResult = { ok: boolean; state: GameState; error?: string };
+import {
+  RoleId, Rewards, Role, AvatarIcon, AvatarSettings, GameEvent,
+  TurnRecord, PlayerProfile, ActivityStats, TutorialState,
+  LeaderboardEntry, LeaderboardStats, GameState, SaveStateResult
+} from "./types";
 
 export const roles: Role[] = [
   { id: "attore", name: "Attore / Attrice", focus: "Presenza scenica", stats: ["Presenza", "Memoria", "Versatilita"] },
@@ -115,6 +59,11 @@ const MAX_TURNS_PERSISTED = 50;
 
 let memoryFallback: GameState | null = null;
 
+export const roleMap = roles.reduce<Record<RoleId, Role>>((acc, role) => {
+  acc[role.id] = role;
+  return acc;
+}, {} as Record<RoleId, Role>);
+
 function clampHue(value: number, fallback: number) {
   if (!Number.isFinite(value)) return fallback;
   return Math.max(0, Math.min(360, Math.round(value)));
@@ -146,15 +95,20 @@ function sanitizeNumber(value: unknown, fallback: number) {
   return Math.max(0, value);
 }
 
+function deriveRpmThumbnailInternal(url?: string) {
+  if (!url) return "";
+  try {
+    const clean = url.split("?")[0];
+    return clean.endsWith(".glb") ? `${clean.slice(0, -4)}.png` : `${clean}.png`;
+  } catch { return ""; }
+}
+
 function sanitizeAvatar(raw: Partial<AvatarSettings> | undefined, base: AvatarSettings): AvatarSettings {
   const hue = clampHue(typeof raw?.hue === "number" ? raw.hue : base.hue, base.hue);
   const icon = avatarIcons.some((item) => item.id === raw?.icon) ? (raw?.icon as AvatarIcon) : base.icon;
   const rpmUrl = typeof raw?.rpmUrl === "string" ? raw.rpmUrl : "";
-  const rpmThumbnailCandidate = typeof raw?.rpmThumbnail === "string" ? raw.rpmThumbnail : "";
-  const rpmThumbnail = rpmThumbnailCandidate || deriveRpmThumbnail(rpmUrl) || base.rpmThumbnail;
-  const rpmId = typeof raw?.rpmId === "string" ? raw.rpmId : "";
-  const updatedAt = typeof raw?.updatedAt === "number" ? raw.updatedAt : undefined;
-  return { ...base, hue, icon, rpmUrl, rpmThumbnail, rpmId, updatedAt };
+  const rpmThumbnail = typeof raw?.rpmThumbnail === "string" ? raw.rpmThumbnail : deriveRpmThumbnailInternal(rpmUrl) || base.rpmThumbnail;
+  return { ...base, hue, icon, rpmUrl, rpmThumbnail, rpmId: typeof raw?.rpmId === "string" ? raw.rpmId : "", updatedAt: typeof raw?.updatedAt === "number" ? raw.updatedAt : undefined };
 }
 
 function sanitizeRewards(raw: Partial<Rewards> | undefined): Rewards {
@@ -162,65 +116,6 @@ function sanitizeRewards(raw: Partial<Rewards> | undefined): Rewards {
     xp: sanitizeNumber(raw?.xp, 0),
     cachet: sanitizeNumber(raw?.cachet, 0),
     reputation: sanitizeNumber(raw?.reputation, 0),
-  };
-}
-
-function decodeUnicodeEscapes(value: string) {
-  if (!value.includes("\\u")) return value;
-  return value.replace(/\\u([0-9a-fA-F]{4})/g, (_, codePoint: string) => String.fromCharCode(Number.parseInt(codePoint, 16)));
-}
-
-function sanitizeTurn(raw: unknown, fallbackRole: RoleId): TurnRecord | null {
-  if (!raw || typeof raw !== "object") return null;
-  const turn = raw as Partial<TurnRecord>;
-  const id = typeof turn.id === "string" ? turn.id : "";
-  const eventId = typeof turn.eventId === "string" ? turn.eventId : "";
-  const eventName = typeof turn.eventName === "string" ? decodeUnicodeEscapes(turn.eventName) : "";
-  const theatre = typeof turn.theatre === "string" ? turn.theatre : "";
-  const date = typeof turn.date === "string" ? turn.date : "";
-  if (!id || !eventId || !eventName || !theatre || !date) return null;
-  const roleId = typeof turn.roleId === "string" && turn.roleId in roleMap ? (turn.roleId as RoleId) : fallbackRole;
-  const rewards = sanitizeRewards(turn.rewards);
-  return { id, eventId, eventName, theatre, date, roleId, rewards };
-}
-
-function sanitizeTurns(rawTurns: unknown[], fallbackRole: RoleId): TurnRecord[] {
-  const clean = rawTurns
-    .map((turn) => sanitizeTurn(turn, fallbackRole))
-    .filter(Boolean) as TurnRecord[];
-  return clean.slice(0, MAX_TURNS_PERSISTED);
-}
-
-function sanitizeActivityStats(
-  raw: unknown,
-  fallback: Record<string, ActivityStats>
-): Record<string, ActivityStats> {
-  if (!raw || typeof raw !== "object") return fallback;
-
-  const sanitized: Record<string, ActivityStats> = {};
-  Object.entries(raw as Record<string, unknown>).forEach(([key, value]) => {
-    if (!value || typeof value !== "object") return;
-    const record = value as Record<string, unknown>;
-    const runs = sanitizeNumber(record.runs, 0);
-    const lastPlayedAt =
-      typeof record.lastPlayedAt === "number" && Number.isFinite(record.lastPlayedAt) ? record.lastPlayedAt : undefined;
-    sanitized[key] = lastPlayedAt == null ? { runs } : { runs, lastPlayedAt };
-  });
-
-  return sanitized;
-}
-
-function normalizeProfile(rawProfile: Partial<PlayerProfile> | undefined, base: PlayerProfile): PlayerProfile {
-  const safeRole = rawProfile?.roleId && rawProfile.roleId in roleMap ? rawProfile.roleId : base.roleId;
-  return {
-    ...base,
-    ...rawProfile,
-    name: typeof rawProfile?.name === "string" ? rawProfile.name : base.name,
-    roleId: safeRole as RoleId,
-    xp: sanitizeNumber(rawProfile?.xp, base.xp),
-    cachet: sanitizeNumber(rawProfile?.cachet, base.cachet),
-    repAtcl: sanitizeNumber(rawProfile?.repAtcl, base.repAtcl),
-    avatar: sanitizeAvatar(rawProfile?.avatar, base.avatar),
   };
 }
 
@@ -234,28 +129,45 @@ function computeChecksum(input: string) {
 }
 
 function calculateStateChecksum(avatar: AvatarSettings, turns: TurnRecord[]) {
-  const payload = JSON.stringify({ avatar, turns });
-  return computeChecksum(payload);
+  return computeChecksum(JSON.stringify({ avatar, turns }));
 }
 
 function attachChecksum(state: Omit<GameState, "checksum"> & Partial<Pick<GameState, "checksum">>): GameState {
-  const checksum = calculateStateChecksum(state.profile.avatar, state.turns);
-  return { ...state, checksum };
+  return { ...state, checksum: calculateStateChecksum(state.profile.avatar, state.turns) };
 }
 
 function normalizeState(raw: Partial<GameState> | null | undefined): GameState {
   const base = baseState();
-  const profile = normalizeProfile(raw?.profile, base.profile);
-  const turns = Array.isArray(raw?.turns) ? sanitizeTurns(raw.turns, profile.roleId) : [];
-  const activityStats = sanitizeActivityStats(raw?.activityStats, base.activityStats);
-  const tutorialCandidate = raw?.tutorial && typeof raw.tutorial === "object" ? (raw.tutorial as Partial<TutorialState>) : undefined;
-  const tutorial: TutorialState = { firstChoiceComplete: !!tutorialCandidate?.firstChoiceComplete };
-  const version = typeof raw?.version === "number" ? raw.version : 0;
-  const nextVersion = version < CURRENT_STATE_VERSION ? CURRENT_STATE_VERSION : version;
-  const candidate: Omit<GameState, "checksum"> = { version: nextVersion, profile, turns, activityStats, tutorial };
-  const normalized = attachChecksum(candidate);
+  const rawProfile = raw?.profile;
+  const safeRole = rawProfile?.roleId && rawProfile.roleId in roleMap ? rawProfile.roleId : base.profile.roleId;
+
+  const profile: PlayerProfile = {
+    ...base.profile,
+    name: typeof rawProfile?.name === "string" ? rawProfile.name : base.profile.name,
+    roleId: safeRole as RoleId,
+    xp: sanitizeNumber(rawProfile?.xp, base.profile.xp),
+    cachet: sanitizeNumber(rawProfile?.cachet, base.profile.cachet),
+    repAtcl: sanitizeNumber(rawProfile?.repAtcl, base.profile.repAtcl),
+    avatar: sanitizeAvatar(rawProfile?.avatar, base.profile.avatar),
+  };
+
+  const turns = Array.isArray(raw?.turns) ? (raw.turns as any[]).map(t => {
+    if (!t || typeof t !== "object") return null;
+    const roleId = typeof t.roleId === "string" && t.roleId in roleMap ? t.roleId : profile.roleId;
+    return { ...t, roleId, rewards: sanitizeRewards(t.rewards) } as TurnRecord;
+  }).filter(Boolean).slice(0, MAX_TURNS_PERSISTED) : [];
+
+  const activityStats = raw?.activityStats && typeof raw.activityStats === "object" ? Object.entries(raw.activityStats).reduce((acc, [k, v]) => {
+    const r = v as any;
+    acc[k] = { runs: sanitizeNumber(r?.runs, 0), lastPlayedAt: typeof r?.lastPlayedAt === "number" ? r.lastPlayedAt : undefined };
+    return acc;
+  }, {} as Record<string, ActivityStats>) : {};
+
+  const tutorial: TutorialState = { firstChoiceComplete: !!(raw?.tutorial as any)?.firstChoiceComplete };
+  const normalized = attachChecksum({ version: Math.max(raw?.version ?? 0, CURRENT_STATE_VERSION), profile, turns, activityStats, tutorial });
+
   if (raw?.checksum && raw.checksum !== normalized.checksum) {
-    console.warn("Game state checksum mismatch. A sanitized copy will be used instead.");
+    console.warn("State checksum mismatch. Sanitized version used.");
   }
   return normalized;
 }
@@ -263,25 +175,6 @@ function normalizeState(raw: Partial<GameState> | null | undefined): GameState {
 export function createDefaultState(): GameState {
   return normalizeState(baseState());
 }
-
-const migrations: ((state: GameState) => GameState)[] = [
-  (state) => (state.version < CURRENT_STATE_VERSION ? { ...state, version: CURRENT_STATE_VERSION } : state),
-  (state) => attachChecksum(state),
-];
-
-function migrateState(raw: Partial<GameState> | null): GameState {
-  const normalized = normalizeState(raw);
-  const migrated = migrations.reduce((acc, step) => step(acc), normalized);
-  if ((raw?.version ?? 0) < CURRENT_STATE_VERSION) {
-    console.info(`Game state migrated to version ${CURRENT_STATE_VERSION}`);
-  }
-  return migrated;
-}
-
-export const roleMap = roles.reduce<Record<RoleId, Role>>((acc, role) => {
-  acc[role.id] = role;
-  return acc;
-}, {} as Record<RoleId, Role>);
 
 export function resolveRole(id: RoleId): Role {
   return roleMap[id] ?? roles[0];
@@ -291,87 +184,40 @@ export function formatRewards(rewards: Rewards) {
   return `+${rewards.xp} XP | +${rewards.cachet} cachet | +${rewards.reputation} rep`;
 }
 
-export function deriveRpmThumbnail(url?: string) {
-  if (!url) return "";
-  try {
-    const clean = url.split("?")[0];
-    if (clean.endsWith(".glb")) {
-      return `${clean.slice(0, -4)}.png`;
-    }
-    return `${clean}.png`;
-  } catch {
-    return "";
-  }
-}
-
-export function getAvatarVisual(avatar: AvatarSettings) {
-  const color = `hsl(${avatar.hue}deg 75% 55%)`;
-  const iconDef = avatarIcons.find((item) => item.id === avatar.icon) ?? avatarIcons[0];
-  const thumb = avatar.rpmThumbnail || deriveRpmThumbnail(avatar.rpmUrl);
-  return {
-    color,
-    icon: iconDef.symbol,
-    image: thumb || "",
-  };
-}
+export function deriveRpmThumbnail(url?: string) { return deriveRpmThumbnailInternal(url); }
 
 export function loadState(): GameState {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as Partial<GameState>) : null;
-    const migrated = migrateState(parsed);
-    memoryFallback = migrated;
-    return migrated;
+    const state = normalizeState(raw ? JSON.parse(raw) : null);
+    memoryFallback = state;
+    return state;
   } catch {
-    console.error("Failed to load game state from storage, using fallback.");
-    if (memoryFallback) return memoryFallback;
-    const fallback = createDefaultState();
-    memoryFallback = fallback;
-    return fallback;
+    return memoryFallback || (memoryFallback = createDefaultState());
   }
 }
 
 export function saveState(state: GameState): SaveStateResult {
-  const prepared = attachChecksum({ ...state, version: CURRENT_STATE_VERSION });
+  const prepared = attachChecksum(state);
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(prepared));
     memoryFallback = prepared;
     return { ok: true, state: prepared };
   } catch (error) {
-    console.error("Failed to persist game state, using in-memory fallback.", error);
     memoryFallback = prepared;
-    return { ok: false, state: prepared, error: error instanceof Error ? error.message : "Unknown storage error" };
+    return { ok: false, state: prepared, error: error instanceof Error ? error.message : "Storage error" };
   }
 }
 
 export function calculateLeaderboardStats(entries: LeaderboardEntry[]): LeaderboardStats {
-  if (entries.length === 0) {
-    return {
-      totalPlayers: 0,
-      averageXp: 0,
-      topXp: 0,
-      averageReputation: 0,
-      topReputation: 0
-    };
-  }
-
-  const totalXp = entries.reduce((sum, entry) => sum + entry.xpTotal, 0);
-  const totalReputation = entries.reduce((sum, entry) => sum + entry.reputation, 0);
-  const topXp = Math.max(...entries.map((entry) => entry.xpTotal));
-  const topReputation = Math.max(...entries.map((entry) => entry.reputation));
-
+  if (!entries.length) return { totalPlayers: 0, averageXp: 0, topXp: 0, averageReputation: 0, topReputation: 0 };
+  const txp = entries.reduce((s, e) => s + e.xpTotal, 0);
+  const trep = entries.reduce((s, e) => s + e.reputation, 0);
   return {
     totalPlayers: entries.length,
-    averageXp: Math.round(totalXp / entries.length),
-    topXp,
-    averageReputation: Math.round(totalReputation / entries.length),
-    topReputation
+    averageXp: Math.round(txp / entries.length),
+    topXp: Math.max(...entries.map(e => e.xpTotal)),
+    averageReputation: Math.round(trep / entries.length),
+    topReputation: Math.max(...entries.map(e => e.reputation))
   };
-}
-
-export function formatLeaderboardPosition(position: number): string {
-  if (position === 1) return "🥇";
-  if (position === 2) return "🥈";
-  if (position === 3) return "🥉";
-  return `${position}`;
 }
