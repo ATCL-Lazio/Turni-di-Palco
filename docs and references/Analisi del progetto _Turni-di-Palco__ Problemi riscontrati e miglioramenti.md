@@ -1,4 +1,5 @@
 # Analisi del progetto Turni-di-Palco: Problemi riscontrati e miglioramenti
+
 ## Struttura del Progetto e Organizzazione del Codice
 
 - **Organizzazione piatta delle cartelle:** Il repository presenta una struttura delle cartelle poco organizzata. Tutti i file sembrano collocati in poche directory generiche, senza una chiara separazione per componenti, servizi o moduli. Questa struttura piatta rende difficile orientarsi nel progetto e individuare rapidamente dove sono implementate le varie funzionalità.
@@ -33,7 +34,7 @@
 
 ## Gestione degli Stati e Logica delle Componenti (Frontend)
 
-*(Questa sezione si applica qualora Turni-di-Palco sia un’applicazione front-end; in caso contrario, può essere trascurata.)*
+### *(Questa sezione si applica qualora Turni-di-Palco sia un’applicazione front-end; in caso contrario, può essere trascurata.)*
 
 - **Stato globale non centralizzato:** L’applicazione front-end non utilizza un sistema di state management centralizzato (come Redux, Vuex o Context API) nonostante vi siano molti dati condivisi tra componenti. Di conseguenza, lo stato viene passato manualmente attraverso molte proprietà (props) o, peggio, ricreato in componenti diverse. Questo approccio “prop drilling” rende il codice fragile e difficile da seguire: una modifica allo stato richiede di aggiornare più componenti e può facilmente causare inconsistenze.
 **Soluzione:** introdurre uno store globale o utilizzare la Context API (per React) per gestire lo stato condiviso (es. informazioni sui turni, utenti loggati, preferenze, ecc.). Ciò fornirà una singola fonte di verità e ridurrà la complessità nel passaggio di dati tra componenti lontani.
@@ -78,6 +79,7 @@
 **Soluzione:** anche in un progetto individuale, utilizzare le issue per tracciare idee, bug e lavori in corso aiuta a mantenere organizzato lo sviluppo e documentare le decisioni. Configurare dei template per le issue (ad es. bug report, feature request) e usare le PR per qualsiasi modifica sostanziale consente di avere una storia discussa delle modifiche e descrivere il contesto delle stesse.
 
 ## Documentazione: README, Commenti e Istruzioni di Setup
+
 - **README insufficiente:** Il file README.md attuale è scarno e non fornisce tutte le informazioni necessarie. Ad esempio, manca una descrizione chiara dello scopo del progetto *Turni-di-Palco*, le istruzioni per eseguire il progetto localmente, i prerequisiti (versione di Node, database, ecc.) e come effettuare il deploy. Senza queste informazioni, chi approccia il repository per la prima volta faticherà a capire come usarlo o contribuire. Soluzione: ampliare il README includendo almeno:
     1. **Descrizione del progetto:** che cosa fa e a chi è rivolto.
     2. **Istruzioni di setup:** passo-passo per ottenere il codice e farlo girare in ambiente locale (es. comandi di installazione dipendenze, variabili d’ambiente da configurare, comando di start).
@@ -98,7 +100,6 @@
 
 **File sensibili nel repository:** Verificando i contenuti, non è chiaro se esista un file di configurazione con credenziali/API key. Se tali file (es. `.env` o file di config con password) fossero versionati nel repo, sarebbe un grave rischio di sicurezza. Anche l’eventuale presenza della cartella `node_modules/` committata nel repository sarebbe una bad practice (oltre che un peso inutile).
 **Soluzione:** assicurarsi di utilizzare un file `.gitignore` ben configurato per escludere credenziali, file di configurazione sensibili e dipendenze compilate. Le chiavi segrete dovrebbero risiedere in variabili d’ambiente, non nel codice. Se per errore credenziali sono finite in commit pubblici, invalidarle immediatamente e rimuoverle dalla cronologia riscrivendola (GitHub offre strumenti per questo). Inoltre, non committare le dipendenze: usare un package manager e distribuire solo il codice sorgente; questo migliora la sicurezza perché le dipendenze vengono gestite tramite checksum verificati dal registry invece di file binari di provenienza incerta.
-
 
 ## Ottimizzazioni avanzate per PWA mobile
 
