@@ -8,7 +8,7 @@
 
 ## Source
 
-- Game Design Document: `docs and references/Gdd - Turni di Palco.pdf`
+- Game Design Document: `docs/gdd-turni-di-palco.pdf`
 
 ## Issue backlog (da creare su GitHub)
 

@@ -6,7 +6,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "../..")
 if (-not (Test-Path (Join-Path $repoRoot ".git"))) {
   throw "Esegui lo script dalla root del repository (dove si trova .git)."
 }

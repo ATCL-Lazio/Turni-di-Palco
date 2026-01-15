@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "apps/pwa",
-    "apps/mobile"
+    "apps/mobile",
+    "apps/reactbricks"
   ],
   "scripts": {
     "clean:builds": "node tools/clean-builds.js",
