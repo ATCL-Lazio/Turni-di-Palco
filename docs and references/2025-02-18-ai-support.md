@@ -1,28 +1,36 @@
 # 2025-02-18 - AI Support (Maxwell) Setup
 
 ## Changelog
+
 - Added prompt template and CLI workflow placeholders.
 - Documented backend endpoint plan and GitHub issue helper usage.
 - Captured manual verification steps for the end-to-end flow.
 - Documented the local AI support server used by mobile.
 
 ## Obiettivo
+
 Definire un flusso per generare prompt consistenti, invocare Codex da CLI o backend, e aprire issue GitHub dal risultato.
 
 ## Prompt template
+
 Template file:
+
 - `apps/pwa/src/features/ai/prompt-template.md`
 
 Placeholder previsti:
+
 - `{{repo_name}}`, `{{current_branch}}`, `{{repo_overview}}`
 - `{{issue_title}}`, `{{issue_body}}`, `{{user_request}}`, `{{target_flow}}`
 - `{{relevant_files}}`, `{{acceptance_criteria}}`, `{{constraints}}`, `{{additional_context}}`
 
 ## CLI Codex
+
 Script:
+
 - `npm run ai:codex`
 
 Variabili d'ambiente usate dal renderer:
+
 - `AI_PROMPT_TEMPLATE` (opzionale, path template)
 - `AI_REPO_NAME`
 - `AI_BRANCH`
@@ -37,11 +45,13 @@ Variabili d'ambiente usate dal renderer:
 - `AI_ADDITIONAL_CONTEXT`
 
 Variabili d'ambiente per eseguire Codex:
+
 - `CODEX_BIN` (opzionale, default `codex`)
 - `CODEX_ARGS` (opzionale, argomenti extra per la CLI)
 
 Esempio:
-```
+
+```sh
 AI_REPO_NAME="Turni-di-Palco" \
 AI_BRANCH="work" \
 AI_USER_REQUEST="Preparare un prompt completo per l'assistente" \
@@ -49,19 +59,24 @@ npm run ai:codex
 ```
 
 Per stampare il prompt senza invocare Codex:
-```
+
+```node
 node tools/ai-codex.js --print
 ```
 
 ## Collegamento template a UI/servizio
+
 Nel frontend e' disponibile un service che costruisce il prompt e lo invia a un endpoint:
+
 - `apps/pwa/src/services/ai.ts`
 
 Endpoint previsto:
+
 - `POST /api/ai/chat`
 
 Payload suggerito:
-```
+
+```JSON
 {
   "prompt": "<template compilato>",
   "messages": [{ "role": "user", "content": "..." }],
@@ -70,11 +85,13 @@ Payload suggerito:
 ```
 
 Se il backend non esiste, creare un handler che:
+
 1. Riceve il template compilato.
 2. Inoltra la richiesta a Codex.
 3. Restituisce la risposta al frontend.
 
 ## Supporto in app (mobile)
+
 - La schermata "Supporto" in `apps/mobile` usa `POST /api/ai/chat` e un prompt dedicato all'utente finale (linguaggio semplice, niente dettagli tecnici).
 - Nome assistente in app: Maxwell (tono super disponibile e informale).
 - Maxwell sa che lo sviluppatore e' Federico e usa frasi umane tipo "Lo segnalo a Federico".
@@ -95,6 +112,7 @@ Se il backend non esiste, creare un handler che:
 - Cronologia chat: accessibile dal pulsante "Cronologia chat" nella schermata Supporto.
 
 ## Creazione issue (gh CLI)
+
 - Endpoint locale: `POST /api/ai/issue` (server `tools/ai-support-server.js`).
 - Usa GitHub CLI (`gh issue create`) e quindi richiede `gh auth login` gia' configurato.
 - Variabili opzionali:
@@ -103,16 +121,20 @@ Se il backend non esiste, creare un handler che:
   - `GITHUB_REPO_OWNER` + `GITHUB_REPO_NAME` (fallback repo)
 
 ## Gestione credenziali GitHub
+
 Token e repo devono vivere lato server (mai nel browser):
+
 - `GITHUB_TOKEN`
 - `GITHUB_REPO_OWNER`
 - `GITHUB_REPO_NAME`
 - `GITHUB_API_URL` (opzionale, default `https://api.github.com`)
 
 Helper disponibile:
+
 - `apps/pwa/src/lib/githubIssue.ts`
 
 ## Verifica manuale (end-to-end)
+
 1. Eseguire `npm run ai:codex` con variabili d'ambiente compilate.
 2. Inviare il prompt al backend `/api/ai/chat` e ottenere una risposta.
 3. Validare la risposta (completezza, tono, rispetto template).
