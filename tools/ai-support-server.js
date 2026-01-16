@@ -6,8 +6,9 @@ const os = require('node:os');
 const path = require('node:path');
 const fs = require('node:fs');
 
-const port = Number(process.env.PORT) || Number(process.env.AI_SUPPORT_PORT) || 8787;
-const host = process.env.AI_SUPPORT_HOST || '0.0.0.0';
+const port =
+  Number(process.env.PORT) || Number(process.env.AI_SUPPORT_PORT) || 8787;
+const host = resolveHost();
 const codexBin = resolveCodexBin();
 const ghBin = resolveGhBin();
 const codexArgs = process.env.CODEX_ARGS ? process.env.CODEX_ARGS.split(' ') : [];
@@ -193,6 +194,30 @@ function resolveHttpsOptions() {
   }
 
   return null;
+}
+
+function resolveHost() {
+  if (process.env.AI_SUPPORT_HOST) {
+    return process.env.AI_SUPPORT_HOST;
+  }
+  if (process.env.RENDER || process.env.RENDER_SERVICE_ID) {
+    return '0.0.0.0';
+  }
+  return '127.0.0.1';
+}
+
+function getLocalIPv4Addresses() {
+  const interfaces = os.networkInterfaces();
+  const addresses = [];
+  for (const entries of Object.values(interfaces)) {
+    if (!entries) continue;
+    for (const entry of entries) {
+      if (entry && entry.family === 'IPv4' && !entry.internal) {
+        addresses.push(entry.address);
+      }
+    }
+  }
+  return addresses;
 }
 
 function buildPrompt({ prompt, messages, context }) {
@@ -734,9 +759,17 @@ const server = httpsOptions
 
 server.listen(port, host, () => {
   const protocol = httpsOptions ? 'https' : 'http';
-  process.stdout.write(
-    `AI support server listening on ${protocol}://${host}:${port}\n`
-  );
+  const baseUrl = `${protocol}://${host}:${port}`;
+  process.stdout.write(`AI support server listening on ${baseUrl}\n`);
+  if (host === '0.0.0.0') {
+    const localAddresses = getLocalIPv4Addresses();
+    if (localAddresses.length) {
+      const urls = localAddresses
+        .map((address) => `${protocol}://${address}:${port}`)
+        .join(', ');
+      process.stdout.write(`Local network URLs: ${urls}\n`);
+    }
+  }
   if (verbose) {
     logLine(`Verbose logging enabled`);
     if (logMessages) {
