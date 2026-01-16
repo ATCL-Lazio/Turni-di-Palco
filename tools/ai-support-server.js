@@ -28,6 +28,11 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
+function sendHtml(res, statusCode, html) {
+  res.writeHead(statusCode, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(html);
+}
+
 function resolveCodexBin() {
   if (process.env.CODEX_BIN) {
     return process.env.CODEX_BIN;
@@ -193,6 +198,363 @@ function resolveHttpsOptions() {
   }
 
   return null;
+}
+
+function buildDashboardHtml({ protocol }) {
+  const now = new Date();
+  const data = {
+    startedAt: new Date(Date.now() - Math.round(process.uptime() * 1000)),
+    now,
+    node: process.version,
+    platform: process.platform,
+    arch: process.arch,
+    hostname: os.hostname(),
+    cpus: os.cpus()?.length ?? 0,
+    loadavg: os.loadavg?.() ?? [0, 0, 0],
+    memTotal: os.totalmem?.() ?? 0,
+    memFree: os.freemem?.() ?? 0,
+    port,
+    host,
+    protocol,
+  };
+
+  const safe = (value) => String(value ?? '');
+  const json = JSON.stringify({
+    startedAt: data.startedAt.toISOString(),
+    now: data.now.toISOString(),
+    node: data.node,
+    platform: data.platform,
+    arch: data.arch,
+    hostname: data.hostname,
+    cpus: data.cpus,
+    loadavg: data.loadavg,
+    memTotal: data.memTotal,
+    memFree: data.memFree,
+    port: data.port,
+    host: data.host,
+    protocol: data.protocol,
+  });
+
+  return `<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maxwell Server Dashboard</title>
+    <meta name="description" content="Dashboard di servizio per Maxwell" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f2ea;
+        --card: #ffffff;
+        --ink: #1b1a16;
+        --muted: #6a6157;
+        --accent: #ff8a3d;
+        --accent-2: #2f6f7a;
+        --shadow: 0 20px 45px rgba(27, 26, 22, 0.14);
+        --border: rgba(27, 26, 22, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Space Grotesk", system-ui, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(1200px 600px at 10% -20%, #ffe3bf 0%, transparent 60%),
+          radial-gradient(900px 500px at 90% 10%, #d1f4f9 0%, transparent 60%),
+          var(--bg);
+        min-height: 100vh;
+      }
+
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 40px 24px 64px;
+        display: grid;
+        gap: 28px;
+      }
+
+      header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .kicker {
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 12px;
+        color: var(--accent-2);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(32px, 4vw, 54px);
+        line-height: 1.05;
+      }
+
+      .subtitle {
+        max-width: 720px;
+        font-size: 16px;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      }
+
+      .card {
+        background: var(--card);
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        padding: 18px 20px;
+        box-shadow: var(--shadow);
+        display: grid;
+        gap: 12px;
+        min-height: 140px;
+      }
+
+      .card h3 {
+        margin: 0;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--muted);
+      }
+
+      .value {
+        font-size: 28px;
+        font-weight: 700;
+      }
+
+      .value small {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(255, 138, 61, 0.16);
+        color: #7a3b12;
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        font-size: 12px;
+      }
+
+      .list {
+        display: grid;
+        gap: 10px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .list span {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .pill {
+        border-radius: 12px;
+        background: rgba(47, 111, 122, 0.12);
+        color: #235761;
+        padding: 8px 12px;
+        font-size: 13px;
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+      }
+
+      .footer {
+        font-size: 12px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      @media (max-width: 720px) {
+        .wrap {
+          padding: 28px 18px 48px;
+        }
+        header {
+          gap: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="kicker">Maxwell Runtime</div>
+        <h1>Server control room</h1>
+        <div class="subtitle">
+          Panorama rapido dei segnali vitali del server. Aggiorna la pagina per
+          un nuovo snapshot e usa i check live per verificare lo stato delle API.
+        </div>
+        <div class="row">
+          <span class="tag" id="status-pill">loading</span>
+          <span class="pill" id="clock-pill">--:--:--</span>
+        </div>
+      </header>
+
+      <section class="grid">
+        <article class="card">
+          <h3>Uptime</h3>
+          <div class="value" id="uptime-value">--</div>
+          <div class="list">
+            <div>Avvio <span id="started-at">--</span></div>
+          </div>
+        </article>
+        <article class="card">
+          <h3>Memoria</h3>
+          <div class="value" id="memory-value">--</div>
+          <div class="list">
+            <div>Libera <span id="memory-free">--</span></div>
+          </div>
+        </article>
+        <article class="card">
+          <h3>Carico</h3>
+          <div class="value" id="loadavg-value">--</div>
+          <div class="list">
+            <div>CPU <span id="cpu-count">--</span></div>
+          </div>
+        </article>
+        <article class="card">
+          <h3>Runtime</h3>
+          <div class="value" id="node-value">--</div>
+          <div class="list">
+            <div>Host <span id="host-name">--</span></div>
+            <div>OS <span id="platform-value">--</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <h3>Endpoint</h3>
+          <div class="value" id="health-value">--</div>
+          <div class="list">
+            <div>Health check <span id="health-detail">--</span></div>
+            <div>API base <span>${safe(data.protocol)}://${safe(data.host)}:${safe(data.port)}</span></div>
+          </div>
+        </article>
+        <article class="card">
+          <h3>Ambiente</h3>
+          <div class="row">
+            <span class="pill">Platform: <span id="platform-pill">--</span></span>
+            <span class="pill">Arch: <span id="arch-pill">--</span></span>
+            <span class="pill">Node: <span id="node-pill">--</span></span>
+          </div>
+        </article>
+        <article class="card">
+          <h3>Indicazioni</h3>
+          <div class="list">
+            <div>Chat API <span>/api/ai/chat</span></div>
+            <div>Issue API <span>/api/ai/issue</span></div>
+            <div>Health <span>/health</span></div>
+          </div>
+        </article>
+      </section>
+
+      <div class="footer">Maxwell dashboard snapshot generated at ${safe(data.now.toISOString())}</div>
+    </div>
+
+    <script>
+      const data = ${json};
+      const el = (id) => document.getElementById(id);
+      const fmtBytes = (bytes) => {
+        if (!Number.isFinite(bytes)) return "--";
+        const units = ["B", "KB", "MB", "GB", "TB"];
+        let value = bytes;
+        let idx = 0;
+        while (value >= 1024 && idx < units.length - 1) {
+          value /= 1024;
+          idx += 1;
+        }
+        return value.toFixed(1) + " " + units[idx];
+      };
+
+      const fmtDuration = (ms) => {
+        if (!Number.isFinite(ms)) return "--";
+        const total = Math.max(0, Math.floor(ms / 1000));
+        const hours = Math.floor(total / 3600);
+        const minutes = Math.floor((total % 3600) / 60);
+        const seconds = total % 60;
+        return [
+          String(hours).padStart(2, "0"),
+          String(minutes).padStart(2, "0"),
+          String(seconds).padStart(2, "0"),
+        ].join(":");
+      };
+
+      const started = new Date(data.startedAt);
+      const tick = () => {
+        const now = new Date();
+        el("clock-pill").textContent = now.toLocaleTimeString("it-IT");
+        el("uptime-value").textContent = fmtDuration(now - started);
+      };
+      tick();
+      setInterval(tick, 1000);
+
+      el("started-at").textContent = started.toLocaleString("it-IT");
+      el("memory-value").textContent = fmtBytes(data.memTotal);
+      el("memory-free").textContent = fmtBytes(data.memFree);
+      el("loadavg-value").textContent = data.loadavg.map((v) => v.toFixed(2)).join(" / ");
+      el("cpu-count").textContent = data.cpus + " cores";
+      el("node-value").textContent = data.node;
+      el("host-name").textContent = data.hostname;
+      el("platform-value").textContent = data.platform + " " + data.arch;
+      el("platform-pill").textContent = data.platform;
+      el("arch-pill").textContent = data.arch;
+      el("node-pill").textContent = data.node;
+
+      const statusPill = el("status-pill");
+      const healthValue = el("health-value");
+      const healthDetail = el("health-detail");
+
+      const updateHealth = async () => {
+        statusPill.textContent = "checking /health";
+        statusPill.style.background = "rgba(255, 138, 61, 0.16)";
+        statusPill.style.color = "#7a3b12";
+        try {
+          const res = await fetch("/health");
+          if (!res.ok) throw new Error("status " + res.status);
+          const payload = await res.json();
+          healthValue.textContent = "OK";
+          healthDetail.textContent = payload.status || "ok";
+          statusPill.textContent = "online";
+          statusPill.style.background = "rgba(47, 111, 122, 0.18)";
+          statusPill.style.color = "#235761";
+        } catch (error) {
+          healthValue.textContent = "DOWN";
+          healthDetail.textContent = "check failed";
+          statusPill.textContent = "offline";
+          statusPill.style.background = "rgba(180, 40, 40, 0.18)";
+          statusPill.style.color = "#7c1b1b";
+        }
+      };
+
+      updateHealth();
+      setInterval(updateHealth, 15000);
+    </script>
+  </body>
+</html>`;
 }
 
 function buildPrompt({ prompt, messages, context }) {
@@ -564,6 +926,16 @@ const requestHandler = (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
+    return;
+  }
+
+  if (req.method === 'GET' && req.url === '/') {
+    const protocol = httpsOptions ? 'https' : 'http';
+    const html = buildDashboardHtml({ protocol });
+    logLine(
+      `${requestId} GET /\n  client=${clientIp}\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms`
+    );
+    sendHtml(res, 200, html);
     return;
   }
 
