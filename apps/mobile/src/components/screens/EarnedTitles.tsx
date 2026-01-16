@@ -5,7 +5,7 @@ import { Screen } from '../ui/Screen';
 import { Card } from '../ui/Card';
 import type { Badge } from '../../state/store';
 
-interface TitoliOttenutiProps {
+interface EarnedTitlesProps {
   badges: Badge[];
   onBack: () => void;
   onViewed?: () => void;
@@ -13,7 +13,7 @@ interface TitoliOttenutiProps {
 
 const BADGE_ICONS: Record<string, LucideIcon> = { Award, MapPin, Theater };
 
-export function TitoliOttenuti({ badges, onBack, onViewed }: TitoliOttenutiProps) {
+export function EarnedTitles({ badges, onBack, onViewed }: EarnedTitlesProps) {
   React.useEffect(() => {
     onViewed?.();
   }, [onViewed]);
