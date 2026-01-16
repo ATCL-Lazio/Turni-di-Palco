@@ -5,7 +5,7 @@ import { Badge } from '../ui/Badge';
 import { Tag } from '../ui/Tag';
 import { Activity } from '../../state/store';
 
-interface AttivitaProps {
+interface ActivitiesProps {
   activities: Activity[];
   onStartActivity: (activityId: string) => void;
 }
@@ -16,7 +16,7 @@ const difficultyLabels: Record<Activity['difficulty'], string> = {
   Difficile: 'Avanzato',
 };
 
-export function Attivita({ activities, onStartActivity }: AttivitaProps) {
+export function Activities({ activities, onStartActivity }: ActivitiesProps) {
   const totalActivities = activities.length;
 
   return (
