@@ -69,6 +69,14 @@ function clampHue(value: number, fallback: number) {
   return Math.max(0, Math.min(360, Math.round(value)));
 }
 
+export function getAvatarVisual(avatar: AvatarSettings) {
+  const entry = avatarIcons.find((item) => item.id === avatar.icon) ?? avatarIcons[0];
+  const hue = clampHue(avatar.hue, 210);
+  const color = `hsl(${hue}deg 70% 55%)`;
+  const image = avatar.rpmThumbnail || "";
+  return { icon: entry.symbol, color, image };
+}
+
 function createDefaultProfile(): PlayerProfile {
   return {
     name: "",
@@ -182,6 +190,10 @@ export function resolveRole(id: RoleId): Role {
 
 export function formatRewards(rewards: Rewards) {
   return `+${rewards.xp} XP | +${rewards.cachet} cachet | +${rewards.reputation} rep`;
+}
+
+export function formatLeaderboardPosition(position: number) {
+  return `#${position}`;
 }
 
 export function deriveRpmThumbnail(url?: string) { return deriveRpmThumbnailInternal(url); }

@@ -2,7 +2,9 @@ import "../../../shared/styles/main.css";
 import { renderPageHero } from "./components/page-hero";
 import { registerServiceWorker } from "./pwa/register-sw";
 import { promptServiceWorkerUpdate } from "./pwa/sw-update";
-import { deriveRpmThumbnail, getAvatarVisual, loadState, saveState, SaveStateResult, STORAGE_KEY } from "./state";
+import { deriveRpmThumbnail, loadState, saveState, STORAGE_KEY } from "./state";
+import { getAvatarVisual } from "./avatar-visual";
+import type { SaveStateResult } from "./types";
 import { requireDevAccess } from "./services/dev-gate";
 
 const start = async () => {
