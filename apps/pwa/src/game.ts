@@ -3,7 +3,8 @@ import { renderPageHero } from "./components/page-hero";
 import { buildProgressCopy, getProgressState, repMilestones, xpMilestones } from "./progression";
 import { registerServiceWorker } from "./pwa/register-sw";
 import { promptServiceWorkerUpdate } from "./pwa/sw-update";
-import { formatRewards, getAvatarVisual, loadState, resolveRole, STORAGE_KEY } from "./state";
+import { formatRewards, loadState, resolveRole, STORAGE_KEY } from "./state";
+import { getAvatarVisual } from "./avatar-visual";
 import { requireDevAccess } from "./services/dev-gate";
 
 const start = async () => {
