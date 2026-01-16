@@ -242,20 +242,27 @@ function buildDashboardHtml({ protocol }) {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Maxwell Server Dashboard</title>
     <meta name="description" content="Dashboard di servizio per Maxwell" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+    <meta name="theme-color" content="#0f0d0e" />
     <style>
       :root {
-        color-scheme: light;
-        --bg: #f5f2ea;
-        --card: #ffffff;
-        --ink: #1b1a16;
-        --muted: #6a6157;
-        --accent: #ff8a3d;
-        --accent-2: #2f6f7a;
-        --shadow: 0 20px 45px rgba(27, 26, 22, 0.14);
-        --border: rgba(27, 26, 22, 0.08);
+        color-scheme: dark;
+        --color-burgundy-950: #2d0a0f;
+        --color-burgundy-900: #4a0e1a;
+        --color-gold-400: #f4bf4f;
+        --color-gold-500: #e6a23c;
+        --color-bg-primary: #0f0d0e;
+        --color-bg-surface: #1a1617;
+        --color-bg-surface-elevated: #241f20;
+        --color-text-primary: #f5f5f5;
+        --color-text-secondary: #b8b2b3;
+        --color-text-tertiary: #7a7577;
+        --color-success: #52c41a;
+        --color-error: #ff4d4f;
+        --color-warning: #faad14;
+        --panel-shadow: 0 18px 45px rgba(0, 0, 0, 0.45);
+        --panel-border: rgba(255, 255, 255, 0.08);
+        --panel-fill: rgba(26, 22, 23, 0.78);
+        --panel-glow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
       }
 
       * {
@@ -264,13 +271,23 @@ function buildDashboardHtml({ protocol }) {
 
       body {
         margin: 0;
-        font-family: "Space Grotesk", system-ui, sans-serif;
-        color: var(--ink);
-        background:
-          radial-gradient(1200px 600px at 10% -20%, #ffe3bf 0%, transparent 60%),
-          radial-gradient(900px 500px at 90% 10%, #d1f4f9 0%, transparent 60%),
-          var(--bg);
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI",
+          Inter, system-ui, sans-serif;
+        color: var(--color-text-primary);
+        background: var(--color-bg-primary);
         min-height: 100vh;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: linear-gradient(
+          #0f0d0e,
+          #1a1617 52%,
+          #2d0a0f
+        );
+        z-index: 0;
       }
 
       .wrap {
@@ -279,6 +296,8 @@ function buildDashboardHtml({ protocol }) {
         padding: 40px 24px 64px;
         display: grid;
         gap: 28px;
+        position: relative;
+        z-index: 1;
       }
 
       header {
@@ -288,23 +307,24 @@ function buildDashboardHtml({ protocol }) {
       }
 
       .kicker {
-        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        font-family: "JetBrains Mono", "Fira Code", Consolas, "SFMono-Regular",
+          ui-monospace, monospace;
         text-transform: uppercase;
         letter-spacing: 0.18em;
         font-size: 12px;
-        color: var(--accent-2);
+        color: var(--color-gold-400);
       }
 
       h1 {
         margin: 0;
-        font-size: clamp(32px, 4vw, 54px);
-        line-height: 1.05;
+        font-size: clamp(28px, 4vw, 48px);
+        line-height: 1.12;
       }
 
       .subtitle {
         max-width: 720px;
         font-size: 16px;
-        color: var(--muted);
+        color: var(--color-text-secondary);
       }
 
       .grid {
@@ -314,11 +334,12 @@ function buildDashboardHtml({ protocol }) {
       }
 
       .card {
-        background: var(--card);
-        border-radius: 20px;
-        border: 1px solid var(--border);
+        background: var(--panel-fill);
+        border-radius: 18px;
+        border: 1px solid var(--panel-border);
         padding: 18px 20px;
-        box-shadow: var(--shadow);
+        box-shadow: var(--panel-shadow), var(--panel-glow);
+        backdrop-filter: blur(14px) saturate(1.2);
         display: grid;
         gap: 12px;
         min-height: 140px;
@@ -329,7 +350,7 @@ function buildDashboardHtml({ protocol }) {
         font-size: 14px;
         text-transform: uppercase;
         letter-spacing: 0.16em;
-        color: var(--muted);
+        color: var(--color-text-tertiary);
       }
 
       .value {
@@ -340,7 +361,7 @@ function buildDashboardHtml({ protocol }) {
       .value small {
         font-size: 14px;
         font-weight: 600;
-        color: var(--muted);
+        color: var(--color-text-tertiary);
       }
 
       .tag {
@@ -349,21 +370,35 @@ function buildDashboardHtml({ protocol }) {
         gap: 8px;
         padding: 6px 12px;
         border-radius: 999px;
-        background: rgba(255, 138, 61, 0.16);
-        color: #7a3b12;
-        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        background: rgba(244, 191, 79, 0.18);
+        color: var(--color-gold-400);
+        border: 1px solid rgba(244, 191, 79, 0.3);
+        font-family: "JetBrains Mono", "Fira Code", Consolas, "SFMono-Regular",
+          ui-monospace, monospace;
         font-size: 12px;
+      }
+
+      .tag[data-state="online"] {
+        background: rgba(82, 196, 26, 0.16);
+        color: #b2f59b;
+        border-color: rgba(82, 196, 26, 0.4);
+      }
+
+      .tag[data-state="offline"] {
+        background: rgba(255, 77, 79, 0.16);
+        color: #ffb3b5;
+        border-color: rgba(255, 77, 79, 0.4);
       }
 
       .list {
         display: grid;
         gap: 10px;
         font-size: 14px;
-        color: var(--muted);
+        color: var(--color-text-secondary);
       }
 
       .list span {
-        color: var(--ink);
+        color: var(--color-text-primary);
         font-weight: 600;
       }
 
@@ -375,16 +410,18 @@ function buildDashboardHtml({ protocol }) {
 
       .pill {
         border-radius: 12px;
-        background: rgba(47, 111, 122, 0.12);
-        color: #235761;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--color-text-secondary);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         padding: 8px 12px;
         font-size: 13px;
-        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        font-family: "JetBrains Mono", "Fira Code", Consolas, "SFMono-Regular",
+          ui-monospace, monospace;
       }
 
       .footer {
         font-size: 12px;
-        color: var(--muted);
+        color: var(--color-text-tertiary);
         text-align: center;
       }
 
@@ -530,8 +567,7 @@ function buildDashboardHtml({ protocol }) {
 
       const updateHealth = async () => {
         statusPill.textContent = "checking /health";
-        statusPill.style.background = "rgba(255, 138, 61, 0.16)";
-        statusPill.style.color = "#7a3b12";
+        statusPill.dataset.state = "checking";
         try {
           const res = await fetch("/health");
           if (!res.ok) throw new Error("status " + res.status);
@@ -539,14 +575,12 @@ function buildDashboardHtml({ protocol }) {
           healthValue.textContent = "OK";
           healthDetail.textContent = payload.status || "ok";
           statusPill.textContent = "online";
-          statusPill.style.background = "rgba(47, 111, 122, 0.18)";
-          statusPill.style.color = "#235761";
+          statusPill.dataset.state = "online";
         } catch (error) {
           healthValue.textContent = "DOWN";
           healthDetail.textContent = "check failed";
           statusPill.textContent = "offline";
-          statusPill.style.background = "rgba(180, 40, 40, 0.18)";
-          statusPill.style.color = "#7c1b1b";
+          statusPill.dataset.state = "offline";
         }
       };
 
