@@ -3,13 +3,7 @@ import { registerServiceWorker } from "./pwa/register-sw";
 import { promptServiceWorkerUpdate } from "./pwa/sw-update";
 import { renderAppBar } from "./components/app-bar";
 import {
-  AvatarIcon,
-  GameState,
-  Rewards,
-  RoleId,
-  SaveStateResult,
   STORAGE_KEY,
-  TurnRecord,
   avatarIcons,
   createDefaultState,
   deriveRpmThumbnail,
@@ -20,6 +14,7 @@ import {
   roles,
   saveState,
 } from "./state";
+import type { AvatarIcon, GameState, Rewards, RoleId, SaveStateResult, TurnRecord } from "./types";
 import { buildProgressCopy, getEarnedMilestones, getProgressState, repMilestones, xpMilestones } from "./progression";
 import { requireDevAccess } from "./services/dev-gate";
 
