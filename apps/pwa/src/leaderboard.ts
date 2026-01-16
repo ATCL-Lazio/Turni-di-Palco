@@ -1,7 +1,8 @@
 import "../../../shared/styles/main.css";
 import { renderPageHero } from "./components/page-hero";
 import { renderLeaderboard, attachLeaderboardListeners, LeaderboardViewMode } from "./components/leaderboard";
-import { calculateLeaderboardStats, loadState, STORAGE_KEY, LeaderboardEntry, RoleId } from "./state";
+import { calculateLeaderboardStats, loadState, STORAGE_KEY } from "./state";
+import type { LeaderboardEntry, RoleId } from "./types";
 import { supabase, isSupabaseConfigured } from "./services/supabase";
 import { requireDevAccess } from "./services/dev-gate";
 
