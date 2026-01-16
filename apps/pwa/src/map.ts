@@ -9,18 +9,15 @@ import { renderChip } from "./components/chip";
 import { renderStatPill } from "./components/stat-pill";
 import {
   formatRewards,
-  getAvatarVisual,
   loadState,
   mockEvents,
   resolveRole,
-  Rewards,
-  RoleId,
   roles,
-  TurnRecord,
   saveState,
-  SaveStateResult,
   STORAGE_KEY,
 } from "./state";
+import { getAvatarVisual } from "./avatar-visual";
+import type { Rewards, RoleId, SaveStateResult, TurnRecord } from "./types";
 import { requireDevAccess } from "./services/dev-gate";
 
 const start = async () => {
