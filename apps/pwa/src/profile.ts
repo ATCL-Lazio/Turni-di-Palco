@@ -1,7 +1,8 @@
 import "../../../shared/styles/main.css";
 import { renderPageHero } from "./components/page-hero";
 import { buildProgressCopy, getEarnedMilestones, getProgressState, repMilestones, xpMilestones } from "./progression";
-import { formatRewards, getAvatarVisual, loadState, resolveRole, STORAGE_KEY } from "./state";
+import { formatRewards, loadState, resolveRole, STORAGE_KEY } from "./state";
+import { getAvatarVisual } from "./avatar-visual";
 import { requireDevAccess } from "./services/dev-gate";
 
 const start = async () => {

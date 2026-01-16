@@ -1,4 +1,6 @@
-import { LeaderboardEntry, LeaderboardStats, formatLeaderboardPosition, resolveRole, getAvatarVisual } from "../state";
+import type { LeaderboardEntry, LeaderboardStats } from "../types";
+import { resolveRole } from "../state";
+import { getAvatarVisual } from "../avatar-visual";
 
 export type LeaderboardViewMode = "xp" | "reputation" | "cachet";
 
@@ -115,6 +117,10 @@ function colorFromString(input: string): string {
   }
   const hue = Math.abs(hash) % 360;
   return `hsl(${hue}deg 75% 55%)`;
+}
+
+function formatLeaderboardPosition(position: number): string {
+  return `${position}°`;
 }
 
 function renderLeaderboardEntry(entry: LeaderboardEntry, position: number, isCurrentUser: boolean, viewMode: LeaderboardViewMode): string {
