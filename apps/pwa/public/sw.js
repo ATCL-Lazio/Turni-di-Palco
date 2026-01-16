@@ -1,5 +1,5 @@
-const CORE_CACHE_NAME = "turni-di-palco-v3f5a2b7e";
-const TILE_CACHE_NAME = "turni-di-palco-tiles-v3f5a2b7e";
+const CORE_CACHE_NAME = "turni-di-palco-v7e7288f6";
+const TILE_CACHE_NAME = "turni-di-palco-tiles-v7e7288f6";
 const TILE_HOSTS = new Set([
   "tile.openstreetmap.org",
   "a.tile.openstreetmap.org",

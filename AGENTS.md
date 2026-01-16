@@ -1,4 +1,5 @@
 # Repository Guidelines
+
 Template developed by [Heartran](https://github.com/heartran)
 
 ## Project Structure & Module Organization
@@ -7,9 +8,9 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - `UI` (submodule): Mobile UI React/Vite source; build output va copiato in `apps/pwa/public/mobile/`.
 
-- `reactbricks`: CMS sources (da ripulire; integrare come workspace separato).
+- `apps/reactbricks`: CMS sources (da ripulire; integrare come workspace separato).
 
-- `docs and references/`: PDF di design/GDD; aggiungi nuovi file datati con changelog breve.
+- `docs/`: PDF di design/GDD; aggiungi nuovi file datati con changelog breve.
 
 ## Build, Test, and Development Commands
 
@@ -65,7 +66,7 @@ Template developed by [Heartran](https://github.com/heartran)
 
 ## Work Plan
 
-- Piano MVP in `docs and references/plan.md`. Mantienilo aggiornato a ogni milestone/modifica rilevante (scope, priorità, stato attività).
+- Piano MVP in `docs/plan.md`. Mantienilo aggiornato a ogni milestone/modifica rilevante (scope, priorità, stato attività).
 
 ## Git Identity
 

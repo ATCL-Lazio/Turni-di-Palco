@@ -19,7 +19,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import type { Badge as GameBadge, Role, RoleId, TurnRecord, TurnStats } from '../../state/store';
 
-interface CarrieraProps {
+interface CareerProps {
   userRole: string;
   roleId: RoleId;
   roleStats: Role['stats'];
@@ -74,7 +74,7 @@ function getBadgeProgressText(badge: GameBadge, turnStats: TurnStats) {
   return `In corso: ${current}/${badge.threshold} ${unit}`;
 }
 
-export function Carriera({
+export function Career({
   userRole,
   roleId,
   roleStats,
@@ -89,7 +89,7 @@ export function Carriera({
   xpSulCampo,
   reputationGlobal,
   onBack,
-}: CarrieraProps) {
+}: CareerProps) {
   const RoleIcon = ROLE_ICONS[roleId] ?? Users;
   const sortedTurns = React.useMemo(() => [...turns].sort((a, b) => b.createdAt - a.createdAt), [turns]);
   const resolveRoleName = (roleIdValue: RoleId) =>
@@ -244,16 +244,14 @@ export function Carriera({
                   return (
                     <div
                       key={milestone.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg ${
-                        unlocked
+                      className={`flex items-center gap-3 p-3 rounded-lg ${unlocked
                           ? 'bg-[#52c41a]/10 border border-[#52c41a]/30'
                           : 'bg-[#241f20] border border-[#2d2728] opacity-60'
-                      }`}
+                        }`}
                     >
                       <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                          unlocked ? 'bg-[#52c41a]' : 'bg-[#7a7577]'
-                        }`}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${unlocked ? 'bg-[#52c41a]' : 'bg-[#7a7577]'
+                          }`}
                       >
                         <Icon className="text-white" size={16} />
                       </div>
