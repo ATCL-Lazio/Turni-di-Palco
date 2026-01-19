@@ -54,6 +54,10 @@ const DEFAULT_ENDPOINT =
 const DEFAULT_ISSUE_ENDPOINT =
   import.meta.env.VITE_AI_SUPPORT_ISSUE_ENDPOINT ?? null;
 
+function isLocalHost(hostname: string) {
+  return hostname === 'localhost' || hostname === '127.0.0.1';
+}
+
 function resolveEndpoint(override?: string) {
   return normalizeEndpoint(override ?? DEFAULT_ENDPOINT);
 }
@@ -79,18 +83,18 @@ function normalizeEndpoint(endpoint: string) {
   try {
     const url = new URL(endpoint);
     const currentHost = window.location.hostname;
+    const currentIsLocal = isLocalHost(currentHost);
     if (
       currentHost &&
-      currentHost !== 'localhost' &&
-      currentHost !== '127.0.0.1' &&
-      (url.hostname === 'localhost' || url.hostname === '127.0.0.1')
+      !currentIsLocal &&
+      isLocalHost(url.hostname)
     ) {
       url.hostname = currentHost;
       if (window.location.protocol === 'https:') {
         url.protocol = 'https:';
       }
     }
-    if (!url.port && DEFAULT_PORT) {
+    if (!url.port && DEFAULT_PORT && isLocalHost(url.hostname)) {
       url.port = DEFAULT_PORT;
     }
     return url.toString();
