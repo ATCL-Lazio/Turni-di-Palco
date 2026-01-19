@@ -793,7 +793,7 @@ function buildDashboardHtml({ protocol }) {
                   Avvia login
                 </button>
               </div>
-              <div class="hint" data-auth-note="codex">Il link di login viene stampato nei log ed aperto qui.</div>
+              <div class="hint" data-auth-note="codex">Il link di login si apre in una nuova scheda (ed e' nei log).</div>
             ` : `
               <span class="tag" data-state="online">✅ Autenticato</span>
             `}
@@ -814,7 +814,7 @@ function buildDashboardHtml({ protocol }) {
                   Avvia login
                 </button>
               </div>
-              <div class="hint" data-auth-note="github">Il link di login viene stampato nei log ed aperto qui.</div>
+              <div class="hint" data-auth-note="github">Il link di login si apre in una nuova scheda (ed e' nei log).</div>
             ` : `
               <span class="tag" data-state="online">✅ Autenticato</span>
             `}
@@ -888,7 +888,25 @@ function buildDashboardHtml({ protocol }) {
         note.textContent = message;
       };
 
-      const startAuthCommand = async (type, button) => {
+      const openAuthPopup = () => {
+        const popup = window.open("about:blank", "_blank", "noopener,noreferrer");
+        if (!popup) return null;
+        popup.document.title = "Login in corso";
+        popup.document.body.innerHTML =
+          "<p style=\"font-family: system-ui; padding: 16px;\">In attesa del link di login...</p>";
+        return popup;
+      };
+
+      const navigatePopup = (popup, url) => {
+        if (popup && !popup.closed) {
+          popup.location.href = url;
+          return true;
+        }
+        window.open(url, "_blank", "noopener,noreferrer");
+        return false;
+      };
+
+      const startAuthCommand = async (type, button, popup) => {
         const original = button.textContent;
         button.textContent = "Avvio...";
         button.disabled = true;
@@ -903,7 +921,7 @@ function buildDashboardHtml({ protocol }) {
             throw new Error(payload.error || "Errore avvio login");
           }
           if (payload.url) {
-            window.open(payload.url, "_blank", "noopener,noreferrer");
+            navigatePopup(popup, payload.url);
           }
           if (payload.code) {
             updateAuthNote(type, "Codice: " + payload.code + " (anche nei log).");
@@ -932,7 +950,14 @@ function buildDashboardHtml({ protocol }) {
           button.addEventListener("click", async () => {
             const type = button.dataset.authType;
             if (!type) return;
-            await startAuthCommand(type, button);
+            const popup = openAuthPopup();
+            if (!popup) {
+              updateAuthNote(
+                type,
+                "Popup bloccato: abilita i popup per aprire il link."
+              );
+            }
+            await startAuthCommand(type, button, popup);
           });
         });
       };
