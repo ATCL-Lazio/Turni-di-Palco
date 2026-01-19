@@ -102,17 +102,120 @@ function resolveGhBin() {
   return 'gh';
 }
 
-function resolveGithubRepo() {
-  if (process.env.AI_SUPPORT_GH_REPO) {
-    return process.env.AI_SUPPORT_GH_REPO;
+const crypto = require('node:crypto');
+
+function encrypt(text, key) {
+  const algorithm = 'aes-256-gcm';
+  const salt = crypto.randomBytes(16);
+  const iv = crypto.randomBytes(16);
+  const keyBuffer = crypto.scryptSync(key, salt, 32);
+  const cipher = crypto.createCipher(algorithm, keyBuffer, iv);
+  
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  
+  return {
+    encrypted,
+    salt: salt.toString('hex'),
+    iv: iv.toString('hex')
+  };
+}
+
+function decrypt(encryptedData, key) {
+  const algorithm = 'aes-256-gcm';
+  const salt = Buffer.from(encryptedData.salt, 'hex');
+  const iv = Buffer.from(encryptedData.iv, 'hex');
+  const keyBuffer = crypto.scryptSync(key, salt, 32);
+  const decipher = crypto.createDecipher(algorithm, keyBuffer, iv);
+  
+  let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  
+  return decrypted;
+}
+
+function getStorageKey() {
+  return process.env.AI_STORAGE_KEY || crypto.randomBytes(32).toString('hex');
+}
+
+function storeCredentials(type, credentials) {
+  const storageKey = getStorageKey();
+  const encrypted = encrypt(JSON.stringify(credentials), storageKey);
+  
+  // Usa solo il sistema crittografato, mai le env
+  try {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const storageFile = path.join(os.tmpdir(), 'maxwell-credentials.json');
+    const existing = fs.existsSync(storageFile) ? JSON.parse(fs.readFileSync(storageFile, 'utf8')) : {};
+    existing[`${type}_encrypted`] = encrypted;
+    fs.writeFileSync(storageFile, JSON.stringify(existing, null, 2));
+    return true;
+  } catch (error) {
+    logError(`Failed to store ${type} credentials: ${error.message}`);
+    return false;
   }
-  if (process.env.GITHUB_REPO) {
-    return process.env.GITHUB_REPO;
+}
+
+function retrieveCredentials(type) {
+  const storageKey = getStorageKey();
+  
+  // Controlla solo le credenziali memorizzate (ignora env)
+  try {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const storageFile = path.join(os.tmpdir(), 'maxwell-credentials.json');
+    if (!fs.existsSync(storageFile)) return null;
+    
+    const existing = JSON.parse(fs.readFileSync(storageFile, 'utf8'));
+    const encryptedData = existing[`${type}_encrypted`];
+    if (!encryptedData) return null;
+    
+    return JSON.parse(decrypt(encryptedData, storageKey));
+  } catch (error) {
+    logError(`Failed to retrieve ${type} credentials: ${error.message}`);
+    return null;
   }
-  if (process.env.GITHUB_REPO_OWNER && process.env.GITHUB_REPO_NAME) {
-    return `${process.env.GITHUB_REPO_OWNER}/${process.env.GITHUB_REPO_NAME}`;
+}
+
+function checkCodexAuth() {
+  // Controlla solo le credenziali memorizzate (ignora env)
+  const stored = retrieveCredentials('codex');
+  if (stored) {
+    return {
+      hasApiKey: true,
+      apiKeyLength: stored.apiKey?.length || 0,
+      codexBin: codexBin,
+      source: 'encrypted'
+    };
   }
-  return null;
+  
+  return {
+    hasApiKey: false,
+    apiKeyLength: 0,
+    codexBin: codexBin,
+    source: 'none'
+  };
+}
+
+function checkGhAuth() {
+  // Controlla solo le credenziali memorizzate (ignora env)
+  const stored = retrieveCredentials('github');
+  if (stored) {
+    return {
+      hasToken: true,
+      tokenLength: stored.token?.length || 0,
+      ghBin: ghBin,
+      source: 'encrypted'
+    };
+  }
+  
+  return {
+    hasToken: false,
+    tokenLength: 0,
+    ghBin: ghBin,
+    source: 'none'
+  };
 }
 
 function logLine(message) {
@@ -227,6 +330,8 @@ function getLocalIPv4Addresses() {
 
 function buildDashboardHtml({ protocol }) {
   const now = new Date();
+  const codexAuth = checkCodexAuth();
+  const ghAuth = checkGhAuth();
   const data = {
     startedAt: new Date(Date.now() - Math.round(process.uptime() * 1000)),
     now,
@@ -241,6 +346,8 @@ function buildDashboardHtml({ protocol }) {
     port,
     host,
     protocol,
+    codexAuth,
+    ghAuth,
   };
 
   const safe = (value) => String(value ?? '');
@@ -258,6 +365,8 @@ function buildDashboardHtml({ protocol }) {
     port: data.port,
     host: data.host,
     protocol: data.protocol,
+    codexAuth: data.codexAuth,
+    ghAuth: data.ghAuth,
   });
 
   return `<!doctype html>
@@ -509,6 +618,43 @@ function buildDashboardHtml({ protocol }) {
 
       <section class="grid">
         <article class="card">
+          <h3>Autenticazione Codex</h3>
+          <div class="list">
+            <div>API Key <span id="codex-auth-status" data-auth="${data.codexAuth.hasApiKey}">${data.codexAuth.hasApiKey ? '✅ Configurata' : '❌ Mancante'}</span></div>
+            <div>Lunghezza Key <span id="codex-key-length">${data.codexAuth.apiKeyLength > 0 ? data.codexAuth.apiKeyLength + ' caratteri' : '--'}</span></div>
+            <div>Binario <span>${data.codexAuth.codexBin}</span></div>
+          </div>
+          <div class="row" style="margin-top: 12px;">
+            ${!data.codexAuth.hasApiKey ? `
+              <a href="https://platform.openai.com/api-keys" target="_blank" class="tag" style="background: rgba(244, 191, 79, 0.18); color: var(--color-gold-400); border: 1px solid rgba(244, 191, 79, 0.3); text-decoration: none;">
+                🗝️ Ottieni API Key OpenAI
+              </a>
+            ` : `
+              <span class="tag" data-state="online">✅ Autenticato</span>
+            `}
+          </div>
+        </article>
+        <article class="card">
+          <h3>Autenticazione GitHub</h3>
+          <div class="list">
+            <div>Token <span id="gh-auth-status" data-auth="${data.ghAuth.hasToken}">${data.ghAuth.hasToken ? '✅ Configurato' : '❌ Mancante'}</span></div>
+            <div>Lunghezza Token <span id="gh-token-length">${data.ghAuth.tokenLength > 0 ? data.ghAuth.tokenLength + ' caratteri' : '--'}</span></div>
+            <div>Binario <span>${data.ghAuth.ghBin}</span></div>
+          </div>
+          <div class="row" style="margin-top: 12px;">
+            ${!data.ghAuth.hasToken ? `
+              <a href="https://github.com/settings/tokens" target="_blank" class="tag" style="background: rgba(244, 191, 79, 0.18); color: var(--color-gold-400); border: 1px solid rgba(244, 191, 79, 0.3); text-decoration: none;">
+                🗝️ Ottieni GitHub Token
+              </a>
+            ` : `
+              <span class="tag" data-state="online">✅ Autenticato</span>
+            `}
+          </div>
+        </article>
+      </section>
+
+      <section class="grid">
+        <article class="card">
           <h3>Endpoint</h3>
           <div class="value" id="health-value">--</div>
           <div class="list">
@@ -530,6 +676,9 @@ function buildDashboardHtml({ protocol }) {
             <div>Chat API <span>/api/ai/chat</span></div>
             <div>Issue API <span>/api/ai/issue</span></div>
             <div>Health <span>/health</span></div>
+            <div>Auth Status <a href="/auth" target="_blank" style="color: var(--color-gold-400); text-decoration: none;">/auth</a></div>
+            <div>Store Creds <span style="color: #52c41a;">POST /auth/store</span></div>
+            <div>Get Creds <span style="color: #52c41a;">GET /auth/retrieve</span></div>
           </div>
         </article>
       </section>
@@ -585,6 +734,30 @@ function buildDashboardHtml({ protocol }) {
       el("platform-pill").textContent = data.platform;
       el("arch-pill").textContent = data.arch;
       el("node-pill").textContent = data.node;
+
+      // Update authentication status
+      const codexAuthStatus = el("codex-auth-status");
+      const codexKeyLength = el("codex-key-length");
+      const ghAuthStatus = el("gh-auth-status");
+      const ghTokenLength = el("gh-token-length");
+
+      if (codexAuthStatus) {
+        const codexStatus = data.codexAuth.hasApiKey ? '✅ Configurata' : '❌ Mancante';
+        const codexSource = data.codexAuth.source === 'encrypted' ? ' (crittografate)' : '';
+        codexAuthStatus.textContent = codexStatus + codexSource;
+        codexAuthStatus.dataset.auth = data.codexAuth.hasApiKey;
+        codexAuthStatus.dataset.source = data.codexAuth.source;
+        codexKeyLength.textContent = data.codexAuth.apiKeyLength > 0 ? data.codexAuth.apiKeyLength + ' caratteri' : '--';
+      }
+
+      if (ghAuthStatus) {
+        const ghStatus = data.ghAuth.hasToken ? '✅ Configurato' : '❌ Mancante';
+        const ghSource = data.ghAuth.source === 'encrypted' ? ' (crittografate)' : '';
+        ghAuthStatus.textContent = ghStatus + ghSource;
+        ghAuthStatus.dataset.auth = data.ghAuth.hasToken;
+        ghAuthStatus.dataset.source = data.ghAuth.source;
+        ghTokenLength.textContent = data.ghAuth.tokenLength > 0 ? data.ghAuth.tokenLength + ' caratteri' : '--';
+      }
 
       const statusPill = el("status-pill");
       const healthValue = el("health-value");
@@ -1003,6 +1176,92 @@ const requestHandler = (req, res) => {
       `${requestId} GET /health\n  client=${clientIp}\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms`
     );
     sendJson(res, 200, { status: 'ok' });
+    return;
+  }
+
+  if (req.url === '/auth') {
+    const codexAuth = checkCodexAuth();
+    const ghAuth = checkGhAuth();
+    logLine(
+      `${requestId} GET /auth\n  client=${clientIp}\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms`
+    );
+    sendJson(res, 200, {
+      codex: {
+        hasApiKey: codexAuth.hasApiKey,
+        apiKeyLength: codexAuth.apiKeyLength,
+        bin: codexAuth.codexBin,
+        source: codexAuth.source,
+        setupUrl: 'https://platform.openai.com/api-keys'
+      },
+      github: {
+        hasToken: ghAuth.hasToken,
+        tokenLength: ghAuth.tokenLength,
+        bin: ghAuth.ghBin,
+        source: ghAuth.source,
+        setupUrl: 'https://github.com/settings/tokens'
+      }
+    });
+    return;
+  }
+
+  if (req.url === '/auth/store' && req.method === 'POST') {
+    req.on('data', (chunk) => {
+      body += chunk.toString();
+    });
+
+    req.on('end', async () => {
+      try {
+        const { type, credentials } = JSON.parse(body);
+        
+        if (!type || !credentials) {
+          sendJson(res, 400, { error: 'Missing type or credentials' });
+          return;
+        }
+
+        if (type !== 'codex' && type !== 'github') {
+          sendJson(res, 400, { error: 'Invalid type. Must be codex or github' });
+          return;
+        }
+
+        const success = storeCredentials(type, credentials);
+        
+        if (success) {
+          logLine(
+            `${requestId} POST /auth/store\n  client=${clientIp}\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms\n  type=${type}`
+          );
+          sendJson(res, 200, { 
+            success: true, 
+            message: `${type} credentials stored successfully` 
+          });
+        } else {
+          sendJson(res, 500, { 
+            success: false, 
+            error: 'Failed to store credentials' 
+          });
+        }
+      } catch (error) {
+        logError(`Auth store error: ${error.message}`);
+        sendJson(res, 500, { 
+          success: false, 
+          error: 'Invalid request format' 
+        });
+      }
+    });
+    return;
+  }
+
+  if (req.url === '/auth/retrieve') {
+    const codexCreds = retrieveCredentials('codex');
+    const ghCreds = retrieveCredentials('github');
+    
+    logLine(
+      `${requestId} GET /auth/retrieve\n  client=${clientIp}\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms`
+    );
+    
+    sendJson(res, 200, {
+      codex: codexCreds,
+      github: ghCreds
+    });
     return;
   }
 
