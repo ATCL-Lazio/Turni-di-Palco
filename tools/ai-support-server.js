@@ -6,8 +6,9 @@ const os = require('node:os');
 const path = require('node:path');
 const fs = require('node:fs');
 
-const port = Number(process.env.AI_SUPPORT_PORT) || 8787;
-const host = process.env.AI_SUPPORT_HOST || '0.0.0.0';
+const port =
+  Number(process.env.PORT) || Number(process.env.AI_SUPPORT_PORT) || 8787;
+const host = resolveHost();
 const codexBin = resolveCodexBin();
 const ghBin = resolveGhBin();
 const codexArgs = process.env.CODEX_ARGS ? process.env.CODEX_ARGS.split(' ') : [];
@@ -26,6 +27,11 @@ const enableColor =
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(payload));
+}
+
+function sendHtml(res, statusCode, html) {
+  res.writeHead(statusCode, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(html);
 }
 
 function resolveCodexBin() {
@@ -193,6 +199,421 @@ function resolveHttpsOptions() {
   }
 
   return null;
+}
+
+function resolveHost() {
+  if (process.env.AI_SUPPORT_HOST) {
+    return process.env.AI_SUPPORT_HOST;
+  }
+  if (process.env.RENDER || process.env.RENDER_SERVICE_ID) {
+    return '0.0.0.0';
+  }
+  return '127.0.0.1';
+}
+
+function getLocalIPv4Addresses() {
+  const interfaces = os.networkInterfaces();
+  const addresses = [];
+  for (const entries of Object.values(interfaces)) {
+    if (!entries) continue;
+    for (const entry of entries) {
+      if (entry && entry.family === 'IPv4' && !entry.internal) {
+        addresses.push(entry.address);
+      }
+    }
+  }
+  return addresses;
+}
+
+function buildDashboardHtml({ protocol }) {
+  const now = new Date();
+  const data = {
+    startedAt: new Date(Date.now() - Math.round(process.uptime() * 1000)),
+    now,
+    node: process.version,
+    platform: process.platform,
+    arch: process.arch,
+    hostname: os.hostname(),
+    cpus: os.cpus()?.length ?? 0,
+    loadavg: os.loadavg?.() ?? [0, 0, 0],
+    memTotal: os.totalmem?.() ?? 0,
+    memFree: os.freemem?.() ?? 0,
+    port,
+    host,
+    protocol,
+  };
+
+  const safe = (value) => String(value ?? '');
+  const json = JSON.stringify({
+    startedAt: data.startedAt.toISOString(),
+    now: data.now.toISOString(),
+    node: data.node,
+    platform: data.platform,
+    arch: data.arch,
+    hostname: data.hostname,
+    cpus: data.cpus,
+    loadavg: data.loadavg,
+    memTotal: data.memTotal,
+    memFree: data.memFree,
+    port: data.port,
+    host: data.host,
+    protocol: data.protocol,
+  });
+
+  return `<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maxwell Server Dashboard</title>
+    <meta name="description" content="Dashboard di servizio per Maxwell" />
+    <meta name="theme-color" content="#0f0d0e" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --color-burgundy-950: #2d0a0f;
+        --color-burgundy-900: #4a0e1a;
+        --color-gold-400: #f4bf4f;
+        --color-gold-500: #e6a23c;
+        --color-bg-primary: #0f0d0e;
+        --color-bg-surface: #1a1617;
+        --color-bg-surface-elevated: #241f20;
+        --color-text-primary: #f5f5f5;
+        --color-text-secondary: #b8b2b3;
+        --color-text-tertiary: #7a7577;
+        --color-success: #52c41a;
+        --color-error: #ff4d4f;
+        --color-warning: #faad14;
+        --panel-shadow: 0 18px 45px rgba(0, 0, 0, 0.45);
+        --panel-border: rgba(255, 255, 255, 0.08);
+        --panel-fill: rgba(26, 22, 23, 0.78);
+        --panel-glow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI",
+          Inter, system-ui, sans-serif;
+        color: var(--color-text-primary);
+        background: var(--color-bg-primary);
+        min-height: 100vh;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: linear-gradient(
+          #0f0d0e,
+          #1a1617 52%,
+          #2d0a0f
+        );
+        z-index: 0;
+      }
+
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 40px 24px 64px;
+        display: grid;
+        gap: 28px;
+        position: relative;
+        z-index: 1;
+      }
+
+      header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .kicker {
+        font-family: "JetBrains Mono", "Fira Code", Consolas, "SFMono-Regular",
+          ui-monospace, monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 12px;
+        color: var(--color-gold-400);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(28px, 4vw, 48px);
+        line-height: 1.12;
+      }
+
+      .subtitle {
+        max-width: 720px;
+        font-size: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      .grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      }
+
+      .card {
+        background: var(--panel-fill);
+        border-radius: 18px;
+        border: 1px solid var(--panel-border);
+        padding: 18px 20px;
+        box-shadow: var(--panel-shadow), var(--panel-glow);
+        backdrop-filter: blur(14px) saturate(1.2);
+        display: grid;
+        gap: 12px;
+        min-height: 140px;
+      }
+
+      .card h3 {
+        margin: 0;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--color-text-tertiary);
+      }
+
+      .value {
+        font-size: 28px;
+        font-weight: 700;
+      }
+
+      .value small {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--color-text-tertiary);
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(244, 191, 79, 0.18);
+        color: var(--color-gold-400);
+        border: 1px solid rgba(244, 191, 79, 0.3);
+        font-family: "JetBrains Mono", "Fira Code", Consolas, "SFMono-Regular",
+          ui-monospace, monospace;
+        font-size: 12px;
+      }
+
+      .tag[data-state="online"] {
+        background: rgba(82, 196, 26, 0.16);
+        color: #b2f59b;
+        border-color: rgba(82, 196, 26, 0.4);
+      }
+
+      .tag[data-state="offline"] {
+        background: rgba(255, 77, 79, 0.16);
+        color: #ffb3b5;
+        border-color: rgba(255, 77, 79, 0.4);
+      }
+
+      .list {
+        display: grid;
+        gap: 10px;
+        font-size: 14px;
+        color: var(--color-text-secondary);
+      }
+
+      .list span {
+        color: var(--color-text-primary);
+        font-weight: 600;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .pill {
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--color-text-secondary);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 8px 12px;
+        font-size: 13px;
+        font-family: "JetBrains Mono", "Fira Code", Consolas, "SFMono-Regular",
+          ui-monospace, monospace;
+      }
+
+      .footer {
+        font-size: 12px;
+        color: var(--color-text-tertiary);
+        text-align: center;
+      }
+
+      @media (max-width: 720px) {
+        .wrap {
+          padding: 28px 18px 48px;
+        }
+        header {
+          gap: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="kicker">Maxwell Runtime</div>
+        <h1>Server control room</h1>
+        <div class="subtitle">
+          Panorama rapido dei segnali vitali del server. Aggiorna la pagina per
+          un nuovo snapshot e usa i check live per verificare lo stato delle API.
+        </div>
+        <div class="row">
+          <span class="tag" id="status-pill">loading</span>
+          <span class="pill" id="clock-pill">--:--:--</span>
+        </div>
+      </header>
+
+      <section class="grid">
+        <article class="card">
+          <h3>Uptime</h3>
+          <div class="value" id="uptime-value">--</div>
+          <div class="list">
+            <div>Avvio <span id="started-at">--</span></div>
+          </div>
+        </article>
+        <article class="card">
+          <h3>Memoria</h3>
+          <div class="value" id="memory-value">--</div>
+          <div class="list">
+            <div>Libera <span id="memory-free">--</span></div>
+          </div>
+        </article>
+        <article class="card">
+          <h3>Carico</h3>
+          <div class="value" id="loadavg-value">--</div>
+          <div class="list">
+            <div>CPU <span id="cpu-count">--</span></div>
+          </div>
+        </article>
+        <article class="card">
+          <h3>Runtime</h3>
+          <div class="value" id="node-value">--</div>
+          <div class="list">
+            <div>Host <span id="host-name">--</span></div>
+            <div>OS <span id="platform-value">--</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <h3>Endpoint</h3>
+          <div class="value" id="health-value">--</div>
+          <div class="list">
+            <div>Health check <span id="health-detail">--</span></div>
+            <div>API base <span>${safe(data.protocol)}://${safe(data.host)}:${safe(data.port)}</span></div>
+          </div>
+        </article>
+        <article class="card">
+          <h3>Ambiente</h3>
+          <div class="row">
+            <span class="pill">Platform: <span id="platform-pill">--</span></span>
+            <span class="pill">Arch: <span id="arch-pill">--</span></span>
+            <span class="pill">Node: <span id="node-pill">--</span></span>
+          </div>
+        </article>
+        <article class="card">
+          <h3>Indicazioni</h3>
+          <div class="list">
+            <div>Chat API <span>/api/ai/chat</span></div>
+            <div>Issue API <span>/api/ai/issue</span></div>
+            <div>Health <span>/health</span></div>
+          </div>
+        </article>
+      </section>
+
+      <div class="footer">Maxwell dashboard snapshot generated at ${safe(data.now.toISOString())}</div>
+    </div>
+
+    <script>
+      const data = ${json};
+      const el = (id) => document.getElementById(id);
+      const fmtBytes = (bytes) => {
+        if (!Number.isFinite(bytes)) return "--";
+        const units = ["B", "KB", "MB", "GB", "TB"];
+        let value = bytes;
+        let idx = 0;
+        while (value >= 1024 && idx < units.length - 1) {
+          value /= 1024;
+          idx += 1;
+        }
+        return value.toFixed(1) + " " + units[idx];
+      };
+
+      const fmtDuration = (ms) => {
+        if (!Number.isFinite(ms)) return "--";
+        const total = Math.max(0, Math.floor(ms / 1000));
+        const hours = Math.floor(total / 3600);
+        const minutes = Math.floor((total % 3600) / 60);
+        const seconds = total % 60;
+        return [
+          String(hours).padStart(2, "0"),
+          String(minutes).padStart(2, "0"),
+          String(seconds).padStart(2, "0"),
+        ].join(":");
+      };
+
+      const started = new Date(data.startedAt);
+      const tick = () => {
+        const now = new Date();
+        el("clock-pill").textContent = now.toLocaleTimeString("it-IT");
+        el("uptime-value").textContent = fmtDuration(now - started);
+      };
+      tick();
+      setInterval(tick, 1000);
+
+      el("started-at").textContent = started.toLocaleString("it-IT");
+      el("memory-value").textContent = fmtBytes(data.memTotal);
+      el("memory-free").textContent = fmtBytes(data.memFree);
+      el("loadavg-value").textContent = data.loadavg.map((v) => v.toFixed(2)).join(" / ");
+      el("cpu-count").textContent = data.cpus + " cores";
+      el("node-value").textContent = data.node;
+      el("host-name").textContent = data.hostname;
+      el("platform-value").textContent = data.platform + " " + data.arch;
+      el("platform-pill").textContent = data.platform;
+      el("arch-pill").textContent = data.arch;
+      el("node-pill").textContent = data.node;
+
+      const statusPill = el("status-pill");
+      const healthValue = el("health-value");
+      const healthDetail = el("health-detail");
+
+      const updateHealth = async () => {
+        statusPill.textContent = "checking /health";
+        statusPill.dataset.state = "checking";
+        try {
+          const res = await fetch("/health");
+          if (!res.ok) throw new Error("status " + res.status);
+          const payload = await res.json();
+          healthValue.textContent = "OK";
+          healthDetail.textContent = payload.status || "ok";
+          statusPill.textContent = "online";
+          statusPill.dataset.state = "online";
+        } catch (error) {
+          healthValue.textContent = "DOWN";
+          healthDetail.textContent = "check failed";
+          statusPill.textContent = "offline";
+          statusPill.dataset.state = "offline";
+        }
+      };
+
+      updateHealth();
+      setInterval(updateHealth, 15000);
+    </script>
+  </body>
+</html>`;
 }
 
 function buildPrompt({ prompt, messages, context }) {
@@ -567,6 +988,16 @@ const requestHandler = (req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && req.url === '/') {
+    const protocol = httpsOptions ? 'https' : 'http';
+    const html = buildDashboardHtml({ protocol });
+    logLine(
+      `${requestId} GET /\n  client=${clientIp}\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms`
+    );
+    sendHtml(res, 200, html);
+    return;
+  }
+
   if (req.url === '/health') {
     logLine(
       `${requestId} GET /health\n  client=${clientIp}\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms`
@@ -734,9 +1165,17 @@ const server = httpsOptions
 
 server.listen(port, host, () => {
   const protocol = httpsOptions ? 'https' : 'http';
-  process.stdout.write(
-    `AI support server listening on ${protocol}://${host}:${port}\n`
-  );
+  const baseUrl = `${protocol}://${host}:${port}`;
+  process.stdout.write(`AI support server listening on ${baseUrl}\n`);
+  if (host === '0.0.0.0') {
+    const localAddresses = getLocalIPv4Addresses();
+    if (localAddresses.length) {
+      const urls = localAddresses
+        .map((address) => `${protocol}://${address}:${port}`)
+        .join(', ');
+      process.stdout.write(`Local network URLs: ${urls}\n`);
+    }
+  }
   if (verbose) {
     logLine(`Verbose logging enabled`);
     if (logMessages) {
