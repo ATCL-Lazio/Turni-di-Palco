@@ -30,7 +30,26 @@ export function ATCLTurns({
     return { totalXp, theatreCount, totalTurns };
   }, [events]);
 
-  const sortedEvents = useMemo(() => [...events], [events]);
+  const sortedEvents = useMemo(() => {
+    const now = new Date();
+    return [...events].sort((a, b) => {
+      const dateA = new Date(`${a.date} ${a.time}`);
+      const dateB = new Date(`${b.date} ${b.time}`);
+      
+      // Eventi futuri prima, in ordine cronologico
+      if (dateA >= now && dateB >= now) {
+        return dateA.getTime() - dateB.getTime();
+      }
+      
+      // Eventi passati dopo, in ordine decrescente (più recenti prima)
+      if (dateA < now && dateB < now) {
+        return dateB.getTime() - dateA.getTime();
+      }
+      
+      // Futuri prima dei passati
+      return dateA >= now ? -1 : 1;
+    });
+  }, [events]);
 
   return (
     <div
