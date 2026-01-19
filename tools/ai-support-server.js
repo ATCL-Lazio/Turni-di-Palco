@@ -115,6 +115,9 @@ function resolveGithubRepo() {
   return null;
 }
 
+let codexLoginProcess = null;
+let ghLoginProcess = null;
+
 function spawnCodexSync(args) {
   if (process.platform === 'win32') {
     const lower = codexBin.toLowerCase();
@@ -139,10 +142,134 @@ function spawnGhSync(args) {
   return spawnSync(ghBin, args, { encoding: 'utf8' });
 }
 
+function spawnCodexLoginProcess(args) {
+  if (process.platform === 'win32') {
+    const lower = codexBin.toLowerCase();
+    if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
+      return spawn('cmd.exe', ['/c', codexBin, ...args], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    }
+  }
+  return spawn(codexBin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+}
+
+function spawnGhLoginProcess(args) {
+  if (process.platform === 'win32') {
+    const lower = ghBin.toLowerCase();
+    if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
+      return spawn('cmd.exe', ['/c', ghBin, ...args], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    }
+  }
+  return spawn(ghBin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+}
+
 function readCliOutput(result) {
   const stdout = result?.stdout ? String(result.stdout) : '';
   const stderr = result?.stderr ? String(result.stderr) : '';
   return [stdout, stderr].filter(Boolean).join('\n').trim();
+}
+
+const loginUrlRegex = /https?:\/\/[^\s"']+/i;
+const loginCodeRegex = /\b[A-Z0-9]{4}-[A-Z0-9]{4}\b/;
+
+function logAuthEvent(message) {
+  const stamp = new Date().toISOString();
+  process.stdout.write(`[${stamp}] ${message}\n`);
+}
+
+function parseLoginOutput(text, state, label) {
+  if (!text) return;
+  const urlMatch = text.match(loginUrlRegex);
+  if (urlMatch && !state.url) {
+    state.url = urlMatch[0];
+    logAuthEvent(`${label} login URL: ${state.url}`);
+  }
+  const codeMatch = text.match(loginCodeRegex);
+  if (codeMatch && !state.code) {
+    state.code = codeMatch[0];
+    logAuthEvent(`${label} login code: ${state.code}`);
+  }
+}
+
+function trackLoginProcess({ label, child, onDone }) {
+  const state = { url: null, code: null };
+  let resolved = false;
+
+  return new Promise((resolve) => {
+    const finish = (payload) => {
+      if (resolved) return;
+      resolved = true;
+      resolve(payload);
+    };
+
+    const handleChunk = (chunk) => {
+      const text = chunk.toString();
+      parseLoginOutput(text, state, label);
+      if (state.url && !resolved) {
+        finish({ started: true, url: state.url, code: state.code, pid: child.pid });
+      }
+    };
+
+    if (child.stdout) {
+      child.stdout.on('data', handleChunk);
+    }
+    if (child.stderr) {
+      child.stderr.on('data', handleChunk);
+    }
+
+    child.on('error', (error) => {
+      logAuthEvent(`${label} login error: ${error.message}`);
+      onDone();
+      finish({ started: false, reason: error.message });
+    });
+
+    child.on('close', (code) => {
+      logAuthEvent(`${label} login exited (${code ?? 'unknown'})`);
+      onDone();
+      if (!resolved) {
+        finish({
+          started: code === 0,
+          url: state.url,
+          code: state.code,
+          reason: code === 0 ? null : `exit ${code}`,
+        });
+      }
+    });
+
+  });
+}
+
+function startCodexLogin() {
+  if (codexLoginProcess) {
+    return Promise.resolve({ started: false, reason: 'Codex login already running.' });
+  }
+  const child = spawnCodexLoginProcess(['login', '--device-auth']);
+  codexLoginProcess = child;
+  return trackLoginProcess({
+    label: 'Codex',
+    child,
+    onDone: () => {
+      codexLoginProcess = null;
+    },
+  });
+}
+
+function startGhLogin() {
+  if (ghLoginProcess) {
+    return Promise.resolve({ started: false, reason: 'GitHub login already running.' });
+  }
+  const child = spawnGhLoginProcess(['auth', 'login', '--device']);
+  ghLoginProcess = child;
+  return trackLoginProcess({
+    label: 'GitHub',
+    child,
+    onDone: () => {
+      ghLoginProcess = null;
+    },
+  });
 }
 
 function checkCodexAuth() {
@@ -501,6 +628,51 @@ function buildDashboardHtml({ protocol }) {
         font-size: 12px;
       }
 
+      .command {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .command button.tag {
+        min-width: 90px;
+        justify-content: center;
+      }
+
+      .command code {
+        font-family: "JetBrains Mono", "Fira Code", Consolas, "SFMono-Regular",
+          ui-monospace, monospace;
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--color-text-primary);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .hint {
+        font-size: 12px;
+        color: var(--color-text-tertiary);
+      }
+
+      button.tag {
+        appearance: none;
+        border: 1px solid rgba(244, 191, 79, 0.3);
+        background: rgba(244, 191, 79, 0.18);
+        color: var(--color-gold-400);
+        cursor: pointer;
+      }
+
+      button.tag:hover {
+        filter: brightness(1.08);
+      }
+
+      button.tag:focus-visible {
+        outline: 2px solid var(--color-gold-400);
+        outline-offset: 2px;
+      }
+
       .tag[data-state="online"] {
         background: rgba(82, 196, 26, 0.16);
         color: #b2f59b;
@@ -613,11 +785,15 @@ function buildDashboardHtml({ protocol }) {
             <div>Metodo <span id="codex-auth-source">${safe(data.codexAuth.sourceLabel)}</span></div>
             <div>Binario <span>${data.codexAuth.codexBin}</span></div>
           </div>
-          <div class="row" style="margin-top: 12px;">
+          <div class="row" style="margin-top: 12px; flex-direction: column; align-items: flex-start;">
             ${!data.codexAuth.hasApiKey ? `
-              <span class="tag" style="background: rgba(244, 191, 79, 0.18); color: var(--color-gold-400); border: 1px solid rgba(244, 191, 79, 0.3);">
-                Esegui: codex login
-              </span>
+              <div class="command">
+                <code>codex login --device-auth</code>
+                <button type="button" class="tag" data-auth-type="codex" title="Avvia login">
+                  Avvia login
+                </button>
+              </div>
+              <div class="hint" data-auth-note="codex">Il link di login viene stampato nei log ed aperto qui.</div>
             ` : `
               <span class="tag" data-state="online">✅ Autenticato</span>
             `}
@@ -630,11 +806,15 @@ function buildDashboardHtml({ protocol }) {
             <div>Metodo <span id="gh-auth-source">${safe(data.ghAuth.sourceLabel)}</span></div>
             <div>Binario <span>${data.ghAuth.ghBin}</span></div>
           </div>
-          <div class="row" style="margin-top: 12px;">
+          <div class="row" style="margin-top: 12px; flex-direction: column; align-items: flex-start;">
             ${!data.ghAuth.hasToken ? `
-              <span class="tag" style="background: rgba(244, 191, 79, 0.18); color: var(--color-gold-400); border: 1px solid rgba(244, 191, 79, 0.3);">
-                Esegui: gh auth login
-              </span>
+              <div class="command">
+                <code>gh auth login --device</code>
+                <button type="button" class="tag" data-auth-type="github" title="Avvia login">
+                  Avvia login
+                </button>
+              </div>
+              <div class="hint" data-auth-note="github">Il link di login viene stampato nei log ed aperto qui.</div>
             ` : `
               <span class="tag" data-state="online">✅ Autenticato</span>
             `}
@@ -666,6 +846,7 @@ function buildDashboardHtml({ protocol }) {
             <div>Issue API <span>/api/ai/issue</span></div>
             <div>Health <span>/health</span></div>
             <div>Auth Status <a href="/auth" target="_blank" style="color: var(--color-gold-400); text-decoration: none;">/auth</a></div>
+            <div>Auth Login <span style="color: #52c41a;">POST /auth/command</span></div>
           </div>
         </article>
       </section>
@@ -699,6 +880,61 @@ function buildDashboardHtml({ protocol }) {
           String(minutes).padStart(2, "0"),
           String(seconds).padStart(2, "0"),
         ].join(":");
+      };
+
+      const updateAuthNote = (type, message) => {
+        const note = document.querySelector(`[data-auth-note="${type}"]`);
+        if (!note || !message) return;
+        note.textContent = message;
+      };
+
+      const startAuthCommand = async (type, button) => {
+        const original = button.textContent;
+        button.textContent = "Avvio...";
+        button.disabled = true;
+        try {
+          const res = await fetch("/auth/command", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type }),
+          });
+          const payload = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(payload.error || "Errore avvio login");
+          }
+          if (payload.url) {
+            window.open(payload.url, "_blank", "noopener,noreferrer");
+          }
+          if (payload.code) {
+            updateAuthNote(type, "Codice: " + payload.code + " (anche nei log).");
+          } else if (payload.url) {
+            updateAuthNote(type, "Link aperto nel browser (anche nei log).");
+          } else {
+            updateAuthNote(type, "Link disponibile nei log della console.");
+          }
+          button.textContent = "Avviato";
+          setTimeout(() => {
+            button.textContent = original;
+            button.disabled = false;
+          }, 2000);
+        } catch (error) {
+          updateAuthNote(type, error.message || "Errore avvio login");
+          button.textContent = "Errore";
+          setTimeout(() => {
+            button.textContent = original;
+            button.disabled = false;
+          }, 2000);
+        }
+      };
+
+      const setupAuthButtons = () => {
+        document.querySelectorAll("[data-auth-type]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const type = button.dataset.authType;
+            if (!type) return;
+            await startAuthCommand(type, button);
+          });
+        });
       };
 
       const started = new Date(data.startedAt);
@@ -751,6 +987,8 @@ function buildDashboardHtml({ protocol }) {
       const statusPill = el("status-pill");
       const healthValue = el("health-value");
       const healthDetail = el("health-detail");
+
+      setupAuthButtons();
 
       const updateHealth = async () => {
         statusPill.textContent = "checking /health";
@@ -1182,7 +1420,7 @@ const requestHandler = (req, res) => {
         source: codexAuth.source,
         sourceLabel: codexAuth.sourceLabel,
         status: codexAuth.status,
-        loginCommand: 'codex login'
+        loginCommand: 'codex login --device-auth'
       },
       github: {
         hasToken: ghAuth.hasToken,
@@ -1191,8 +1429,58 @@ const requestHandler = (req, res) => {
         source: ghAuth.source,
         sourceLabel: ghAuth.sourceLabel,
         status: ghAuth.status,
-        loginCommand: 'gh auth login'
+        loginCommand: 'gh auth login --device'
       }
+    });
+    return;
+  }
+
+  if (req.url === '/auth/command' && req.method === 'POST') {
+    let authBody = '';
+    req.on('data', (chunk) => {
+      authBody += chunk.toString();
+      if (authBody.length > maxBodySize) {
+        logLine(`${requestId} auth payload too large (${authBody.length} bytes)`);
+        res.writeHead(413);
+        res.end();
+        req.destroy();
+      }
+    });
+
+    req.on('end', async () => {
+      let payload;
+      try {
+        payload = authBody ? JSON.parse(authBody) : {};
+      } catch (error) {
+        logError(`${requestId} invalid auth JSON body`);
+        sendJson(res, 400, { error: 'Invalid JSON body' });
+        return;
+      }
+
+      const type = payload?.type;
+      if (type !== 'codex' && type !== 'github') {
+        sendJson(res, 400, { error: 'Invalid auth type' });
+        return;
+      }
+
+      const result =
+        type === 'codex' ? await startCodexLogin() : await startGhLogin();
+      if (!result.started) {
+        const status = result.reason?.includes('already running') ? 409 : 500;
+        sendJson(res, status, { error: result.reason || 'Login failed' });
+        return;
+      }
+
+      logLine(
+        `${requestId} POST /auth/command\n  client=${clientIp}\n  status=${formatStatus(202)}\n  duration=${Date.now() - start}ms\n  type=${type}`
+      );
+      sendJson(res, 202, {
+        started: true,
+        pid: result.pid,
+        type,
+        url: result.url ?? null,
+        code: result.code ?? null,
+      });
     });
     return;
   }
