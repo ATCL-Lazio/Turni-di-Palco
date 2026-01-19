@@ -17,3 +17,18 @@ services:
   startCommand: npm --workspace apps/pwa run preview:https -- --host 0.0.0.0 --port
     $PORT --strictPort --clearScreen false
   autoDeployTrigger: commit
+- type: web
+  name: Maxwell-AI-Support
+  runtime: node
+  repo: https://github.com/Heartran/Turni-di-Palco
+  branch: render/preview
+  plan: free
+  envVars:
+  - key: VITE_SUPABASE_ANON_KEY
+    sync: false
+  - key: VITE_SUPABASE_URL
+    sync: false
+  region: frankfurt
+  buildCommand: npm ci && npm install -g @openai/codex && npm install -g gh
+  startCommand: npm run ai:support
+  autoDeployTrigger: commit
