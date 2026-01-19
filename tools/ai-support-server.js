@@ -883,7 +883,7 @@ function buildDashboardHtml({ protocol }) {
       };
 
       const updateAuthNote = (type, message) => {
-        const note = document.querySelector(`[data-auth-note="${type}"]`);
+        const note = document.querySelector(\`[data-auth-note="\${type}"]\`);
         if (!note || !message) return;
         note.textContent = message;
       };
