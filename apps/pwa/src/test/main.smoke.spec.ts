@@ -24,6 +24,10 @@ describe("main shell", () => {
       })),
     });
 
+    vi.doMock("../services/dev-gate", () => ({
+      requireDevAccess: vi.fn().mockResolvedValue(true),
+    }));
+
     vi.doMock("../pwa/register-sw", () => ({
       registerServiceWorker,
     }));
