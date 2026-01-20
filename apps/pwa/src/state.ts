@@ -159,19 +159,19 @@ function normalizeState(raw: Partial<GameState> | null | undefined): GameState {
     avatar: sanitizeAvatar(rawProfile?.avatar, base.profile.avatar),
   };
 
-  const turns = Array.isArray(raw?.turns) ? (raw.turns as any[]).map(t => {
+  const turns = Array.isArray(raw?.turns) ? (raw.turns as TurnRecord[]).map(t => {
     if (!t || typeof t !== "object") return null;
     const roleId = typeof t.roleId === "string" && t.roleId in roleMap ? t.roleId : profile.roleId;
     return { ...t, roleId, rewards: sanitizeRewards(t.rewards) } as TurnRecord;
   }).filter((t): t is TurnRecord => !!t).slice(0, MAX_TURNS_PERSISTED) : [];
 
   const activityStats = raw?.activityStats && typeof raw.activityStats === "object" ? Object.entries(raw.activityStats).reduce((acc, [k, v]) => {
-    const r = v as any;
+    const r = v as { runs?: number; lastPlayedAt?: number };
     acc[k] = { runs: sanitizeNumber(r?.runs, 0), lastPlayedAt: typeof r?.lastPlayedAt === "number" ? r.lastPlayedAt : undefined };
     return acc;
   }, {} as Record<string, ActivityStats>) : {};
 
-  const tutorial: TutorialState = { firstChoiceComplete: !!(raw?.tutorial as any)?.firstChoiceComplete };
+  const tutorial: TutorialState = { firstChoiceComplete: !!(raw?.tutorial as { firstChoiceComplete?: boolean })?.firstChoiceComplete };
   const normalized = attachChecksum({ version: Math.max(raw?.version ?? 0, CURRENT_STATE_VERSION), profile, turns, activityStats, tutorial });
 
   if (raw?.checksum && raw.checksum !== normalized.checksum) {
