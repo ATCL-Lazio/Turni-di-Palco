@@ -1,0 +1,42 @@
+name: Sync Deploy Branches
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  sync-branches:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Configure Git
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Sync render/preview branch
+      run: |
+        git checkout render/preview || git checkout -b render/preview origin/main
+        git merge origin/main --no-ff -m "Auto-sync from main [skip ci]"
+        git push origin render/preview
+
+    - name: Create and sync netlify/preview branch
+      run: |
+        git checkout netlify/preview || git checkout -b netlify/preview origin/main
+        git merge origin/main --no-ff -m "Auto-sync from main [skip ci]"
+        git push origin netlify/preview
+
+    - name: Trigger Render deployments
+      run: |
+        echo "✅ Branches synchronized successfully"
+        echo "🔄 Render will auto-deploy render/preview"
+        echo "🌐 Netlify will auto-deploy netlify/preview (if configured)"
