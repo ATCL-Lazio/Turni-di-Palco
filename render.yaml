@@ -25,9 +25,9 @@ services:
   plan: free
   envVars:
   - key: VITE_SUPABASE_ANON_KEY
-    sync: false
+    sync: true
   - key: VITE_SUPABASE_URL
-    sync: false
+    sync: true
   region: frankfurt
   buildCommand: npm ci && npm install -g @openai/codex && npm install -g gh
   startCommand: npm run ai:support
