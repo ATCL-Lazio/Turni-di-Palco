@@ -31,8 +31,8 @@ jobs:
         
       - name: Cleanup old events
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           DAYS=${{ github.event.inputs.days_to_keep || '7' }}
           echo "Cleaning events older than $DAYS days"
