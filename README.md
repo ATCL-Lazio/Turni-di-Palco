@@ -1,4 +1,5 @@
 # Turni di Palco - Monorepo
+[![Netlify Status](https://api.netlify.com/api/v1/badges/82f90be3-aaed-4dcc-8a21-8ee00395d6eb/deploy-status)](https://app.netlify.com/projects/turni-di-palco/deploys)
 
 Turni di Palco è una Progressive Web App pensata per gestire i turni teatrali con meccaniche di gioco (XP, livelli, ruoli) per rendere l'organizzazione piu coinvolgente.
 
