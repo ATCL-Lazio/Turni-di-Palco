@@ -484,6 +484,14 @@ function buildDashboardHtml({ protocol }) {
     codexAuth: data.codexAuth,
     ghAuth: data.ghAuth,
   });
+  
+  // Escape JSON for safe injection in HTML script tag
+  const escapedJson = json
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/'/g, '\\u0027')
+    .replace(/"/g, '\\u0022');
 
   return `<!doctype html>
 <html lang="it">
@@ -855,7 +863,7 @@ function buildDashboardHtml({ protocol }) {
     </div>
 
     <script>
-      const data = ${json};
+      const data = JSON.parse('${escapedJson}');
       const el = (id) => document.getElementById(id);
       const fmtBytes = (bytes) => {
         if (!Number.isFinite(bytes)) return "--";
