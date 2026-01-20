@@ -24,9 +24,9 @@ services:
   branch: render/preview
   plan: free
   envVars:
-  - key: SUPABASE_ANON_KEY
+  - key: VITE_SUPABASE_ANON_KEY
     sync: true
-  - key: SUPABASE_URL
+  - key: VITE_SUPABASE_URL
     sync: true
   region: frankfurt
   buildCommand: npm ci && npm install -g @openai/codex && npm install -g gh
