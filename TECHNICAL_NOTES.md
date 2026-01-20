@@ -26,8 +26,10 @@
 - Local server: `tools/ai-support-server.js` uses `codex exec`.
 - Optional env:
   - `AI_SUPPORT_PORT` (server port, default 8787)
+  - `VITE_AI_SUPPORT_PORT` (client/proxy port, default 8787)
   - `AI_SUPPORT_ALLOWED_ORIGINS` (comma-separated, use when calling absolute URLs)
-  - `VITE_AI_SUPPORT_ENDPOINT` (remote endpoint override)
+  - `VITE_AI_SUPPORT_ENDPOINT` (client endpoint override)
+  - `VITE_AI_SUPPORT_ISSUE_ENDPOINT` (issue endpoint override)
 
 ## PWA, cache e aggiornamenti
 
@@ -36,7 +38,7 @@
 
 ## Supabase (client)
 
-- Configurazione lato client tramite variabili d’ambiente (vedi `.env` / `apps/mobile/.env.example`).
+- Configurazione lato client tramite variabili d’ambiente (vedi `.env`, `apps/mobile/.env.example`, `apps/pwa/.env.example`).
 - Auth: login/signup tramite `supabase.auth.*` (per comportamento e policy: verificare impostazioni progetto Supabase, es. email verification).
 
 ## QR: modello funzionale (attivazione codice)
