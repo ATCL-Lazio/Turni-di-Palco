@@ -1,0 +1,18 @@
+[build]
+  base = "/"
+  command = "npm ci && npm run build:pwa"
+  publish = "apps/pwa/dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[context.production]
+  command = "npm ci && npm run build:pwa"
+
+[context.deploy-preview]
+  command = "npm ci && npm run build:pwa"
