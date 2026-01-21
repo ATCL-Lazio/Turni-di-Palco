@@ -7,6 +7,11 @@
   NODE_VERSION = "18"
 
 [[redirects]]
+  from = "/mobile/*"
+  to = "/mobile/:splat"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
