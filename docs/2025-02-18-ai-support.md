@@ -97,7 +97,8 @@ Se il backend non esiste, creare un handler che:
 - Maxwell sa che lo sviluppatore e' Federico e usa frasi umane tipo "Lo segnalo a Federico".
 - Avvio locale separato: `npm --prefix apps/mobile run dev` e `npm run ai:support`.
 - Avvio combinato: `npm --prefix apps/mobile run dev:with-ai`.
-- Il dev server mobile fa proxy `/api/ai/chat` verso `http://localhost:${AI_SUPPORT_PORT}`.
+- Il dev server mobile fa proxy `/api/ai/chat` verso `http://localhost:${VITE_AI_SUPPORT_PORT}` (fallback `AI_SUPPORT_PORT`).
+- Per cambiare la porta locale, impostare `VITE_AI_SUPPORT_PORT` (client/proxy) e, se necessario, `AI_SUPPORT_PORT` per il server.
 - Per un endpoint remoto, impostare `VITE_AI_SUPPORT_ENDPOINT` in `apps/mobile/.env`.
 - Se `VITE_AI_SUPPORT_ENDPOINT` non e' valorizzato, l'app usa l'host corrente e la porta `8787`.
 - Per la creazione issue, l'assistente aggiunge in coda `ISSUE_DRAFT:{...}` con i label `supporto` e `Maxwell`. La UI lo rimuove dal testo e invia `POST /api/ai/issue` in autonomia.
@@ -122,7 +123,7 @@ Se il backend non esiste, creare un handler che:
 
 ## Gestione credenziali GitHub
 
-Token e repo devono vivere lato server (mai nel browser):
+Token e repo devono vivere lato server (mai nel browser) e vanno passati a `createGithubIssue` (es. da env):
 
 - `GITHUB_TOKEN`
 - `GITHUB_REPO_OWNER`

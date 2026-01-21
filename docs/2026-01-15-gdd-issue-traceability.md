@@ -60,10 +60,10 @@
 
 - Questa lista va verificata contro le issue esistenti e aggiornata in GitHub.
 - Aggiungere label dedicate (es. `gdd`, `mvp`, `backend`, `frontend`, `gameplay`).
-- Per creare/sincronizzare le issue serve configurare `GH_TOKEN`/`GITHUB_TOKEN` e l'owner/repo GitHub.
+- Per creare/sincronizzare le issue serve configurare `GITHUB_TOKEN` e l'owner/repo GitHub.
 
 ## Command log (per tracciamento analisi)
 
 - `python` con PyPDF2 per estrarre il testo dal PDF GDD.
 - `rg` per individuare riferimenti a configurazione GitHub nel repo.
-- `python` per verificare la presenza di `GH_TOKEN`/`GITHUB_TOKEN` nell'ambiente.
+- `python` per verificare la presenza di `GITHUB_TOKEN` nell'ambiente.
