@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 const { spawn } = require('node:child_process');
 const path = require('node:path');
+const dotenv = require('dotenv');
+
+const repoRoot = path.resolve(__dirname, '..');
+dotenv.config({ path: path.join(repoRoot, 'apps', 'mobile', '.env') });
 
 const withHttpsPath = path.resolve(__dirname, 'with-https-env.js');
 const aiSupportPath = path.resolve(__dirname, 'ai-support-server.js');
