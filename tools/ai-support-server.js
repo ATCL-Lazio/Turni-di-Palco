@@ -7,7 +7,9 @@ const path = require('node:path');
 const fs = require('node:fs');
 
 const port =
-  Number(process.env.PORT) || Number(process.env.AI_SUPPORT_PORT) || 8787;
+  Number(process.env.PORT) ||
+  Number(process.env.AI_SUPPORT_PORT || process.env.VITE_AI_SUPPORT_PORT) ||
+  8787;
 const host = resolveHost();
 const codexBin = resolveCodexBin();
 const ghBin = resolveGhBin();
