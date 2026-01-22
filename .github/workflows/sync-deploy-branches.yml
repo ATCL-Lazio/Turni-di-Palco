@@ -51,6 +51,7 @@ jobs:
         echo "🌐 Netlify will auto-deploy netlify/preview (if configured)"
 
   sync-netlify-preview:
+    needs: sync-render-preview
     runs-on: ubuntu-latest
     permissions:
       contents: write
