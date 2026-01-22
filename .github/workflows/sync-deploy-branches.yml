@@ -36,14 +36,19 @@ jobs:
     - name: Sync branch
       run: |
         git checkout render/preview || git checkout -b render/preview origin/main
-        git merge origin/main --no-ff -m "Auto-sync from main [skip ci]"
-        git push origin render/preview
+        # Only sync if main is actually ahead
+        if [ "$(git rev-list --count HEAD..origin/main)" -gt 0 ]; then
+          git merge origin/main --no-ff -m "Auto-sync from main [skip ci]"
+          git push origin render/preview
+        else
+          echo "No changes to sync - render/preview is up to date"
+        fi
 
     - name: Trigger Render deployments
       run: |
-        echo " Branches synchronized successfully"
-        echo " Render will auto-deploy render/preview"
-        echo " Netlify will auto-deploy netlify/preview (if configured)"
+        echo "✅ Branches synchronized successfully"
+        echo "🔄 Render will auto-deploy render/preview"
+        echo "🌐 Netlify will auto-deploy netlify/preview (if configured)"
 
   sync-netlify-preview:
     runs-on: ubuntu-latest
@@ -64,8 +69,13 @@ jobs:
     - name: Sync branch
       run: |
         git checkout netlify/preview || git checkout -b netlify/preview origin/main
-        git merge origin/main --no-ff -m "Auto-sync from main [skip ci]"
-        git push origin netlify/preview
+        # Only sync if main is actually ahead
+        if [ "$(git rev-list --count HEAD..origin/main)" -gt 0 ]; then
+          git merge origin/main --no-ff -m "Auto-sync from main [skip ci]"
+          git push origin netlify/preview
+        else
+          echo "No changes to sync - netlify/preview is up to date"
+        fi
 
     - name: Trigger Netlify deployments
       run: |
