@@ -35,14 +35,10 @@ jobs:
 
     - name: Sync branch
       run: |
-        git checkout render/preview || git checkout -b render/preview origin/main
-        # Only sync if main is actually ahead
-        if [ "$(git rev-list --count HEAD..origin/main)" -gt 0 ]; then
-          git merge origin/main --no-ff -m "Auto-sync from main [skip ci]"
-          git push origin render/preview
-        else
-          echo "No changes to sync - render/preview is up to date"
-        fi
+        git fetch origin main
+        # Hard align render/preview to main to avoid merge commits
+        git checkout -B render/preview origin/main
+        git push -f origin render/preview
 
     - name: Trigger Render deployments
       run: |
@@ -69,14 +65,10 @@ jobs:
 
     - name: Sync branch
       run: |
-        git checkout netlify/preview || git checkout -b netlify/preview origin/main
-        # Only sync if main is actually ahead
-        if [ "$(git rev-list --count HEAD..origin/main)" -gt 0 ]; then
-          git merge origin/main --no-ff -m "Auto-sync from main [skip ci]"
-          git push origin netlify/preview
-        else
-          echo "No changes to sync - netlify/preview is up to date"
-        fi
+        git fetch origin main
+        # Hard align netlify/preview to main to avoid merge commits
+        git checkout -B netlify/preview origin/main
+        git push -f origin netlify/preview
 
     - name: Trigger Netlify deployments
       run: |
