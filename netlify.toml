@@ -4,7 +4,8 @@
   publish = "apps/pwa/dist"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "22.14.0"
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_AI_SUPPORT_PORT,VITE_AI_SUPPORT_ENDPOINT,VITE_AI_SUPPORT_ISSUE_ENDPOINT"
 
 [[redirects]]
   from = "/mobile/*"
