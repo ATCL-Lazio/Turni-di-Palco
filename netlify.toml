@@ -8,8 +8,13 @@
   SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_AI_SUPPORT_PORT,VITE_AI_SUPPORT_ENDPOINT,VITE_AI_SUPPORT_ISSUE_ENDPOINT"
 
 [[redirects]]
+  from = "/mobile/"
+  to = "/mobile.html"
+  status = 200
+
+[[redirects]]
   from = "/mobile/*"
-  to = "/mobile/:splat"
+  to = "/public/mobile/:splat"
   status = 200
 
 [[redirects]]
