@@ -64,10 +64,6 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - Tieni manifest (`apps/pwa/public/manifest.webmanifest`) in sync con icone e theme color. Placeholder in `apps/pwa/public/icons/`.
 
-## Work Plan
-
-- Piano MVP in `docs/plan.md`. Mantienilo aggiornato a ogni milestone/modifica rilevante (scope, priorità, stato attività).
-
 ## Git Identity
 
 - Every agent should have his own git identity when committing changes in order to have a more clear and readable history
