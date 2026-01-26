@@ -721,19 +721,6 @@ const start = async () => {
     renderTutorialBox();
   });
 
-  // Add event listener for the Esci button in dev gate
-  root.querySelector<HTMLButtonElement>('[data-dev-gate-signout]')?.addEventListener("click", async () => {
-    // Sign out from Supabase
-    const { supabase } = await import("./services/supabase");
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
-    // Clear local data
-    localStorage.clear();
-    // Redirect to home
-    window.location.href = "/";
-  });
-
   registerServiceWorker({
     onReady: () => undefined,
     onUpdate: (registration) => {
