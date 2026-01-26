@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useEffect } from 'react';
+import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import { BottomNav } from './components/BottomNav';
 import { Welcome } from './components/screens/Welcome';
 import { Login } from './components/screens/Login';
@@ -25,6 +25,7 @@ import { GameStateProvider, useGameState } from './state/store';
 import { isSupabaseConfigured } from './lib/supabase';
 import { openInMaps, openEventsMap } from './lib/navigation-utils';
 import { uploadProfileImage } from './services/storage';
+import { ScreenTransition } from './components/ui/ScreenTransition';
 
 // Types and Hooks
 import { Screen, LegalReturnScreen } from './types/navigation';
@@ -68,6 +69,10 @@ function AppShell() {
     legalReturnScreen, setLegalReturnScreen, isPasswordRecovery, setIsPasswordRecovery,
     scannedEventId, setScannedEventId, selectedActivityId, setSelectedActivityId,
   } = useNavigation(events);
+
+  // Animation state for tab transitions
+  const [screenAnimation, setScreenAnimation] = useState('');
+  const [previousTab, setPreviousTab] = useState(activeTab);
 
   // Auth Hook
   const {
@@ -115,6 +120,35 @@ function AppShell() {
   // Notification and QR Landing Hooks
   useNotifications(upcomingEvent, newestNewBadge ?? undefined);
   useQrLanding(authReady, isAuthValid, (target) => setCurrentScreen(target));
+
+  // Tab transition animation logic
+  useEffect(() => {
+    if (activeTab !== previousTab) {
+      // Determine animation based on tab order
+      const tabOrder = ['home', 'turns', 'leaderboard', 'activities', 'profile'];
+      const currentIndex = tabOrder.indexOf(activeTab);
+      const previousIndex = tabOrder.indexOf(previousTab);
+      
+      let animation = '';
+      if (currentIndex > previousIndex) {
+        // Moving right in tab order
+        if (activeTab === 'activities') animation = 'tab-slide-up';
+        else if (activeTab === 'profile') animation = 'tab-slide-up';
+        else animation = 'tab-slide-right';
+      } else {
+        // Moving left in tab order
+        if (previousTab === 'activities' || previousTab === 'profile') animation = 'tab-slide-down';
+        else animation = 'tab-slide-left';
+      }
+      
+      setScreenAnimation(animation);
+      setPreviousTab(activeTab);
+      
+      // Clear animation after it completes
+      const timer = setTimeout(() => setScreenAnimation(''), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, previousTab]);
 
   useEffect(() => {
     if (PUBLIC_SCREENS.has(currentScreen)) return;
@@ -213,7 +247,9 @@ function AppShell() {
 
   return (
     <div className="min-h-screen app-gradient app-shell">
-      <div className="app-frame">{renderScreen()}</div>
+      <ScreenTransition animationClass={screenAnimation}>
+        <div className="app-frame">{renderScreen()}</div>
+      </ScreenTransition>
       {showBottomNav && <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />}
     </div>
   );
