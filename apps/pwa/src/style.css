@@ -85,8 +85,8 @@ code {
 }
 
 .brand-mark {
-  width: 40px;
-  height: 40px;
+  width: 3.2rem;
+  height: 3.2rem;
   border-radius: 12px;
   background: var(--gradient-brand);
   display: grid;
@@ -96,6 +96,7 @@ code {
   letter-spacing: 0.04em;
   box-shadow: var(--shadow-brand);
   animation: brand-pulse 3.6s ease-in-out infinite;
+  will-change: transform, box-shadow;
 }
 
 .top-actions {
@@ -383,6 +384,7 @@ code {
   border-color: var(--surface-veil-highlight);
   transform: translateY(-1px);
   box-shadow: 0 10px 18px rgba(15, 23, 42, 0.18);
+  will-change: transform, box-shadow;
 }
 
 .quick-link:active {
