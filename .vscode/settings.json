@@ -8,6 +8,7 @@
         "quickbar",
         "sparkline",
         "topbar",
+        "COOLDOWN",
         "valuenow"
     ]
 }
