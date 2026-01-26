@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { resolveDisplayName } from '../lib/profile-utils';
 import { PlayerProfile } from '../state/store';
 
 export function useAuth(
@@ -24,8 +25,13 @@ export function useAuth(
             return;
         }
 
-        const name = data.user?.user_metadata?.name ?? profile.name;
-        updateProfile({ name, email });
+        const displayName = resolveDisplayName({
+            name: data.user?.user_metadata?.name,
+            metadata: data.user?.user_metadata,
+            email,
+            fallback: profile.name,
+        });
+        updateProfile({ name: displayName, email });
         onAuthChange('home');
     }, [onAuthChange, profile.name, updateProfile]);
 
@@ -47,7 +53,12 @@ export function useAuth(
             return;
         }
 
-        const displayName = data.user?.user_metadata?.name ?? name;
+        const displayName = resolveDisplayName({
+            name: data.user?.user_metadata?.name ?? name,
+            metadata: data.user?.user_metadata,
+            email,
+            fallback: name,
+        });
         updateProfile({ name: displayName, email });
         onAuthChange('welcome'); // Flow will continue to role-selection
     }, [onAuthChange, updateProfile]);
@@ -67,7 +78,12 @@ export function useAuth(
             if (!mounted || error) return;
             if (data.session?.user) {
                 const user = data.session.user;
-                const displayName = user.user_metadata?.name ?? profile.name;
+                const displayName = resolveDisplayName({
+                    name: user.user_metadata?.name,
+                    metadata: user.user_metadata,
+                    email: user.email ?? profile.email,
+                    fallback: profile.name,
+                });
                 updateProfile({ name: displayName, email: user.email ?? profile.email });
                 onAuthChange('home');
             }
@@ -81,14 +97,24 @@ export function useAuth(
             }
             if (event === 'PASSWORD_RECOVERY') {
                 if (session?.user) {
-                    const displayName = session.user.user_metadata?.name ?? profile.name;
+                    const displayName = resolveDisplayName({
+                        name: session.user.user_metadata?.name,
+                        metadata: session.user.user_metadata,
+                        email: session.user.email ?? profile.email,
+                        fallback: profile.name,
+                    });
                     updateProfile({ name: displayName, email: session.user.email ?? profile.email });
                 }
                 onAuthChange('change-password', true);
                 return;
             }
             if (session?.user) {
-                const displayName = session.user.user_metadata?.name ?? profile.name;
+                const displayName = resolveDisplayName({
+                    name: session.user.user_metadata?.name,
+                    metadata: session.user.user_metadata,
+                    email: session.user.email ?? profile.email,
+                    fallback: profile.name,
+                });
                 updateProfile({ name: displayName, email: session.user.email ?? profile.email });
                 onAuthChange('home');
             }

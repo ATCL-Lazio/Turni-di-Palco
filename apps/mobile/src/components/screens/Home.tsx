@@ -68,11 +68,18 @@ export function Home({
 
   // Trigger badge animations when component mounts or new badges arrive
   React.useEffect(() => {
-    if (hasNewBadges) {
-      setAnimateBadges(true);
-      const timer = setTimeout(() => setAnimateBadges(false), 600);
-      return () => clearTimeout(timer);
+    if (!hasNewBadges) {
+      setAnimateBadges(false);
+      return;
     }
+
+    setAnimateBadges(false);
+    const raf = requestAnimationFrame(() => setAnimateBadges(true));
+    const timer = setTimeout(() => setAnimateBadges(false), 600);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
   }, [hasNewBadges, newBadgesCount]);
 
   const eventState: EventState = eventError ? 'error' : eventLoading ? 'loading' : !upcomingEvent ? 'empty' : 'ready';
@@ -90,13 +97,17 @@ export function Home({
                 <button className="flex items-center justify-center size-[44px] rounded-lg hover:bg-[#241f20] transition mobile-card-hover">
                   <Bell size={20} className="text-[#f4bf4f]" />
                   {hasNewBadges && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#f4bf4f] rounded-full mobile-badge-pop" />
+                    <span
+                      className={`absolute -top-1 -right-1 w-3 h-3 bg-[#f4bf4f] rounded-full ${
+                        animateBadges ? 'mobile-badge-pop' : ''
+                      }`}
+                    />
                   )}
                 </button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-80 bg-[#1a1617] border-[#3d3a3b] p-3">
                 {showBadge && hasNewBadges ? (
-                  <div className="flex items-start gap-3 mobile-badge-pop">
+                  <div className={`flex items-start gap-3 ${animateBadges ? 'mobile-badge-pop' : ''}`}>
                     <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#f4bf4f] to-[#e6a23c] rounded-lg flex items-center justify-center mobile-pulse-once">
                       <Award className="text-[#0f0d0e]" size={20} />
                     </div>
