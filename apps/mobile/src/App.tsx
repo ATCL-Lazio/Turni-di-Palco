@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useEffect, useState } from 'react';
+import React, { useMemo, useCallback, useEffect, useState, useRef } from 'react';
 import { BottomNav } from './components/BottomNav';
 import { Welcome } from './components/screens/Welcome';
 import { Login } from './components/screens/Login';
@@ -23,35 +23,17 @@ import { PrivacyPolicy } from './components/screens/PrivacyPolicy';
 import { EarnedTitles } from './components/screens/EarnedTitles';
 import { GameStateProvider, useGameState } from './state/store';
 import { isSupabaseConfigured } from './lib/supabase';
+import { hasStoredAuthState, PUBLIC_SCREENS } from './lib/auth-storage';
 import { openInMaps, openEventsMap } from './lib/navigation-utils';
 import { uploadProfileImage } from './services/storage';
 import { ScreenTransition } from './components/ui/ScreenTransition';
 
 // Types and Hooks
-import { Screen, LegalReturnScreen } from './types/navigation';
+import { LegalReturnScreen } from './types/navigation';
 import { useNavigation } from './hooks/useNavigation';
 import { useAuth } from './hooks/useAuth';
 import { useNotifications } from './hooks/useNotifications';
 import { useQrLanding } from './hooks/useQrLanding';
-
-const PUBLIC_SCREENS = new Set<Screen>(['welcome', 'login', 'signup', 'terms', 'privacy']);
-
-function hasStoredSupabaseSession() {
-  if (typeof window === 'undefined') return false;
-  try {
-    if (window.localStorage.getItem('tdp-supabase-session-id')) return true;
-
-    for (let i = 0; i < window.localStorage.length; i += 1) {
-      const key = window.localStorage.key(i);
-      if (!key) continue;
-      if (key.startsWith('sb-') && key.endsWith('-auth-token')) return true;
-    }
-
-    return false;
-  } catch {
-    return false;
-  }
-}
 
 function AppShell() {
   const {
@@ -72,7 +54,8 @@ function AppShell() {
 
   // Animation state for tab transitions
   const [screenAnimation, setScreenAnimation] = useState('');
-  const [previousTab, setPreviousTab] = useState(activeTab);
+  const [screenAnimationKey, setScreenAnimationKey] = useState(0);
+  const previousTabRef = useRef(activeTab);
 
   // Auth Hook
   const {
@@ -123,32 +106,31 @@ function AppShell() {
 
   // Tab transition animation logic
   useEffect(() => {
-    if (activeTab !== previousTab) {
-      // Determine animation based on tab order
-      const tabOrder = ['home', 'turns', 'leaderboard', 'activities', 'profile'];
-      const currentIndex = tabOrder.indexOf(activeTab);
-      const previousIndex = tabOrder.indexOf(previousTab);
-      
-      let animation = '';
-      if (currentIndex > previousIndex) {
-        // Moving right in tab order
-        if (activeTab === 'activities') animation = 'tab-slide-up';
-        else if (activeTab === 'profile') animation = 'tab-slide-up';
-        else animation = 'tab-slide-right';
-      } else {
-        // Moving left in tab order
-        if (previousTab === 'activities' || previousTab === 'profile') animation = 'tab-slide-down';
-        else animation = 'tab-slide-left';
-      }
-      
-      setScreenAnimation(animation);
-      setPreviousTab(activeTab);
-      
-      // Clear animation after it completes
-      const timer = setTimeout(() => setScreenAnimation(''), 300);
-      return () => clearTimeout(timer);
+    if (activeTab === previousTabRef.current) return;
+
+    // Determine animation based on tab order
+    const tabOrder = ['home', 'turns', 'leaderboard', 'activities', 'profile'];
+    const currentIndex = tabOrder.indexOf(activeTab);
+    const previousIndex = tabOrder.indexOf(previousTabRef.current);
+
+    let animation = '';
+    if (currentIndex === -1 || previousIndex === -1) {
+      animation = 'tab-fade-in';
+    } else if (currentIndex > previousIndex) {
+      // Moving right in tab order
+      if (activeTab === 'activities') animation = 'tab-slide-up';
+      else if (activeTab === 'profile') animation = 'tab-slide-up';
+      else animation = 'tab-slide-right';
+    } else {
+      // Moving left in tab order
+      if (previousTabRef.current === 'activities' || previousTabRef.current === 'profile') animation = 'tab-slide-down';
+      else animation = 'tab-slide-left';
     }
-  }, [activeTab, previousTab]);
+
+    setScreenAnimation(animation);
+    setScreenAnimationKey((value) => value + 1);
+    previousTabRef.current = activeTab;
+  }, [activeTab]);
 
   useEffect(() => {
     if (PUBLIC_SCREENS.has(currentScreen)) return;
@@ -156,9 +138,10 @@ function AppShell() {
     if (isSupabaseConfigured) {
       if (!authReady) return;
       if (authUserId) return;
-      if (hasStoredSupabaseSession()) return;
+      if (hasStoredAuthState()) return;
     } else {
       if (hasValidEmail) return;
+      if (hasStoredAuthState()) return;
     }
 
     setAuthError(null);
@@ -247,7 +230,7 @@ function AppShell() {
 
   return (
     <div className="min-h-screen app-gradient app-shell">
-      <ScreenTransition animationClass={screenAnimation}>
+      <ScreenTransition animationClass={screenAnimation} animationKey={screenAnimationKey}>
         <div className="app-frame">{renderScreen()}</div>
       </ScreenTransition>
       {showBottomNav && <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />}
