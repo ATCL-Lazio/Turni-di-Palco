@@ -52,7 +52,7 @@ Template developed by [Heartran](https://github.com/heartran)
 
 ## Identity & Git Hygiene
 
-- Author/committer identity is managed by the repo owner; do not change git config locally (no `git config` commands). Use the existing configuration as-is.
+- Author/committer identity is managed by the repo owner; do not change git config locally (no `git config` commands). Use the existing configuration as-is. Use $ENV variables for agent-specific commits.
 
 - Never use the Heartran git identity for commits or pushes.
 
