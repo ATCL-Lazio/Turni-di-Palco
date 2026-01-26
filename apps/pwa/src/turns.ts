@@ -103,11 +103,17 @@ const start = async () => {
     if (!syncBadge) return;
     syncBadge.textContent = message;
     syncBadge.style.display = "inline-flex";
+    syncBadge.classList.remove("is-live");
+    void syncBadge.offsetWidth;
+    syncBadge.classList.add("is-live");
     if (syncBadgeTimeout) {
       window.clearTimeout(syncBadgeTimeout);
     }
     syncBadgeTimeout = window.setTimeout(() => {
-      if (syncBadge) syncBadge.style.display = "none";
+      if (syncBadge) {
+        syncBadge.classList.remove("is-live");
+        syncBadge.style.display = "none";
+      }
     }, 2500);
   }
 
