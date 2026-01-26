@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect } from 'react';
 import { BottomNav } from './components/BottomNav';
 import { Welcome } from './components/screens/Welcome';
 import { Login } from './components/screens/Login';
@@ -32,6 +32,25 @@ import { useNavigation } from './hooks/useNavigation';
 import { useAuth } from './hooks/useAuth';
 import { useNotifications } from './hooks/useNotifications';
 import { useQrLanding } from './hooks/useQrLanding';
+
+const PUBLIC_SCREENS = new Set<Screen>(['welcome', 'login', 'signup', 'terms', 'privacy']);
+
+function hasStoredSupabaseSession() {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (window.localStorage.getItem('tdp-supabase-session-id')) return true;
+
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i);
+      if (!key) continue;
+      if (key.startsWith('sb-') && key.endsWith('-auth-token')) return true;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 function AppShell() {
   const {
@@ -96,6 +115,40 @@ function AppShell() {
   // Notification and QR Landing Hooks
   useNotifications(upcomingEvent, newestNewBadge ?? undefined);
   useQrLanding(authReady, isAuthValid, (target) => setCurrentScreen(target));
+
+  useEffect(() => {
+    if (PUBLIC_SCREENS.has(currentScreen)) return;
+
+    if (isSupabaseConfigured) {
+      if (!authReady) return;
+      if (authUserId) return;
+      if (hasStoredSupabaseSession()) return;
+    } else {
+      if (hasValidEmail) return;
+    }
+
+    setAuthError(null);
+    setIsPasswordRecovery(false);
+    setLegalReturnScreen('welcome');
+    setSelectedActivityId('');
+    setScannedEventId('');
+    setActiveTab('home');
+    resetState();
+    setCurrentScreen('welcome');
+  }, [
+    authReady,
+    authUserId,
+    currentScreen,
+    hasValidEmail,
+    resetState,
+    setActiveTab,
+    setAuthError,
+    setCurrentScreen,
+    setIsPasswordRecovery,
+    setLegalReturnScreen,
+    setScannedEventId,
+    setSelectedActivityId,
+  ]);
 
   // Handler Actions
   const handleQRScanAttempt = (code: string) => {
