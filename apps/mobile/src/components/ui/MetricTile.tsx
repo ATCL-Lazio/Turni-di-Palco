@@ -9,14 +9,18 @@ interface MetricTileProps {
   icon?: React.ReactNode;
   onClick?: () => void;
   progress?: { value: number; max: number; color?: 'gold' | 'burgundy' };
+  animateOnMount?: boolean; // New prop for entrance animation
 }
 
-export function MetricTile({ label, value, helper, icon, onClick, progress }: MetricTileProps) {
+export function MetricTile({ label, value, helper, icon, onClick, progress, animateOnMount = false }: MetricTileProps) {
+  const animationClass = animateOnMount ? 'mobile-hero-reveal' : '';
+  
   return (
     <div
       className={cn(
         'bg-[#1a1617] rounded-2xl p-3 border border-[#2d2728]',
-        onClick ? 'hover:bg-[#241f20] cursor-pointer active:scale-[0.99] transition-all duration-150' : ''
+        onClick ? 'hover:bg-[#241f20] cursor-pointer active:scale-[0.99] transition-all duration-150 mobile-card-hover' : '',
+        animationClass
       )}
       onClick={onClick}
     >
