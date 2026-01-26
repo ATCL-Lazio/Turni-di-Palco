@@ -39,13 +39,13 @@ function AppShell() {
     activities, turnStats, statsLoading, theatreReputation,
     theatreReputationLoading, badges, followedEvents, followedEventsLoading,
     followEvent, unfollowEvent, isEventFollowed, markBadgesSeen,
-    updateProfile, registerTurn, completeActivity, resetProgress,
+    updateProfile, registerTurn, completeActivity, resetProgress, resetState,
     changePassword, sendPasswordResetEmail
   } = useGameState();
 
   // Navigation Hook
   const {
-    currentScreen, setCurrentScreen, activeTab, handleTabChange,
+    currentScreen, setCurrentScreen, activeTab, setActiveTab, handleTabChange,
     legalReturnScreen, setLegalReturnScreen, isPasswordRecovery, setIsPasswordRecovery,
     scannedEventId, setScannedEventId, selectedActivityId, setSelectedActivityId,
   } = useNavigation(events);
@@ -66,9 +66,14 @@ function AppShell() {
       }
     },
     () => {
+      setAuthError(null);
       setIsPasswordRecovery(false);
+      setLegalReturnScreen('welcome');
+      setSelectedActivityId('');
+      setScannedEventId('');
+      setActiveTab('home');
+      resetState();
       setCurrentScreen('welcome');
-      handleTabChange('home');
     }
   );
 
