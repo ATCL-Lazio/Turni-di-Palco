@@ -1,4 +1,5 @@
 import type { User } from "@supabase/supabase-js";
+import { STORAGE_KEY } from "../state";
 import { isSupabaseConfigured, supabase } from "./supabase";
 
 type DevGateState = {
@@ -115,14 +116,38 @@ function setGateBusy(state: DevGateState, isBusy: boolean) {
   state.submitButton.textContent = isBusy ? "Accesso in corso..." : "Accedi";
   state.emailInput.disabled = isBusy;
   state.passwordInput.disabled = isBusy;
+  state.signOutButton.disabled = isBusy;
 }
 
-async function signOutIfPossible(state: DevGateState) {
-  if (!supabase) return;
-  setGateBusy(state, true);
-  await supabase.auth.signOut();
-  setGateBusy(state, false);
-  setGateMessage(state, "Sessione chiusa.", "info");
+function clearLocalData() {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+    window.sessionStorage.clear();
+    const supabaseKeys: string[] = [];
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith("sb-")) supabaseKeys.push(key);
+    }
+    supabaseKeys.forEach((key) => window.localStorage.removeItem(key));
+  } catch (error) {
+    console.warn("Failed to clear local data", error);
+  }
+}
+
+function exitDevGate(state?: DevGateState) {
+  if (state) {
+    setGateBusy(state, true);
+    setGateMessage(state, "Chiusura sessione...", "info");
+  }
+
+  if (supabase) {
+    void supabase.auth.signOut().catch((error) => {
+      console.warn("Supabase signOut failed", error);
+    });
+  }
+
+  clearLocalData();
+  window.location.assign("/");
 }
 
 export async function requireDevAccess() {
@@ -132,6 +157,9 @@ export async function requireDevAccess() {
     const state = renderGate(root);
     state.form.classList.add("is-disabled");
     setGateMessage(state, "Supabase non configurato: accesso developer non disponibile.", "error");
+    state.signOutButton.addEventListener("click", () => {
+      exitDevGate(state);
+    });
     return false;
   }
 
@@ -175,7 +203,7 @@ export async function requireDevAccess() {
     });
 
     state.signOutButton.addEventListener("click", () => {
-      void signOutIfPossible(state);
+      exitDevGate(state);
     });
   }).then((allowed) => {
     if (allowed) {
