@@ -1,12 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Screen, Tab, LegalReturnScreen, PersistedNavState } from '../types/navigation';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { hasStoredAuthState, PUBLIC_SCREENS } from '../lib/auth-storage';
 
 const NAV_STATE_KEY = 'tdp-mobile-ui-nav';
 const NAV_STATE_VERSION = 1 as const;
-const SUPABASE_SESSION_KEY = 'tdp-supabase-session';
-const SUPABASE_SESSION_ID_KEY = 'tdp-supabase-session-id';
-const USER_STATE_KEY = 'tdp-mobile-ui-state';
 
 const VALID_SCREENS = new Set<Screen>([
     'welcome', 'login', 'signup', 'install', 'role-selection',
@@ -24,43 +21,6 @@ const VALID_LEGAL_RETURN_SCREENS = new Set<LegalReturnScreen>([
     'profile', 'account-settings', 'support', 'change-password',
     'career', 'earned-titles',
 ]);
-
-const PUBLIC_SCREENS = new Set<Screen>(['welcome', 'login', 'signup', 'terms', 'privacy']);
-
-type StoredSession = { access_token?: unknown; refresh_token?: unknown };
-type StoredUserState = { profile?: { email?: unknown } };
-
-function hasStoredUserData() {
-    if (typeof window === 'undefined') return false;
-    try {
-        const storedSessionId = window.localStorage.getItem(SUPABASE_SESSION_ID_KEY);
-        if (storedSessionId) return true;
-
-        const storedSessionRaw = window.localStorage.getItem(SUPABASE_SESSION_KEY);
-        if (storedSessionRaw) {
-            const parsed = JSON.parse(storedSessionRaw) as StoredSession;
-            if (typeof parsed.access_token === 'string' && typeof parsed.refresh_token === 'string') {
-                return true;
-            }
-        }
-
-        for (let i = 0; i < window.localStorage.length; i += 1) {
-            const key = window.localStorage.key(i);
-            if (!key) continue;
-            if (key.startsWith('sb-') && key.endsWith('-auth-token')) return true;
-        }
-
-        if (isSupabaseConfigured) return false;
-
-        const storedUserStateRaw = window.localStorage.getItem(USER_STATE_KEY);
-        if (!storedUserStateRaw) return false;
-        const parsed = JSON.parse(storedUserStateRaw) as StoredUserState;
-        const email = parsed.profile?.email;
-        return typeof email === 'string' && email.includes('@');
-    } catch {
-        return false;
-    }
-}
 
 function readNavState(): PersistedNavState | null {
     if (typeof window === 'undefined') return null;
@@ -111,7 +71,7 @@ export function useNavigation(initialEvents: { id: string }[]) {
         if (nextScreen === 'activity-detail' && !persisted.selectedActivityId) nextScreen = 'activities';
         if (nextScreen === 'event-confirmation' && !persisted.scannedEventId) nextScreen = 'turns';
         nextScreen = getScreenToPersist(nextScreen, persisted.activeTab);
-        if (!hasStoredUserData() && !PUBLIC_SCREENS.has(nextScreen)) {
+        if (!hasStoredAuthState() && !PUBLIC_SCREENS.has(nextScreen)) {
             return {
                 ...persisted,
                 screen: 'welcome' as const,
