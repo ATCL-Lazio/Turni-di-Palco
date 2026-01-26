@@ -1,12 +1,25 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface BadgeProps {
   children: React.ReactNode;
   variant?: 'default' | 'success' | 'gold' | 'outline';
   size?: 'sm' | 'md';
+  animate?: boolean; // New prop for animation trigger
 }
 
-export function Badge({ children, variant = 'default', size = 'sm' }: BadgeProps) {
+export function Badge({ children, variant = 'default', size = 'sm', animate = false }: BadgeProps) {
+  const badgeRef = useRef<HTMLSpanElement>(null);
+  
+  // Trigger animation when animate prop changes
+  useEffect(() => {
+    if (animate && badgeRef.current) {
+      // Remove and re-add animation class to restart
+      badgeRef.current.classList.remove('mobile-badge-pop');
+      void badgeRef.current.offsetWidth; // Force reflow
+      badgeRef.current.classList.add('mobile-badge-pop');
+    }
+  }, [animate]);
+
   const variants = {
     default: 'bg-[#241f20] text-[#b8b2b3]',
     success: 'bg-[#52c41a]/20 text-[#52c41a]',
@@ -20,7 +33,10 @@ export function Badge({ children, variant = 'default', size = 'sm' }: BadgeProps
   };
   
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full ${variants[variant]} ${sizes[size]}`}>
+    <span 
+      ref={badgeRef}
+      className={`inline-flex items-center gap-1 rounded-full ${variants[variant]} ${sizes[size]}`}
+    >
       {children}
     </span>
   );
