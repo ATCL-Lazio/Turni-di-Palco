@@ -370,3 +370,119 @@
     transform: none;
   }
 }
+
+/* ===== TAB TRANSITION ANIMATIONS ===== */
+
+/* Slide animations for tab transitions */
+@keyframes slide-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-left {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Tab transition classes */
+.tab-slide-right {
+  animation: slide-in-right 300ms ease-out;
+}
+
+.tab-slide-left {
+  animation: slide-in-left 300ms ease-out;
+}
+
+.tab-slide-up {
+  animation: slide-in-up 300ms ease-out;
+}
+
+.tab-slide-down {
+  animation: slide-in-down 300ms ease-out;
+}
+
+.tab-fade-in {
+  animation: fade-in 250ms ease-out;
+}
+
+/* Tab button animations */
+.tab-button-active {
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-button-active:hover {
+  transform: translateY(-2px);
+}
+
+.tab-button-active:active {
+  transform: translateY(0) scale(0.95);
+}
+
+/* Tab icon pulse when active */
+.tab-icon-pulse {
+  animation: pulse-gentle 400ms ease-in-out;
+}
+
+/* Accessibility for tab transitions */
+@media (prefers-reduced-motion: reduce) {
+  .tab-slide-right,
+  .tab-slide-left,
+  .tab-slide-up,
+  .tab-slide-down,
+  .tab-fade-in,
+  .tab-icon-pulse {
+    animation: none;
+  }
+  
+  .tab-button-active {
+    transition: none;
+  }
+  
+  .tab-button-active:hover,
+  .tab-button-active:active {
+    transform: none;
+  }
+}
