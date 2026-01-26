@@ -110,7 +110,6 @@ const start = async () => {
   const statCachet = root.querySelector<HTMLElement>('[data-stat="cachet"]');
   const statRep = root.querySelector<HTMLElement>('[data-stat="rep"]');
   const turnLog = root.querySelector<HTMLElement>('[data-turn-log]');
-  const syncBadge = root.querySelector<HTMLElement>('[data-sync-badge]');
   let state = loadState();
 
   function renderProfile() {
@@ -183,7 +182,8 @@ const start = async () => {
     renderProfile();
     renderProgress();
     renderTurns();
-    showSyncBadge();
+    const syncBadge = root.querySelector<HTMLElement>('[data-sync-badge]');
+    showSyncBadge(syncBadge);
   });
 
   registerServiceWorker({
