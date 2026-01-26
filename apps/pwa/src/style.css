@@ -85,8 +85,8 @@ code {
 }
 
 .brand-mark {
-  width: 40px;
-  height: 40px;
+  width: 3.2rem;
+  height: 3.2rem;
   border-radius: 12px;
   background: var(--gradient-brand);
   display: grid;
@@ -95,6 +95,8 @@ code {
   color: var(--color-neutral-50);
   letter-spacing: 0.04em;
   box-shadow: var(--shadow-brand);
+  animation: brand-pulse 3.6s ease-in-out infinite;
+  will-change: transform, box-shadow;
 }
 
 .top-actions {
@@ -223,8 +225,47 @@ code {
     var(--inset-bright);
 }
 
+@keyframes hero-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes brand-pulse {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: var(--shadow-brand);
+  }
+  50% {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 24px rgba(15, 23, 42, 0.35);
+  }
+}
+
+@keyframes badge-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  45% {
+    opacity: 1;
+    transform: translateY(0) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .page-hero {
   gap: 1.1rem;
+  animation: hero-reveal 420ms ease-out;
 }
 
 .page-hero-header {
@@ -335,11 +376,15 @@ code {
   transition:
     border-color 120ms ease,
     background 120ms ease,
-    transform 120ms ease;
+    transform 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .quick-link:hover {
   border-color: var(--surface-veil-highlight);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.18);
+  will-change: transform, box-shadow;
 }
 
 .quick-link:active {
@@ -1237,6 +1282,10 @@ code {
   margin-top: 0.35rem;
 }
 
+.badge.is-live {
+  animation: badge-pop 520ms ease-out;
+}
+
 .badge-grid {
   display: flex;
   flex-wrap: wrap;
@@ -1472,4 +1521,16 @@ code {
 
 .dev-gate-message[data-tone="success"] {
   color: var(--color-success);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-hero,
+  .brand-mark,
+  .badge.is-live {
+    animation: none;
+  }
+
+  .quick-link {
+    transition: none;
+  }
 }
