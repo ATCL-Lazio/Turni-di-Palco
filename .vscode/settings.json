@@ -4,6 +4,8 @@
         "*.md": "markdown"
     },
     "cSpell.words": [
-        "ATCL"
+        "ATCL",
+        "COOLDOWN",
+        "valuenow"
     ]
 }
