@@ -4,6 +4,10 @@
         "*.md": "markdown"
     },
     "cSpell.words": [
-        "ATCL"
+        "ATCL",
+        "quickbar",
+        "sparkline",
+        "topbar",
+        "valuenow"
     ]
 }
