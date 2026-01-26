@@ -5,6 +5,7 @@ import { registerServiceWorker } from "./pwa/register-sw";
 import { promptServiceWorkerUpdate } from "./pwa/sw-update";
 import { formatRewards, loadState, resolveRole, STORAGE_KEY } from "./state";
 import { getAvatarVisual } from "./avatar-visual";
+import { showSyncBadge } from "./utils/sync-badge";
 import { requireDevAccess } from "./services/dev-gate";
 
 const start = async () => {
@@ -111,25 +112,6 @@ const start = async () => {
   const turnLog = root.querySelector<HTMLElement>('[data-turn-log]');
   const syncBadge = root.querySelector<HTMLElement>('[data-sync-badge]');
   let state = loadState();
-  let syncBadgeTimeout: number | undefined;
-
-  function showSyncBadge(message = "Stato aggiornato") {
-    if (!syncBadge) return;
-    syncBadge.textContent = message;
-    syncBadge.style.display = "inline-flex";
-    syncBadge.classList.remove("is-live");
-    void syncBadge.offsetWidth;
-    syncBadge.classList.add("is-live");
-    if (syncBadgeTimeout) {
-      window.clearTimeout(syncBadgeTimeout);
-    }
-    syncBadgeTimeout = window.setTimeout(() => {
-      if (syncBadge) {
-        syncBadge.classList.remove("is-live");
-        syncBadge.style.display = "none";
-      }
-    }, 2500);
-  }
 
   function renderProfile() {
     const avatarVisual = getAvatarVisual(state.profile.avatar);
