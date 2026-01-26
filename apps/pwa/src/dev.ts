@@ -495,7 +495,7 @@ const start = async () => {
         avatar: { ...gameState.profile.avatar, hue: nextHue, icon: safeIcon },
       },
     };
-    persistState(gameState, turnFeedbackBox);
+    persistState(gameState, turnFeedbackBox || undefined);
     syncProfileForm();
     renderCareerCard();
     renderTurnHistory();
@@ -509,7 +509,7 @@ const start = async () => {
     const confirmReset = window.confirm("Reset dello stato locale? Tutti i progressi mock verranno azzerati.");
     if (!confirmReset) return;
     gameState = createDefaultState();
-    persistState(gameState, turnFeedbackBox);
+    persistState(gameState, turnFeedbackBox || undefined);
     syncProfileForm();
     renderCareerCard();
     renderActivityUI();
@@ -595,7 +595,7 @@ const start = async () => {
       activityStats: { ...gameState.activityStats, [activity.id]: { runs: stats.runs + 1, lastPlayedAt: now } },
       tutorial: { ...gameState.tutorial, firstChoiceComplete: true },
     };
-    persistState(gameState, activityResultBox);
+    persistState(gameState, activityResultBox || undefined);
     renderCareerCard();
     renderActivityGuard(activity.id);
     renderTutorialBox();
@@ -654,7 +654,7 @@ const start = async () => {
 
     applyRewards(rewards);
     gameState = { ...gameState, turns: [record, ...gameState.turns].slice(0, MAX_TURNS_STORED) };
-    const result = persistState(gameState, turnFeedbackBox);
+    const result = persistState(gameState, turnFeedbackBox || undefined);
     renderCareerCard();
     renderTurnHistory();
     renderAvatarPreview();
