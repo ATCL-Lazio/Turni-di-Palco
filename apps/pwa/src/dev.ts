@@ -721,6 +721,11 @@ const start = async () => {
     renderTutorialBox();
   });
 
+  // Add event listener for the Esci button in dev gate
+  root.querySelector<HTMLButtonElement>('[data-dev-gate-signout]')?.addEventListener("click", () => {
+    window.location.reload();
+  });
+
   registerServiceWorker({
     onReady: () => undefined,
     onUpdate: (registration) => {
