@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import { SUPABASE_SESSION_ID_KEY, SUPABASE_SESSION_KEY } from '../lib/auth-storage';
 import { resolveDisplayName } from '../lib/profile-utils';
+import { formatErrorDetails, reportCriticalError } from '../services/error-handler';
 
 export type RoleId = 'attore' | 'luci' | 'fonico' | 'attrezzista' | 'palco';
 export type Rewards = { xp: number; reputation: number; cachet: number };
@@ -242,6 +243,14 @@ function decodeHtmlEntities(value: string) {
 function normalizeText(value: string | null | undefined) {
   if (!value) return '';
   return decodeHtmlEntities(decodeUnicodeEscapes(value));
+}
+
+function notifyCriticalError(message: string, errors: unknown[]) {
+  const details = formatErrorDetails(errors);
+  reportCriticalError({
+    message,
+    details: details || undefined,
+  });
 }
 
 type StoredSession = { access_token: string; refresh_token: string; user_id?: string };
@@ -673,6 +682,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       setLeaderboard(nextLeaderboard);
     } catch (error) {
       console.warn('Supabase leaderboard fetch failed', error);
+      notifyCriticalError('Non riusciamo a caricare la classifica dal database.', [error]);
       setLeaderboard([]);
     } finally {
       setLeaderboardLoading(false);
@@ -704,6 +714,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       const { data } = await supabase!.auth.getSession();
       if (!isMounted) return;
+
+      if (rolesRes.error || eventsRes.error || activitiesRes.error) {
+        notifyCriticalError('Non riusciamo a caricare il catalogo dal database.', [
+          rolesRes.error,
+          eventsRes.error,
+          activitiesRes.error,
+        ]);
+      }
       persistStoredSession(data.session ?? null);
       setAuthUserId(data.session?.user.id ?? null);
       setAuthReady(true);
@@ -925,6 +943,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       if (!isMounted) return;
 
+      if (userRes.error || profileRes.error || turnsRes.error) {
+        notifyCriticalError('Non riusciamo a caricare il profilo dal database.', [
+          userRes.error,
+          profileRes.error,
+          turnsRes.error,
+        ]);
+      }
+
       let profileRow: any = profileRes.data;
 
       if (!profileRow && userRes.data?.user?.email) {
@@ -945,6 +971,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           })
           .select('*')
           .single();
+        if (insertRes.error) {
+          notifyCriticalError('Non riusciamo a creare il profilo utente.', [insertRes.error]);
+        }
         profileRow = insertRes.data ?? null;
       }
 
