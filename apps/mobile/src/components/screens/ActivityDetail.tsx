@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Play, Clock, TrendingUp, Coins, X, AlertCircle } from 'lucide-react';
 import { Activity } from '../../state/store';
+import { getMinigameConfig } from '../../gameplay/minigames';
 
 interface ActivityDetailProps {
   activity: Activity;
@@ -12,6 +13,7 @@ interface ActivityDetailProps {
 }
 
 export function ActivityDetail({ activity, onStart, onClose }: ActivityDetailProps) {
+  const minigame = getMinigameConfig(activity.id);
   return (
     <div className="fixed inset-0 app-gradient z-50 overflow-y-auto pb-24">
       <div className="sticky top-0 bg-[#1a1617] border-b border-[#2d2728] p-4 flex items-center justify-between z-10">
@@ -62,14 +64,19 @@ export function ActivityDetail({ activity, onStart, onClose }: ActivityDetailPro
         <Card className="border border-[#f4bf4f]/30">
           <div className="flex gap-3">
             <AlertCircle className="text-[#f4bf4f] flex-shrink-0" size={20} />
-            <p className="text-sm text-[#b8b2b3]">Questa è una simulazione. I minigames interattivi saranno disponibili in una prossima versione.</p>
+            <div className="space-y-1">
+              <p className="text-sm text-[#b8b2b3]">
+                Minigioco disponibile: <span className="text-white">{minigame.title}</span>
+              </p>
+              <p className="text-xs text-[#7a7577]">{minigame.subtitle}</p>
+            </div>
           </div>
         </Card>
 
         <div className="space-y-3">
           <Button variant="primary" size="lg" fullWidth onClick={onStart}>
             <Play size={20} />
-            Inizia attività
+            Avvia minigioco
           </Button>
 
           <Button variant="ghost" size="lg" fullWidth onClick={onClose}>
