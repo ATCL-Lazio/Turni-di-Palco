@@ -574,6 +574,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     saveState(state);
   }, [state]);
 
+  useEffect(() => {
+    if (isSupabaseConfigured) return;
+    const message = import.meta.env.DEV
+      ? 'Supabase non configurato: dati mock attivi.'
+      : 'Supabase non configurato: impossibile caricare i dati.';
+    notifyCriticalError(message, []);
+  }, []);
+
   const refreshTurnStats = useCallback(async () => {
     if (!supabase || !authUserId) return;
     setStatsLoading(true);
