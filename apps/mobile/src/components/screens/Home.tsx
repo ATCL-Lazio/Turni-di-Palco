@@ -63,28 +63,52 @@ export function Home({
 }: HomeProps) {
   const xpToNext = Math.max(xpToNextLevel - xp, 0);
   const [showBadge, setShowBadge] = React.useState(true);
+  const [animateBadges, setAnimateBadges] = React.useState(false);
   const hasNewBadges = newBadgesCount > 0;
+
+  // Trigger badge animations when component mounts or new badges arrive
+  React.useEffect(() => {
+    if (!hasNewBadges) {
+      setAnimateBadges(false);
+      return;
+    }
+
+    setAnimateBadges(false);
+    const raf = requestAnimationFrame(() => setAnimateBadges(true));
+    const timer = setTimeout(() => setAnimateBadges(false), 600);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, [hasNewBadges, newBadgesCount]);
 
   const eventState: EventState = eventError ? 'error' : eventLoading ? 'loading' : !upcomingEvent ? 'empty' : 'ready';
 
   return (
     <div
-      className="min-h-screen flex flex-col justify-center items-center"
+      className="min-h-screen flex flex-col justify-center items-center mobile-hero-reveal"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
     >
       <div className="w-full app-content px-6 pt-6 pb-8 space-y-6">
-        <header className="space-y-4 relative" style={{ marginBottom: '20px' }}>
+        <header className="space-y-4 relative mobile-hero-reveal" style={{ marginBottom: '20px' }}>
           <div className="absolute top-0 right-0">
             <Popover>
               <PopoverTrigger asChild>
-                <button className="flex items-center justify-center size-[44px] rounded-lg hover:bg-[#241f20] transition">
+                <button className="flex items-center justify-center size-[44px] rounded-lg hover:bg-[#241f20] transition mobile-card-hover">
                   <Bell size={20} className="text-[#f4bf4f]" />
+                  {hasNewBadges && (
+                    <span
+                      className={`absolute -top-1 -right-1 w-3 h-3 bg-[#f4bf4f] rounded-full ${
+                        animateBadges ? 'mobile-badge-pop' : ''
+                      }`}
+                    />
+                  )}
                 </button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-80 bg-[#1a1617] border-[#3d3a3b] p-3">
                 {showBadge && hasNewBadges ? (
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#f4bf4f] to-[#e6a23c] rounded-lg flex items-center justify-center">
+                  <div className={`flex items-start gap-3 ${animateBadges ? 'mobile-badge-pop' : ''}`}>
+                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#f4bf4f] to-[#e6a23c] rounded-lg flex items-center justify-center mobile-pulse-once">
                       <Award className="text-[#0f0d0e]" size={20} />
                     </div>
                     <div className="flex-1">
@@ -96,7 +120,7 @@ export function Home({
                         setShowBadge(false);
                         onDismissBadgeNotification?.();
                       }}
-                      className="text-[#7a7577] p-1 hover:text-white flex-shrink-0"
+                      className="text-[#7a7577] p-1 hover:text-white flex-shrink-0 transition-colors"
                     >
                       <X size={16} />
                     </button>
@@ -124,6 +148,7 @@ export function Home({
               helper={`${xp} / ${xpToNextLevel} XP`}
               icon={<TrendingUp size={16} />}
               progress={{ value: xp, max: xpToNextLevel, color: 'gold' }}
+              animateOnMount
             />
             <MetricTile
               label="Reputazione ATCL"
@@ -150,7 +175,11 @@ export function Home({
             ) : null}
           </div>
 
-          <Card hoverable={eventState === 'ready'} onClick={eventState === 'ready' ? onViewTurni : undefined}>
+          <Card 
+            hoverable={eventState === 'ready'} 
+            onClick={eventState === 'ready' ? onViewTurni : undefined}
+            animateOnMount
+          >
             {eventState === 'loading' ? (
               <div className="space-y-3">
                 <Skeleton className="h-4 w-28" />
@@ -191,7 +220,7 @@ export function Home({
                       {upcomingEvent?.theatre} · {upcomingEvent?.time}
                     </p>
                     <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <Tag size="sm" variant="outline" style={{ padding: '5px' }}>
+                      <Tag size="sm" variant="outline" className="p-1">
                         {upcomingEvent?.genre ?? 'ATCL'}
                       </Tag>
                       <Badge variant="default" size="sm">
