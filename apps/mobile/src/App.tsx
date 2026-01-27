@@ -27,6 +27,8 @@ import { hasStoredAuthState, PUBLIC_SCREENS } from './lib/auth-storage';
 import { openInMaps, openEventsMap } from './lib/navigation-utils';
 import { uploadProfileImage } from './services/storage';
 import { ScreenTransition } from './components/ui/ScreenTransition';
+import { ErrorOverlay } from './components/ui/ErrorOverlay';
+import { initErrorHandler, subscribeToCriticalErrors, getLastCriticalError, clearLastCriticalError } from './services/error-handler';
 
 // Types and Hooks
 import { LegalReturnScreen } from './types/navigation';
@@ -56,6 +58,7 @@ function AppShell() {
   const [screenAnimation, setScreenAnimation] = useState('');
   const [screenAnimationKey, setScreenAnimationKey] = useState(0);
   const previousTabRef = useRef(activeTab);
+  const [criticalError, setCriticalError] = useState<{ title?: string; message?: string; details?: string } | null>(null);
 
   // Auth Hook
   const {
@@ -103,6 +106,26 @@ function AppShell() {
   // Notification and QR Landing Hooks
   useNotifications(upcomingEvent, newestNewBadge ?? undefined);
   useQrLanding(authReady, isAuthValid, (target) => setCurrentScreen(target));
+
+  useEffect(() => {
+    initErrorHandler();
+    const pending = getLastCriticalError();
+    if (pending) {
+      setCriticalError(pending);
+    }
+    return subscribeToCriticalErrors((payload) => {
+      setCriticalError((prev) => prev ?? payload);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!criticalError) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [criticalError]);
 
   // Tab transition animation logic
   useEffect(() => {
@@ -227,6 +250,14 @@ function AppShell() {
   };
 
   const showBottomNav = ['home', 'turns', 'leaderboard', 'activities', 'profile', 'career', 'earned-titles'].includes(currentScreen);
+  const normalizedError = useMemo(() => {
+    if (!criticalError) return null;
+    return {
+      title: criticalError.title ?? 'Problema tecnico',
+      message: criticalError.message ?? 'Non riusciamo a caricare i dati in questo momento. Riprova tra poco.',
+      details: criticalError.details?.trim() ? criticalError.details : undefined,
+    };
+  }, [criticalError]);
 
   return (
     <div className="min-h-screen app-gradient app-shell">
@@ -234,6 +265,20 @@ function AppShell() {
         <div className="app-frame">{renderScreen()}</div>
       </ScreenTransition>
       {showBottomNav && <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />}
+      {normalizedError ? (
+        <ErrorOverlay
+          title={normalizedError.title}
+          message={normalizedError.message}
+          details={normalizedError.details}
+          onReload={() => window.location.reload()}
+          onHome={() => {
+            clearLastCriticalError();
+            setCriticalError(null);
+            setActiveTab('home');
+            setCurrentScreen('home');
+          }}
+        />
+      ) : null}
     </div>
   );
 }
