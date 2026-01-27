@@ -11,6 +11,8 @@ import { EventConfirmation } from './components/screens/EventConfirmation';
 import { EventDetails } from './components/screens/EventDetails';
 import { Activities } from './components/screens/Activities';
 import { ActivityDetail } from './components/screens/ActivityDetail';
+import { ActivityMinigame } from './components/screens/ActivityMinigame';
+import { ActivityResult } from './components/screens/ActivityResult';
 import { Leaderboard } from './components/screens/Leaderboard';
 import { Profile } from './components/screens/Profile';
 import { AccountSettings } from './components/screens/AccountSettings';
@@ -21,12 +23,13 @@ import { InstallApp } from './components/screens/InstallApp';
 import { TermsAndConditions } from './components/screens/TermsAndConditions';
 import { PrivacyPolicy } from './components/screens/PrivacyPolicy';
 import { EarnedTitles } from './components/screens/EarnedTitles';
-import { GameStateProvider, useGameState } from './state/store';
+import { Activity, GameStateProvider, Rewards, useGameState } from './state/store';
 import { isSupabaseConfigured } from './lib/supabase';
 import { hasStoredAuthState, PUBLIC_SCREENS } from './lib/auth-storage';
 import { openInMaps, openEventsMap } from './lib/navigation-utils';
 import { uploadProfileImage } from './services/storage';
 import { ScreenTransition } from './components/ui/ScreenTransition';
+import { MinigameOutcome } from './gameplay/minigames';
 
 // Types and Hooks
 import { LegalReturnScreen } from './types/navigation';
@@ -51,6 +54,9 @@ function AppShell() {
     legalReturnScreen, setLegalReturnScreen, isPasswordRecovery, setIsPasswordRecovery,
     scannedEventId, setScannedEventId, selectedActivityId, setSelectedActivityId,
   } = useNavigation(events);
+
+  const [activityOutcome, setActivityOutcome] = useState<MinigameOutcome | null>(null);
+  const [activityCompletion, setActivityCompletion] = useState<{ activity: Activity; rewards: Rewards } | null>(null);
 
   // Animation state for tab transitions
   const [screenAnimation, setScreenAnimation] = useState('');
@@ -79,6 +85,8 @@ function AppShell() {
       setSelectedActivityId('');
       setScannedEventId('');
       setActiveTab('home');
+      setActivityOutcome(null);
+      setActivityCompletion(null);
       resetState();
       setCurrentScreen('welcome');
     }
@@ -213,7 +221,35 @@ function AppShell() {
       case 'event-confirmation': return <EventConfirmation event={selectedEvent} role={selectedRole} onConfirm={handleEventConfirm} onCancel={() => setCurrentScreen('turns')} />;
       case 'event-details': return <EventDetails event={selectedEvent} onBack={() => setCurrentScreen('home')} onNavigate={() => openInMaps(selectedEvent?.theatre ?? '')} />;
       case 'activities': return <Activities activities={activities} onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }} />;
-      case 'activity-detail': return currentActivity && <ActivityDetail activity={currentActivity} onStart={() => { completeActivity(selectedActivityId); handleTabChange('activities'); }} onClose={() => setCurrentScreen('activities')} />;
+      case 'activity-detail': return currentActivity && <ActivityDetail activity={currentActivity} onStart={() => { setActivityOutcome(null); setActivityCompletion(null); setCurrentScreen('activity-minigame'); }} onClose={() => setCurrentScreen('activities')} />;
+      case 'activity-minigame':
+        return currentActivity && (
+          <ActivityMinigame
+            activity={currentActivity}
+            onCancel={() => setCurrentScreen('activity-detail')}
+            onComplete={(outcome) => {
+              const completion = completeActivity(selectedActivityId);
+              if (!completion) {
+                handleTabChange('activities');
+                return;
+              }
+              setActivityOutcome(outcome);
+              setActivityCompletion(completion);
+              setCurrentScreen('activity-result');
+            }}
+          />
+        );
+      case 'activity-result':
+        return activityCompletion && activityOutcome ? (
+          <ActivityResult
+            activity={activityCompletion.activity}
+            rewards={activityCompletion.rewards}
+            outcome={activityOutcome}
+            onDone={() => handleTabChange('activities')}
+          />
+        ) : (
+          <Activities activities={activities} onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }} />
+        );
       case 'profile': return <Profile userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} theatreReputation={theatreReputation.map(tr => ({ name: tr.theatre, reputation: tr.reputation }))} theatreReputationLoading={theatreReputationLoading} badgesUnlockedCount={unlockedBadges.length} newBadgesCount={newBadges.length} profileImage={state.profile.profileImage} onViewCarriera={() => setCurrentScreen('career')} onViewTitoli={() => setCurrentScreen('earned-titles')} onSettings={() => setCurrentScreen('account-settings')} onLogout={handleLogout} onUploadProfileImage={handleUploadImage} />;
       case 'account-settings': return <AccountSettings userName={state.profile.name} email={state.profile.email} onBack={() => setCurrentScreen('profile')} onViewTerms={() => openLegal('terms', 'account-settings')} onViewPrivacy={() => openLegal('privacy', 'account-settings')} onViewSupport={() => setCurrentScreen('support')} onChangePassword={() => { setIsPasswordRecovery(false); setCurrentScreen('change-password'); }} onResetProgress={async () => { await resetProgress(); handleTabChange('home'); setCurrentScreen('role-selection'); }} onLogout={handleLogout} />;
       case 'support': return <SupportChat userName={state.profile.name} onBack={() => setCurrentScreen('account-settings')} />;
