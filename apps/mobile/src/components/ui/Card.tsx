@@ -7,10 +7,20 @@ interface CardProps {
   onClick?: () => void;
   hoverable?: boolean;
   style?: React.CSSProperties;
+  animateOnMount?: boolean; // New prop for entrance animation
 }
 
-export function Card({ children, className = '', onClick, hoverable = false, style }: CardProps) {
-  const hoverClass = hoverable || onClick ? 'hover:bg-[#2d2728] cursor-pointer active:scale-[0.98]' : '';
+export function Card({ 
+  children, 
+  className = '', 
+  onClick, 
+  hoverable = false, 
+  style,
+  animateOnMount = false 
+}: CardProps) {
+  const hoverClass = hoverable || onClick ? 'mobile-card-hover cursor-pointer' : '';
+  const animationClass = animateOnMount ? 'mobile-hero-reveal' : '';
+  
   const defaultStyles: React.CSSProperties = {
     backgroundColor: 'rgb(26, 22, 23)',
     borderRadius: '16.4px',
@@ -22,7 +32,7 @@ export function Card({ children, className = '', onClick, hoverable = false, sty
 
   return (
     <div
-      className={cn('relative transition-all duration-200 p-4', hoverClass, className)}
+      className={cn('relative transition-all duration-200 p-4', hoverClass, animationClass, className)}
       onClick={onClick}
       style={defaultStyles}
     >
