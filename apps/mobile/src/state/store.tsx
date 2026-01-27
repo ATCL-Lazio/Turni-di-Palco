@@ -723,13 +723,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       const { data } = await supabase!.auth.getSession();
       if (!isMounted) return;
 
-      if (rolesRes.error || eventsRes.error || activitiesRes.error) {
-        notifyCriticalError('Non riusciamo a caricare il catalogo dal database.', [
-          rolesRes.error,
-          eventsRes.error,
-          activitiesRes.error,
-        ]);
-      }
       persistStoredSession(data.session ?? null);
       setAuthUserId(data.session?.user.id ?? null);
       setAuthReady(true);
