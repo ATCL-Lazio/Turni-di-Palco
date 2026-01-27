@@ -48,6 +48,8 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - Do not work directly on `main` or `render/preview`: create a dedicated branch for any change before committing or pushing.
 
+- Never delete branches (no `--delete-branch` on merges) unless explicitly instructed.
+
 - You should always commits submodules **before** the main repository
 
 ## Identity & Git Hygiene
