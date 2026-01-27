@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import { SUPABASE_SESSION_ID_KEY, SUPABASE_SESSION_KEY } from '../lib/auth-storage';
+import { resolveDisplayName } from '../lib/profile-utils';
 
 export type RoleId = 'attore' | 'luci' | 'fonico' | 'attrezzista' | 'palco';
 export type Rewards = { xp: number; reputation: number; cachet: number };
@@ -196,9 +198,6 @@ export const activities: Activity[] = [
 
 const STORAGE_KEY = 'tdp-mobile-ui-state';
 const MAX_TURNS = 20;
-const SUPABASE_SESSION_KEY = 'tdp-supabase-session';
-const SUPABASE_SESSION_ID_KEY = 'tdp-supabase-session-id';
-
 const HTML_ENTITY_MAP: Record<string, string> = {
   amp: '&',
   lt: '<',
@@ -930,11 +929,17 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       if (!profileRow && userRes.data?.user?.email) {
         const user = userRes.data.user;
+        const displayName = resolveDisplayName({
+          name: user.user_metadata?.name,
+          metadata: user.user_metadata,
+          email: user.email,
+          fallback: 'Utente',
+        });
         const insertRes = await supabase!
           .from('profiles')
           .insert({
             id: authUserId,
-            name: user.user_metadata?.name ?? user.email!.split('@')[0] ?? 'Player',
+            name: displayName,
             email: user.email,
             role_id: 'attore',
           })
@@ -964,10 +969,16 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         : [];
 
       if (profileRow) {
+        const user = userRes.data?.user;
         setState((prev: GameState) => ({
           profile: {
             ...prev.profile,
-            name: profileRow.name ?? prev.profile.name,
+            name: resolveDisplayName({
+              name: profileRow.name,
+              metadata: user?.user_metadata,
+              email: profileRow.email ?? user?.email ?? prev.profile.email,
+              fallback: prev.profile.name,
+            }),
             email: profileRow.email ?? prev.profile.email,
             roleId: (profileRow.role_id as RoleId) ?? prev.profile.roleId,
             level: profileRow.level ?? prev.profile.level,
@@ -1027,7 +1038,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             ...prev,
             profile: {
               ...prev.profile,
-              name: profile.name ?? prev.profile.name,
+              name: resolveDisplayName({
+                name: profile.name,
+                email: profile.email ?? prev.profile.email,
+                fallback: prev.profile.name,
+              }),
               email: profile.email ?? prev.profile.email,
               roleId: (profile.role_id as RoleId) ?? prev.profile.roleId,
               level: profile.level ?? prev.profile.level,
