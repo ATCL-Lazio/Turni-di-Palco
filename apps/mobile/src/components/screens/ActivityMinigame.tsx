@@ -101,6 +101,7 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
   const directionRef = useRef(1);
   const animationRef = useRef<number | null>(null);
   const feedbackTimeoutRef = useRef<number | null>(null);
+  const hasStoppedRef = useRef(false);
   const speed = 0.045;
 
   const round = rounds[roundIndex];
@@ -165,12 +166,14 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
     setFeedback(null);
     setProgress(0);
     directionRef.current = 1;
+    hasStoppedRef.current = false;
     setPhase('playing');
     triggerHaptic(10);
   };
 
   const handleStop = () => {
-    if (phase !== 'playing') return;
+    if (phase !== 'playing' || hasStoppedRef.current) return;
+    hasStoppedRef.current = true;
 
     const result = computeRoundScore(round.target, progress, round.tolerance);
     const nextScores = [...roundScores, result.score];
@@ -187,6 +190,7 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
         setFeedback(null);
         setProgress(0);
         directionRef.current = 1;
+        hasStoppedRef.current = false;
       } else {
         setPhase('done');
         onComplete(computeOutcome(config.type, nextScores));
@@ -203,7 +207,13 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
       icon={<Timer className="text-[#f4bf4f]" size={24} />}
       onCancel={onCancel}
     >
-      <Card className={`bg-gradient-to-br from-[#1a1617] to-[#241f20] ${isPlaying ? 'touch-none' : ''}`}>
+      <Card
+        className={`bg-gradient-to-br from-[#1a1617] to-[#241f20] ${isPlaying ? 'touch-none select-none' : ''}`}
+        onPointerDown={isPlaying ? handleStop : undefined}
+        role={isPlaying ? 'button' : undefined}
+        aria-label={isPlaying ? 'Blocca il cue' : undefined}
+        aria-disabled={!isPlaying}
+      >
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-white font-semibold">{round.label}</p>
@@ -214,13 +224,7 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
           </Tag>
         </div>
 
-        <div
-          role={isPlaying ? 'button' : undefined}
-          aria-label={isPlaying ? 'Blocca il cue' : undefined}
-          aria-disabled={!isPlaying}
-          onPointerDown={isPlaying ? handleStop : undefined}
-          className={`relative h-6 rounded-full bg-[#241f20] overflow-hidden ${isPlaying ? 'cursor-pointer touch-none' : ''}`}
-        >
+        <div className="relative h-6 rounded-full bg-[#241f20] overflow-hidden">
           <div
             className="absolute top-0 bottom-0 w-2 bg-[#f4bf4f]/40"
             style={{ left: `${round.target}%`, transform: 'translateX(-50%)' }}
@@ -238,7 +242,7 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
 
         {isPlaying ? (
           <p className="mt-3 text-xs text-center text-[#7a7577]">
-            Tocca la barra per bloccare subito
+            Tocca ovunque sul pannello per bloccare subito
           </p>
         ) : null}
 
@@ -264,7 +268,7 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
       {phase === 'intro' ? (
         <Card className="border border-[#f4bf4f]/20">
           <p className="text-sm text-[#b8b2b3]">
-            Segui il cursore e premi "Blocca" (o tocca la barra) quando raggiunge il target.
+            Segui il cursore e premi "Blocca" (o tocca il pannello) quando raggiunge il target.
           </p>
         </Card>
       ) : null}
