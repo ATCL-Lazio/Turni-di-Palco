@@ -8,7 +8,7 @@ const NAV_STATE_VERSION = 1 as const;
 const VALID_SCREENS = new Set<Screen>([
     'welcome', 'login', 'signup', 'install', 'role-selection',
     'home', 'turns', 'leaderboard', 'qr-scanner', 'event-confirmation',
-    'event-details', 'activities', 'activity-detail', 'profile',
+    'event-details', 'activities', 'activity-detail', 'activity-minigame', 'activity-result', 'profile',
     'account-settings', 'support', 'change-password', 'career',
     'terms', 'privacy', 'earned-titles',
 ]);
@@ -17,7 +17,7 @@ const VALID_TABS = new Set<Tab>(['home', 'turns', 'leaderboard', 'activities', '
 
 const VALID_LEGAL_RETURN_SCREENS = new Set<LegalReturnScreen>([
     'welcome', 'login', 'signup', 'role-selection', 'home', 'turns',
-    'qr-scanner', 'event-confirmation', 'activities', 'activity-detail',
+    'qr-scanner', 'event-confirmation', 'activities', 'activity-detail', 'activity-minigame', 'activity-result',
     'profile', 'account-settings', 'support', 'change-password',
     'career', 'earned-titles',
 ]);
@@ -60,6 +60,9 @@ function getScreenToPersist(screen: Screen, activeTab: Tab): Screen {
     if (screen === 'install' || screen === 'qr-scanner') {
         return activeTab === 'home' ? 'home' : 'turns';
     }
+    if (screen === 'activity-minigame' || screen === 'activity-result') {
+        return 'activities';
+    }
     return screen;
 }
 
@@ -68,7 +71,9 @@ export function useNavigation(initialEvents: { id: string }[]) {
         const persisted = readNavState();
         if (!persisted) return null;
         let nextScreen = persisted.screen;
-        if (nextScreen === 'activity-detail' && !persisted.selectedActivityId) nextScreen = 'activities';
+        if ((nextScreen === 'activity-detail' || nextScreen === 'activity-minigame' || nextScreen === 'activity-result') && !persisted.selectedActivityId) {
+            nextScreen = 'activities';
+        }
         if (nextScreen === 'event-confirmation' && !persisted.scannedEventId) nextScreen = 'turns';
         nextScreen = getScreenToPersist(nextScreen, persisted.activeTab);
         if (!hasStoredAuthState() && !PUBLIC_SCREENS.has(nextScreen)) {
