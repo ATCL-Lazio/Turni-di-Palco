@@ -3,6 +3,16 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { resolveDisplayName } from '../lib/profile-utils';
 import { PlayerProfile } from '../state/store';
 
+const getEmailPrefix = (value?: string) => value?.split('@')[0]?.trim() ?? '';
+const shouldUpdateName = (currentName: string, email: string | undefined, nextName: string) => {
+    const trimmedCurrent = currentName?.trim() ?? '';
+    if (!trimmedCurrent) return true;
+    const emailPrefix = getEmailPrefix(email);
+    if (!emailPrefix) return false;
+    const trimmedNext = nextName?.trim() ?? '';
+    return trimmedCurrent === emailPrefix && trimmedNext && trimmedNext !== trimmedCurrent;
+};
+
 export function useAuth(
     profile: PlayerProfile,
     updateProfile: (updates: Partial<PlayerProfile>) => void,
@@ -31,7 +41,8 @@ export function useAuth(
             email,
             fallback: profile.name,
         });
-        updateProfile({ name: displayName, email });
+        const shouldSetName = shouldUpdateName(profile.name, email, displayName);
+        updateProfile(shouldSetName ? { name: displayName, email } : { email });
         onAuthChange('home');
     }, [onAuthChange, profile.name, updateProfile]);
 
@@ -84,7 +95,9 @@ export function useAuth(
                     email: user.email ?? profile.email,
                     fallback: profile.name,
                 });
-                updateProfile({ name: displayName, email: user.email ?? profile.email });
+                const email = user.email ?? profile.email;
+                const shouldSetName = shouldUpdateName(profile.name, email, displayName);
+                updateProfile(shouldSetName ? { name: displayName, email } : { email });
                 onAuthChange('home');
             }
         });
@@ -103,7 +116,9 @@ export function useAuth(
                         email: session.user.email ?? profile.email,
                         fallback: profile.name,
                     });
-                    updateProfile({ name: displayName, email: session.user.email ?? profile.email });
+                    const email = session.user.email ?? profile.email;
+                    const shouldSetName = shouldUpdateName(profile.name, email, displayName);
+                    updateProfile(shouldSetName ? { name: displayName, email } : { email });
                 }
                 onAuthChange('change-password', true);
                 return;
@@ -115,7 +130,9 @@ export function useAuth(
                     email: session.user.email ?? profile.email,
                     fallback: profile.name,
                 });
-                updateProfile({ name: displayName, email: session.user.email ?? profile.email });
+                const email = session.user.email ?? profile.email;
+                const shouldSetName = shouldUpdateName(profile.name, email, displayName);
+                updateProfile(shouldSetName ? { name: displayName, email } : { email });
                 onAuthChange('home');
             }
         });
