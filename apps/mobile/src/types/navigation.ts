@@ -12,6 +12,8 @@ export type Screen =
     | 'event-details'
     | 'activities'
     | 'activity-detail'
+    | 'activity-minigame'
+    | 'activity-result'
     | 'profile'
     | 'account-settings'
     | 'support'
