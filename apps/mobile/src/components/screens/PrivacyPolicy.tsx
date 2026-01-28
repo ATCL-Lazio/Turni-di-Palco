@@ -56,16 +56,14 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
             L’informativa completa sulla privacy è pubblicata e mantenuta tramite Iubenda.
           </p>
 
-          <a
-            href={IUBENDA_PRIVACY_POLICY_URL}
-            className={`${IUBENDA_ANCHOR_CLASSES} text-[14px] leading-[20px] text-[#f4bf4f] underline`}
-            title="Privacy Policy"
-          >
-            Visualizza la Privacy Policy completa
-          </a>
+          <div className="legal-embed">
+            <a href={IUBENDA_PRIVACY_POLICY_URL} className={IUBENDA_ANCHOR_CLASSES} title="Privacy Policy">
+              Privacy Policy
+            </a>
+          </div>
 
           <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">
-            Nota: è necessaria una connessione internet per aprire il documento.
+            Nota: è necessaria una connessione internet per caricare il documento.
           </p>
         </div>
       </div>
