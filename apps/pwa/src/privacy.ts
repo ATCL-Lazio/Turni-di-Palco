@@ -40,19 +40,16 @@ const start = () => {
 
       <section class="grid layout-grid">
         <article class="card layout-span-2 layout-stack">
-          <h2>Privacy Policy</h2>
           <p class="muted">
             L’informativa completa sulla privacy è pubblicata e mantenuta tramite Iubenda.
           </p>
-          <a
-            class="button primary ${IUBENDA_ANCHOR_CLASSES}"
-            href="${IUBENDA_PRIVACY_POLICY_URL}"
-            title="Privacy Policy"
-          >
-            Visualizza la Privacy Policy completa
-          </a>
+          <div class="legal-embed" data-legal-embed>
+            <a href="${IUBENDA_PRIVACY_POLICY_URL}" class="${IUBENDA_ANCHOR_CLASSES}" title="Privacy Policy">
+              Privacy Policy
+            </a>
+          </div>
           <p class="muted">
-            Nota: è necessaria una connessione internet per aprire il documento.
+            Nota: è necessaria una connessione internet per caricare il documento.
           </p>
         </article>
       </section>
