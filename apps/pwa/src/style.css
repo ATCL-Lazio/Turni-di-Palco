@@ -945,6 +945,30 @@ code {
   color: var(--text-primary);
 }
 
+.legal-embed #iubenda_policy {
+  color: var(--text-secondary);
+}
+
+.legal-embed #iubenda_policy a {
+  color: var(--color-gold-400);
+  border-bottom-color: rgba(244, 191, 79, 0.35);
+  text-decoration: underline;
+}
+
+.legal-embed #iubenda_policy strong,
+.legal-embed #iubenda_policy b {
+  color: var(--text-primary);
+}
+
+.legal-embed #iubenda_policy.iubenda_vip_policy h1,
+.legal-embed #iubenda_policy.iubenda_vip_policy h2,
+.legal-embed #iubenda_policy.iubenda_vip_policy h3,
+.legal-embed #iubenda_policy.iubenda_vip_policy h4,
+.legal-embed #iubenda_policy.iubenda_vip_policy h5,
+.legal-embed #iubenda_policy.iubenda_vip_policy h6 {
+  color: var(--text-primary);
+}
+
 .legal-embed > a.iubenda-embed {
   display: inline-flex;
   align-items: center;
