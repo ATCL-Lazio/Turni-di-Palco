@@ -970,7 +970,9 @@ code {
 }
 
 .legal-embed > a.iubenda-embed {
-  display: none;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
 }
 
 .legal-embed h1,
