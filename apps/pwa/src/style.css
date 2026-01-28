@@ -970,30 +970,7 @@ code {
 }
 
 .legal-embed > a.iubenda-embed {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border-strong);
-  border-radius: 14px;
-  padding: 0.8rem 1.25rem;
-  font-size: 1rem;
-  cursor: pointer;
-  text-decoration: none;
-  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease;
-  background: var(--gradient-brand);
-  color: var(--color-neutral-50);
-  box-shadow:
-    var(--shadow-brand-strong),
-    0 0 0 1px var(--border-subtle) inset;
-  border-color: transparent;
-}
-
-.legal-embed > a.iubenda-embed:hover {
-  filter: brightness(1.05);
-}
-
-.legal-embed > a.iubenda-embed:active {
-  transform: translateY(1px);
+  display: none;
 }
 
 .legal-embed h1,
