@@ -56,6 +56,7 @@ export default defineConfig({
         map: path.resolve(__dirname, "map.html"),
         avatar: path.resolve(__dirname, "avatar.html"),
         profile: path.resolve(__dirname, "profile.html"),
+        privacy: path.resolve(__dirname, "privacy.html"),
         events: path.resolve(__dirname, "events.html"),
         turns: path.resolve(__dirname, "turns.html"),
         leaderboard: path.resolve(__dirname, "leaderboard.html"),
