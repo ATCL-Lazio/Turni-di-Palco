@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 
@@ -6,7 +6,28 @@ interface PrivacyPolicyProps {
   onBack: () => void;
 }
 
+const IUBENDA_PRIVACY_POLICY_URL = 'https://www.iubenda.com/privacy-policy/78603233';
+const IUBENDA_SCRIPT_SRC = 'https://cdn.iubenda.com/iubenda.js';
+const IUBENDA_ANCHOR_CLASSES =
+  'iubenda-nostyle no-brand iubenda-noiframe iubenda-embed iubenda-noiframe iub-body-embed';
+
+function ensureIubendaScript() {
+  if (typeof document === 'undefined') return;
+
+  const existing = document.querySelector<HTMLScriptElement>(`script[src="${IUBENDA_SCRIPT_SRC}"]`);
+  if (existing) return;
+
+  const script = document.createElement('script');
+  script.src = IUBENDA_SCRIPT_SRC;
+  script.async = true;
+  document.body.appendChild(script);
+}
+
 export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
+  useEffect(() => {
+    ensureIubendaScript();
+  }, []);
+
   return (
     <Screen
       withBottomNavPadding={false}
@@ -32,47 +53,20 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
 
         <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 flex flex-col gap-4">
           <p className="text-[14px] leading-[20px] text-[#b8b2b3] !m-0">
-            Ultimo aggiornamento: 31 Dic 2025
+            L’informativa completa sulla privacy è pubblicata e mantenuta tramite Iubenda.
           </p>
 
-          <div className="flex flex-col gap-3 text-[14px] leading-[20px] text-[#b8b2b3]">
-            <p className="!m-0">
-              Questa informativa descrive in modo sintetico quali dati vengono trattati e per quali
-              finalità. Il testo è una base iniziale e potrà essere aggiornato.
-            </p>
+          <a
+            href={IUBENDA_PRIVACY_POLICY_URL}
+            className={`${IUBENDA_ANCHOR_CLASSES} text-[14px] leading-[20px] text-[#f4bf4f] underline`}
+            title="Privacy Policy"
+          >
+            Visualizza la Privacy Policy completa
+          </a>
 
-            <div>
-              <p className="text-white font-semibold !m-0">1. Dati trattati</p>
-              <p className="!m-0">
-                Possiamo trattare dati di account (es. email, nome), dati di gioco (turni, ricompense,
-                progressi) e dati tecnici necessari al funzionamento (es. sessione).
-              </p>
-            </div>
-
-            <div>
-              <p className="text-white font-semibold !m-0">2. Finalità</p>
-              <p className="!m-0">
-                Utilizziamo i dati per autenticazione, sincronizzazione dei progressi, prevenzione di
-                abusi (es. codici duplicati) e miglioramento dell’esperienza.
-              </p>
-            </div>
-
-            <div>
-              <p className="text-white font-semibold !m-0">3. Conservazione</p>
-              <p className="!m-0">
-                Conserviamo i dati per il tempo necessario a fornire il servizio e per esigenze di
-                sicurezza e integrità del sistema.
-              </p>
-            </div>
-
-            <div>
-              <p className="text-white font-semibold !m-0">4. Diritti</p>
-              <p className="!m-0">
-                Puoi richiedere accesso, rettifica o cancellazione dei dati. Le modalità operative
-                verranno rese disponibili nelle impostazioni dell’account.
-              </p>
-            </div>
-          </div>
+          <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">
+            Nota: è necessaria una connessione internet per aprire il documento.
+          </p>
         </div>
       </div>
     </Screen>
