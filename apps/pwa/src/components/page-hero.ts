@@ -33,6 +33,7 @@ export const sharedShortcuts: PageShortcut[] = [
   { id: "events", label: "Eventi", href: "/events.html", icon: "🎟️" },
   { id: "profile", label: "Profilo", href: "/profile.html", icon: "👤" },
   { id: "avatar", label: "Avatar", href: "/avatar.html", icon: "🧩" },
+  { id: "privacy", label: "Privacy", href: "/privacy.html", icon: "🔒" },
 ];
 
 function renderBreadcrumbs(items: Breadcrumb[] = []) {
