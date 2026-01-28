@@ -941,6 +941,97 @@ code {
   margin-top: 0.35rem;
 }
 
+.legal-embed {
+  color: var(--text-primary);
+}
+
+.legal-embed > a.iubenda-embed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  padding: 0.8rem 1.25rem;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease;
+  background: var(--gradient-brand);
+  color: var(--color-neutral-50);
+  box-shadow:
+    var(--shadow-brand-strong),
+    0 0 0 1px var(--border-subtle) inset;
+  border-color: transparent;
+}
+
+.legal-embed > a.iubenda-embed:hover {
+  filter: brightness(1.05);
+}
+
+.legal-embed > a.iubenda-embed:active {
+  transform: translateY(1px);
+}
+
+.legal-embed h1,
+.legal-embed h2,
+.legal-embed h3,
+.legal-embed h4 {
+  color: var(--text-primary);
+}
+
+.legal-embed p {
+  color: var(--text-secondary);
+}
+
+.legal-embed a {
+  color: var(--color-gold-400);
+  text-decoration: underline;
+}
+
+.legal-embed ul,
+.legal-embed ol {
+  padding-left: 1.1rem;
+  margin: 0 0 1em;
+  color: var(--text-secondary);
+}
+
+.legal-embed ul.for_boxes,
+.legal-embed ul.unstyled {
+  list-style: none;
+  padding-left: 0;
+}
+
+.legal-embed ul.for_boxes {
+  display: grid;
+  gap: 1rem;
+}
+
+.legal-embed .iconed {
+  border: 1px solid var(--border-regular);
+  border-radius: 18px;
+  padding: 1rem;
+  background: var(--surface-veil-strong);
+  box-shadow: inset 0 1px 0 var(--surface-veil-bright);
+}
+
+.legal-embed .iub_container,
+.legal-embed .iub_content,
+.legal-embed .iub_header,
+.legal-embed .iub_footer {
+  background: transparent !important;
+  color: inherit;
+}
+
+.legal-embed .iub_header {
+  margin-bottom: 1.25rem;
+}
+
+.legal-embed .iub_footer {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-regular);
+}
+
 .pill-row {
   display: flex;
   flex-wrap: wrap;
