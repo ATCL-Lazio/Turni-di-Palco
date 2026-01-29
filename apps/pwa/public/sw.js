@@ -14,6 +14,7 @@ const CORE_ASSETS = [
   "/game.html",
   "/avatar.html",
   "/profile.html",
+  "/privacy.html",
   "/dev.html",
   "/events.html",
   "/turns.html",
