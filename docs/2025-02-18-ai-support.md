@@ -121,6 +121,37 @@ Se il backend non esiste, creare un handler che:
   - `AI_SUPPORT_GH_BIN` (override path del binario `gh`)
   - `GITHUB_REPO_OWNER` + `GITHUB_REPO_NAME` (fallback repo)
 
+## Autenticazione remota (senza OpenAI API key)
+
+Quando il server remoto non puo' usare una API key OpenAI, la soluzione consigliata e'
+autenticare Codex e GitHub CLI con il device flow (codice + URL) eseguito direttamente
+sul server. Il `tools/ai-support-server.js` espone un pannello `/auth` che avvia questi
+login e mostra lo stato corrente.
+
+### Codex CLI (device auth)
+
+- Avviare il login device:
+  - CLI: `codex login --device-auth`
+  - UI: visitare `http://<host>:8787/auth` e cliccare "Avvia login".
+- Copiare URL + codice di accesso presenti nei log del server.
+- Completare il login dal proprio browser locale (non serve una API key).
+- Verificare lo stato: `codex login status` oppure dal pannello `/auth`.
+
+### GitHub CLI (device auth)
+
+- Avviare il login device:
+  - CLI: `gh auth login --device`
+  - UI: visitare `http://<host>:8787/auth` e cliccare "Avvia login".
+- Copiare URL + codice di accesso presenti nei log del server.
+- Completare il login dal proprio browser locale.
+- Verificare lo stato: `gh auth status` oppure dal pannello `/auth`.
+
+### Note operative
+
+- Il device flow evita la necessita' di API key sul server remoto.
+- Se il login e' gia' attivo, il server risponde con un errore "login already running".
+- In ambienti headless, la pagina `/auth` e' utile per controllare lo stato e avviare i login.
+
 ## Gestione credenziali GitHub
 
 Token e repo devono vivere lato server (mai nel browser) e vanno passati a `createGithubIssue` (es. da env):
