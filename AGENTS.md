@@ -10,7 +10,8 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - `apps/reactbricks`: CMS sources (da ripulire; integrare come workspace separato).
 
-- `docs/`: PDF di design/GDD; aggiungi nuovi file datati con changelog breve.
+- `docs/`: PDF di design/GDD.
+  - **Non creare nuovi documenti o file in `docs/`.**
 
 ## Build, Test, and Development Commands
 
