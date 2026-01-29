@@ -3,6 +3,7 @@ import { renderPageHero } from "./components/page-hero";
 import { renderPermissionsCard, attachPermissionsListeners } from "./features/permissions-card";
 import { renderStatusCard, attachStatusListeners } from "./features/status-card";
 import { requireDevAccess } from "./services/dev-gate";
+import { isFeatureEnabled } from "./services/feature-flags";
 
 const start = async () => {
   if (!(await requireDevAccess())) return;
@@ -68,15 +69,19 @@ const start = async () => {
           </div>
         </article>
 
-        ${renderStatusCard()}
+        ${isFeatureEnabled("status-card") ? renderStatusCard() : ""}
 
-        ${renderPermissionsCard()}
+        ${isFeatureEnabled("permissions-card") ? renderPermissionsCard() : ""}
       </section>
     </main>
   `;
 
-  attachStatusListeners(root, '[data-action="refresh"]');
-  attachPermissionsListeners(root);
+  if (isFeatureEnabled("status-card")) {
+    attachStatusListeners(root, '[data-action="refresh"]');
+  }
+  if (isFeatureEnabled("permissions-card")) {
+    attachPermissionsListeners(root);
+  }
 };
 
 void start();
