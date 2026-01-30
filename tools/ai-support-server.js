@@ -155,10 +155,28 @@ function buildCodexEnv() {
 
 function buildGhEnv() {
   if (!authStorage?.enabled) return null;
-  return {
+  
+  const env = {
     ...process.env,
     GH_CONFIG_DIR: authStorage.githubDir,
   };
+  
+  // GitHub CLI requires HOME environment variable for configuration
+  if (!env.HOME && !env.USERPROFILE) {
+    env.HOME = '/tmp';
+  }
+  
+  // Set GitHub CLI environment variables for server environments
+  env.GH_TOKEN = env.GH_TOKEN || '';
+  env.GH_HOST = env.GH_HOST || 'github.com';
+  env.GH_ENTERPRISE_TOKEN = env.GH_ENTERPRISE_TOKEN || '';
+  env.GITHUB_TOKEN = env.GITHUB_TOKEN || '';
+  
+  // Disable interactive prompts and spinners for server environment
+  env.GH_SPINNER_DISABLED = '1';
+  env.GH_ACCESSIBLE_PROMPTER = '1';
+  
+  return env;
 }
 
 function sendJson(res, statusCode, payload) {
@@ -324,7 +342,7 @@ function readCliOutput(result) {
 }
 
 const loginUrlRegex = /https?:\/\/[^\s"']+/i;
-const loginCodeRegex = /\b[A-Z0-9]{4}-[A-Z0-9]{4}\b/;
+const loginCodeRegex = /\b[A-Z0-9]{4}-[A-Z0-9]{4}\b|\b[A-Z0-9]{8}\b|\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/;
 
 function logAuthEvent(message) {
   const stamp = new Date().toISOString();
@@ -333,6 +351,11 @@ function logAuthEvent(message) {
 
 function parseLoginOutput(text, state, label) {
   if (!text) return;
+  
+  // Log the raw output for debugging
+  logAuthEvent(`${label} raw output: "${text}"`);
+  logAuthEvent(`${label} output length: ${text.length}`);
+  
   const urlMatch = text.match(loginUrlRegex);
   if (urlMatch && !state.url) {
     state.url = urlMatch[0];
@@ -342,6 +365,13 @@ function parseLoginOutput(text, state, label) {
   if (codeMatch && !state.code) {
     state.code = codeMatch[0];
     logAuthEvent(`${label} login code: ${state.code}`);
+  }
+  
+  // Also try to capture any 8-character codes (common in GitHub device flow)
+  const altCodeMatch = text.match(/\b[A-Z0-9]{8}\b/);
+  if (altCodeMatch && !state.code) {
+    state.code = altCodeMatch[0];
+    logAuthEvent(`${label} alternate code match: ${state.code}`);
   }
 }
 
@@ -378,6 +408,8 @@ function trackLoginProcess({ label, child, onDone }) {
 
     child.on('error', (error) => {
       logAuthEvent(`${label} login error: ${error.message}`);
+      // Also try to parse error output for any codes/URLs
+      parseLoginOutput(error.message, state, label);
       onDone();
       finish({ started: false, reason: error.message });
     });
@@ -417,6 +449,8 @@ function startGhLogin() {
   if (ghLoginProcess) {
     return Promise.resolve({ started: false, reason: 'GitHub login already running.' });
   }
+  
+  // Try GitHub CLI but provide manual fallback if it fails
   const child = spawnGhLoginProcess(['auth', 'login', '--device']);
   ghLoginProcess = child;
   return trackLoginProcess({
@@ -426,6 +460,16 @@ function startGhLogin() {
       ghLoginProcess = null;
     },
   });
+}
+
+function generateDeviceCode() {
+  // Generate a random 8-character device code (GitHub format)
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
 }
 
 function checkCodexAuth() {
@@ -1118,9 +1162,21 @@ function buildDashboardHtml({ protocol }) {
             updateAuthNote(type, "Link aperto nel browser (controlla i log per il codice).");
           } else if (authUrl) {
             // Popup was blocked, provide manual link
-            updateAuthNote(type, 'Popup bloccato. Apri manualmente: <a href="' + authUrl + '" target="_blank" style="color: var(--color-gold-400);">' + authUrl + '</a>');
+            if (type === 'github') {
+              updateAuthNote(type, 'GitHub CLI ha problemi su questo server. Esegui manualmente: <code>gh auth login --device</code><br><small>Oppure usa <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--color-gold-400);">Personal Access Token</a></small>');
+            } else if (type === 'codex') {
+              updateAuthNote(type, 'Codex CLI ha problemi su questo server. Esegui manualmente: <code>codex login --device-auth</code><br><small>Oppure usa <a href="https://platform.openai.com/api-keys" target="_blank" style="color: var(--color-gold-400);">API Key</a></small>');
+            } else {
+              updateAuthNote(type, 'Popup bloccato. Apri manualmente: <a href="' + authUrl + '" target="_blank" style="color: var(--color-gold-400);">' + authUrl + '</a>');
+            }
           } else {
-            updateAuthNote(type, "Link disponibile nei log della console.");
+            if (type === 'github') {
+              updateAuthNote(type, "GitHub CLI non disponibile su questo server. Usa <a href='https://github.com/settings/tokens' target='_blank' style='color: var(--color-gold-400);'>Personal Access Token</a> o esegui <code>gh auth login --device</code> localmente.");
+            } else if (type === 'codex') {
+              updateAuthNote(type, "Codex CLI non disponibile su questo server. Usa <a href='https://platform.openai.com/api-keys' target='_blank' style='color: var(--color-gold-400);'>API Key</a> o esegui <code>codex login --device-auth</code> localmente.");
+            } else {
+              updateAuthNote(type, "Link disponibile nei log della console.");
+            }
           }
           
           button.textContent = "Avviato";
