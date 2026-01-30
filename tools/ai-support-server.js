@@ -1063,7 +1063,7 @@ function buildDashboardHtml({ protocol }) {
         if (!popup) return null;
         popup.document.title = "Login in corso";
         popup.document.body.innerHTML =
-          "<p style=\"font-family: system-ui; padding: 16px;\">In attesa del link di login...</p>";
+          '<p style="font-family: system-ui; padding: 16px;">In attesa del link di login...</p>';
         return popup;
       };
 
