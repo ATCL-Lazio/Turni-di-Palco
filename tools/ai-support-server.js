@@ -640,16 +640,11 @@ function buildDashboardHtml({ protocol }) {
   
   // Escape JSON for safe injection in HTML script tag
   const escapedJson = json
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, '\\u0027')
     .replace(/</g, '\\u003c')
     .replace(/>/g, '\\u003e')
-    .replace(/&/g, '\\u0026')
-    .replace(/'/g, '\\u0027')
-    .replace(/"/g, '\\u0022')
-    .replace(/\n/g, '\\n')
-    .replace(/\r/g, '\\r')
-    .replace(/\t/g, '\\t')
-    .replace(/\f/g, '\\f')
-    .replace(/\b/g, '\\b');
+    .replace(/&/g, '\\u0026');
 
   return `<!doctype html>
 <html lang="it">
