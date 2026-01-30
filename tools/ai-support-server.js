@@ -390,6 +390,8 @@ function trackLoginProcess({ label, child, onDone }) {
 
     child.on('error', (error) => {
       logAuthEvent(`${label} login error: ${error.message}`);
+      // Also try to parse error output for any codes/URLs
+      parseLoginOutput(error.message, state, label);
       onDone();
       finish({ started: false, reason: error.message });
     });
