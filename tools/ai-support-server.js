@@ -336,6 +336,7 @@ function parseLoginOutput(text, state, label) {
   
   // Log the raw output for debugging
   logAuthEvent(`${label} raw output: "${text}"`);
+  logAuthEvent(`${label} output length: ${text.length}`);
   
   const urlMatch = text.match(loginUrlRegex);
   if (urlMatch && !state.url) {
@@ -346,6 +347,13 @@ function parseLoginOutput(text, state, label) {
   if (codeMatch && !state.code) {
     state.code = codeMatch[0];
     logAuthEvent(`${label} login code: ${state.code}`);
+  }
+  
+  // Also try to capture any 8-character codes (common in GitHub device flow)
+  const altCodeMatch = text.match(/\b[A-Z0-9]{8}\b/);
+  if (altCodeMatch && !state.code) {
+    state.code = altCodeMatch[0];
+    logAuthEvent(`${label} alternate code match: ${state.code}`);
   }
 }
 
@@ -421,7 +429,8 @@ function startGhLogin() {
   if (ghLoginProcess) {
     return Promise.resolve({ started: false, reason: 'GitHub login already running.' });
   }
-  const child = spawnGhLoginProcess(['auth', 'login', '--device']);
+  // Force a fresh device flow by adding --web flag
+  const child = spawnGhLoginProcess(['auth', 'login', '--device', '--web']);
   ghLoginProcess = child;
   return trackLoginProcess({
     label: 'GitHub',
