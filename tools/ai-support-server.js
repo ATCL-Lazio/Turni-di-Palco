@@ -450,16 +450,15 @@ function startGhLogin() {
     return Promise.resolve({ started: false, reason: 'GitHub login already running.' });
   }
   
-  // GitHub CLI has issues in server environments, provide manual device flow
-  const deviceCode = generateDeviceCode();
-  const authUrl = 'https://github.com/login/device';
-  
-  return Promise.resolve({
-    started: true,
-    url: authUrl,
-    code: deviceCode,
-    pid: null,
-    reason: 'Manual device flow - GitHub CLI not available in server environment'
+  // Try GitHub CLI but provide manual fallback if it fails
+  const child = spawnGhLoginProcess(['auth', 'login', '--device']);
+  ghLoginProcess = child;
+  return trackLoginProcess({
+    label: 'GitHub',
+    child,
+    onDone: () => {
+      ghLoginProcess = null;
+    },
   });
 }
 
@@ -1164,13 +1163,13 @@ function buildDashboardHtml({ protocol }) {
           } else if (authUrl) {
             // Popup was blocked, provide manual link
             if (type === 'github') {
-              updateAuthNote(type, 'Popup bloccato. Apri manualmente: <a href="' + authUrl + '" target="_blank" style="color: var(--color-gold-400);">' + authUrl + '</a><br><small>Se non vedi il codice, esegui: <code>gh auth login --device</code></small>');
+              updateAuthNote(type, 'GitHub CLI ha problemi su questo server. Esegui manualmente: <code>gh auth login --device</code><br><small>Oppure usa <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--color-gold-400);">Personal Access Token</a></small>');
             } else {
               updateAuthNote(type, 'Popup bloccato. Apri manualmente: <a href="' + authUrl + '" target="_blank" style="color: var(--color-gold-400);">' + authUrl + '</a>');
             }
           } else {
             if (type === 'github') {
-              updateAuthNote(type, "Esegui manualmente: <code>gh auth login --device</code> e inserisci il codice mostrato.");
+              updateAuthNote(type, "GitHub CLI non disponibile su questo server. Usa <a href='https://github.com/settings/tokens' target='_blank' style='color: var(--color-gold-400);'>Personal Access Token</a> o esegui <code>gh auth login --device</code> localmente.");
             } else {
               updateAuthNote(type, "Link disponibile nei log della console.");
             }
