@@ -25,6 +25,141 @@ const enableColor =
   process.env.AI_SUPPORT_COLOR !== '0' &&
   process.env.AI_SUPPORT_COLOR !== 'false' &&
   process.stdout.isTTY;
+const authStorage = resolveAuthStorage();
+
+function isTruthy(value) {
+  if (value === undefined || value === null) return false;
+  const normalized = String(value).trim().toLowerCase();
+  return normalized === '1' || normalized === 'true' || normalized === 'yes';
+}
+
+function stripEnvValue(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+  if (
+    (raw.startsWith('"') && raw.endsWith('"')) ||
+    (raw.startsWith("'") && raw.endsWith("'"))
+  ) {
+    return raw.slice(1, -1);
+  }
+  return raw;
+}
+
+function readEnvFileValue(filePath, key) {
+  if (!filePath || !fs.existsSync(filePath)) return null;
+  const content = fs.readFileSync(filePath, 'utf8');
+  const lines = content.split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    if (!trimmed.startsWith(`${key}=`)) continue;
+    const value = trimmed.slice(key.length + 1);
+    const cleaned = stripEnvValue(value);
+    return cleaned || null;
+  }
+  return null;
+}
+
+function writeEnvFileValue(filePath, key, value) {
+  if (!filePath || !key) return false;
+  const output = `${key}=${JSON.stringify(String(value))}`;
+  const exists = fs.existsSync(filePath);
+  const lines = exists ? fs.readFileSync(filePath, 'utf8').split(/\r?\n/) : [];
+  let updated = false;
+  const nextLines = lines.map((line) => {
+    if (line.trim().startsWith(`${key}=`)) {
+      updated = true;
+      return output;
+    }
+    return line;
+  });
+  if (!updated) {
+    if (nextLines.length && nextLines[nextLines.length - 1] !== '') {
+      nextLines.push('');
+    }
+    nextLines.push(output);
+  }
+  fs.writeFileSync(filePath, nextLines.join('\n'), 'utf8');
+  return true;
+}
+
+function resolveAuthStorage() {
+  const envFilePath = process.env.AI_SUPPORT_AUTH_ENV_FILE
+    ? path.resolve(process.env.AI_SUPPORT_AUTH_ENV_FILE)
+    : null;
+  const writeEnvFile = isTruthy(process.env.AI_SUPPORT_AUTH_ENV_WRITE);
+  let authDir = process.env.AI_SUPPORT_AUTH_DIR || null;
+  let source = authDir ? 'env' : null;
+  let envFileStatus = envFilePath ? 'missing' : 'disabled';
+
+  if (!authDir && envFilePath) {
+    const value = readEnvFileValue(envFilePath, 'AI_SUPPORT_AUTH_DIR');
+    if (value) {
+      authDir = value;
+      source = 'env-file';
+      envFileStatus = 'loaded';
+    } else if (fs.existsSync(envFilePath)) {
+      envFileStatus = 'missing-auth-dir';
+    }
+  }
+
+  if (!authDir) {
+    return {
+      enabled: false,
+      authDir: null,
+      source: null,
+      codexDir: null,
+      githubDir: null,
+      envFile: envFilePath,
+      envFileStatus,
+      envFileWriteEnabled: writeEnvFile,
+    };
+  }
+
+  const resolvedAuthDir = path.resolve(authDir);
+  const codexDir = path.join(resolvedAuthDir, 'codex');
+  const githubDir = path.join(resolvedAuthDir, 'github');
+  fs.mkdirSync(codexDir, { recursive: true });
+  fs.mkdirSync(githubDir, { recursive: true });
+
+  if (envFilePath) {
+    if (writeEnvFile) {
+      writeEnvFileValue(envFilePath, 'AI_SUPPORT_AUTH_DIR', resolvedAuthDir);
+      envFileStatus = fs.existsSync(envFilePath) ? 'written' : 'missing';
+    } else if (fs.existsSync(envFilePath)) {
+      envFileStatus = envFileStatus === 'loaded' ? 'loaded' : 'available';
+    }
+  }
+
+  return {
+    enabled: true,
+    authDir: resolvedAuthDir,
+    source,
+    codexDir,
+    githubDir,
+    envFile: envFilePath,
+    envFileStatus,
+    envFileWriteEnabled: writeEnvFile,
+  };
+}
+
+function buildCodexEnv() {
+  if (!authStorage?.enabled) return null;
+  return {
+    ...process.env,
+    XDG_CONFIG_HOME: authStorage.codexDir,
+    XDG_STATE_HOME: authStorage.codexDir,
+    XDG_DATA_HOME: authStorage.codexDir,
+  };
+}
+
+function buildGhEnv() {
+  if (!authStorage?.enabled) return null;
+  return {
+    ...process.env,
+    GH_CONFIG_DIR: authStorage.githubDir,
+  };
+}
 
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
@@ -121,51 +256,65 @@ let codexLoginProcess = null;
 let ghLoginProcess = null;
 
 function spawnCodexSync(args) {
+  const env = buildCodexEnv();
   if (process.platform === 'win32') {
     const lower = codexBin.toLowerCase();
     if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
       return spawnSync('cmd.exe', ['/c', codexBin, ...args], {
         encoding: 'utf8',
+        env: env ?? process.env,
       });
     }
   }
-  return spawnSync(codexBin, args, { encoding: 'utf8' });
+  return spawnSync(codexBin, args, { encoding: 'utf8', env: env ?? process.env });
 }
 
 function spawnGhSync(args) {
+  const env = buildGhEnv();
   if (process.platform === 'win32') {
     const lower = ghBin.toLowerCase();
     if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
       return spawnSync('cmd.exe', ['/c', ghBin, ...args], {
         encoding: 'utf8',
+        env: env ?? process.env,
       });
     }
   }
-  return spawnSync(ghBin, args, { encoding: 'utf8' });
+  return spawnSync(ghBin, args, { encoding: 'utf8', env: env ?? process.env });
 }
 
 function spawnCodexLoginProcess(args) {
+  const env = buildCodexEnv();
   if (process.platform === 'win32') {
     const lower = codexBin.toLowerCase();
     if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
       return spawn('cmd.exe', ['/c', codexBin, ...args], {
         stdio: ['ignore', 'pipe', 'pipe'],
+        env: env ?? process.env,
       });
     }
   }
-  return spawn(codexBin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+  return spawn(codexBin, args, {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: env ?? process.env,
+  });
 }
 
 function spawnGhLoginProcess(args) {
+  const env = buildGhEnv();
   if (process.platform === 'win32') {
     const lower = ghBin.toLowerCase();
     if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
       return spawn('cmd.exe', ['/c', ghBin, ...args], {
         stdio: ['ignore', 'pipe', 'pipe'],
+        env: env ?? process.env,
       });
     }
   }
-  return spawn(ghBin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+  return spawn(ghBin, args, {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: env ?? process.env,
+  });
 }
 
 function readCliOutput(result) {
@@ -466,6 +615,7 @@ function buildDashboardHtml({ protocol }) {
     protocol,
     codexAuth,
     ghAuth,
+    authStorage,
   };
 
   const safe = (value) => String(value ?? '');
@@ -485,6 +635,7 @@ function buildDashboardHtml({ protocol }) {
     protocol: data.protocol,
     codexAuth: data.codexAuth,
     ghAuth: data.ghAuth,
+    authStorage: data.authStorage,
   });
   
   // Escape JSON for safe injection in HTML script tag
@@ -830,6 +981,15 @@ function buildDashboardHtml({ protocol }) {
             `}
           </div>
         </article>
+        <article class="card">
+          <h3>Archiviazione Auth</h3>
+          <div class="list">
+            <div>Directory <span id="auth-storage-dir">--</span></div>
+            <div>Sorgente <span id="auth-storage-source">--</span></div>
+            <div>.env <span id="auth-storage-env-file">--</span></div>
+            <div>Stato .env <span id="auth-storage-env-status">--</span></div>
+          </div>
+        </article>
       </section>
 
       <section class="grid">
@@ -992,6 +1152,30 @@ function buildDashboardHtml({ protocol }) {
       el("platform-pill").textContent = data.platform;
       el("arch-pill").textContent = data.arch;
       el("node-pill").textContent = data.node;
+
+      const storage = data.authStorage || {};
+      const storageDir = storage.authDir || "Default (home)";
+      const storageSource = storage.source || "default";
+      const storageEnvFile = storage.envFile || "—";
+      const storageEnvStatusMap = {
+        disabled: "Disabilitato",
+        missing: "Manca",
+        "missing-auth-dir": "Variabile mancante",
+        available: "Disponibile",
+        loaded: "Caricato",
+        written: "Aggiornato",
+      };
+      const storageEnvStatus =
+        storageEnvStatusMap[storage.envFileStatus] || storage.envFileStatus || "—";
+
+      const storageDirEl = el("auth-storage-dir");
+      if (storageDirEl) storageDirEl.textContent = storageDir;
+      const storageSourceEl = el("auth-storage-source");
+      if (storageSourceEl) storageSourceEl.textContent = storageSource;
+      const storageEnvFileEl = el("auth-storage-env-file");
+      if (storageEnvFileEl) storageEnvFileEl.textContent = storageEnvFile;
+      const storageEnvStatusEl = el("auth-storage-env-status");
+      if (storageEnvStatusEl) storageEnvStatusEl.textContent = storageEnvStatus;
 
       // Update authentication status
       const codexAuthStatus = el("codex-auth-status");
@@ -1368,30 +1552,36 @@ async function findExistingIssueByTitle(title) {
 }
 
 function spawnCodexProcess(args) {
+  const env = buildCodexEnv();
   if (process.platform === 'win32') {
     const lower = codexBin.toLowerCase();
     if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
       return spawn('cmd.exe', ['/c', codexBin, ...args], {
         stdio: ['pipe', 'pipe', 'pipe'],
+        env: env ?? process.env,
       });
     }
   }
   return spawn(codexBin, args, {
     stdio: ['pipe', 'pipe', 'pipe'],
+    env: env ?? process.env,
   });
 }
 
 function spawnGhProcess(args) {
+  const env = buildGhEnv();
   if (process.platform === 'win32') {
     const lower = ghBin.toLowerCase();
     if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
       return spawn('cmd.exe', ['/c', ghBin, ...args], {
         stdio: ['pipe', 'pipe', 'pipe'],
+        env: env ?? process.env,
       });
     }
   }
   return spawn(ghBin, args, {
     stdio: ['pipe', 'pipe', 'pipe'],
+    env: env ?? process.env,
   });
 }
 
@@ -1465,6 +1655,16 @@ const requestHandler = (req, res) => {
         sourceLabel: ghAuth.sourceLabel,
         status: ghAuth.status,
         loginCommand: 'gh auth login --device'
+      },
+      storage: {
+        enabled: authStorage.enabled,
+        authDir: authStorage.authDir,
+        codexDir: authStorage.codexDir,
+        githubDir: authStorage.githubDir,
+        source: authStorage.source,
+        envFile: authStorage.envFile,
+        envFileStatus: authStorage.envFileStatus,
+        envFileWriteEnabled: authStorage.envFileWriteEnabled,
       }
     });
     return;
