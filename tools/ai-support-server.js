@@ -1122,9 +1122,17 @@ function buildDashboardHtml({ protocol }) {
             updateAuthNote(type, "Link aperto nel browser (controlla i log per il codice).");
           } else if (authUrl) {
             // Popup was blocked, provide manual link
-            updateAuthNote(type, 'Popup bloccato. Apri manualmente: <a href="' + authUrl + '" target="_blank" style="color: var(--color-gold-400);">' + authUrl + '</a>');
+            if (type === 'github') {
+              updateAuthNote(type, 'Popup bloccato. Apri manualmente: <a href="' + authUrl + '" target="_blank" style="color: var(--color-gold-400);">' + authUrl + '</a><br><small>Se non vedi il codice, esegui: <code>gh auth login --device</code></small>');
+            } else {
+              updateAuthNote(type, 'Popup bloccato. Apri manualmente: <a href="' + authUrl + '" target="_blank" style="color: var(--color-gold-400);">' + authUrl + '</a>');
+            }
           } else {
-            updateAuthNote(type, "Link disponibile nei log della console.");
+            if (type === 'github') {
+              updateAuthNote(type, "Esegui manualmente: <code>gh auth login --device</code> e inserisci il codice mostrato.");
+            } else {
+              updateAuthNote(type, "Link disponibile nei log della console.");
+            }
           }
           
           button.textContent = "Avviato";
