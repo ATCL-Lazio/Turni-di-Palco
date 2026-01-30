@@ -324,7 +324,7 @@ function readCliOutput(result) {
 }
 
 const loginUrlRegex = /https?:\/\/[^\s"']+/i;
-const loginCodeRegex = /\b[A-Z0-9]{4}-[A-Z0-9]{4}\b/;
+const loginCodeRegex = /\b[A-Z0-9]{4}-[A-Z0-9]{4}\b|\b[A-Z0-9]{8}\b|\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/;
 
 function logAuthEvent(message) {
   const stamp = new Date().toISOString();
@@ -333,6 +333,10 @@ function logAuthEvent(message) {
 
 function parseLoginOutput(text, state, label) {
   if (!text) return;
+  
+  // Log the raw output for debugging
+  logAuthEvent(`${label} raw output: "${text}"`);
+  
   const urlMatch = text.match(loginUrlRegex);
   if (urlMatch && !state.url) {
     state.url = urlMatch[0];
