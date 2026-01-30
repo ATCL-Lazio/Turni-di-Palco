@@ -429,8 +429,8 @@ function startGhLogin() {
   if (ghLoginProcess) {
     return Promise.resolve({ started: false, reason: 'GitHub login already running.' });
   }
-  // Force a fresh device flow by adding --web flag
-  const child = spawnGhLoginProcess(['auth', 'login', '--device', '--web']);
+  // Remove --web flag to avoid configuration errors
+  const child = spawnGhLoginProcess(['auth', 'login', '--device']);
   ghLoginProcess = child;
   return trackLoginProcess({
     label: 'GitHub',
