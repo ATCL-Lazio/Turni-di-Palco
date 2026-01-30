@@ -1095,16 +1095,30 @@ function buildDashboardHtml({ protocol }) {
           if (!res.ok) {
             throw new Error(payload.error || "Errore avvio login");
           }
-          if (payload.url) {
-            navigatePopup(popup, payload.url);
+          
+          let authUrl = payload.url;
+          
+          // Fallback URLs if not provided by API
+          if (!authUrl) {
+            if (type === 'codex') {
+              authUrl = 'https://auth.openai.com/codex/device';
+            } else if (type === 'github') {
+              authUrl = 'https://github.com/login/device';
+            }
           }
+          
+          if (authUrl) {
+            navigatePopup(popup, authUrl);
+          }
+          
           if (payload.code) {
             updateAuthNote(type, "Codice: " + payload.code + " (anche nei log).");
-          } else if (payload.url) {
-            updateAuthNote(type, "Link aperto nel browser (anche nei log).");
+          } else if (authUrl) {
+            updateAuthNote(type, "Link aperto nel browser (controlla i log per il codice).");
           } else {
             updateAuthNote(type, "Link disponibile nei log della console.");
           }
+          
           button.textContent = "Avviato";
           setTimeout(() => {
             button.textContent = original;
