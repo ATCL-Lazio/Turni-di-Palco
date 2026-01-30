@@ -155,10 +155,28 @@ function buildCodexEnv() {
 
 function buildGhEnv() {
   if (!authStorage?.enabled) return null;
-  return {
+  
+  const env = {
     ...process.env,
     GH_CONFIG_DIR: authStorage.githubDir,
   };
+  
+  // GitHub CLI requires HOME environment variable for configuration
+  if (!env.HOME && !env.USERPROFILE) {
+    env.HOME = '/tmp';
+  }
+  
+  // Set GitHub CLI environment variables for server environments
+  env.GH_TOKEN = env.GH_TOKEN || '';
+  env.GH_HOST = env.GH_HOST || 'github.com';
+  env.GH_ENTERPRISE_TOKEN = env.GH_ENTERPRISE_TOKEN || '';
+  env.GITHUB_TOKEN = env.GITHUB_TOKEN || '';
+  
+  // Disable interactive prompts and spinners for server environment
+  env.GH_SPINNER_DISABLED = '1';
+  env.GH_ACCESSIBLE_PROMPTER = '1';
+  
+  return env;
 }
 
 function sendJson(res, statusCode, payload) {
