@@ -360,7 +360,12 @@ function trackLoginProcess({ label, child, onDone }) {
       const text = chunk.toString();
       parseLoginOutput(text, state, label);
       if (state.url && !resolved) {
-        finish({ started: true, url: state.url, code: state.code, pid: child.pid });
+        // Don't resolve immediately - wait a bit to see if we also get a code
+        setTimeout(() => {
+          if (!resolved) {
+            finish({ started: true, url: state.url, code: state.code, pid: child.pid });
+          }
+        }, 500);
       }
     };
 
