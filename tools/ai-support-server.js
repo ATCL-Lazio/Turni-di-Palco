@@ -1164,12 +1164,16 @@ function buildDashboardHtml({ protocol }) {
             // Popup was blocked, provide manual link
             if (type === 'github') {
               updateAuthNote(type, 'GitHub CLI ha problemi su questo server. Esegui manualmente: <code>gh auth login --device</code><br><small>Oppure usa <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--color-gold-400);">Personal Access Token</a></small>');
+            } else if (type === 'codex') {
+              updateAuthNote(type, 'Codex CLI ha problemi su questo server. Esegui manualmente: <code>codex login --device-auth</code><br><small>Oppure usa <a href="https://platform.openai.com/api-keys" target="_blank" style="color: var(--color-gold-400);">API Key</a></small>');
             } else {
               updateAuthNote(type, 'Popup bloccato. Apri manualmente: <a href="' + authUrl + '" target="_blank" style="color: var(--color-gold-400);">' + authUrl + '</a>');
             }
           } else {
             if (type === 'github') {
               updateAuthNote(type, "GitHub CLI non disponibile su questo server. Usa <a href='https://github.com/settings/tokens' target='_blank' style='color: var(--color-gold-400);'>Personal Access Token</a> o esegui <code>gh auth login --device</code> localmente.");
+            } else if (type === 'codex') {
+              updateAuthNote(type, "Codex CLI non disponibile su questo server. Usa <a href='https://platform.openai.com/api-keys' target='_blank' style='color: var(--color-gold-400);'>API Key</a> o esegui <code>codex login --device-auth</code> localmente.");
             } else {
               updateAuthNote(type, "Link disponibile nei log della console.");
             }
