@@ -360,7 +360,12 @@ function trackLoginProcess({ label, child, onDone }) {
       const text = chunk.toString();
       parseLoginOutput(text, state, label);
       if (state.url && !resolved) {
-        finish({ started: true, url: state.url, code: state.code, pid: child.pid });
+        // Don't resolve immediately - wait a bit to see if we also get a code
+        setTimeout(() => {
+          if (!resolved) {
+            finish({ started: true, url: state.url, code: state.code, pid: child.pid });
+          }
+        }, 500);
       }
     };
 
@@ -640,11 +645,11 @@ function buildDashboardHtml({ protocol }) {
   
   // Escape JSON for safe injection in HTML script tag
   const escapedJson = json
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, '\\u0027')
     .replace(/</g, '\\u003c')
     .replace(/>/g, '\\u003e')
-    .replace(/&/g, '\\u0026')
-    .replace(/'/g, '\\u0027')
-    .replace(/"/g, '\\u0022');
+    .replace(/&/g, '\\u0026');
 
   return `<!doctype html>
 <html lang="it">
@@ -1053,7 +1058,7 @@ function buildDashboardHtml({ protocol }) {
       };
 
       const updateAuthNote = (type, message) => {
-        const note = document.querySelector(\`[data-auth-note="\${type}"]\`);
+        const note = document.querySelector('[data-auth-note="' + type + '"]');
         if (!note || !message) return;
         note.textContent = message;
       };
@@ -1063,7 +1068,7 @@ function buildDashboardHtml({ protocol }) {
         if (!popup) return null;
         popup.document.title = "Login in corso";
         popup.document.body.innerHTML =
-          "<p style=\"font-family: system-ui; padding: 16px;\">In attesa del link di login...</p>";
+          '<p style="font-family: system-ui; padding: 16px;">In attesa del link di login...</p>';
         return popup;
       };
 
@@ -1090,16 +1095,34 @@ function buildDashboardHtml({ protocol }) {
           if (!res.ok) {
             throw new Error(payload.error || "Errore avvio login");
           }
-          if (payload.url) {
-            navigatePopup(popup, payload.url);
+          
+          let authUrl = payload.url;
+          
+          // Fallback URLs if not provided by API
+          if (!authUrl) {
+            if (type === 'codex') {
+              authUrl = 'https://auth.openai.com/codex/device';
+            } else if (type === 'github') {
+              authUrl = 'https://github.com/login/device';
+            }
           }
+          
+          let popupOpened = false;
+          if (authUrl) {
+            popupOpened = navigatePopup(popup, authUrl);
+          }
+          
           if (payload.code) {
             updateAuthNote(type, "Codice: " + payload.code + " (anche nei log).");
-          } else if (payload.url) {
-            updateAuthNote(type, "Link aperto nel browser (anche nei log).");
+          } else if (authUrl && popupOpened) {
+            updateAuthNote(type, "Link aperto nel browser (controlla i log per il codice).");
+          } else if (authUrl) {
+            // Popup was blocked, provide manual link
+            updateAuthNote(type, 'Popup bloccato. Apri manualmente: <a href="' + authUrl + '" target="_blank" style="color: var(--color-gold-400);">' + authUrl + '</a>');
           } else {
             updateAuthNote(type, "Link disponibile nei log della console.");
           }
+          
           button.textContent = "Avviato";
           setTimeout(() => {
             button.textContent = original;
