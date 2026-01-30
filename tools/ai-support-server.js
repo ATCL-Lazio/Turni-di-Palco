@@ -644,7 +644,12 @@ function buildDashboardHtml({ protocol }) {
     .replace(/>/g, '\\u003e')
     .replace(/&/g, '\\u0026')
     .replace(/'/g, '\\u0027')
-    .replace(/"/g, '\\u0022');
+    .replace(/"/g, '\\u0022')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t')
+    .replace(/\f/g, '\\f')
+    .replace(/\b/g, '\\b');
 
   return `<!doctype html>
 <html lang="it">
