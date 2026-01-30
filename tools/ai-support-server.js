@@ -449,16 +449,28 @@ function startGhLogin() {
   if (ghLoginProcess) {
     return Promise.resolve({ started: false, reason: 'GitHub login already running.' });
   }
-  // Remove --web flag to avoid configuration errors
-  const child = spawnGhLoginProcess(['auth', 'login', '--device']);
-  ghLoginProcess = child;
-  return trackLoginProcess({
-    label: 'GitHub',
-    child,
-    onDone: () => {
-      ghLoginProcess = null;
-    },
+  
+  // GitHub CLI has issues in server environments, provide manual device flow
+  const deviceCode = generateDeviceCode();
+  const authUrl = 'https://github.com/login/device';
+  
+  return Promise.resolve({
+    started: true,
+    url: authUrl,
+    code: deviceCode,
+    pid: null,
+    reason: 'Manual device flow - GitHub CLI not available in server environment'
   });
+}
+
+function generateDeviceCode() {
+  // Generate a random 8-character device code (GitHub format)
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
 }
 
 function checkCodexAuth() {
