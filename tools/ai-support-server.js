@@ -1107,14 +1107,18 @@ function buildDashboardHtml({ protocol }) {
             }
           }
           
+          let popupOpened = false;
           if (authUrl) {
-            navigatePopup(popup, authUrl);
+            popupOpened = navigatePopup(popup, authUrl);
           }
           
           if (payload.code) {
             updateAuthNote(type, "Codice: " + payload.code + " (anche nei log).");
-          } else if (authUrl) {
+          } else if (authUrl && popupOpened) {
             updateAuthNote(type, "Link aperto nel browser (controlla i log per il codice).");
+          } else if (authUrl) {
+            // Popup was blocked, provide manual link
+            updateAuthNote(type, 'Popup bloccato. Apri manualmente: <a href="' + authUrl + '" target="_blank" style="color: var(--color-gold-400);">' + authUrl + '</a>');
           } else {
             updateAuthNote(type, "Link disponibile nei log della console.");
           }
