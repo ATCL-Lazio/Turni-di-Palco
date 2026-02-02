@@ -287,6 +287,19 @@ function buildCredentialSummary() {
   const dirs = maxwellCredentials?.dirs ?? null;
   const codex = maxwellCredentials?.codex;
   const github = maxwellCredentials?.github;
+  const codexAuthPath = dirs?.codexHomeDir
+    ? path.join(dirs.codexHomeDir, '.codex', 'auth.json')
+    : null;
+  let codexAuthExists = false;
+  let codexAuthSize = null;
+  try {
+    if (codexAuthPath && fs.existsSync(codexAuthPath)) {
+      codexAuthExists = true;
+      codexAuthSize = fs.statSync(codexAuthPath).size;
+    }
+  } catch {
+    // Ignore credential inspection errors.
+  }
   return {
     status: maxwellCredentials?.status ?? 'missing',
     filePath: maxwellCredentials?.filePath ?? null,
@@ -294,6 +307,9 @@ function buildCredentialSummary() {
     codex: {
       available: Boolean(codex?.accessToken && codex?.refreshToken && codex?.accountId),
       homeDir: dirs?.codexHomeDir ?? null,
+      authJson: codexAuthPath,
+      authJsonExists: codexAuthExists,
+      authJsonSize: codexAuthSize,
     },
     github: {
       available: Boolean(github?.token),
@@ -335,9 +351,7 @@ function hydrateMaxwellCredentials(credentials) {
     logError(`Failed to prepare credential directories: ${error.message}`);
   }
 
-  const apiKey = stripEnvValue(process.env.OPENAI_API_KEY);
   const codex = credentials.codex;
-  if (apiKey) return;
   if (!codex?.accessToken || !codex?.refreshToken || !codex?.accountId) return;
 
   try {
@@ -348,11 +362,9 @@ function hydrateMaxwellCredentials(credentials) {
 }
 
 function buildCodexEnv() {
-  const apiKey = stripEnvValue(process.env.OPENAI_API_KEY);
   const credentialDirs = maxwellCredentials?.dirs ?? null;
   const credentialCodex = maxwellCredentials?.codex ?? null;
   const canUseCredentialFile =
-    !apiKey &&
     maxwellCredentials?.status === 'loaded' &&
     credentialCodex?.accessToken &&
     credentialCodex?.refreshToken &&
@@ -374,12 +386,9 @@ function buildCodexEnv() {
     if (process.platform === 'win32') {
       env.USERPROFILE = homeDir;
     }
-  }
-
-  if (authStorage?.enabled && authStorage.codexDir) {
-    env.XDG_CONFIG_HOME = authStorage.codexDir;
-    env.XDG_STATE_HOME = authStorage.codexDir;
-    env.XDG_DATA_HOME = authStorage.codexDir;
+    env.XDG_CONFIG_HOME = homeDir;
+    env.XDG_STATE_HOME = homeDir;
+    env.XDG_DATA_HOME = homeDir;
   }
 
   return env;
@@ -755,6 +764,26 @@ function checkCodexAuth() {
 }
 
 function checkGhAuth() {
+  const tokenFromEnv =
+    stripEnvValue(process.env.GH_TOKEN) || stripEnvValue(process.env.GITHUB_TOKEN);
+  const tokenFromFile =
+    maxwellCredentials?.status === 'loaded'
+      ? readCredentialString(maxwellCredentials?.github?.token)
+      : '';
+  const token = tokenFromEnv || tokenFromFile;
+
+  if (token) {
+    return {
+      hasToken: true,
+      tokenLength: token.length,
+      ghBin,
+      source: tokenFromEnv ? 'env' : 'credentials-file',
+      sourceLabel: tokenFromEnv ? 'Token (env)' : 'Token (credentials file)',
+      status: 'authenticated',
+      detail: tokenFromEnv ? 'Token available via env.' : 'Token loaded from file.',
+    };
+  }
+
   const result = spawnGhSync(['auth', 'status']);
   if (result?.error) {
     return {
