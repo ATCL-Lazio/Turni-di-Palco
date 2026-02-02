@@ -114,6 +114,19 @@ function resolveRequestPath(distDir, urlPath) {
 
 function createHandler(distDir) {
   return (req, res) => {
+    // Health check endpoint per keep-alive incrociato
+    if (req.url === '/health' && req.method === 'GET') {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({
+        status: 'ok',
+        service: 'turni-di-palco',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+      }));
+      return;
+    }
+
     if (!req.url || req.method !== 'GET') {
       res.statusCode = 405;
       res.end('Method Not Allowed');
