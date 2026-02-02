@@ -6,6 +6,8 @@ const os = require('node:os');
 const path = require('node:path');
 const fs = require('node:fs');
 
+const repoRoot = path.resolve(__dirname, '..');
+
 const port =
   Number(process.env.PORT) ||
   Number(process.env.AI_SUPPORT_PORT || process.env.VITE_AI_SUPPORT_PORT) ||
@@ -26,6 +28,8 @@ const enableColor =
   process.env.AI_SUPPORT_COLOR !== 'false' &&
   process.stdout.isTTY;
 const authStorage = resolveAuthStorage();
+const maxwellCredentials = resolveMaxwellCredentials();
+hydrateMaxwellCredentials(maxwellCredentials);
 
 function isTruthy(value) {
   if (value === undefined || value === null) return false;
@@ -143,39 +147,286 @@ function resolveAuthStorage() {
   };
 }
 
-function buildCodexEnv() {
-  if (!authStorage?.enabled) return null;
+function readMaxwellCredentialsFile(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) {
+    return { status: 'missing', filePath: filePath ?? null, payload: null };
+  }
+
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    const payload = raw ? JSON.parse(raw) : null;
+    if (!payload || typeof payload !== 'object') {
+      return { status: 'invalid', filePath, payload: null, reason: 'empty-json' };
+    }
+    return { status: 'loaded', filePath, payload };
+  } catch (error) {
+    return { status: 'invalid', filePath, payload: null, reason: error.message };
+  }
+}
+
+function resolveMaxwellCredentialsPath() {
+  if (process.env.AI_SUPPORT_CREDENTIALS_FILE) {
+    return path.resolve(process.env.AI_SUPPORT_CREDENTIALS_FILE);
+  }
+
+  const candidates = [
+    path.join(repoRoot, 'maxwell-ai-credentials.json'),
+    path.join(repoRoot, '@maxwell-ai-credentials.json'),
+    path.join(repoRoot, '@maxwell-ai-credentials'),
+  ];
+
+  const secretFileNames = [
+    'maxwell-ai-credentials.json',
+    '@maxwell-ai-credentials.json',
+    '@maxwell-ai-credentials',
+    'maxwell-ai-credentials',
+  ];
+
+  const renderSecretDirs = [];
+  if (process.env.RENDER || process.env.RENDER_SERVICE_ID) {
+    for (const envKey of [
+      'RENDER_SECRET_FILES_DIR',
+      'RENDER_SECRET_DIR',
+      'RENDER_SECRETS_DIR',
+    ]) {
+      const dir = stripEnvValue(process.env[envKey]);
+      if (dir) renderSecretDirs.push(dir);
+    }
+
+    renderSecretDirs.push(
+      '/etc/secrets',
+      '/run/secrets',
+      '/var/secrets',
+      '/mnt/secrets',
+      '/secrets'
+    );
+  }
+
+  for (const dir of renderSecretDirs) {
+    for (const name of secretFileNames) {
+      candidates.push(path.join(dir, name));
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+function readCredentialString(value) {
+  if (value === undefined || value === null) return '';
+  return String(value).trim();
+}
+
+function resolveMaxwellCredentialsDirs() {
+  if (authStorage?.enabled && authStorage.authDir) {
+    return {
+      runtimeDir: authStorage.authDir,
+      codexHomeDir: authStorage.codexDir,
+      githubConfigDir: authStorage.githubDir,
+    };
+  }
+
+  const runtimeDir = path.join(repoRoot, '.temp', 'ai-support-auth');
   return {
-    ...process.env,
-    XDG_CONFIG_HOME: authStorage.codexDir,
-    XDG_STATE_HOME: authStorage.codexDir,
-    XDG_DATA_HOME: authStorage.codexDir,
+    runtimeDir,
+    codexHomeDir: path.join(runtimeDir, 'codex'),
+    githubConfigDir: path.join(runtimeDir, 'github'),
   };
 }
 
-function buildGhEnv() {
-  if (!authStorage?.enabled) return null;
-  
+function resolveMaxwellCredentials() {
+  const filePath = resolveMaxwellCredentialsPath();
+  const data = readMaxwellCredentialsFile(filePath);
+  const dirs = resolveMaxwellCredentialsDirs();
+
+  if (data.status !== 'loaded') {
+    return {
+      status: data.status,
+      filePath: data.filePath,
+      reason: data.reason ?? null,
+      dirs,
+      codex: null,
+      github: null,
+    };
+  }
+
+  const payload = data.payload;
+  const codexRaw = payload?.credentials?.codex_cli ?? payload?.codex_cli ?? null;
+  const githubRaw = payload?.credentials?.github_cli ?? payload?.github_cli ?? null;
+
+  const codex = codexRaw
+    ? {
+        authMode: readCredentialString(codexRaw.auth_mode) || 'chatgpt',
+        accountId: readCredentialString(codexRaw.account_id),
+        accessToken: readCredentialString(codexRaw.access_token),
+        refreshToken: readCredentialString(codexRaw.refresh_token),
+        lastRefresh: readCredentialString(codexRaw.last_refresh),
+      }
+    : null;
+
+  const github = githubRaw
+    ? {
+        hostname: readCredentialString(githubRaw.hostname),
+        token: readCredentialString(githubRaw.token),
+      }
+    : null;
+
+  return {
+    status: 'loaded',
+    filePath: data.filePath,
+    reason: null,
+    dirs,
+    codex,
+    github,
+  };
+}
+
+function buildCredentialSummary() {
+  const dirs = maxwellCredentials?.dirs ?? null;
+  const codex = maxwellCredentials?.codex;
+  const github = maxwellCredentials?.github;
+  return {
+    status: maxwellCredentials?.status ?? 'missing',
+    filePath: maxwellCredentials?.filePath ?? null,
+    reason: maxwellCredentials?.reason ?? null,
+    codex: {
+      available: Boolean(codex?.accessToken && codex?.refreshToken && codex?.accountId),
+      homeDir: dirs?.codexHomeDir ?? null,
+    },
+    github: {
+      available: Boolean(github?.token),
+      host: github?.hostname || null,
+      configDir: dirs?.githubConfigDir ?? null,
+    },
+  };
+}
+
+function ensureCodexAuthJson(homeDir, codex) {
+  if (!homeDir || !codex) return false;
+  const authDir = path.join(homeDir, '.codex');
+  fs.mkdirSync(authDir, { recursive: true });
+
+  const authFilePath = path.join(authDir, 'auth.json');
+  const payload = {
+    auth_mode: codex.authMode || 'chatgpt',
+    OPENAI_API_KEY: null,
+    tokens: {
+      access_token: codex.accessToken,
+      refresh_token: codex.refreshToken,
+      account_id: codex.accountId,
+    },
+    last_refresh: codex.lastRefresh || new Date().toISOString(),
+  };
+
+  fs.writeFileSync(authFilePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  return true;
+}
+
+function hydrateMaxwellCredentials(credentials) {
+  if (!credentials || credentials.status !== 'loaded') return;
+
+  const dirs = credentials.dirs;
+  try {
+    fs.mkdirSync(dirs.runtimeDir, { recursive: true });
+    fs.mkdirSync(dirs.githubConfigDir, { recursive: true });
+  } catch (error) {
+    logError(`Failed to prepare credential directories: ${error.message}`);
+  }
+
+  const apiKey = stripEnvValue(process.env.OPENAI_API_KEY);
+  const codex = credentials.codex;
+  if (apiKey) return;
+  if (!codex?.accessToken || !codex?.refreshToken || !codex?.accountId) return;
+
+  try {
+    ensureCodexAuthJson(dirs.codexHomeDir, codex);
+  } catch (error) {
+    logError(`Failed to hydrate Codex credentials: ${error.message}`);
+  }
+}
+
+function buildCodexEnv() {
+  const apiKey = stripEnvValue(process.env.OPENAI_API_KEY);
+  const credentialDirs = maxwellCredentials?.dirs ?? null;
+  const credentialCodex = maxwellCredentials?.codex ?? null;
+  const canUseCredentialFile =
+    !apiKey &&
+    maxwellCredentials?.status === 'loaded' &&
+    credentialCodex?.accessToken &&
+    credentialCodex?.refreshToken &&
+    credentialCodex?.accountId &&
+    credentialDirs?.codexHomeDir;
+
+  if (!authStorage?.enabled && !canUseCredentialFile) return null;
+
   const env = {
     ...process.env,
-    GH_CONFIG_DIR: authStorage.githubDir,
   };
-  
+
+  const homeDir = canUseCredentialFile
+    ? credentialDirs.codexHomeDir
+    : authStorage.codexDir;
+
+  if (homeDir) {
+    env.HOME = homeDir;
+    if (process.platform === 'win32') {
+      env.USERPROFILE = homeDir;
+    }
+  }
+
+  if (authStorage?.enabled && authStorage.codexDir) {
+    env.XDG_CONFIG_HOME = authStorage.codexDir;
+    env.XDG_STATE_HOME = authStorage.codexDir;
+    env.XDG_DATA_HOME = authStorage.codexDir;
+  }
+
+  return env;
+}
+
+function buildGhEnv() {
+  const credentialGithub = maxwellCredentials?.github ?? null;
+  const credentialHost = readCredentialString(credentialGithub?.hostname);
+  const credentialToken = readCredentialString(credentialGithub?.token);
+
+  const envToken = stripEnvValue(process.env.GH_TOKEN) || stripEnvValue(process.env.GITHUB_TOKEN);
+  const token = envToken || credentialToken;
+
+  const envHost = stripEnvValue(process.env.GH_HOST);
+  const host = envHost || credentialHost || 'github.com';
+
+  if (!authStorage?.enabled && !token) return null;
+
+  const env = {
+    ...process.env,
+  };
+
+  if (authStorage?.enabled && authStorage.githubDir) {
+    env.GH_CONFIG_DIR = authStorage.githubDir;
+  } else if (maxwellCredentials?.dirs?.githubConfigDir) {
+    env.GH_CONFIG_DIR = maxwellCredentials.dirs.githubConfigDir;
+  }
+
   // GitHub CLI requires HOME environment variable for configuration
   if (!env.HOME && !env.USERPROFILE) {
     env.HOME = '/tmp';
   }
-  
-  // Set GitHub CLI environment variables for server environments
-  env.GH_TOKEN = env.GH_TOKEN || '';
-  env.GH_HOST = env.GH_HOST || 'github.com';
-  env.GH_ENTERPRISE_TOKEN = env.GH_ENTERPRISE_TOKEN || '';
-  env.GITHUB_TOKEN = env.GITHUB_TOKEN || '';
-  
+
+  env.GH_HOST = host;
+
+  if (token) {
+    if (!env.GH_TOKEN) env.GH_TOKEN = token;
+    if (!env.GITHUB_TOKEN) env.GITHUB_TOKEN = token;
+    if (!env.GH_ENTERPRISE_TOKEN && host !== 'github.com') {
+      env.GH_ENTERPRISE_TOKEN = token;
+    }
+  }
+
   // Disable interactive prompts and spinners for server environment
   env.GH_SPINNER_DISABLED = '1';
   env.GH_ACCESSIBLE_PROMPTER = '1';
-  
+
   return env;
 }
 
@@ -665,6 +916,7 @@ function buildDashboardHtml({ protocol }) {
     codexAuth,
     ghAuth,
     authStorage,
+    credentials: buildCredentialSummary(),
   };
 
   const safe = (value) => String(value ?? '');
@@ -685,6 +937,7 @@ function buildDashboardHtml({ protocol }) {
     codexAuth: data.codexAuth,
     ghAuth: data.ghAuth,
     authStorage: data.authStorage,
+    credentials: data.credentials,
   });
   
   // Escape JSON for safe injection in HTML script tag
@@ -1744,7 +1997,8 @@ const requestHandler = (req, res) => {
         envFile: authStorage.envFile,
         envFileStatus: authStorage.envFileStatus,
         envFileWriteEnabled: authStorage.envFileWriteEnabled,
-      }
+      },
+      credentials: buildCredentialSummary(),
     });
     return;
   }
