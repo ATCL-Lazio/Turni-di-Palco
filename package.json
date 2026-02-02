@@ -21,7 +21,8 @@
     "ai:codex": "node tools/ai-codex.js",
     "ai:support": "node tools/ai-support-server.js",
     "cleanup:events": "node tools/cleanup-old-events.js",
-    "keep-alive": "node tools/keep-alive-reciprocal.js"
+    "keep-alive": "node tools/keep-alive-reciprocal.js",
+    "watchdog": "node tools/maxwell-watchdog.js"
   },
   "devDependencies": {
     "qrcode": "^1.5.4",
