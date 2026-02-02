@@ -6,6 +6,8 @@ const os = require('node:os');
 const path = require('node:path');
 const fs = require('node:fs');
 
+const repoRoot = path.resolve(__dirname, '..');
+
 const port =
   Number(process.env.PORT) ||
   Number(process.env.AI_SUPPORT_PORT || process.env.VITE_AI_SUPPORT_PORT) ||
@@ -26,6 +28,8 @@ const enableColor =
   process.env.AI_SUPPORT_COLOR !== 'false' &&
   process.stdout.isTTY;
 const authStorage = resolveAuthStorage();
+const maxwellCredentials = resolveMaxwellCredentials();
+hydrateMaxwellCredentials(maxwellCredentials);
 
 function isTruthy(value) {
   if (value === undefined || value === null) return false;
@@ -143,39 +147,297 @@ function resolveAuthStorage() {
   };
 }
 
-function buildCodexEnv() {
-  if (!authStorage?.enabled) return null;
+function readMaxwellCredentialsFile(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) {
+    return { status: 'missing', filePath: filePath ?? null, payload: null };
+  }
+
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    const payload = raw ? JSON.parse(raw) : null;
+    if (!payload || typeof payload !== 'object') {
+      return { status: 'invalid', filePath, payload: null, reason: 'empty-json' };
+    }
+    return { status: 'loaded', filePath, payload };
+  } catch (error) {
+    return { status: 'invalid', filePath, payload: null, reason: error.message };
+  }
+}
+
+function resolveMaxwellCredentialsPath() {
+  if (process.env.AI_SUPPORT_CREDENTIALS_FILE) {
+    return path.resolve(process.env.AI_SUPPORT_CREDENTIALS_FILE);
+  }
+
+  const candidates = [
+    path.join(repoRoot, 'maxwell-ai-credentials.json'),
+    path.join(repoRoot, '@maxwell-ai-credentials.json'),
+    path.join(repoRoot, '@maxwell-ai-credentials'),
+  ];
+
+  const secretFileNames = [
+    'maxwell-ai-credentials.json',
+    '@maxwell-ai-credentials.json',
+    '@maxwell-ai-credentials',
+    'maxwell-ai-credentials',
+  ];
+
+  const renderSecretDirs = [];
+  if (process.env.RENDER || process.env.RENDER_SERVICE_ID) {
+    for (const envKey of [
+      'RENDER_SECRET_FILES_DIR',
+      'RENDER_SECRET_DIR',
+      'RENDER_SECRETS_DIR',
+    ]) {
+      const dir = stripEnvValue(process.env[envKey]);
+      if (dir) renderSecretDirs.push(dir);
+    }
+
+    renderSecretDirs.push(
+      '/etc/secrets',
+      '/run/secrets',
+      '/var/secrets',
+      '/mnt/secrets',
+      '/secrets'
+    );
+  }
+
+  for (const dir of renderSecretDirs) {
+    for (const name of secretFileNames) {
+      candidates.push(path.join(dir, name));
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+function readCredentialString(value) {
+  if (value === undefined || value === null) return '';
+  return String(value).trim();
+}
+
+function resolveMaxwellCredentialsDirs() {
+  if (authStorage?.enabled && authStorage.authDir) {
+    return {
+      runtimeDir: authStorage.authDir,
+      codexHomeDir: authStorage.codexDir,
+      githubConfigDir: authStorage.githubDir,
+    };
+  }
+
+  const runtimeDir = path.join(repoRoot, '.temp', 'ai-support-auth');
   return {
-    ...process.env,
-    XDG_CONFIG_HOME: authStorage.codexDir,
-    XDG_STATE_HOME: authStorage.codexDir,
-    XDG_DATA_HOME: authStorage.codexDir,
+    runtimeDir,
+    codexHomeDir: path.join(runtimeDir, 'codex'),
+    githubConfigDir: path.join(runtimeDir, 'github'),
   };
 }
 
-function buildGhEnv() {
-  if (!authStorage?.enabled) return null;
-  
+function resolveMaxwellCredentials() {
+  const filePath = resolveMaxwellCredentialsPath();
+  const data = readMaxwellCredentialsFile(filePath);
+  const dirs = resolveMaxwellCredentialsDirs();
+
+  if (data.status !== 'loaded') {
+    return {
+      status: data.status,
+      filePath: data.filePath,
+      reason: data.reason ?? null,
+      dirs,
+      codex: null,
+      github: null,
+    };
+  }
+
+  const payload = data.payload;
+  const codexRaw = payload?.credentials?.codex_cli ?? payload?.codex_cli ?? null;
+  const githubRaw = payload?.credentials?.github_cli ?? payload?.github_cli ?? null;
+
+  const codex = codexRaw
+    ? {
+        authMode: readCredentialString(codexRaw.auth_mode) || 'chatgpt',
+        accountId: readCredentialString(codexRaw.account_id),
+        idToken: readCredentialString(codexRaw.id_token),
+        accessToken: readCredentialString(codexRaw.access_token),
+        refreshToken: readCredentialString(codexRaw.refresh_token),
+        lastRefresh: readCredentialString(codexRaw.last_refresh),
+      }
+    : null;
+
+  const github = githubRaw
+    ? {
+        hostname: readCredentialString(githubRaw.hostname),
+        token: readCredentialString(githubRaw.token),
+      }
+    : null;
+
+  return {
+    status: 'loaded',
+    filePath: data.filePath,
+    reason: null,
+    dirs,
+    codex,
+    github,
+  };
+}
+
+function buildCredentialSummary() {
+  const dirs = maxwellCredentials?.dirs ?? null;
+  const codex = maxwellCredentials?.codex;
+  const github = maxwellCredentials?.github;
+  const codexAuthPath = dirs?.codexHomeDir
+    ? path.join(dirs.codexHomeDir, '.codex', 'auth.json')
+    : null;
+  let codexAuthExists = false;
+  let codexAuthSize = null;
+  try {
+    if (codexAuthPath && fs.existsSync(codexAuthPath)) {
+      codexAuthExists = true;
+      codexAuthSize = fs.statSync(codexAuthPath).size;
+    }
+  } catch {
+    // Ignore credential inspection errors.
+  }
+  return {
+    status: maxwellCredentials?.status ?? 'missing',
+    filePath: maxwellCredentials?.filePath ?? null,
+    reason: maxwellCredentials?.reason ?? null,
+    codex: {
+      available: Boolean(codex?.accessToken && codex?.refreshToken && codex?.accountId),
+      homeDir: dirs?.codexHomeDir ?? null,
+      authJson: codexAuthPath,
+      authJsonExists: codexAuthExists,
+      authJsonSize: codexAuthSize,
+    },
+    github: {
+      available: Boolean(github?.token),
+      host: github?.hostname || null,
+      configDir: dirs?.githubConfigDir ?? null,
+    },
+  };
+}
+
+function ensureCodexAuthJson(homeDir, codex) {
+  if (!homeDir || !codex) return false;
+  const authDir = path.join(homeDir, '.codex');
+  fs.mkdirSync(authDir, { recursive: true });
+
+  const authFilePath = path.join(authDir, 'auth.json');
+  const payload = {
+    auth_mode: codex.authMode || 'chatgpt',
+    OPENAI_API_KEY: null,
+    tokens: {
+      id_token: codex.idToken || codex.accessToken,
+      access_token: codex.accessToken,
+      refresh_token: codex.refreshToken,
+      account_id: codex.accountId,
+    },
+    last_refresh: codex.lastRefresh || new Date().toISOString(),
+  };
+
+  fs.writeFileSync(authFilePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  return true;
+}
+
+function hydrateMaxwellCredentials(credentials) {
+  if (!credentials || credentials.status !== 'loaded') return;
+
+  const dirs = credentials.dirs;
+  try {
+    fs.mkdirSync(dirs.runtimeDir, { recursive: true });
+    fs.mkdirSync(dirs.githubConfigDir, { recursive: true });
+  } catch (error) {
+    logError(`Failed to prepare credential directories: ${error.message}`);
+  }
+
+  const codex = credentials.codex;
+  if (!codex?.accessToken || !codex?.refreshToken || !codex?.accountId) return;
+
+  try {
+    ensureCodexAuthJson(dirs.codexHomeDir, codex);
+  } catch (error) {
+    logError(`Failed to hydrate Codex credentials: ${error.message}`);
+  }
+}
+
+function buildCodexEnv() {
+  const credentialDirs = maxwellCredentials?.dirs ?? null;
+  const credentialCodex = maxwellCredentials?.codex ?? null;
+  const canUseCredentialFile =
+    maxwellCredentials?.status === 'loaded' &&
+    credentialCodex?.accessToken &&
+    credentialCodex?.refreshToken &&
+    credentialCodex?.accountId &&
+    credentialDirs?.codexHomeDir;
+
+  if (!authStorage?.enabled && !canUseCredentialFile) return null;
+
   const env = {
     ...process.env,
-    GH_CONFIG_DIR: authStorage.githubDir,
   };
-  
+
+  const homeDir = canUseCredentialFile
+    ? credentialDirs.codexHomeDir
+    : authStorage.codexDir;
+
+  if (homeDir) {
+    env.HOME = homeDir;
+    if (process.platform === 'win32') {
+      env.USERPROFILE = homeDir;
+    }
+    env.XDG_CONFIG_HOME = homeDir;
+    env.XDG_STATE_HOME = homeDir;
+    env.XDG_DATA_HOME = homeDir;
+  }
+
+  return env;
+}
+
+function buildGhEnv() {
+  const credentialGithub = maxwellCredentials?.github ?? null;
+  const credentialHost = readCredentialString(credentialGithub?.hostname);
+  const credentialToken = readCredentialString(credentialGithub?.token);
+
+  const envToken = stripEnvValue(process.env.GH_TOKEN) || stripEnvValue(process.env.GITHUB_TOKEN);
+  const token = envToken || credentialToken;
+
+  const envHost = stripEnvValue(process.env.GH_HOST);
+  const host = envHost || credentialHost || 'github.com';
+
+  if (!authStorage?.enabled && !token) return null;
+
+  const env = {
+    ...process.env,
+  };
+
+  if (authStorage?.enabled && authStorage.githubDir) {
+    env.GH_CONFIG_DIR = authStorage.githubDir;
+  } else if (maxwellCredentials?.dirs?.githubConfigDir) {
+    env.GH_CONFIG_DIR = maxwellCredentials.dirs.githubConfigDir;
+  }
+
   // GitHub CLI requires HOME environment variable for configuration
   if (!env.HOME && !env.USERPROFILE) {
     env.HOME = '/tmp';
   }
-  
-  // Set GitHub CLI environment variables for server environments
-  env.GH_TOKEN = env.GH_TOKEN || '';
-  env.GH_HOST = env.GH_HOST || 'github.com';
-  env.GH_ENTERPRISE_TOKEN = env.GH_ENTERPRISE_TOKEN || '';
-  env.GITHUB_TOKEN = env.GITHUB_TOKEN || '';
-  
+
+  env.GH_HOST = host;
+
+  if (token) {
+    if (!env.GH_TOKEN) env.GH_TOKEN = token;
+    if (!env.GITHUB_TOKEN) env.GITHUB_TOKEN = token;
+    if (!env.GH_ENTERPRISE_TOKEN && host !== 'github.com') {
+      env.GH_ENTERPRISE_TOKEN = token;
+    }
+  }
+
   // Disable interactive prompts and spinners for server environment
   env.GH_SPINNER_DISABLED = '1';
   env.GH_ACCESSIBLE_PROMPTER = '1';
-  
+
   return env;
 }
 
@@ -504,6 +766,26 @@ function checkCodexAuth() {
 }
 
 function checkGhAuth() {
+  const tokenFromEnv =
+    stripEnvValue(process.env.GH_TOKEN) || stripEnvValue(process.env.GITHUB_TOKEN);
+  const tokenFromFile =
+    maxwellCredentials?.status === 'loaded'
+      ? readCredentialString(maxwellCredentials?.github?.token)
+      : '';
+  const token = tokenFromEnv || tokenFromFile;
+
+  if (token) {
+    return {
+      hasToken: true,
+      tokenLength: token.length,
+      ghBin,
+      source: tokenFromEnv ? 'env' : 'credentials-file',
+      sourceLabel: tokenFromEnv ? 'Token (env)' : 'Token (credentials file)',
+      status: 'authenticated',
+      detail: tokenFromEnv ? 'Token available via env.' : 'Token loaded from file.',
+    };
+  }
+
   const result = spawnGhSync(['auth', 'status']);
   if (result?.error) {
     return {
@@ -665,6 +947,7 @@ function buildDashboardHtml({ protocol }) {
     codexAuth,
     ghAuth,
     authStorage,
+    credentials: buildCredentialSummary(),
   };
 
   const safe = (value) => String(value ?? '');
@@ -685,6 +968,7 @@ function buildDashboardHtml({ protocol }) {
     codexAuth: data.codexAuth,
     ghAuth: data.ghAuth,
     authStorage: data.authStorage,
+    credentials: data.credentials,
   });
   
   // Escape JSON for safe injection in HTML script tag
@@ -1744,7 +2028,8 @@ const requestHandler = (req, res) => {
         envFile: authStorage.envFile,
         envFileStatus: authStorage.envFileStatus,
         envFileWriteEnabled: authStorage.envFileWriteEnabled,
-      }
+      },
+      credentials: buildCredentialSummary(),
     });
     return;
   }
@@ -1952,6 +2237,211 @@ const requestHandler = (req, res) => {
   });
 };
 
+// Keep-alive reciproco integrato
+const TURNI_DI_PALCO_URL = 'https://turni-di-palco-fq85.onrender.com';
+const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // 10 minuti
+const KEEP_ALIVE_JITTER = 60000; // 1 minuto di jitter
+
+// Watchdog integration
+const WATCHDOG_INTERVAL = 60 * 60 * 1000; // 1 ora
+let watchdogTimer = null;
+let keepAliveTimer = null;
+
+function performKeepAlive() {
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    const client = https; // Sempre HTTPS per i servizi Render
+    
+    const req = client.get(`${TURNI_DI_PALCO_URL}/health`, { timeout: 30000 }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        const duration = Date.now() - startTime;
+        const success = res.statusCode === 200;
+        
+        logLine(`Keep-alive: Maxwell → Turni ${success ? '✓' : '✗'} (${res.statusCode}) ${duration}ms`);
+        
+        if (success && data) {
+          try {
+            const health = JSON.parse(data);
+            logLine(`  Turni Health: ${health.status} (${health.service}) uptime: ${Math.floor(health.uptime)}s`);
+          } catch (e) {
+            logLine(`  Response: ${data.substring(0, 100)}...`);
+          }
+        }
+        
+        resolve();
+      });
+    });
+
+    req.on('error', (error) => {
+      logLine(`Keep-alive error: ${error.message}`);
+      resolve();
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      logLine(`Keep-alive timeout`);
+      resolve();
+    });
+  });
+}
+
+function scheduleKeepAlive() {
+  if (keepAliveTimer) {
+    clearTimeout(keepAliveTimer);
+  }
+  
+  const interval = KEEP_ALIVE_INTERVAL + Math.random() * KEEP_ALIVE_JITTER;
+  const nextRun = new Date(Date.now() + interval);
+  
+  logLine(`Next keep-alive scheduled: ${nextRun.toISOString()}`);
+  
+  keepAliveTimer = setTimeout(async () => {
+    await performKeepAlive();
+    scheduleKeepAlive(); // Ri-schedula
+  }, interval);
+}
+
+function startKeepAlive() {
+  // Prima esecuzione dopo 30 secondi dall'avvio del server
+  setTimeout(() => {
+    logLine('Starting integrated keep-alive system...');
+    performKeepAlive().then(() => {
+      scheduleKeepAlive();
+    });
+  }, 30000);
+}
+
+// Watchdog integrato
+function performWatchdogCheck() {
+  return new Promise((resolve) => {
+    logLine('🐕 Starting watchdog scan...');
+    
+    // 1. Check servizi Render
+    const services = [
+      { name: 'Maxwell-AI-Support', url: 'https://maxwell-ai-support.onrender.com/health' },
+      { name: 'Turni-di-Palco', url: 'https://turni-di-palco-fq85.onrender.com/health' }
+    ];
+    
+    let problems = [];
+    let completed = 0;
+    
+    services.forEach(service => {
+      const startTime = Date.now();
+      const client = https;
+      
+      const req = client.get(service.url, { timeout: 10000 }, (res) => {
+        const responseTime = Date.now() - startTime;
+        
+        if (responseTime > 5000) {
+          problems.push({
+            type: 'performance',
+            severity: 'warning',
+            title: `Slow response: ${service.name}`,
+            details: `Response time: ${responseTime}ms (threshold: 5000ms)`,
+            data: { service: service.name, responseTime, url: service.url },
+            suggestion: 'Check service health and consider optimization'
+          });
+        }
+        
+        if (res.statusCode !== 200) {
+          problems.push({
+            type: 'availability',
+            severity: 'error',
+            title: `Service down: ${service.name}`,
+            details: `HTTP ${res.statusCode} from ${service.url}`,
+            data: { service: service.name, status: res.statusCode, url: service.url },
+            suggestion: 'Immediate investigation required'
+          });
+        }
+        
+        completed++;
+        if (completed === services.length) {
+          logLine(`Watchdog scan completed: ${problems.length} problems detected`);
+          resolve(problems);
+        }
+      });
+      
+      req.on('error', (error) => {
+        problems.push({
+          type: 'availability',
+          severity: 'error',
+          title: `Service unreachable: ${service.name}`,
+          details: `Failed to connect: ${error.message}`,
+          data: { service: service.name, error: error.message, url: service.url },
+          suggestion: 'Check service status and Render dashboard'
+        });
+        
+        completed++;
+        if (completed === services.length) {
+          logLine(`Watchdog scan completed: ${problems.length} problems detected`);
+          resolve(problems);
+        }
+      });
+      
+      req.on('timeout', () => {
+        req.destroy();
+        problems.push({
+          type: 'availability',
+          severity: 'error',
+          title: `Service timeout: ${service.name}`,
+          details: 'Request timeout after 10 seconds',
+          data: { service: service.name, url: service.url },
+          suggestion: 'Check service connectivity'
+        });
+        
+        completed++;
+        if (completed === services.length) {
+          logLine(`Watchdog scan completed: ${problems.length} problems detected`);
+          resolve(problems);
+        }
+      });
+    });
+  });
+}
+
+function scheduleWatchdog() {
+  if (watchdogTimer) {
+    clearTimeout(watchdogTimer);
+  }
+  
+  const interval = WATCHDOG_INTERVAL + Math.random() * 300000; // 1 ora ± 5 minuti jitter
+  const nextRun = new Date(Date.now() + interval);
+  
+  logLine(`Next watchdog scan scheduled: ${nextRun.toISOString()}`);
+  
+  watchdogTimer = setTimeout(async () => {
+    const problems = await performWatchdogCheck();
+    
+    // Log problemi rilevati
+    if (problems.length > 0) {
+      problems.forEach(problem => {
+        logLine(`🚨 WATCHDOG ALERT: ${problem.title}`);
+        logLine(`  Details: ${problem.details}`);
+        logLine(`  Suggestion: ${problem.suggestion}`);
+      });
+    }
+    
+    scheduleWatchdog(); // Ri-schedula
+  }, interval);
+}
+
+function startWatchdog() {
+  // Prima esecuzione dopo 2 minuti dall'avvio del server
+  setTimeout(() => {
+    logLine('🐕 Starting integrated watchdog system...');
+    performWatchdogCheck().then((problems) => {
+      if (problems.length > 0) {
+        logLine(`Initial watchdog scan found ${problems.length} problems`);
+      } else {
+        logLine('✅ Initial watchdog scan: No problems detected');
+      }
+      scheduleWatchdog();
+    });
+  }, 120000); // 2 minuti
+}
+
 const server = httpsOptions
   ? https.createServer(httpsOptions, requestHandler)
   : http.createServer(requestHandler);
@@ -1976,4 +2466,10 @@ server.listen(port, host, () => {
     }
     logLine(`Codex binary: ${codexBin}`);
   }
+  
+  // Avvia il keep-alive integrato
+  startKeepAlive();
+  
+  // Avvia il watchdog integrato
+  startWatchdog();
 });
