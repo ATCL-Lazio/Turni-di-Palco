@@ -260,6 +260,7 @@ function resolveMaxwellCredentials() {
     ? {
         authMode: readCredentialString(codexRaw.auth_mode) || 'chatgpt',
         accountId: readCredentialString(codexRaw.account_id),
+        idToken: readCredentialString(codexRaw.id_token),
         accessToken: readCredentialString(codexRaw.access_token),
         refreshToken: readCredentialString(codexRaw.refresh_token),
         lastRefresh: readCredentialString(codexRaw.last_refresh),
@@ -329,6 +330,7 @@ function ensureCodexAuthJson(homeDir, codex) {
     auth_mode: codex.authMode || 'chatgpt',
     OPENAI_API_KEY: null,
     tokens: {
+      id_token: codex.idToken || codex.accessToken,
       access_token: codex.accessToken,
       refresh_token: codex.refreshToken,
       account_id: codex.accountId,
