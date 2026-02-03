@@ -355,9 +355,9 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
     <Screen
       withBottomNavPadding={false}
       className="relative items-start justify-start"
-      contentClassName="relative w-full flex-1 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom,_0px)+20px)] space-y-0 box-border"
+      contentClassName="relative w-full flex flex-1 flex-col min-h-0 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom,_0px)+20px)] box-border"
     >
-      <div className="flex h-full w-full flex-col gap-4">
+      <div className="flex h-full w-full flex-1 flex-col gap-4 min-h-0">
         <button
           type="button"
           onClick={onBack}
@@ -424,7 +424,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
           </div>
         ) : null}
 
-        <div className="flex-1 overflow-y-auto pr-1 space-y-3">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3">
           {messages.map((message) => (
             <div
               key={message.id}
