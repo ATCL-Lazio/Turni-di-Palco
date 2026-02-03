@@ -2,7 +2,7 @@ import "../../../shared/styles/main.css";
 import { renderPageHero } from "./components/page-hero";
 import { renderPermissionsCard, attachPermissionsListeners } from "./features/permissions-card";
 import { renderStatusCard, attachStatusListeners } from "./features/status-card";
-import { requireDevAccess } from "./services/dev-gate";
+import { isPublicMode, requireDevAccess } from "./services/dev-gate";
 import { isFeatureEnabled } from "./services/feature-flags";
 
 const start = async () => {
@@ -14,23 +14,35 @@ const start = async () => {
     throw new Error("Root container missing");
   }
 
+  const description = isPublicMode
+    ? "Shell installabile e offline-ready per costruire il loop di gioco."
+    : "Shell installabile e offline-ready per costruire il loop di gioco. I moduli demo (profilo, attivita simulate e turni) ora vivono nel playground dev.";
+  const quickActions = [
+    { id: "hero", label: "Hero", href: "#hero", icon: "⬆️" },
+    { id: "permissions", label: "Permessi", href: "#permissions", icon: "✅" },
+    { id: "game", label: "Hub", href: "/game.html", icon: "🎮" },
+  ];
+
+  if (!isPublicMode) {
+    quickActions.splice(2, 0, { id: "dev", label: "Dev playground", href: "/dev.html", icon: "🛠️" });
+  }
+
+  const ctaRow = [
+    { id: "refresh", label: "Reload per update", kind: "button", dataAction: "refresh", variant: "ghost" },
+    { id: "open-game", label: "Apri interfaccia base", href: "/game.html", variant: "ghost", icon: "🎮" },
+  ];
+
+  if (!isPublicMode) {
+    ctaRow.unshift({ id: "open-dev", label: "Apri dev playground", href: "/dev.html", variant: "primary", icon: "🛠️" });
+  }
+
   const hero = renderPageHero({
     title: "Progressive Web App base",
-    description:
-      "Shell installabile e offline-ready per costruire il loop di gioco. I moduli demo (profilo, attivita simulate e turni) ora vivono nel playground dev.",
+    description,
     currentPage: "home",
     breadcrumbs: [{ label: "Home" }],
-    quickActions: [
-      { id: "hero", label: "Hero", href: "#hero", icon: "⬆️" },
-      { id: "permissions", label: "Permessi", href: "#permissions", icon: "✅" },
-      { id: "dev", label: "Dev playground", href: "/dev.html", icon: "🛠️" },
-      { id: "game", label: "Hub", href: "/game.html", icon: "🎮" },
-    ],
-    ctaRow: [
-      { id: "open-dev", label: "Apri dev playground", href: "/dev.html", variant: "primary", icon: "🛠️" },
-      { id: "refresh", label: "Reload per update", kind: "button", dataAction: "refresh", variant: "ghost" },
-      { id: "open-game", label: "Apri interfaccia base", href: "/game.html", variant: "ghost", icon: "🎮" },
-    ],
+    quickActions,
+    ctaRow,
   });
 
   root.innerHTML = `

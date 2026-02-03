@@ -14,6 +14,9 @@ type DevGateState = {
 
 const allowedRoles = parseEnvList(import.meta.env.VITE_PWA_DEV_ROLES ?? "dev");
 const allowedEmails = parseEnvList(import.meta.env.VITE_PWA_DEV_EMAILS ?? "");
+const publicModeValue = import.meta.env.VITE_PUBLIC_MODE;
+
+export const isPublicMode = publicModeValue === "true" || publicModeValue === "1";
 
 function parseEnvList(value: string) {
   return value
@@ -151,6 +154,7 @@ function exitDevGate(state?: DevGateState) {
 }
 
 export async function requireDevAccess() {
+  if (isPublicMode) return true;
   const root = document.querySelector<HTMLElement>("#app") ?? document.body;
 
   if (!isSupabaseConfigured || !supabase) {
