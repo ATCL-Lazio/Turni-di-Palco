@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
       
     steps:
     - name: Configure Git
@@ -45,6 +46,11 @@ jobs:
         echo "✅ Branches synchronized successfully"
         echo "🔄 Render will auto-deploy render/preview"
         echo "🌐 Netlify will auto-deploy netlify/preview (if configured)"
+        
+    - name: Trigger Render Deploy Workflow
+      run: |
+        echo "🚀 Triggering deploy-render workflow..."
+        gh workflow run deploy-render.yml --field branch=render/preview
 
   sync-netlify-preview:
     needs: sync-render-preview
