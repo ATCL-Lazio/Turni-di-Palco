@@ -60,12 +60,15 @@ function getRequestAuthToken(req) {
     typeof req.headers['x-ai-support-token'] === 'string'
       ? req.headers['x-ai-support-token']
       : '';
+  if (headerToken.trim()) {
+    return headerToken.trim();
+  }
   const authHeader =
     typeof req.headers.authorization === 'string' ? req.headers.authorization : '';
   if (authHeader.toLowerCase().startsWith('bearer ')) {
     return authHeader.slice(7).trim();
   }
-  return headerToken.trim();
+  return '';
 }
 
 function readEnvFileValue(filePath, key) {
@@ -2334,15 +2337,20 @@ const requestHandler = (req, res) => {
 
   if (req.url === '/api/ai/issue') {
     const requiredToken = resolveIssueAuthToken();
-    if (requiredToken) {
-      const providedToken = getRequestAuthToken(req);
-      if (!providedToken || providedToken !== requiredToken) {
-        logLine(
-          `${requestId} POST /api/ai/issue\n  client=${clientIp}\n  status=${formatStatus(401)}\n  duration=${Date.now() - start}ms`
-        );
-        sendJson(res, 401, { error: 'Unauthorized' });
-        return;
-      }
+    if (!requiredToken) {
+      logLine(
+        `${requestId} POST /api/ai/issue\n  client=${clientIp}\n  status=${formatStatus(503)}\n  duration=${Date.now() - start}ms`
+      );
+      sendJson(res, 503, { error: 'Issue auth token not configured' });
+      return;
+    }
+    const providedToken = getRequestAuthToken(req);
+    if (!providedToken || providedToken !== requiredToken) {
+      logLine(
+        `${requestId} POST /api/ai/issue\n  client=${clientIp}\n  status=${formatStatus(401)}\n  duration=${Date.now() - start}ms`
+      );
+      sendJson(res, 401, { error: 'Unauthorized' });
+      return;
     }
   }
 
