@@ -150,10 +150,20 @@ jobs:
                 | reverse
               ')"
 
-              deploy="$(echo "$recent_deploys" | jq -c --arg sha "$DEPLOY_SHA" '
-                (map(select((.commit // "") as $c | ($c != "" and ($c == $sha or ($sha | startswith($c)) or ($c | startswith($sha[0:7]))))) | first)
-                // first
+              deploy_match="$(echo "$recent_deploys" | jq -c --arg sha "$DEPLOY_SHA" '
+                map(
+                  select(
+                    (.commit // "") as $c
+                    | ($c != "" and ($c == $sha or ($sha | startswith($c)) or ($c | startswith($sha[0:7]))))
+                  )
+                )
+                | first // empty
               ')"
+              if [ -n "$deploy_match" ]; then
+                deploy="$deploy_match"
+              else
+                deploy="$(echo "$recent_deploys" | jq -c 'first // empty')"
+              fi
 
               if [ "$deploy" = "null" ] || [ -z "$deploy" ]; then
                 latest_id="$(echo "$deploys_json" | jq -r 'sort_by(.createdEpoch) | reverse | first | (.id // "none")')"
