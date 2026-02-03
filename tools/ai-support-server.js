@@ -260,6 +260,7 @@ function resolveMaxwellCredentials() {
     ? {
         authMode: readCredentialString(codexRaw.auth_mode) || 'chatgpt',
         accountId: readCredentialString(codexRaw.account_id),
+        idToken: readCredentialString(codexRaw.id_token),
         accessToken: readCredentialString(codexRaw.access_token),
         refreshToken: readCredentialString(codexRaw.refresh_token),
         lastRefresh: readCredentialString(codexRaw.last_refresh),
@@ -329,6 +330,7 @@ function ensureCodexAuthJson(homeDir, codex) {
     auth_mode: codex.authMode || 'chatgpt',
     OPENAI_API_KEY: null,
     tokens: {
+      id_token: codex.idToken || codex.accessToken,
       access_token: codex.accessToken,
       refresh_token: codex.refreshToken,
       account_id: codex.accountId,
@@ -2235,6 +2237,211 @@ const requestHandler = (req, res) => {
   });
 };
 
+// Keep-alive reciproco integrato
+const TURNI_DI_PALCO_URL = 'https://turni-di-palco-fq85.onrender.com';
+const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // 10 minuti
+const KEEP_ALIVE_JITTER = 60000; // 1 minuto di jitter
+
+// Watchdog integration
+const WATCHDOG_INTERVAL = 60 * 60 * 1000; // 1 ora
+let watchdogTimer = null;
+let keepAliveTimer = null;
+
+function performKeepAlive() {
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    const client = https; // Sempre HTTPS per i servizi Render
+    
+    const req = client.get(`${TURNI_DI_PALCO_URL}/health`, { timeout: 30000 }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        const duration = Date.now() - startTime;
+        const success = res.statusCode === 200;
+        
+        logLine(`Keep-alive: Maxwell → Turni ${success ? '✓' : '✗'} (${res.statusCode}) ${duration}ms`);
+        
+        if (success && data) {
+          try {
+            const health = JSON.parse(data);
+            logLine(`  Turni Health: ${health.status} (${health.service}) uptime: ${Math.floor(health.uptime)}s`);
+          } catch (e) {
+            logLine(`  Response: ${data.substring(0, 100)}...`);
+          }
+        }
+        
+        resolve();
+      });
+    });
+
+    req.on('error', (error) => {
+      logLine(`Keep-alive error: ${error.message}`);
+      resolve();
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      logLine(`Keep-alive timeout`);
+      resolve();
+    });
+  });
+}
+
+function scheduleKeepAlive() {
+  if (keepAliveTimer) {
+    clearTimeout(keepAliveTimer);
+  }
+  
+  const interval = KEEP_ALIVE_INTERVAL + Math.random() * KEEP_ALIVE_JITTER;
+  const nextRun = new Date(Date.now() + interval);
+  
+  logLine(`Next keep-alive scheduled: ${nextRun.toISOString()}`);
+  
+  keepAliveTimer = setTimeout(async () => {
+    await performKeepAlive();
+    scheduleKeepAlive(); // Ri-schedula
+  }, interval);
+}
+
+function startKeepAlive() {
+  // Prima esecuzione dopo 30 secondi dall'avvio del server
+  setTimeout(() => {
+    logLine('Starting integrated keep-alive system...');
+    performKeepAlive().then(() => {
+      scheduleKeepAlive();
+    });
+  }, 30000);
+}
+
+// Watchdog integrato
+function performWatchdogCheck() {
+  return new Promise((resolve) => {
+    logLine('🐕 Starting watchdog scan...');
+    
+    // 1. Check servizi Render
+    const services = [
+      { name: 'Maxwell-AI-Support', url: 'https://maxwell-ai-support.onrender.com/health' },
+      { name: 'Turni-di-Palco', url: 'https://turni-di-palco-fq85.onrender.com/health' }
+    ];
+    
+    let problems = [];
+    let completed = 0;
+    
+    services.forEach(service => {
+      const startTime = Date.now();
+      const client = https;
+      
+      const req = client.get(service.url, { timeout: 10000 }, (res) => {
+        const responseTime = Date.now() - startTime;
+        
+        if (responseTime > 5000) {
+          problems.push({
+            type: 'performance',
+            severity: 'warning',
+            title: `Slow response: ${service.name}`,
+            details: `Response time: ${responseTime}ms (threshold: 5000ms)`,
+            data: { service: service.name, responseTime, url: service.url },
+            suggestion: 'Check service health and consider optimization'
+          });
+        }
+        
+        if (res.statusCode !== 200) {
+          problems.push({
+            type: 'availability',
+            severity: 'error',
+            title: `Service down: ${service.name}`,
+            details: `HTTP ${res.statusCode} from ${service.url}`,
+            data: { service: service.name, status: res.statusCode, url: service.url },
+            suggestion: 'Immediate investigation required'
+          });
+        }
+        
+        completed++;
+        if (completed === services.length) {
+          logLine(`Watchdog scan completed: ${problems.length} problems detected`);
+          resolve(problems);
+        }
+      });
+      
+      req.on('error', (error) => {
+        problems.push({
+          type: 'availability',
+          severity: 'error',
+          title: `Service unreachable: ${service.name}`,
+          details: `Failed to connect: ${error.message}`,
+          data: { service: service.name, error: error.message, url: service.url },
+          suggestion: 'Check service status and Render dashboard'
+        });
+        
+        completed++;
+        if (completed === services.length) {
+          logLine(`Watchdog scan completed: ${problems.length} problems detected`);
+          resolve(problems);
+        }
+      });
+      
+      req.on('timeout', () => {
+        req.destroy();
+        problems.push({
+          type: 'availability',
+          severity: 'error',
+          title: `Service timeout: ${service.name}`,
+          details: 'Request timeout after 10 seconds',
+          data: { service: service.name, url: service.url },
+          suggestion: 'Check service connectivity'
+        });
+        
+        completed++;
+        if (completed === services.length) {
+          logLine(`Watchdog scan completed: ${problems.length} problems detected`);
+          resolve(problems);
+        }
+      });
+    });
+  });
+}
+
+function scheduleWatchdog() {
+  if (watchdogTimer) {
+    clearTimeout(watchdogTimer);
+  }
+  
+  const interval = WATCHDOG_INTERVAL + Math.random() * 300000; // 1 ora ± 5 minuti jitter
+  const nextRun = new Date(Date.now() + interval);
+  
+  logLine(`Next watchdog scan scheduled: ${nextRun.toISOString()}`);
+  
+  watchdogTimer = setTimeout(async () => {
+    const problems = await performWatchdogCheck();
+    
+    // Log problemi rilevati
+    if (problems.length > 0) {
+      problems.forEach(problem => {
+        logLine(`🚨 WATCHDOG ALERT: ${problem.title}`);
+        logLine(`  Details: ${problem.details}`);
+        logLine(`  Suggestion: ${problem.suggestion}`);
+      });
+    }
+    
+    scheduleWatchdog(); // Ri-schedula
+  }, interval);
+}
+
+function startWatchdog() {
+  // Prima esecuzione dopo 2 minuti dall'avvio del server
+  setTimeout(() => {
+    logLine('🐕 Starting integrated watchdog system...');
+    performWatchdogCheck().then((problems) => {
+      if (problems.length > 0) {
+        logLine(`Initial watchdog scan found ${problems.length} problems`);
+      } else {
+        logLine('✅ Initial watchdog scan: No problems detected');
+      }
+      scheduleWatchdog();
+    });
+  }, 120000); // 2 minuti
+}
+
 const server = httpsOptions
   ? https.createServer(httpsOptions, requestHandler)
   : http.createServer(requestHandler);
@@ -2259,4 +2466,10 @@ server.listen(port, host, () => {
     }
     logLine(`Codex binary: ${codexBin}`);
   }
+  
+  // Avvia il keep-alive integrato
+  startKeepAlive();
+  
+  // Avvia il watchdog integrato
+  startWatchdog();
 });

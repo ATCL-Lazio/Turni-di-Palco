@@ -10,5 +10,8 @@
         "topbar",
         "COOLDOWN",
         "valuenow"
+    ],
+    "github-actions.workflows.pinned.workflows": [
+        ".github/workflows/sync-deploy-branches.yml"
     ]
 }
