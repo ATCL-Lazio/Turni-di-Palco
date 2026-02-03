@@ -53,8 +53,9 @@ jobs:
       id: deployment-main
       with:
         token: '${{ github.token }}'
+        ref: render/preview
         environment-url: https://turni-di-palco.onrender.com
-        environment: preview
+        environment: render/preview - Turni-di-Palco
         description: 'Deploy Turni-di-Palco to Render preview'
         
     - name: Create GitHub Deployment - Maxwell-AI-Support  
@@ -62,8 +63,9 @@ jobs:
       id: deployment-ai
       with:
         token: '${{ github.token }}'
+        ref: render/preview
         environment-url: https://maxwell-ai-support.onrender.com
-        environment: preview
+        environment: render/preview - Maxwell-AI-Support
         description: 'Deploy Maxwell-AI-Support to Render preview'
         
     - name: Update deployment status (success) - Turni-di-Palco
@@ -138,8 +140,9 @@ jobs:
       id: deployment-netlify
       with:
         token: '${{ github.token }}'
+        ref: netlify/preview
         environment-url: https://turni-di-palco.netlify.app
-        environment: preview
+        environment: netlify/preview - Turni-di-Palco
         description: 'Deploy to Netlify preview environment'
         
     - name: Update deployment status (success) - Netlify
