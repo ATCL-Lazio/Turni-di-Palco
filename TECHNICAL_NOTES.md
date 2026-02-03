@@ -28,10 +28,10 @@
   - `AI_SUPPORT_PORT` (server port, default 8787)
   - `VITE_AI_SUPPORT_PORT` (client/proxy port, default 8787)
   - `AI_SUPPORT_ALLOWED_ORIGINS` (comma-separated allowlist; default deny if unset)
-  - `AI_SUPPORT_API_KEY` (required: API key for `/api/ai/chat` and `/api/ai/issue`, passed as `Authorization: Bearer ...`)
+  - `AI_SUPPORT_API_KEY` (opzionale ma consigliata: se presente, protegge `/api/ai/chat` e `/api/ai/issue`; inviare `Authorization: Bearer ...` o `X-AI-SUPPORT-TOKEN`)
   - `AI_SUPPORT_RATE_LIMIT_MAX` (rate limit requests per window, default 60)
   - `AI_SUPPORT_RATE_LIMIT_WINDOW_MS` (rate limit window in ms, default 60000)
-  - `AI_SUPPORT_ADMIN_ENABLED` (admin endpoints `/auth` + `/auth/command`; default false in production)
+  - `AI_SUPPORT_ADMIN_ENABLED` (admin endpoints `/auth` + `/auth/command`; default false)
   - `VITE_AI_SUPPORT_ENDPOINT` (client endpoint override)
   - `VITE_AI_SUPPORT_ISSUE_ENDPOINT` (issue endpoint override)
 
