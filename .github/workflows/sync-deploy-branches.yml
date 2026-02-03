@@ -48,6 +48,8 @@ jobs:
         echo "🌐 Netlify will auto-deploy netlify/preview (if configured)"
         
     - name: Trigger Render Deploy Workflow
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: |
         echo "🚀 Triggering deploy-render workflow..."
         gh workflow run deploy-render.yml --field branch=render/preview
