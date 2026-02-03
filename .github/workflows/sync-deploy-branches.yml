@@ -6,16 +6,15 @@ on:
   workflow_dispatch:
 
 jobs:
-
   configuration:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-    - name: Configure Git
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
   sync-render-preview:
     runs-on: ubuntu-latest
@@ -23,86 +22,184 @@ jobs:
       contents: write
       actions: write
       deployments: write
-      
+
     steps:
-    - name: Configure Git
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-    - name: Sync branch
-      run: |
-        git fetch origin main
-        # Hard align render/preview to main to avoid merge commits
-        git checkout -B render/preview origin/main
-        git push -f origin render/preview
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Trigger Render deployments
-      run: |
-        echo "✅ Branches synchronized successfully"
-        echo "🔄 Render will auto-deploy render/preview"
-        echo "🌐 Netlify will auto-deploy netlify/preview (if configured)"
-        
-    - name: Create GitHub Deployment - Turni-di-Palco
-      uses: chrnorm/deployment-action@v2
-      id: deployment-main
-      with:
-        token: '${{ github.token }}'
-        ref: render/preview
-        environment-url: https://turni-di-palco.onrender.com
-        environment: render/preview - Turni-di-Palco
-        description: 'Deploy Turni-di-Palco to Render preview'
-        
-    - name: Create GitHub Deployment - Maxwell-AI-Support  
-      uses: chrnorm/deployment-action@v2
-      id: deployment-ai
-      with:
-        token: '${{ github.token }}'
-        ref: render/preview
-        environment-url: https://maxwell-ai-support.onrender.com
-        environment: render/preview - Maxwell-AI-Support
-        description: 'Deploy Maxwell-AI-Support to Render preview'
-        
-    - name: Update deployment status (success) - Turni-di-Palco
-      if: success()
-      uses: chrnorm/deployment-status@v2
-      with:
-        token: '${{ github.token }}'
-        deployment-id: ${{ steps.deployment-main.outputs.deployment_id }}
-        state: 'success'
-        environment-url: https://turni-di-palco.onrender.com
-        
-    - name: Update deployment status (success) - Maxwell-AI-Support
-      if: success()
-      uses: chrnorm/deployment-status@v2
-      with:
-        token: '${{ github.token }}'
-        deployment-id: ${{ steps.deployment-ai.outputs.deployment_id }}
-        state: 'success'
-        environment-url: https://maxwell-ai-support.onrender.com
-        
-    - name: Update deployment status (failure) - Turni-di-Palco
-      if: failure()
-      uses: chrnorm/deployment-status@v2
-      with:
-        token: '${{ github.token }}'
-        deployment-id: ${{ steps.deployment-main.outputs.deployment_id }}
-        state: 'failure'
-        environment-url: https://turni-di-palco.onrender.com
-        
-    - name: Update deployment status (failure) - Maxwell-AI-Support
-      if: failure()
-      uses: chrnorm/deployment-status@v2
-      with:
-        token: '${{ github.token }}'
-        deployment-id: ${{ steps.deployment-ai.outputs.deployment_id }}
-        state: 'failure'
-        environment-url: https://maxwell-ai-support.onrender.com
+      - name: Sync branch
+        id: sync-render-branch
+        run: |
+          git fetch origin main
+          # Hard align render/preview to main to avoid merge commits
+          git checkout -B render/preview origin/main
+          git push -f origin render/preview
+          echo "deploy_sha=$(git rev-parse origin/main)" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Deployment - Turni-di-Palco
+        uses: chrnorm/deployment-action@v2
+        id: deployment-main
+        with:
+          token: '${{ github.token }}'
+          ref: render/preview
+          environment-url: https://turni-di-palco.onrender.com
+          environment: render/preview - Turni-di-Palco
+          description: 'Deploy Turni-di-Palco to Render preview'
+
+      - name: Create GitHub Deployment - Maxwell-AI-Support
+        uses: chrnorm/deployment-action@v2
+        id: deployment-ai
+        with:
+          token: '${{ github.token }}'
+          ref: render/preview
+          environment-url: https://maxwell-ai-support.onrender.com
+          environment: render/preview - Maxwell-AI-Support
+          description: 'Deploy Maxwell-AI-Support to Render preview'
+
+      - name: Mark deployments in progress - Render
+        if: always()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-main.outputs.deployment_id }}
+          state: 'in_progress'
+          environment-url: https://turni-di-palco.onrender.com
+
+      - name: Mark deployments in progress - Maxwell
+        if: always()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-ai.outputs.deployment_id }}
+          state: 'in_progress'
+          environment-url: https://maxwell-ai-support.onrender.com
+
+      - name: Wait for Render auto-deploys
+        id: wait-render
+        env:
+          DEPLOY_SHA: ${{ steps.sync-render-branch.outputs.deploy_sha }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID_TURNI: ${{ secrets.RENDER_SERVICE_ID_TURNI }}
+          RENDER_SERVICE_ID_MAXWELL: ${{ secrets.RENDER_SERVICE_ID_MAXWELL }}
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for var in DEPLOY_SHA RENDER_API_KEY RENDER_SERVICE_ID_TURNI RENDER_SERVICE_ID_MAXWELL; do
+            if [ -z "${!var:-}" ]; then
+              echo "Missing required value: $var"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            echo "turni_status=failure" >> "$GITHUB_OUTPUT"
+            echo "maxwell_status=failure" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          poll_render() {
+            service_id="$1"
+            label="$2"
+            status="pending"
+
+            for attempt in $(seq 1 90); do
+              response="$(curl -fsS \
+                -H "Authorization: Bearer $RENDER_API_KEY" \
+                "https://api.render.com/v1/services/${service_id}/deploys?limit=20" || true)"
+
+              deploy="$(echo "$response" | jq -c --arg sha "$DEPLOY_SHA" '
+                if type == "array" then .
+                elif .deploys then .deploys
+                elif .data then .data
+                else [] end
+                | map(select((.commit.id // .commitId // .commit.sha // "") == $sha))
+                | first
+              ')"
+
+              if [ "$deploy" = "null" ] || [ -z "$deploy" ]; then
+                echo "[$label] attempt $attempt/90: no deploy found yet for $DEPLOY_SHA"
+                sleep 20
+                continue
+              fi
+
+              deploy_status="$(echo "$deploy" | jq -r '.status // .state // .deployStatus // "unknown"')"
+              echo "[$label] attempt $attempt/90: status=$deploy_status"
+
+              case "$deploy_status" in
+                live|deployed|ready|success)
+                  status="success"
+                  break
+                  ;;
+                build_failed|deploy_failed|failed|error|canceled|cancelled)
+                  status="failure"
+                  break
+                  ;;
+                *)
+                  sleep 20
+                  ;;
+              esac
+            done
+
+            if [ "$status" = "pending" ]; then
+              status="failure"
+            fi
+
+            echo "$status"
+          }
+
+          turni_status="$(poll_render "$RENDER_SERVICE_ID_TURNI" "Turni-di-Palco")"
+          maxwell_status="$(poll_render "$RENDER_SERVICE_ID_MAXWELL" "Maxwell-AI-Support")"
+
+          echo "turni_status=$turni_status" >> "$GITHUB_OUTPUT"
+          echo "maxwell_status=$maxwell_status" >> "$GITHUB_OUTPUT"
+
+      - name: Update deployment status (success) - Turni-di-Palco
+        if: always() && steps.wait-render.outputs.turni_status == 'success'
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-main.outputs.deployment_id }}
+          state: 'success'
+          environment-url: https://turni-di-palco.onrender.com
+
+      - name: Update deployment status (success) - Maxwell-AI-Support
+        if: always() && steps.wait-render.outputs.maxwell_status == 'success'
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-ai.outputs.deployment_id }}
+          state: 'success'
+          environment-url: https://maxwell-ai-support.onrender.com
+
+      - name: Update deployment status (failure) - Turni-di-Palco
+        if: always() && steps.wait-render.outputs.turni_status != 'success'
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-main.outputs.deployment_id }}
+          state: 'failure'
+          environment-url: https://turni-di-palco.onrender.com
+
+      - name: Update deployment status (failure) - Maxwell-AI-Support
+        if: always() && steps.wait-render.outputs.maxwell_status != 'success'
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-ai.outputs.deployment_id }}
+          state: 'failure'
+          environment-url: https://maxwell-ai-support.onrender.com
+
+      - name: Fail workflow if Render deploys failed
+        if: always() && (steps.wait-render.outputs.turni_status != 'success' || steps.wait-render.outputs.maxwell_status != 'success')
+        run: exit 1
 
   sync-netlify-preview:
     needs: sync-render-preview
@@ -112,53 +209,126 @@ jobs:
       deployments: write
 
     steps:
-    - name: Configure Git
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-    - name: Sync branch
-      run: |
-        git fetch origin main
-        # Hard align netlify/preview to main to avoid merge commits
-        git checkout -B netlify/preview origin/main
-        git push -f origin netlify/preview
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Trigger Netlify deployments
-      run: |
-        echo "✅ Branches synchronized successfully"
-        echo "🔄 Render will auto-deploy render/preview"
-        echo "🌐 Netlify will auto-deploy netlify/preview (if configured)"
-        
-    - name: Create GitHub Deployment - Netlify Preview
-      uses: chrnorm/deployment-action@v2
-      id: deployment-netlify
-      with:
-        token: '${{ github.token }}'
-        ref: netlify/preview
-        environment-url: https://turni-di-palco.netlify.app
-        environment: netlify/preview - Turni-di-Palco
-        description: 'Deploy to Netlify preview environment'
-        
-    - name: Update deployment status (success) - Netlify
-      if: success()
-      uses: chrnorm/deployment-status@v2
-      with:
-        token: '${{ github.token }}'
-        deployment-id: ${{ steps.deployment-netlify.outputs.deployment_id }}
-        state: 'success'
-        environment-url: https://turni-di-palco.netlify.app
-        
-    - name: Update deployment status (failure) - Netlify
-      if: failure()
-      uses: chrnorm/deployment-status@v2
-      with:
-        token: '${{ github.token }}'
-        deployment-id: ${{ steps.deployment-netlify.outputs.deployment_id }}
-        state: 'failure'
-        environment-url: https://turni-di-palco.netlify.app
+      - name: Sync branch
+        id: sync-netlify-branch
+        run: |
+          git fetch origin main
+          # Hard align netlify/preview to main to avoid merge commits
+          git checkout -B netlify/preview origin/main
+          git push -f origin netlify/preview
+          echo "deploy_sha=$(git rev-parse origin/main)" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Deployment - Netlify Preview
+        uses: chrnorm/deployment-action@v2
+        id: deployment-netlify
+        with:
+          token: '${{ github.token }}'
+          ref: netlify/preview
+          environment-url: https://turni-di-palco.netlify.app
+          environment: netlify/preview - Turni-di-Palco
+          description: 'Deploy to Netlify preview environment'
+
+      - name: Mark deployment in progress - Netlify
+        if: always()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-netlify.outputs.deployment_id }}
+          state: 'in_progress'
+          environment-url: https://turni-di-palco.netlify.app
+
+      - name: Wait for Netlify auto-deploy
+        id: wait-netlify
+        env:
+          DEPLOY_SHA: ${{ steps.sync-netlify-branch.outputs.deploy_sha }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID_TURNI: ${{ secrets.NETLIFY_SITE_ID_TURNI }}
+        run: |
+          set -euo pipefail
+
+          for var in DEPLOY_SHA NETLIFY_AUTH_TOKEN NETLIFY_SITE_ID_TURNI; do
+            if [ -z "${!var:-}" ]; then
+              echo "Missing required value: $var"
+              echo "netlify_status=failure" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+
+          status="pending"
+          for attempt in $(seq 1 90); do
+            response="$(curl -fsS \
+              -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+              "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID_TURNI}/deploys?per_page=20" || true)"
+
+            deploy="$(echo "$response" | jq -c --arg sha "$DEPLOY_SHA" '
+              map(
+                select(
+                  (.branch // "") == "netlify/preview" and
+                  ((.commit_ref // .commit_sha // "") == $sha or (.commit_ref // .commit_sha // "") == ($sha[0:7]))
+                )
+              )
+              | first
+            ')"
+
+            if [ "$deploy" = "null" ] || [ -z "$deploy" ]; then
+              echo "[Netlify] attempt $attempt/90: no deploy found yet for $DEPLOY_SHA"
+              sleep 20
+              continue
+            fi
+
+            deploy_state="$(echo "$deploy" | jq -r '.state // "unknown"')"
+            echo "[Netlify] attempt $attempt/90: state=$deploy_state"
+
+            case "$deploy_state" in
+              ready)
+                status="success"
+                break
+                ;;
+              error|failed|canceled|cancelled)
+                status="failure"
+                break
+                ;;
+              *)
+                sleep 20
+                ;;
+            esac
+          done
+
+          if [ "$status" = "pending" ]; then
+            status="failure"
+          fi
+
+          echo "netlify_status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Update deployment status (success) - Netlify
+        if: always() && steps.wait-netlify.outputs.netlify_status == 'success'
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-netlify.outputs.deployment_id }}
+          state: 'success'
+          environment-url: https://turni-di-palco.netlify.app
+
+      - name: Update deployment status (failure) - Netlify
+        if: always() && steps.wait-netlify.outputs.netlify_status != 'success'
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-netlify.outputs.deployment_id }}
+          state: 'failure'
+          environment-url: https://turni-di-palco.netlify.app
+
+      - name: Fail workflow if Netlify deploy failed
+        if: always() && steps.wait-netlify.outputs.netlify_status != 'success'
+        run: exit 1
