@@ -43,24 +43,30 @@ function resolveHttps(): HttpsServerOptions | undefined {
 }
 
 const httpsOption = resolveHttps();
+const publicModeValue = process.env.VITE_PUBLIC_MODE;
+const isPublicMode = publicModeValue === "true" || publicModeValue === "1";
+const buildInputs: Record<string, string> = {
+  main: path.resolve(__dirname, "index.html"),
+  game: path.resolve(__dirname, "game.html"),
+  map: path.resolve(__dirname, "map.html"),
+  avatar: path.resolve(__dirname, "avatar.html"),
+  profile: path.resolve(__dirname, "profile.html"),
+  privacy: path.resolve(__dirname, "privacy.html"),
+  events: path.resolve(__dirname, "events.html"),
+  turns: path.resolve(__dirname, "turns.html"),
+  leaderboard: path.resolve(__dirname, "leaderboard.html"),
+};
+
+if (!isPublicMode) {
+  buildInputs.dev = path.resolve(__dirname, "dev.html");
+}
 
 export default defineConfig({
   appType: "mpa",
   plugins: [tailwindcss()],
   build: {
     rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, "index.html"),
-        dev: path.resolve(__dirname, "dev.html"),
-        game: path.resolve(__dirname, "game.html"),
-        map: path.resolve(__dirname, "map.html"),
-        avatar: path.resolve(__dirname, "avatar.html"),
-        profile: path.resolve(__dirname, "profile.html"),
-        privacy: path.resolve(__dirname, "privacy.html"),
-        events: path.resolve(__dirname, "events.html"),
-        turns: path.resolve(__dirname, "turns.html"),
-        leaderboard: path.resolve(__dirname, "leaderboard.html"),
-      },
+      input: buildInputs,
     },
   },
   server: {
