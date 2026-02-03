@@ -532,6 +532,167 @@ function resolveGithubRepo() {
   return null;
 }
 
+function resolveGithubHost() {
+  const envHost = stripEnvValue(process.env.GH_HOST);
+  if (envHost) return envHost;
+  const credentialHost = readCredentialString(maxwellCredentials?.github?.hostname);
+  if (credentialHost) return credentialHost;
+  return 'github.com';
+}
+
+function resolveGithubToken() {
+  const envToken =
+    stripEnvValue(process.env.GH_TOKEN) || stripEnvValue(process.env.GITHUB_TOKEN);
+  if (envToken) return envToken;
+  return readCredentialString(maxwellCredentials?.github?.token);
+}
+
+function resolveGithubApiBase(host) {
+  if (!host || host === 'github.com') {
+    return 'https://api.github.com';
+  }
+  if (host.startsWith('http://') || host.startsWith('https://')) {
+    const url = new URL(host);
+    return `${url.protocol}//${url.host}/api/v3`;
+  }
+  return `https://${host}/api/v3`;
+}
+
+function resolveGithubApiContext() {
+  const repo = resolveGithubRepo();
+  const token = resolveGithubToken();
+  const host = resolveGithubHost();
+  if (!repo) {
+    throw new Error('GitHub repository is not configured');
+  }
+  if (!token) {
+    throw new Error('GitHub token is not configured');
+  }
+  return {
+    repo,
+    token,
+    host,
+    apiBase: resolveGithubApiBase(host),
+  };
+}
+
+async function githubApiRequest(method, endpoint, body) {
+  const ctx = resolveGithubApiContext();
+  const response = await fetch(`${ctx.apiBase}${endpoint}`, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${ctx.token}`,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'maxwell-ai-support',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  const raw = await response.text();
+  let payload = null;
+  if (raw) {
+    try {
+      payload = JSON.parse(raw);
+    } catch {
+      payload = raw;
+    }
+  }
+
+  if (!response.ok) {
+    const detail =
+      typeof payload === 'object' && payload !== null && typeof payload.message === 'string'
+        ? payload.message
+        : typeof payload === 'string'
+          ? payload.slice(0, 400)
+          : `HTTP ${response.status}`;
+    const error = new Error(`GitHub API ${method} ${endpoint} failed: ${detail}`);
+    error.status = response.status;
+    throw error;
+  }
+
+  return payload;
+}
+
+async function listGithubLabelsViaApi() {
+  const { repo } = resolveGithubApiContext();
+  const data = await githubApiRequest('GET', `/repos/${repo}/labels?per_page=100`);
+  if (!Array.isArray(data)) return new Set();
+  return new Set(
+    data
+      .map((label) => label?.name)
+      .filter((name) => typeof name === 'string')
+  );
+}
+
+async function ensureGithubLabelViaApi(label) {
+  if (!label) return false;
+  const labels = await listGithubLabelsViaApi();
+  if (labels.has(label)) return true;
+  const { repo } = resolveGithubApiContext();
+  try {
+    await githubApiRequest('POST', `/repos/${repo}/labels`, {
+      name: label,
+      color: 'FBCA04',
+    });
+    return true;
+  } catch (error) {
+    if (error?.status === 422) {
+      return true;
+    }
+    throw error;
+  }
+}
+
+async function findExistingIssueByTitleViaApi(title) {
+  const { repo } = resolveGithubApiContext();
+  const data = await githubApiRequest('GET', `/repos/${repo}/issues?state=open&per_page=100`);
+  if (!Array.isArray(data)) return null;
+  const normalized = title.trim().toLowerCase();
+  const issue =
+    data.find(
+      (candidate) =>
+        typeof candidate?.title === 'string' &&
+        candidate.title.trim().toLowerCase() === normalized
+    ) ?? null;
+  if (!issue) return null;
+  return {
+    number: issue.number,
+    title: issue.title,
+    url: issue.html_url,
+  };
+}
+
+async function createIssueViaApi({ title, body, labels }) {
+  const { repo } = resolveGithubApiContext();
+  const payload = {
+    title,
+    body,
+  };
+  if (Array.isArray(labels) && labels.length) {
+    payload.labels = labels;
+  }
+  const created = await githubApiRequest('POST', `/repos/${repo}/issues`, payload);
+  return {
+    url: created?.html_url ?? null,
+    output: created?.html_url ?? '',
+  };
+}
+
+async function commentIssueViaApi({ number, body }) {
+  const { repo } = resolveGithubApiContext();
+  await githubApiRequest('POST', `/repos/${repo}/issues/${number}/comments`, { body });
+}
+
+async function addIssueLabelsViaApi({ number, labels }) {
+  if (!labels.length) return;
+  const { repo } = resolveGithubApiContext();
+  await githubApiRequest('POST', `/repos/${repo}/issues/${number}/labels`, {
+    labels,
+  });
+}
+
 let codexLoginProcess = null;
 let ghLoginProcess = null;
 
@@ -1844,16 +2005,49 @@ function runGhIssueAddLabels({ number, labels }) {
   });
 }
 
-async function listGhLabels() {
-  const data = await runGhJson(['label', 'list', '--json', 'name']);
-  if (!Array.isArray(data)) {
-    return new Set();
+async function runIssueCreateWithFallback({ title, body, labels }) {
+  try {
+    return await runGhIssueCreate({ title, body, labels });
+  } catch (error) {
+    logError(`gh issue create failed, trying GitHub API fallback: ${error.message}`);
+    return createIssueViaApi({ title, body, labels });
   }
-  return new Set(
-    data
-      .map((label) => label?.name)
-      .filter((name) => typeof name === 'string')
-  );
+}
+
+async function runIssueCommentWithFallback({ number, body }) {
+  try {
+    await runGhIssueComment({ number, body });
+  } catch (error) {
+    logError(`gh issue comment failed, trying GitHub API fallback: ${error.message}`);
+    await commentIssueViaApi({ number, body });
+  }
+}
+
+async function runIssueLabelWithFallback({ number, labels }) {
+  if (!labels.length) return;
+  try {
+    await runGhIssueAddLabels({ number, labels });
+  } catch (error) {
+    logError(`gh issue label update failed, trying GitHub API fallback: ${error.message}`);
+    await addIssueLabelsViaApi({ number, labels });
+  }
+}
+
+async function listGhLabels() {
+  try {
+    const data = await runGhJson(['label', 'list', '--json', 'name']);
+    if (!Array.isArray(data)) {
+      return new Set();
+    }
+    return new Set(
+      data
+        .map((label) => label?.name)
+        .filter((name) => typeof name === 'string')
+    );
+  } catch (error) {
+    logError(`gh label list failed, trying GitHub API fallback: ${error.message}`);
+    return listGithubLabelsViaApi();
+  }
 }
 
 async function ensureGhLabel(label) {
@@ -1862,56 +2056,72 @@ async function ensureGhLabel(label) {
   if (labels.has(label)) {
     return true;
   }
-  return new Promise((resolve) => {
-    const repo = resolveGithubRepo();
-    const args = ['label', 'create', label, '--color', 'FBCA04'];
-    if (repo) {
-      args.push('--repo', repo);
-    }
-    const child = spawnGhProcess(args);
-    let stderr = '';
 
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
-    });
-
-    child.on('error', () => {
-      resolve(false);
-    });
-
-    child.on('close', (code) => {
-      if (code !== 0) {
-        logError(`Label create failed (${label}): ${stderr.trim()}`);
-        resolve(false);
-        return;
+  try {
+    return await new Promise((resolve) => {
+      const repo = resolveGithubRepo();
+      const args = ['label', 'create', label, '--color', 'FBCA04'];
+      if (repo) {
+        args.push('--repo', repo);
       }
-      resolve(true);
+      const child = spawnGhProcess(args);
+      let stderr = '';
+
+      child.stderr.on('data', (chunk) => {
+        stderr += chunk.toString();
+      });
+
+      child.on('error', () => {
+        resolve(false);
+      });
+
+      child.on('close', (code) => {
+        if (code !== 0) {
+          logError(`Label create failed (${label}): ${stderr.trim()}`);
+          resolve(false);
+          return;
+        }
+        resolve(true);
+      });
     });
-  });
+  } catch (error) {
+    logError(`gh label create failed, trying GitHub API fallback: ${error.message}`);
+    try {
+      return await ensureGithubLabelViaApi(label);
+    } catch (apiError) {
+      logError(`GitHub API label create failed (${label}): ${apiError.message}`);
+      return false;
+    }
+  }
 }
 
 async function findExistingIssueByTitle(title) {
-  const data = await runGhJson([
-    'issue',
-    'list',
-    '--state',
-    'open',
-    '--limit',
-    '50',
-    '--search',
-    `in:title "${title.replace(/"/g, '\\"')}"`,
-    '--json',
-    'number,title,url',
-  ]);
-  if (!Array.isArray(data)) return null;
-  const normalized = title.trim().toLowerCase();
-  return (
-    data.find(
-      (issue) =>
-        typeof issue?.title === 'string' &&
-        issue.title.trim().toLowerCase() === normalized
-    ) ?? null
-  );
+  try {
+    const data = await runGhJson([
+      'issue',
+      'list',
+      '--state',
+      'open',
+      '--limit',
+      '50',
+      '--search',
+      `in:title "${title.replace(/"/g, '\\"')}"`,
+      '--json',
+      'number,title,url',
+    ]);
+    if (!Array.isArray(data)) return null;
+    const normalized = title.trim().toLowerCase();
+    return (
+      data.find(
+        (issue) =>
+          typeof issue?.title === 'string' &&
+          issue.title.trim().toLowerCase() === normalized
+      ) ?? null
+    );
+  } catch (error) {
+    logError(`gh issue lookup failed, trying GitHub API fallback: ${error.message}`);
+    return findExistingIssueByTitleViaApi(title);
+  }
 }
 
 function spawnCodexProcess(args) {
@@ -2144,10 +2354,15 @@ const requestHandler = (req, res) => {
           new Set([...requestedLabels, ...baseLabels])
         );
 
-        const usableLabels = [];
-        for (const label of targetLabels) {
-          const ok = await ensureGhLabel(label);
-          if (ok) usableLabels.push(label);
+        let usableLabels = [];
+        try {
+          for (const label of targetLabels) {
+            const ok = await ensureGhLabel(label);
+            if (ok) usableLabels.push(label);
+          }
+        } catch (error) {
+          logError(`${requestId} label resolution failed: ${error.message}`);
+          usableLabels = [];
         }
 
         if (!usableLabels.includes('Maxwell')) {
@@ -2161,13 +2376,8 @@ const requestHandler = (req, res) => {
         if (existing) {
           logLine(`${requestId} gh issue comment start`);
           const ghStart = Date.now();
-          await runGhIssueComment({ number: existing.number, body: issueBody });
-          if (usableLabels.length) {
-            await runGhIssueAddLabels({
-              number: existing.number,
-              labels: usableLabels,
-            });
-          }
+          await runIssueCommentWithFallback({ number: existing.number, body: issueBody });
+          await runIssueLabelWithFallback({ number: existing.number, labels: usableLabels });
           const ghElapsed = Date.now() - ghStart;
           logLine(`${requestId} gh issue comment done ${ghElapsed}ms`);
           sendJson(res, 200, {
@@ -2183,7 +2393,7 @@ const requestHandler = (req, res) => {
 
         logLine(`${requestId} gh issue create start`);
         const ghStart = Date.now();
-        const result = await runGhIssueCreate({
+        const result = await runIssueCreateWithFallback({
           title,
           body: issueBody,
           labels: usableLabels,
