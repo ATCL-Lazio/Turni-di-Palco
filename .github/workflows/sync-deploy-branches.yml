@@ -125,13 +125,13 @@ jobs:
               ')"
 
               if [ "$deploy" = "null" ] || [ -z "$deploy" ]; then
-                echo "[$label] attempt $attempt/90: no deploy found yet for $DEPLOY_SHA"
+                echo "[$label] attempt $attempt/90: no deploy found yet for $DEPLOY_SHA" >&2
                 sleep 20
                 continue
               fi
 
               deploy_status="$(echo "$deploy" | jq -r '.status // .state // .deployStatus // "unknown"')"
-              echo "[$label] attempt $attempt/90: status=$deploy_status"
+              echo "[$label] attempt $attempt/90: status=$deploy_status" >&2
 
               case "$deploy_status" in
                 live|deployed|ready|success)
