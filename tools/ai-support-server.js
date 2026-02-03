@@ -49,6 +49,28 @@ function stripEnvValue(value) {
   return raw;
 }
 
+function resolveIssueAuthToken() {
+  return stripEnvValue(
+    process.env.AI_SUPPORT_API_TOKEN || process.env.AI_SUPPORT_ISSUE_TOKEN
+  );
+}
+
+function getRequestAuthToken(req) {
+  const headerToken =
+    typeof req.headers['x-ai-support-token'] === 'string'
+      ? req.headers['x-ai-support-token']
+      : '';
+  if (headerToken.trim()) {
+    return headerToken.trim();
+  }
+  const authHeader =
+    typeof req.headers.authorization === 'string' ? req.headers.authorization : '';
+  if (authHeader.toLowerCase().startsWith('bearer ')) {
+    return authHeader.slice(7).trim();
+  }
+  return '';
+}
+
 function readEnvFileValue(filePath, key) {
   if (!filePath || !fs.existsSync(filePath)) return null;
   const content = fs.readFileSync(filePath, 'utf8');
@@ -1004,7 +1026,7 @@ function formatStatus(status) {
 
 function parseAllowedOrigins() {
   const raw = process.env.AI_SUPPORT_ALLOWED_ORIGINS;
-  if (!raw) return ['*'];
+  if (!raw) return [];
   return raw
     .split(',')
     .map((origin) => origin.trim())
@@ -1017,6 +1039,41 @@ function resolveCorsOrigin(origin, allowedOrigins) {
   if (allowedOrigins.includes(origin)) return origin;
   return '';
 }
+
+function resolveApiKey() {
+  return stripEnvValue(process.env.AI_SUPPORT_API_KEY) || '';
+}
+
+function isAdminEnabled() {
+  if (process.env.AI_SUPPORT_ADMIN_ENABLED === undefined) return false;
+  return isTruthy(process.env.AI_SUPPORT_ADMIN_ENABLED);
+}
+
+function createRateLimiter() {
+  const limit = Number(process.env.AI_SUPPORT_RATE_LIMIT_MAX) || 60;
+  const windowMs = Number(process.env.AI_SUPPORT_RATE_LIMIT_WINDOW_MS) || 60_000;
+  const store = new Map();
+
+  const consume = (key) => {
+    if (!key) return { ok: true, remaining: limit, resetAt: Date.now() + windowMs };
+    const now = Date.now();
+    const entry = store.get(key);
+    if (!entry || now >= entry.resetAt) {
+      const next = { count: 1, resetAt: now + windowMs };
+      store.set(key, next);
+      return { ok: true, remaining: limit - 1, resetAt: next.resetAt };
+    }
+    if (entry.count >= limit) {
+      return { ok: false, remaining: 0, resetAt: entry.resetAt };
+    }
+    entry.count += 1;
+    return { ok: true, remaining: Math.max(0, limit - entry.count), resetAt: entry.resetAt };
+  };
+
+  return { consume, limit, windowMs };
+}
+
+const rateLimiter = createRateLimiter();
 
 function resolveHttpsOptions() {
   const httpsEnv = process.env.AI_SUPPORT_HTTPS;
@@ -2177,7 +2234,10 @@ const requestHandler = (req, res) => {
   if (corsOrigin) {
     res.setHeader('Access-Control-Allow-Origin', corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-AI-SUPPORT-TOKEN'
+    );
   }
 
   if (req.method === 'OPTIONS') {
@@ -2205,6 +2265,13 @@ const requestHandler = (req, res) => {
   }
 
   if (req.url === '/auth') {
+    if (!isAdminEnabled()) {
+      logLine(
+        `${requestId} GET /auth\n  client=${clientIp}\n  status=${formatStatus(403)}\n  duration=${Date.now() - start}ms`
+      );
+      sendJson(res, 403, { error: 'Admin endpoints disabled' });
+      return;
+    }
     const codexAuth = checkCodexAuth();
     const ghAuth = checkGhAuth();
     logLine(
@@ -2245,6 +2312,13 @@ const requestHandler = (req, res) => {
   }
 
   if (req.url === '/auth/command' && req.method === 'POST') {
+    if (!isAdminEnabled()) {
+      logLine(
+        `${requestId} POST /auth/command\n  client=${clientIp}\n  status=${formatStatus(403)}\n  duration=${Date.now() - start}ms`
+      );
+      sendJson(res, 403, { error: 'Admin endpoints disabled' });
+      return;
+    }
     let authBody = '';
     req.on('data', (chunk) => {
       authBody += chunk.toString();
@@ -2307,6 +2381,49 @@ const requestHandler = (req, res) => {
       `${requestId} ${req.method} ${req.url}\n  client=${clientIp}\n  status=${formatStatus(405)}\n  duration=${Date.now() - start}ms`
     );
     sendJson(res, 405, { error: 'Method not allowed' });
+    return;
+  }
+
+  if (req.url === '/api/ai/issue') {
+    const requiredToken = resolveIssueAuthToken();
+    if (!requiredToken) {
+      logLine(
+        `${requestId} POST /api/ai/issue\n  client=${clientIp}\n  status=${formatStatus(503)}\n  duration=${Date.now() - start}ms`
+      );
+      sendJson(res, 503, { error: 'Issue auth token not configured' });
+      return;
+    }
+    const providedToken = getRequestAuthToken(req);
+    if (!providedToken || providedToken !== requiredToken) {
+      logLine(
+        `${requestId} POST /api/ai/issue\n  client=${clientIp}\n  status=${formatStatus(401)}\n  duration=${Date.now() - start}ms`
+      );
+      sendJson(res, 401, { error: 'Unauthorized' });
+      return;
+    }
+  }
+
+  const apiKey = resolveApiKey();
+  const token = getRequestAuthToken(req);
+  if (apiKey && req.url !== '/api/ai/issue' && (!token || token !== apiKey)) {
+    logLine(
+      `${requestId} POST ${req.url}\n  client=${clientIp}\n  status=${formatStatus(401)}\n  duration=${Date.now() - start}ms`
+    );
+    res.setHeader('WWW-Authenticate', 'Bearer, x-ai-support-token');
+    sendJson(res, 401, { error: 'Unauthorized' });
+    return;
+  }
+
+  const rateKey = token ? `token:${token}` : `ip:${clientIp}`;
+  const rateStatus = rateLimiter.consume(rateKey);
+  res.setHeader('X-RateLimit-Limit', String(rateLimiter.limit));
+  res.setHeader('X-RateLimit-Remaining', String(rateStatus.remaining));
+  res.setHeader('X-RateLimit-Reset', String(Math.floor(rateStatus.resetAt / 1000)));
+  if (!rateStatus.ok) {
+    logLine(
+      `${requestId} POST ${req.url}\n  client=${clientIp}\n  status=${formatStatus(429)}\n  duration=${Date.now() - start}ms`
+    );
+    sendJson(res, 429, { error: 'Rate limit exceeded' });
     return;
   }
 
