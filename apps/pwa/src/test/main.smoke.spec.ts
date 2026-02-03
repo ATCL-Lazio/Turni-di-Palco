@@ -25,6 +25,7 @@ describe("main shell", () => {
     });
 
     vi.doMock("../services/dev-gate", () => ({
+      isPublicMode: false,
       requireDevAccess: vi.fn().mockResolvedValue(true),
     }));
 
