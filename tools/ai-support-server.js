@@ -49,6 +49,28 @@ function stripEnvValue(value) {
   return raw;
 }
 
+function resolveIssueAuthToken() {
+  return stripEnvValue(
+    process.env.AI_SUPPORT_API_TOKEN || process.env.AI_SUPPORT_ISSUE_TOKEN
+  );
+}
+
+function getRequestAuthToken(req) {
+  const headerToken =
+    typeof req.headers['x-ai-support-token'] === 'string'
+      ? req.headers['x-ai-support-token']
+      : '';
+  if (headerToken.trim()) {
+    return headerToken.trim();
+  }
+  const authHeader =
+    typeof req.headers.authorization === 'string' ? req.headers.authorization : '';
+  if (authHeader.toLowerCase().startsWith('bearer ')) {
+    return authHeader.slice(7).trim();
+  }
+  return '';
+}
+
 function readEnvFileValue(filePath, key) {
   if (!filePath || !fs.existsSync(filePath)) return null;
   const content = fs.readFileSync(filePath, 'utf8');
@@ -2177,7 +2199,10 @@ const requestHandler = (req, res) => {
   if (corsOrigin) {
     res.setHeader('Access-Control-Allow-Origin', corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-AI-SUPPORT-TOKEN'
+    );
   }
 
   if (req.method === 'OPTIONS') {
@@ -2308,6 +2333,25 @@ const requestHandler = (req, res) => {
     );
     sendJson(res, 405, { error: 'Method not allowed' });
     return;
+  }
+
+  if (req.url === '/api/ai/issue') {
+    const requiredToken = resolveIssueAuthToken();
+    if (!requiredToken) {
+      logLine(
+        `${requestId} POST /api/ai/issue\n  client=${clientIp}\n  status=${formatStatus(503)}\n  duration=${Date.now() - start}ms`
+      );
+      sendJson(res, 503, { error: 'Issue auth token not configured' });
+      return;
+    }
+    const providedToken = getRequestAuthToken(req);
+    if (!providedToken || providedToken !== requiredToken) {
+      logLine(
+        `${requestId} POST /api/ai/issue\n  client=${clientIp}\n  status=${formatStatus(401)}\n  duration=${Date.now() - start}ms`
+      );
+      sendJson(res, 401, { error: 'Unauthorized' });
+      return;
+    }
   }
 
   let body = '';
