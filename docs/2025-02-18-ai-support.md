@@ -103,7 +103,7 @@ Se il backend non esiste, creare un handler che:
 - Se `VITE_AI_SUPPORT_ENDPOINT` non e' valorizzato, l'app usa l'host corrente e la porta `8787`.
 - Per la creazione issue, l'assistente aggiunge in coda `ISSUE_DRAFT:{...}` con i label `supporto` e `Maxwell`. La UI lo rimuove dal testo e invia `POST /api/ai/issue` in autonomia.
 - Endpoint issue remoto: `VITE_AI_SUPPORT_ISSUE_ENDPOINT` (default derivato da `VITE_AI_SUPPORT_ENDPOINT`).
-- In produzione, l'endpoint issue va chiamato da backend/proxy autenticato (configurare `AI_SUPPORT_API_TOKEN` sul server e inoltrare l'header), evitando di esporre token via `VITE_*`.
+- In produzione, l'endpoint issue va chiamato da backend/proxy autenticato: `AI_SUPPORT_API_TOKEN` (o `AI_SUPPORT_ISSUE_TOKEN`) e' obbligatorio sul server, evitando di esporre token via `VITE_*`.
 - Il server prova a trovare una issue con lo stesso titolo: se esiste, commenta quella invece di crearne una nuova.
 - I label "supporto" e "Maxwell" vengono aggiunti automaticamente (se non esistono, il server prova a crearli).
 - Se il client chiama un endpoint assoluto, configurare `AI_SUPPORT_ALLOWED_ORIGINS` sul server (comma-separated).
@@ -170,5 +170,5 @@ In produzione, proteggere l'endpoint con una chiave applicativa:
 1. Eseguire `npm run ai:codex` con variabili d'ambiente compilate.
 2. Inviare il prompt al backend `/api/ai/chat` e ottenere una risposta.
 3. Validare la risposta (completezza, tono, rispetto template).
-4. Usare `POST /api/ai/issue` dal backend (con `Authorization: Bearer <AI_SUPPORT_API_TOKEN>` se configurato) per aprire una issue.
+4. Usare `POST /api/ai/issue` dal backend con `Authorization: Bearer <AI_SUPPORT_API_TOKEN>` (oppure `X-AI-SUPPORT-TOKEN`) per aprire una issue.
 5. Annotare limiti emersi (token mancanti, rate limit, prompt troppo lungo).
