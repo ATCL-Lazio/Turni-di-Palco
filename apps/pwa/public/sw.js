@@ -54,11 +54,20 @@ const TILE_HOSTS = new Set([
 const isNonPublicPath = (url) => !isDevEnvironment && NON_PUBLIC_PATHS.has(url.pathname);
 const shouldCacheRequest = (url) => url.origin === self.location.origin && !isNonPublicPath(url);
 
+const cacheCoreAssets = async (cache) => {
+  // Optional entries (for example /dev.html in public-mode builds) must not break SW install.
+  await Promise.all(
+    CORE_ASSETS.map((assetUrl) =>
+      cache.add(assetUrl).catch(() => undefined)
+    )
+  );
+};
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CORE_CACHE_NAME)
-      .then((cache) => cache.addAll(CORE_ASSETS))
+      .then((cache) => cacheCoreAssets(cache))
       .then(() => self.skipWaiting())
   );
 });
