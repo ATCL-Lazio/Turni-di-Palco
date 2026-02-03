@@ -129,12 +129,29 @@ jobs:
                   | {
                       id: (.id // .deployId // ""),
                       status: (.status // .state // .deployStatus // "unknown"),
-                      commit: (.commit.id // .commitId // .commit.sha // .commit // .commitHash // ""),
+                      commit: (
+                        (
+                          if has("commit") then
+                            (
+                              .commit as $c
+                              | if ($c | type) == "object" then ($c.id // $c.sha // "")
+                                elif ($c | type) == "string" then $c
+                                else ""
+                                end
+                            )
+                          else
+                            ""
+                          end
+                        ) as $commit
+                        | if $commit != "" then $commit else (.commitId // .commitHash // "") end
+                      ),
                       createdAt: (.createdAt // .created_at // .created // ""),
                       createdEpoch: (
-                        (.createdAt // .created_at // .created // "") as $ts
-                        | if ($ts | type) == "string" and $ts != "" then
-                            ($ts | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601? // 0)
+                        (.createdAt // .created_at // .created // 0) as $created
+                        | if ($created | type) == "string" and $created != "" then
+                            ($created | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601? // 0)
+                          elif ($created | type) == "number" then
+                            (if $created > 20000000000 then ($created / 1000 | floor) else ($created | floor) end)
                           else 0
                           end
                       )
@@ -154,7 +171,8 @@ jobs:
                 map(
                   select(
                     (.commit // "") as $c
-                    | ($c != "" and ($c == $sha or ($sha | startswith($c)) or ($c | startswith($sha[0:7]))))
+                    | ($c | tostring) as $cs
+                    | ($cs != "" and ($cs == $sha or ($sha | startswith($cs)) or ($cs | startswith($sha[0:7]))))
                   )
                 )
                 | first // empty
@@ -337,12 +355,35 @@ jobs:
                   state: (.state // .status // "unknown"),
                   branch: (.branch // ""),
                   context: (.context // ""),
-                  commit: (.commit_ref // .commit_sha // .commit // ""),
+                  commit: (
+                    (
+                      (.commit_ref // .commit_sha // "") as $commit
+                      | if $commit != "" then
+                          $commit
+                        else
+                          (
+                            if has("commit") then
+                              (
+                                .commit as $c
+                                | if ($c | type) == "object" then ($c.id // $c.sha // "")
+                                  elif ($c | type) == "string" then $c
+                                  else ""
+                                  end
+                              )
+                            else
+                              ""
+                            end
+                          )
+                        end
+                    )
+                  ),
                   createdAt: (.created_at // .createdAt // .created // ""),
                   createdEpoch: (
-                    (.created_at // .createdAt // .created // "") as $ts
-                    | if ($ts | type) == "string" and $ts != "" then
-                        ($ts | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601? // 0)
+                    (.created_at // .createdAt // .created // 0) as $created
+                    | if ($created | type) == "string" and $created != "" then
+                        ($created | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601? // 0)
+                      elif ($created | type) == "number" then
+                        (if $created > 20000000000 then ($created / 1000 | floor) else ($created | floor) end)
                       else 0
                       end
                   )
@@ -361,7 +402,8 @@ jobs:
               map(
                 select(
                   (.commit // "") as $c
-                  | ($c != "" and ($c == $sha or ($sha | startswith($c)) or ($c | startswith($sha[0:7]))))
+                  | ($c | tostring) as $cs
+                  | ($cs != "" and ($cs == $sha or ($sha | startswith($cs)) or ($cs | startswith($sha[0:7]))))
                 )
               )
               | first // empty
