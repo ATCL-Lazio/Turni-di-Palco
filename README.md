@@ -61,6 +61,19 @@ Il sorgente della PWA vive in `apps/pwa/src` ed e suddiviso in:
 - `services/`: logica di business e integrazioni browser/API.
 - `utils/`: funzioni di utilita generiche.
 
+## Modalita dev vs public
+
+La PWA distingue tra ambienti di sviluppo e build pubbliche:
+
+- **Dev**: `VITE_PUBLIC_MODE` non impostato o `false`. Il gate Supabase (`requireDevAccess`) protegge le pagine dev e `dev.html` viene incluso tra gli entrypoint della build.
+- **Public**: `VITE_PUBLIC_MODE=true`. Il gate viene bypassato per consentire l'accesso diretto alle pagine pubbliche e i link al playground dev spariscono dalla home. In questa modalita `dev.html` non viene incluso nel build PWA e non viene precacheato dal service worker.
+
+Per attivare la modalita public, impostare la variabile d'ambiente prima di lanciare `build:pwa`:
+
+```bash
+VITE_PUBLIC_MODE=true npm run build:pwa
+```
+
 ## Contributi
 
 Consulta `contributing.md` per stile del codice, convenzioni di commit e setup ambiente. Per note di design vedi `docs/`.
