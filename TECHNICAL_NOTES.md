@@ -36,6 +36,14 @@
 - Service Worker: `apps/pwa/public/sw.js`
 - Il versioning della cache viene aggiornato dallo script `tools/update-cache-version.js` (invocato da `npm run build:pwa`) per forzare l’update degli asset core.
 
+## Header di sicurezza (Netlify/Render)
+
+- Netlify: gli header sono configurati in `netlify.toml` nella sezione `[[headers]]`.
+- Render: il servizio PWA attuale usa `vite preview` (startCommand in `render.yaml`), quindi gli header vanno impostati a livello di reverse proxy o server applicativo.
+  - Opzione consigliata: mettere un reverse proxy (es. Caddy/Nginx) davanti al preview server e impostare gli header lì.
+  - In alternativa: sostituire il preview server con un piccolo server (Express/Fastify) che serva `apps/pwa/dist` e imposti gli stessi header.
+  - Se si migra la PWA a “Static Site” su Render, utilizzare il supporto ai `headers` del manifest Render.
+
 ## Supabase (client)
 
 - Configurazione lato client tramite variabili d’ambiente (vedi `.env`, `apps/mobile/.env.example`, `apps/pwa/.env.example`).
