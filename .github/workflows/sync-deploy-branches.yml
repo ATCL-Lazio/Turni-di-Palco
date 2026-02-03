@@ -22,6 +22,7 @@ jobs:
     permissions:
       contents: write
       actions: write
+      deployments: write
       
     steps:
     - name: Configure Git
@@ -47,18 +48,66 @@ jobs:
         echo "🔄 Render will auto-deploy render/preview"
         echo "🌐 Netlify will auto-deploy netlify/preview (if configured)"
         
-    - name: Trigger Render Deploy Workflow
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        echo "🚀 Triggering deploy-render workflow..."
-        gh workflow run deploy-render.yml --field branch=render/preview
+    - name: Create GitHub Deployment - Turni-di-Palco
+      uses: chrnorm/deployment-action@v2
+      id: deployment-main
+      with:
+        token: '${{ github.token }}'
+        environment-url: https://turni-di-palco.onrender.com
+        environment: preview
+        description: 'Deploy Turni-di-Palco to Render preview'
+        
+    - name: Create GitHub Deployment - Maxwell-AI-Support  
+      uses: chrnorm/deployment-action@v2
+      id: deployment-ai
+      with:
+        token: '${{ github.token }}'
+        environment-url: https://maxwell-ai-support.onrender.com
+        environment: preview
+        description: 'Deploy Maxwell-AI-Support to Render preview'
+        
+    - name: Update deployment status (success) - Turni-di-Palco
+      if: success()
+      uses: chrnorm/deployment-status@v2
+      with:
+        token: '${{ github.token }}'
+        deployment-id: ${{ steps.deployment-main.outputs.deployment_id }}
+        state: 'success'
+        environment-url: https://turni-di-palco.onrender.com
+        
+    - name: Update deployment status (success) - Maxwell-AI-Support
+      if: success()
+      uses: chrnorm/deployment-status@v2
+      with:
+        token: '${{ github.token }}'
+        deployment-id: ${{ steps.deployment-ai.outputs.deployment_id }}
+        state: 'success'
+        environment-url: https://maxwell-ai-support.onrender.com
+        
+    - name: Update deployment status (failure) - Turni-di-Palco
+      if: failure()
+      uses: chrnorm/deployment-status@v2
+      with:
+        token: '${{ github.token }}'
+        deployment-id: ${{ steps.deployment-main.outputs.deployment_id }}
+        state: 'failure'
+        environment-url: https://turni-di-palco.onrender.com
+        
+    - name: Update deployment status (failure) - Maxwell-AI-Support
+      if: failure()
+      uses: chrnorm/deployment-status@v2
+      with:
+        token: '${{ github.token }}'
+        deployment-id: ${{ steps.deployment-ai.outputs.deployment_id }}
+        state: 'failure'
+        environment-url: https://maxwell-ai-support.onrender.com
 
   sync-netlify-preview:
     needs: sync-render-preview
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      deployments: write
 
     steps:
     - name: Configure Git
@@ -83,3 +132,30 @@ jobs:
         echo "✅ Branches synchronized successfully"
         echo "🔄 Render will auto-deploy render/preview"
         echo "🌐 Netlify will auto-deploy netlify/preview (if configured)"
+        
+    - name: Create GitHub Deployment - Netlify Preview
+      uses: chrnorm/deployment-action@v2
+      id: deployment-netlify
+      with:
+        token: '${{ github.token }}'
+        environment-url: https://turni-di-palco.netlify.app
+        environment: preview
+        description: 'Deploy to Netlify preview environment'
+        
+    - name: Update deployment status (success) - Netlify
+      if: success()
+      uses: chrnorm/deployment-status@v2
+      with:
+        token: '${{ github.token }}'
+        deployment-id: ${{ steps.deployment-netlify.outputs.deployment_id }}
+        state: 'success'
+        environment-url: https://turni-di-palco.netlify.app
+        
+    - name: Update deployment status (failure) - Netlify
+      if: failure()
+      uses: chrnorm/deployment-status@v2
+      with:
+        token: '${{ github.token }}'
+        deployment-id: ${{ steps.deployment-netlify.outputs.deployment_id }}
+        state: 'failure'
+        environment-url: https://turni-di-palco.netlify.app
