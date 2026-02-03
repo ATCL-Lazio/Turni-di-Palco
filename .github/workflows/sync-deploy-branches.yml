@@ -5,6 +5,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+concurrency:
+  group: sync-deploy-branches
+  cancel-in-progress: true
+
 jobs:
   configuration:
     runs-on: ubuntu-latest
