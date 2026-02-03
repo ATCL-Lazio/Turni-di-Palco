@@ -276,6 +276,7 @@ jobs:
           git checkout -B netlify/preview origin/main
           git push -f origin netlify/preview
           echo "deploy_sha=$(git rev-parse origin/main)" >> "$GITHUB_OUTPUT"
+          echo "sync_epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Deployment - Netlify Preview
         uses: chrnorm/deployment-action@v2
@@ -300,12 +301,13 @@ jobs:
         id: wait-netlify
         env:
           DEPLOY_SHA: ${{ steps.sync-netlify-branch.outputs.deploy_sha }}
+          SYNC_EPOCH: ${{ steps.sync-netlify-branch.outputs.sync_epoch }}
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID_TURNI: ${{ secrets.NETLIFY_SITE_ID_TURNI }}
         run: |
           set -euo pipefail
 
-          for var in DEPLOY_SHA NETLIFY_AUTH_TOKEN NETLIFY_SITE_ID_TURNI; do
+          for var in DEPLOY_SHA SYNC_EPOCH NETLIFY_AUTH_TOKEN NETLIFY_SITE_ID_TURNI; do
             if [ -z "${!var:-}" ]; then
               echo "Missing required value: $var"
               echo "netlify_status=failure" >> "$GITHUB_OUTPUT"
@@ -314,36 +316,85 @@ jobs:
           done
 
           status="pending"
+          min_epoch="$((SYNC_EPOCH - 300))"
           for attempt in $(seq 1 90); do
-            response="$(curl -fsS \
+            if ! response="$(curl -fsS \
               -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
-              "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID_TURNI}/deploys?per_page=20" || true)"
+              "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID_TURNI}/deploys?per_page=50")"; then
+              echo "[Netlify] API request failed (attempt $attempt/90)" >&2
+              status="failure"
+              break
+            fi
 
-            deploy="$(echo "$response" | jq -c --arg sha "$DEPLOY_SHA" '
-              map(
-                select(
-                  (.branch // "") == "netlify/preview" and
-                  ((.commit_ref // .commit_sha // "") == $sha or (.commit_ref // .commit_sha // "") == ($sha[0:7]))
-                )
-              )
-              | first
+            deploys_json="$(echo "$response" | jq -c '
+              if type == "array" then .
+              elif .deploys then .deploys
+              elif .data then .data
+              elif .items then .items
+              else [] end
+              | map({
+                  id: (.id // .deploy_id // ""),
+                  state: (.state // .status // "unknown"),
+                  branch: (.branch // ""),
+                  context: (.context // ""),
+                  commit: (.commit_ref // .commit_sha // .commit // ""),
+                  createdAt: (.created_at // .createdAt // .created // ""),
+                  createdEpoch: (
+                    (.created_at // .createdAt // .created // "") as $ts
+                    | if ($ts | type) == "string" and $ts != "" then
+                        ($ts | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601? // 0)
+                      else 0
+                      end
+                  )
+                })
+              | map(select(.id != ""))
+              | unique_by(.id)
             ')"
 
+            recent_deploys="$(echo "$deploys_json" | jq -c --argjson min_epoch "$min_epoch" '
+              map(select(.createdEpoch >= $min_epoch))
+              | sort_by(.createdEpoch)
+              | reverse
+            ')"
+
+            deploy_match="$(echo "$recent_deploys" | jq -c --arg sha "$DEPLOY_SHA" '
+              map(
+                select(
+                  (.commit // "") as $c
+                  | ($c != "" and ($c == $sha or ($sha | startswith($c)) or ($c | startswith($sha[0:7]))))
+                )
+              )
+              | first // empty
+            ')"
+            if [ -n "$deploy_match" ]; then
+              deploy="$deploy_match"
+            else
+              deploy="$(echo "$recent_deploys" | jq -c 'first // empty')"
+            fi
+
             if [ "$deploy" = "null" ] || [ -z "$deploy" ]; then
-              echo "[Netlify] attempt $attempt/90: no deploy found yet for $DEPLOY_SHA"
+              latest_id="$(echo "$deploys_json" | jq -r 'sort_by(.createdEpoch) | reverse | first | (.id // "none")')"
+              latest_commit="$(echo "$deploys_json" | jq -r 'sort_by(.createdEpoch) | reverse | first | (.commit // "none")')"
+              latest_branch="$(echo "$deploys_json" | jq -r 'sort_by(.createdEpoch) | reverse | first | (.branch // "none")')"
+              latest_context="$(echo "$deploys_json" | jq -r 'sort_by(.createdEpoch) | reverse | first | (.context // "none")')"
+              echo "[Netlify] attempt $attempt/90: no recent deploy found for $DEPLOY_SHA (latest id: $latest_id, commit: $latest_commit, branch: $latest_branch, context: $latest_context)"
               sleep 20
               continue
             fi
 
+            deploy_id="$(echo "$deploy" | jq -r '.id // "none"')"
             deploy_state="$(echo "$deploy" | jq -r '.state // "unknown"')"
-            echo "[Netlify] attempt $attempt/90: state=$deploy_state"
+            deploy_branch="$(echo "$deploy" | jq -r '.branch // "none"')"
+            deploy_context="$(echo "$deploy" | jq -r '.context // "none"')"
+            deploy_commit="$(echo "$deploy" | jq -r '.commit // "none"')"
+            echo "[Netlify] attempt $attempt/90: deploy_id=$deploy_id state=$deploy_state commit=$deploy_commit branch=$deploy_branch context=$deploy_context"
 
             case "$deploy_state" in
-              ready)
+              ready|current|published|live|success)
                 status="success"
                 break
                 ;;
-              error|failed|canceled|cancelled)
+              *_failed|failed|error|canceled|cancelled)
                 status="failure"
                 break
                 ;;
