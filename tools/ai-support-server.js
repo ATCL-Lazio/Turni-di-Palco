@@ -27,7 +27,6 @@ const enableColor =
   process.env.AI_SUPPORT_COLOR !== '0' &&
   process.env.AI_SUPPORT_COLOR !== 'false' &&
   process.stdout.isTTY;
-const isProduction = process.env.NODE_ENV === 'production';
 const authStorage = resolveAuthStorage();
 const maxwellCredentials = resolveMaxwellCredentials();
 hydrateMaxwellCredentials(maxwellCredentials);
@@ -1019,7 +1018,14 @@ function resolveCorsOrigin(origin, allowedOrigins) {
   return '';
 }
 
-function getBearerToken(req) {
+function getRequestToken(req) {
+  const supportTokenHeader =
+    typeof req.headers['x-ai-support-token'] === 'string'
+      ? req.headers['x-ai-support-token'].trim()
+      : '';
+  if (supportTokenHeader) {
+    return supportTokenHeader;
+  }
   const header = req.headers.authorization;
   if (typeof header !== 'string') return '';
   const match = header.match(/^Bearer\s+(.+)$/i);
@@ -1031,10 +1037,8 @@ function resolveApiKey() {
 }
 
 function isAdminEnabled() {
-  if (process.env.AI_SUPPORT_ADMIN_ENABLED !== undefined) {
-    return isTruthy(process.env.AI_SUPPORT_ADMIN_ENABLED);
-  }
-  return !isProduction;
+  if (process.env.AI_SUPPORT_ADMIN_ENABLED === undefined) return false;
+  return isTruthy(process.env.AI_SUPPORT_ADMIN_ENABLED);
 }
 
 function createRateLimiter() {
@@ -2222,7 +2226,10 @@ const requestHandler = (req, res) => {
   if (corsOrigin) {
     res.setHeader('Access-Control-Allow-Origin', corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-AI-SUPPORT-TOKEN'
+    );
   }
 
   if (req.method === 'OPTIONS') {
@@ -2370,20 +2377,12 @@ const requestHandler = (req, res) => {
   }
 
   const apiKey = resolveApiKey();
-  if (!apiKey) {
-    logLine(
-      `${requestId} POST ${req.url}\n  client=${clientIp}\n  status=${formatStatus(503)}\n  duration=${Date.now() - start}ms`
-    );
-    sendJson(res, 503, { error: 'API key not configured' });
-    return;
-  }
-
-  const token = getBearerToken(req);
-  if (!token || token !== apiKey) {
+  const token = getRequestToken(req);
+  if (apiKey && (!token || token !== apiKey)) {
     logLine(
       `${requestId} POST ${req.url}\n  client=${clientIp}\n  status=${formatStatus(401)}\n  duration=${Date.now() - start}ms`
     );
-    res.setHeader('WWW-Authenticate', 'Bearer');
+    res.setHeader('WWW-Authenticate', 'Bearer, x-ai-support-token');
     sendJson(res, 401, { error: 'Unauthorized' });
     return;
   }
