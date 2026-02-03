@@ -39,6 +39,7 @@
 ## Header di sicurezza (Netlify/Render)
 
 - Netlify: gli header sono configurati in `netlify.toml` nella sezione `[[headers]]`.
+- Nota CSP: al momento `index.html` contiene uno script inline per il redirect mobile; per questo `script-src` include temporaneamente `'unsafe-inline'` finche' il bootstrap non viene spostato in un modulo esterno.
 - Render: il servizio PWA attuale usa `vite preview` (startCommand in `render.yaml`), quindi gli header vanno impostati a livello di reverse proxy o server applicativo.
   - Opzione consigliata: mettere un reverse proxy (es. Caddy/Nginx) davanti al preview server e impostare gli header lì.
   - In alternativa: sostituire il preview server con un piccolo server (Express/Fastify) che serva `apps/pwa/dist` e imposti gli stessi header.
