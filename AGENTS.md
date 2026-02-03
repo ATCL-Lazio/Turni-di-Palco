@@ -47,7 +47,8 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - All commits should be done using **your own git identity**
 
-- Do not work directly on `main` or `render/preview`: create a dedicated branch for any change before committing or pushing.
+- Do not work directly on `main` or `render/preview`: create a dedicated branch with setup prefix before committing or pushing.
+  - Examples: `windsurf/feature-name`, `codex/fix-description`, `gemini/refactor-module`
 
 - Never delete branches (no `--delete-branch` on merges) unless explicitly instructed.
 
