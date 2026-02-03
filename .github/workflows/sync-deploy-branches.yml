@@ -111,21 +111,36 @@ jobs:
             status="pending"
 
             for attempt in $(seq 1 90); do
-              response="$(curl -fsS \
+              if ! response="$(curl -fsS \
                 -H "Authorization: Bearer $RENDER_API_KEY" \
-                "https://api.render.com/v1/services/${service_id}/deploys?limit=20" || true)"
+                "https://api.render.com/v1/services/${service_id}/deploys?limit=20")"; then
+                echo "[$label] Render API request failed (attempt $attempt/90)" >&2
+                status="failure"
+                break
+              fi
 
               deploy="$(echo "$response" | jq -c --arg sha "$DEPLOY_SHA" '
                 if type == "array" then .
                 elif .deploys then .deploys
                 elif .data then .data
                 else [] end
-                | map(select((.commit.id // .commitId // .commit.sha // "") == $sha))
+                | map(select(
+                    (.commit.id // .commitId // .commit.sha // .commit // "") as $commit_sha
+                    | ($commit_sha != "" and ($commit_sha == $sha or ($sha | startswith($commit_sha)) or ($commit_sha | startswith($sha[0:7]))))
+                  ))
                 | first
               ')"
 
               if [ "$deploy" = "null" ] || [ -z "$deploy" ]; then
-                echo "[$label] attempt $attempt/90: no deploy found yet for $DEPLOY_SHA" >&2
+                latest_commit="$(echo "$response" | jq -r '
+                  if type == "array" then .
+                  elif .deploys then .deploys
+                  elif .data then .data
+                  else [] end
+                  | first
+                  | (.commit.id // .commitId // .commit.sha // .commit // "none")
+                ')"
+                echo "[$label] attempt $attempt/90: no deploy found yet for $DEPLOY_SHA (latest seen: $latest_commit)" >&2
                 sleep 20
                 continue
               fi
