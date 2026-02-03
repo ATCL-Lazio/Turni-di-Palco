@@ -49,6 +49,28 @@ function stripEnvValue(value) {
   return raw;
 }
 
+function resolveIssueAuthToken() {
+  return stripEnvValue(
+    process.env.AI_SUPPORT_API_TOKEN || process.env.AI_SUPPORT_ISSUE_TOKEN
+  );
+}
+
+function getRequestAuthToken(req) {
+  const headerToken =
+    typeof req.headers['x-ai-support-token'] === 'string'
+      ? req.headers['x-ai-support-token']
+      : '';
+  if (headerToken.trim()) {
+    return headerToken.trim();
+  }
+  const authHeader =
+    typeof req.headers.authorization === 'string' ? req.headers.authorization : '';
+  if (authHeader.toLowerCase().startsWith('bearer ')) {
+    return authHeader.slice(7).trim();
+  }
+  return '';
+}
+
 function readEnvFileValue(filePath, key) {
   if (!filePath || !fs.existsSync(filePath)) return null;
   const content = fs.readFileSync(filePath, 'utf8');
@@ -1016,20 +1038,6 @@ function resolveCorsOrigin(origin, allowedOrigins) {
   if (allowedOrigins.includes('*')) return '*';
   if (allowedOrigins.includes(origin)) return origin;
   return '';
-}
-
-function getRequestToken(req) {
-  const supportTokenHeader =
-    typeof req.headers['x-ai-support-token'] === 'string'
-      ? req.headers['x-ai-support-token'].trim()
-      : '';
-  if (supportTokenHeader) {
-    return supportTokenHeader;
-  }
-  const header = req.headers.authorization;
-  if (typeof header !== 'string') return '';
-  const match = header.match(/^Bearer\s+(.+)$/i);
-  return match ? match[1].trim() : '';
 }
 
 function resolveApiKey() {
@@ -2376,9 +2384,28 @@ const requestHandler = (req, res) => {
     return;
   }
 
+  if (req.url === '/api/ai/issue') {
+    const requiredToken = resolveIssueAuthToken();
+    if (!requiredToken) {
+      logLine(
+        `${requestId} POST /api/ai/issue\n  client=${clientIp}\n  status=${formatStatus(503)}\n  duration=${Date.now() - start}ms`
+      );
+      sendJson(res, 503, { error: 'Issue auth token not configured' });
+      return;
+    }
+    const providedToken = getRequestAuthToken(req);
+    if (!providedToken || providedToken !== requiredToken) {
+      logLine(
+        `${requestId} POST /api/ai/issue\n  client=${clientIp}\n  status=${formatStatus(401)}\n  duration=${Date.now() - start}ms`
+      );
+      sendJson(res, 401, { error: 'Unauthorized' });
+      return;
+    }
+  }
+
   const apiKey = resolveApiKey();
-  const token = getRequestToken(req);
-  if (apiKey && (!token || token !== apiKey)) {
+  const token = getRequestAuthToken(req);
+  if (apiKey && req.url !== '/api/ai/issue' && (!token || token !== apiKey)) {
     logLine(
       `${requestId} POST ${req.url}\n  client=${clientIp}\n  status=${formatStatus(401)}\n  duration=${Date.now() - start}ms`
     );
