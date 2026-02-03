@@ -176,7 +176,7 @@ jobs:
                   status="success"
                   break
                   ;;
-                build_failed|deploy_failed|failed|error|canceled|cancelled)
+                *_failed|failed|error|canceled|cancelled)
                   status="failure"
                   break
                   ;;
