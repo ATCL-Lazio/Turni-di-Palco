@@ -151,7 +151,7 @@ jobs:
               ')"
 
               deploy="$(echo "$recent_deploys" | jq -c --arg sha "$DEPLOY_SHA" '
-                (map(select(.commit != "" and (.commit == $sha or ($sha | startswith(.commit)) or (.commit | startswith($sha[0:7]))))) | first)
+                (map(select((.commit // "") as $c | ($c != "" and ($c == $sha or ($sha | startswith($c)) or ($c | startswith($sha[0:7]))))) | first)
                 // first
               ')"
 
