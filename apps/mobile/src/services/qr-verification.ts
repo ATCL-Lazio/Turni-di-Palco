@@ -48,35 +48,48 @@ export async function verifyQrCode(code: string, eventIds: string[]): Promise<Qr
   }
 
   const fallbackEventId = resolveFallbackEventId(eventIds);
-  const { data, error } = await supabase.functions.invoke('verify-qr-mock', {
-    body: {
-      code: trimmed,
-      fallbackEventId,
-    },
-  });
+  
+  try {
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout')), 5000);
+    });
 
-  if (error) {
+    const supabasePromise = supabase.functions.invoke('verify-qr-mock', {
+      body: {
+        code: trimmed,
+        fallbackEventId,
+      },
+    });
+
+    const { data, error } = await Promise.race([supabasePromise, timeoutPromise]) as any;
+
+    if (error) {
+      console.warn('Supabase QR verification failed, using fallback:', error);
+      return verifyLocalFallback(trimmed, eventIds);
+    }
+
+    if (!data || typeof data !== 'object') {
+      return verifyLocalFallback(trimmed, eventIds);
+    }
+
+    const payload = data as {
+      ok?: boolean;
+      eventId?: unknown;
+      error?: unknown;
+    };
+
+    if (!payload.ok) {
+      const message = typeof payload.error === 'string' ? payload.error : 'QR non valido.';
+      return { ok: false, error: message };
+    }
+
+    if (typeof payload.eventId !== 'string' || !payload.eventId) {
+      return verifyLocalFallback(trimmed, eventIds);
+    }
+
+    return { ok: true, eventId: payload.eventId, source: 'edge' };
+  } catch (error) {
+    console.warn('QR verification error, using fallback:', error);
     return verifyLocalFallback(trimmed, eventIds);
   }
-
-  if (!data || typeof data !== 'object') {
-    return { ok: false, error: 'QR non valido.' };
-  }
-
-  const payload = data as {
-    ok?: boolean;
-    eventId?: unknown;
-    error?: unknown;
-  };
-
-  if (!payload.ok) {
-    const message = typeof payload.error === 'string' ? payload.error : 'QR non valido.';
-    return { ok: false, error: message };
-  }
-
-  if (typeof payload.eventId !== 'string' || !payload.eventId) {
-    return { ok: false, error: 'QR non valido.' };
-  }
-
-  return { ok: true, eventId: payload.eventId, source: 'edge' };
 }

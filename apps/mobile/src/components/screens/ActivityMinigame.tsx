@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { X, Timer, SlidersHorizontal, Target, Hand, LayoutGrid, ListOrdered, ArrowUp, ArrowDown } from 'lucide-react';
 import { Activity } from '../../state/store';
 import {
@@ -14,6 +14,7 @@ import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Tag } from '../ui/Tag';
 import { Slider } from '../ui/slider';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
@@ -119,10 +120,11 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: BaseMin
   useEffect(() => {
     if (phase !== 'playing') {
       stopAnimation();
-      return undefined;
+      return;
     }
 
     let lastTime = performance.now();
+    let animationId: number;
 
     const animate = (time: number) => {
       const delta = time - lastTime;
@@ -140,24 +142,32 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: BaseMin
         return next;
       });
 
-      animationRef.current = window.requestAnimationFrame(animate);
+      animationId = window.requestAnimationFrame(animate);
     };
 
-    animationRef.current = window.requestAnimationFrame(animate);
+    animationId = window.requestAnimationFrame(animate);
+    animationRef.current = animationId;
 
     return () => {
-      stopAnimation();
+      if (animationRef.current !== null) {
+        window.cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
     };
-  }, [phase, roundIndex, stopAnimation]);
+  }, [phase, roundIndex]);
 
   useEffect(() => {
     return () => {
-      stopAnimation();
-      if (feedbackTimeoutRef.current != null) {
+      if (animationRef.current !== null) {
+        window.cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+      if (feedbackTimeoutRef.current !== null) {
         window.clearTimeout(feedbackTimeoutRef.current);
+        feedbackTimeoutRef.current = null;
       }
     };
-  }, [stopAnimation]);
+  }, []);
 
   const handleStart = () => {
     if (feedbackTimeoutRef.current != null) {
@@ -185,6 +195,7 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: BaseMin
     triggerHaptic(result.label === 'Perfetto' ? [20, 30, 20] : 12);
 
     feedbackTimeoutRef.current = window.setTimeout(() => {
+      feedbackTimeoutRef.current = null;
       if (roundIndex + 1 < rounds.length) {
         setRoundIndex((value) => value + 1);
         setPhase('playing');
@@ -787,7 +798,7 @@ function RapidMinigame({ config, activityTitle, onComplete, onCancel }: BaseMini
     setFeedback({ label: result.label, delta: result.delta });
     setPhase('feedback');
 
-    window.setTimeout(() => {
+    const timeoutId = window.setTimeout(() => {
       if (roundIndex + 1 < rounds.length) {
         setRoundIndex((value) => value + 1);
         setTapCount(0);
@@ -798,6 +809,7 @@ function RapidMinigame({ config, activityTitle, onComplete, onCancel }: BaseMini
         onComplete(computeOutcome(config.type, nextScores));
       }
     }, 900);
+    return timeoutId;
   }, [config.type, onComplete, round.target, round.tolerance, roundIndex, roundScores, rounds.length, tapCount]);
 
   useEffect(() => {
@@ -1034,25 +1046,30 @@ function PriorityMinigame({ config, activityTitle, onComplete, onCancel }: BaseM
 export function ActivityMinigame({ activity, onComplete, onCancel }: ActivityMinigameProps) {
   const config = useMemo(() => getMinigameConfig(activity.id), [activity.id]);
 
-  if (config.type === 'audio') {
-    return <AudioMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
-  }
-
-  if (config.type === 'memory') {
-    return <MemoryMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
-  }
-
-  if (config.type === 'placement') {
-    return <PlacementMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
-  }
-
-  if (config.type === 'rapid') {
-    return <RapidMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
-  }
-
-  if (config.type === 'priority') {
-    return <PriorityMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
-  }
-
-  return <TimingMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
+  return (
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error('Minigame error:', error, errorInfo);
+      }}
+    >
+      {config.type === 'audio' && (
+        <AudioMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />
+      )}
+      {config.type === 'memory' && (
+        <MemoryMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />
+      )}
+      {config.type === 'placement' && (
+        <PlacementMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />
+      )}
+      {config.type === 'rapid' && (
+        <RapidMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />
+      )}
+      {config.type === 'priority' && (
+        <PriorityMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />
+      )}
+      {config.type === 'timing' && (
+        <TimingMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />
+      )}
+    </ErrorBoundary>
+  );
 }
