@@ -28,6 +28,7 @@ import { isSupabaseConfigured } from './lib/supabase';
 import { hasStoredAuthState, PUBLIC_SCREENS } from './lib/auth-storage';
 import { openInMaps, openEventsMap } from './lib/navigation-utils';
 import { uploadProfileImage } from './services/storage';
+import { verifyQrCode } from './services/qr-verification';
 import { ScreenTransition } from './components/ui/ScreenTransition';
 import { ErrorOverlay } from './components/ui/ErrorOverlay';
 import { initErrorHandler, subscribeToCriticalErrors, getLastCriticalError, clearLastCriticalError } from './services/error-handler';
@@ -46,7 +47,7 @@ function AppShell() {
     activities, turnStats, statsLoading, theatreReputation,
     theatreReputationLoading, badges, followedEvents, followedEventsLoading,
     followEvent, unfollowEvent, isEventFollowed, markBadgesSeen,
-    updateProfile, registerTurn, completeActivity, resetProgress, resetState,
+    updateProfile, registerTurn, getActivityAvailability, completeActivity, resetProgress, resetState,
     changePassword, sendPasswordResetEmail
   } = useGameState();
 
@@ -59,6 +60,7 @@ function AppShell() {
 
   const [activityOutcome, setActivityOutcome] = useState<MinigameOutcome | null>(null);
   const [activityCompletion, setActivityCompletion] = useState<{ activity: Activity; rewards: Rewards } | null>(null);
+  const [activityGateNotice, setActivityGateNotice] = useState<string | null>(null);
 
   // Animation state for tab transitions
   const [screenAnimation, setScreenAnimation] = useState('');
@@ -90,6 +92,7 @@ function AppShell() {
       setActiveTab('home');
       setActivityOutcome(null);
       setActivityCompletion(null);
+      setActivityGateNotice(null);
       resetState();
       setCurrentScreen('welcome');
     }
@@ -199,11 +202,26 @@ function AppShell() {
   ]);
 
   // Handler Actions
-  const handleQRScanAttempt = (code: string) => {
+  const formatAvailabilityMessage = useCallback((activityId: string) => {
+    const availability = getActivityAvailability(activityId);
+    if (availability.reason === 'cooldown') {
+      return `Attendi ${availability.remainingSeconds}s prima di ripetere il minigioco.`;
+    }
+    if (availability.reason === 'session_limit') {
+      return `Limite sessione raggiunto (${availability.maxRunsPerSession} run).`;
+    }
+    return null;
+  }, [getActivityAvailability]);
+
+  const handleQRScanAttempt = async (code: string) => {
     if (!authReady) return { ok: false as const, error: 'Verifica sessione...' };
     if (!isAuthValid) { setCurrentScreen('welcome'); return { ok: false as const, error: 'Login richiesto.' }; }
-    const resolved = events.find(e => code.toLowerCase().includes(e.id.toLowerCase()));
-    if (!resolved) return { ok: false as const, error: 'QR non valido.' };
+
+    const verified = await verifyQrCode(code, events.map((event) => event.id));
+    if (!verified.ok) return { ok: false as const, error: verified.error };
+
+    const resolved = events.find((event) => event.id === verified.eventId);
+    if (!resolved) return { ok: false as const, error: 'Evento non disponibile nel catalogo.' };
     setScannedEventId(resolved.id);
     setCurrentScreen('event-confirmation');
     return { ok: true as const };
@@ -243,19 +261,21 @@ function AppShell() {
       case 'qr-scanner': return <QRScanner onClose={() => handleTabChange(activeTab === 'home' ? 'home' : 'turns')} onScan={handleQRScanAttempt} />;
       case 'event-confirmation': return <EventConfirmation event={selectedEvent} role={selectedRole} onConfirm={handleEventConfirm} onCancel={() => setCurrentScreen('turns')} />;
       case 'event-details': return <EventDetails event={selectedEvent} onBack={() => setCurrentScreen('home')} onNavigate={() => openInMaps(selectedEvent?.theatre ?? '')} />;
-      case 'activities': return <Activities activities={activities} onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }} />;
-      case 'activity-detail': return currentActivity && <ActivityDetail activity={currentActivity} onStart={() => { setActivityOutcome(null); setActivityCompletion(null); setCurrentScreen('activity-minigame'); }} onClose={() => setCurrentScreen('activities')} />;
+      case 'activities': return <Activities activities={activities} getAvailability={getActivityAvailability} onStartActivity={(id: string) => { setActivityGateNotice(null); setSelectedActivityId(id); setCurrentScreen('activity-detail'); }} />;
+      case 'activity-detail': return currentActivity && <ActivityDetail activity={currentActivity} availability={getActivityAvailability(currentActivity.id)} notice={activityGateNotice} onStart={() => { const lockMessage = formatAvailabilityMessage(currentActivity.id); if (lockMessage) { setActivityGateNotice(lockMessage); return; } setActivityGateNotice(null); setActivityOutcome(null); setActivityCompletion(null); setCurrentScreen('activity-minigame'); }} onClose={() => setCurrentScreen('activities')} />;
       case 'activity-minigame':
         return currentActivity && (
           <ActivityMinigame
             activity={currentActivity}
             onCancel={() => setCurrentScreen('activity-detail')}
             onComplete={(outcome) => {
-              const completion = completeActivity(selectedActivityId);
-              if (!completion) {
-                handleTabChange('activities');
+              const completion = completeActivity(selectedActivityId, outcome.score);
+              if (!completion.ok) {
+                setActivityGateNotice(formatAvailabilityMessage(selectedActivityId) ?? 'Minigioco non disponibile.');
+                setCurrentScreen('activity-detail');
                 return;
               }
+              setActivityGateNotice(null);
               setActivityOutcome(outcome);
               setActivityCompletion(completion);
               setCurrentScreen('activity-result');
@@ -268,10 +288,10 @@ function AppShell() {
             activity={activityCompletion.activity}
             rewards={activityCompletion.rewards}
             outcome={activityOutcome}
-            onDone={() => handleTabChange('activities')}
+            onDone={() => { setActivityGateNotice(null); handleTabChange('activities'); }}
           />
         ) : (
-          <Activities activities={activities} onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }} />
+          <Activities activities={activities} getAvailability={getActivityAvailability} onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }} />
         );
       case 'profile': return <Profile userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} theatreReputation={theatreReputation.map(tr => ({ name: tr.theatre, reputation: tr.reputation }))} theatreReputationLoading={theatreReputationLoading} badgesUnlockedCount={unlockedBadges.length} newBadgesCount={newBadges.length} profileImage={state.profile.profileImage} onViewCarriera={() => setCurrentScreen('career')} onViewTitoli={() => setCurrentScreen('earned-titles')} onSettings={() => setCurrentScreen('account-settings')} onLogout={handleLogout} onUploadProfileImage={handleUploadImage} />;
       case 'account-settings': return <AccountSettings userName={state.profile.name} email={state.profile.email} onBack={() => setCurrentScreen('profile')} onViewTerms={() => openLegal('terms', 'account-settings')} onViewPrivacy={() => openLegal('privacy', 'account-settings')} onViewSupport={() => setCurrentScreen('support')} onChangePassword={() => { setIsPasswordRecovery(false); setCurrentScreen('change-password'); }} onResetProgress={async () => { await resetProgress(); handleTabChange('home'); setCurrentScreen('role-selection'); }} onLogout={handleLogout} />;
