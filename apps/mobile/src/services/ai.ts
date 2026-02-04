@@ -36,6 +36,11 @@ type AiSupportAvailabilityOptions = {
   timeoutMs?: number;
 };
 
+export type AiSupportAvailabilityStatus =
+  | 'available'
+  | 'unavailable'
+  | 'unknown';
+
 const SUPPORT_PROMPT =
   "Sei Maxwell, assistente di supporto per l'app Turni di Palco. " +
   "Sei super disponibile, positivo e un po' divertente. " +
@@ -120,16 +125,6 @@ function resolveHealthEndpoint(endpoint: string) {
   return endpoint;
 }
 
-function isCrossOriginTarget(target: string) {
-  if (typeof window === 'undefined') return false;
-  try {
-    const url = new URL(target, window.location.href);
-    return url.origin !== window.location.origin;
-  } catch {
-    return false;
-  }
-}
-
 function extractReply(payload: AiSupportResponse | string | null) {
   if (!payload) return null;
   if (typeof payload === 'string') return payload;
@@ -182,7 +177,6 @@ export async function checkAiSupportAvailability({
   timeoutMs = 2500,
 }: AiSupportAvailabilityOptions = {}) {
   const target = resolveHealthEndpoint(resolveEndpoint(endpoint));
-  const crossOrigin = isCrossOriginTarget(target);
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
 
@@ -190,11 +184,11 @@ export async function checkAiSupportAvailability({
     const response = await fetch(target, {
       method: 'GET',
       signal: controller.signal,
-      mode: crossOrigin ? 'no-cors' : 'cors',
+      mode: 'cors',
     });
-    return response.ok || (crossOrigin && response.type === 'opaque');
+    return response.ok ? 'available' : 'unavailable';
   } catch {
-    return false;
+    return 'unknown';
   } finally {
     window.clearTimeout(timeout);
   }
