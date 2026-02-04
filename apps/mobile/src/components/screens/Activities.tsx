@@ -3,10 +3,11 @@ import { Clock, Coins, Play, TrendingUp } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Tag } from '../ui/Tag';
-import { Activity } from '../../state/store';
+import { Activity, ActivityAvailability } from '../../state/store';
 
 interface ActivitiesProps {
   activities: Activity[];
+  getAvailability: (activityId: string) => ActivityAvailability;
   onStartActivity: (activityId: string) => void;
 }
 
@@ -16,7 +17,7 @@ const difficultyLabels: Record<Activity['difficulty'], string> = {
   Difficile: 'Avanzato',
 };
 
-export function Activities({ activities, onStartActivity }: ActivitiesProps) {
+export function Activities({ activities, getAvailability, onStartActivity }: ActivitiesProps) {
   const totalActivities = activities.length;
 
   return (
@@ -57,6 +58,8 @@ export function Activities({ activities, onStartActivity }: ActivitiesProps) {
           <div className="space-y-3">
             {activities.map((activity) => {
               const difficultyLabel = difficultyLabels[activity.difficulty] ?? activity.difficulty;
+              const availability = getAvailability(activity.id);
+              const isLocked = !availability.canPlay;
               return (
                 <Card
                   key={activity.id}
@@ -83,6 +86,14 @@ export function Activities({ activities, onStartActivity }: ActivitiesProps) {
                         <Badge variant="outline" size="sm">
                           {difficultyLabel}
                         </Badge>
+                        <Badge variant={isLocked ? 'default' : 'success'} size="sm">
+                          {availability.runsUsed}/{availability.maxRunsPerSession} run
+                        </Badge>
+                        {availability.reason === 'cooldown' ? (
+                          <Badge variant="default" size="sm">
+                            Cooldown {availability.remainingSeconds}s
+                          </Badge>
+                        ) : null}
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="gold" size="sm">
@@ -92,6 +103,9 @@ export function Activities({ activities, onStartActivity }: ActivitiesProps) {
                         <Badge variant="default" size="sm">
                           <Coins size={12} />
                           +{activity.cachetReward}
+                        </Badge>
+                        <Badge variant="success" size="sm">
+                          +{activity.reputationReward} Rep
                         </Badge>
                       </div>
                     </div>

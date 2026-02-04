@@ -26,6 +26,14 @@ export type GameEvent = {
   focusRole?: RoleId;
 };
 
+export type ActivityMinigameType =
+  | 'timing'
+  | 'audio'
+  | 'memory'
+  | 'placement'
+  | 'rapid'
+  | 'priority';
+
 export type Activity = {
   id: string;
   title: string;
@@ -33,8 +41,34 @@ export type Activity = {
   duration: string;
   xpReward: number;
   cachetReward: number;
+  reputationReward: number;
+  minigameType: ActivityMinigameType;
+  cooldownSeconds: number;
+  maxRunsPerSession: number;
   difficulty: 'Facile' | 'Medio' | 'Difficile';
 };
+
+export type ActivityProgress = {
+  runsCountSession: number;
+  sessionStartedAt?: number;
+  lastPlayedAt?: number;
+  bestScore?: number;
+  lastScore?: number;
+};
+
+export type ActivityAvailability = {
+  canPlay: boolean;
+  reason: 'cooldown' | 'session_limit' | null;
+  remainingSeconds: number;
+  runsUsed: number;
+  runsRemaining: number;
+  maxRunsPerSession: number;
+  cooldownSeconds: number;
+};
+
+export type ActivityCompletionResult =
+  | { ok: true; activity: Activity; rewards: Rewards; availability: ActivityAvailability }
+  | { ok: false; reason: 'missing_activity' | 'cooldown' | 'session_limit'; availability?: ActivityAvailability };
 
 export type TurnRecord = {
   id: string;
@@ -66,6 +100,7 @@ export type PlayerProfile = {
 export type GameState = {
   profile: PlayerProfile;
   turns: TurnRecord[];
+  activityProgress: Record<string, ActivityProgress>;
 };
 
 export type TurnStats = {
@@ -162,43 +197,164 @@ export const activities: Activity[] = [
   {
     id: 'ritardo',
     title: 'Prova generale in ritardo',
-    description: "La compagnia è in ritardo di 20 minuti. Devi gestire il clima e chiudere la prova.",
+    description: 'La compagnia e in ritardo di 20 minuti. Devi gestire il clima e chiudere la prova.',
     duration: '5 min',
     xpReward: 50,
     cachetReward: 20,
+    reputationReward: 6,
+    minigameType: 'timing',
+    cooldownSeconds: 60,
+    maxRunsPerSession: 3,
     difficulty: 'Medio',
   },
   {
     id: 'audio',
     title: 'Prova audio critica',
-    description: 'Un rientro micro crea Larsen. Il tempo stringe prima dell’apertura porte.',
+    description: "Un rientro micro crea Larsen. Il tempo stringe prima dell'apertura porte.",
     duration: '6 min',
     xpReward: 60,
     cachetReward: 25,
+    reputationReward: 7,
+    minigameType: 'audio',
+    cooldownSeconds: 60,
+    maxRunsPerSession: 3,
     difficulty: 'Difficile',
   },
   {
     id: 'palco',
     title: 'Cambio scena rapido',
-    description: 'Il cambio scena tra due atti è più lento del previsto. Serve velocizzare.',
+    description: 'Il cambio scena tra due atti e piu lento del previsto. Serve velocizzare.',
     duration: '4 min',
     xpReward: 55,
     cachetReward: 22,
+    reputationReward: 6,
+    minigameType: 'timing',
+    cooldownSeconds: 60,
+    maxRunsPerSession: 3,
     difficulty: 'Medio',
   },
   {
     id: 'recitazione',
     title: 'Prova di recitazione',
-    description: 'Esercita le tue abilità di interpretazione con un monologo classico.',
+    description: 'Esercita le tue abilita di interpretazione con un monologo classico.',
     duration: '5 min',
     xpReward: 45,
     cachetReward: 18,
+    reputationReward: 5,
+    minigameType: 'timing',
+    cooldownSeconds: 60,
+    maxRunsPerSession: 3,
     difficulty: 'Facile',
+  },
+  {
+    id: 'luci_cue',
+    title: 'Tempismo cue luci',
+    description: "Allinea le chiamate luci al ritmo scena senza perdere il tempo d'ingresso.",
+    duration: '4 min',
+    xpReward: 52,
+    cachetReward: 21,
+    reputationReward: 6,
+    minigameType: 'timing',
+    cooldownSeconds: 60,
+    maxRunsPerSession: 3,
+    difficulty: 'Medio',
+  },
+  {
+    id: 'monitor_mix',
+    title: 'Mix monitor di palco',
+    description: 'Bilancia i monitor per cast e musicisti in una situazione ad alta pressione.',
+    duration: '5 min',
+    xpReward: 58,
+    cachetReward: 24,
+    reputationReward: 7,
+    minigameType: 'audio',
+    cooldownSeconds: 60,
+    maxRunsPerSession: 3,
+    difficulty: 'Medio',
+  },
+  {
+    id: 'microfoni_wireless',
+    title: 'Setup microfoni wireless',
+    description: 'Sincronizza canali e livelli evitando interferenze durante il pre-show.',
+    duration: '6 min',
+    xpReward: 62,
+    cachetReward: 26,
+    reputationReward: 8,
+    minigameType: 'audio',
+    cooldownSeconds: 60,
+    maxRunsPerSession: 3,
+    difficulty: 'Difficile',
+  },
+  {
+    id: 'line_check',
+    title: 'Line check finale',
+    description: "Controlla il segnale di ogni linea audio poco prima dell'apertura sala.",
+    duration: '4 min',
+    xpReward: 48,
+    cachetReward: 19,
+    reputationReward: 5,
+    minigameType: 'audio',
+    cooldownSeconds: 60,
+    maxRunsPerSession: 3,
+    difficulty: 'Facile',
+  },
+  {
+    id: 'memory_blocking',
+    title: 'Memoria blocking scena',
+    description: 'Ricostruisci la sequenza di movimenti del cast in ordine corretto.',
+    duration: '5 min',
+    xpReward: 57,
+    cachetReward: 22,
+    reputationReward: 6,
+    minigameType: 'memory',
+    cooldownSeconds: 60,
+    maxRunsPerSession: 3,
+    difficulty: 'Medio',
+  },
+  {
+    id: 'prop_placement',
+    title: 'Posizionamento props',
+    description: 'Posiziona gli oggetti di scena nelle aree corrette prima dell ingresso attori.',
+    duration: '4 min',
+    xpReward: 54,
+    cachetReward: 21,
+    reputationReward: 6,
+    minigameType: 'placement',
+    cooldownSeconds: 60,
+    maxRunsPerSession: 3,
+    difficulty: 'Medio',
+  },
+  {
+    id: 'rapid_reset',
+    title: 'Sprint reset palco',
+    description: 'Completa un reset tecnico rapido tra due scene con tempi strettissimi.',
+    duration: '3 min',
+    xpReward: 50,
+    cachetReward: 20,
+    reputationReward: 5,
+    minigameType: 'rapid',
+    cooldownSeconds: 60,
+    maxRunsPerSession: 3,
+    difficulty: 'Facile',
+  },
+  {
+    id: 'cue_priority',
+    title: 'Priorita cue regia',
+    description: 'Ordina correttamente i cue critici per evitare errori durante la replica.',
+    duration: '5 min',
+    xpReward: 64,
+    cachetReward: 28,
+    reputationReward: 8,
+    minigameType: 'priority',
+    cooldownSeconds: 60,
+    maxRunsPerSession: 3,
+    difficulty: 'Difficile',
   },
 ];
 
 const STORAGE_KEY = 'tdp-mobile-ui-state';
 const MAX_TURNS = 20;
+const ACTIVITY_SESSION_WINDOW_MS = 1000 * 60 * 60 * 6;
 const HTML_ENTITY_MAP: Record<string, string> = {
   amp: '&',
   lt: '<',
@@ -305,6 +461,7 @@ function createInitialState(): GameState {
       lastActivityAt: Date.now(),
     },
     turns: [],
+    activityProgress: {},
   };
 }
 
@@ -337,6 +494,7 @@ function createDemoState(): GameState {
         createdAt: Date.now() - 1000 * 60 * 60 * 24 * 7,
       },
     ],
+    activityProgress: {},
   };
 }
 
@@ -355,6 +513,36 @@ function loadState(): GameState {
     const parsed = JSON.parse(raw) as GameState;
     if (!parsed.profile) return createDefaultState();
     const safeRole = roles.some((role) => role.id === parsed.profile.roleId) ? parsed.profile.roleId : createDefaultState().profile.roleId;
+    const progressSource =
+      parsed.activityProgress && typeof parsed.activityProgress === 'object'
+        ? parsed.activityProgress
+        : (parsed as any).activityStats && typeof (parsed as any).activityStats === 'object'
+          ? (parsed as any).activityStats
+          : {};
+    const activityProgress = Object.entries(progressSource).reduce<Record<string, ActivityProgress>>((acc, [id, value]) => {
+      const rawEntry = value as Record<string, unknown>;
+      const runsCountSession = Number(rawEntry.runsCountSession ?? rawEntry.runs ?? 0);
+      acc[id] = {
+        runsCountSession: Number.isFinite(runsCountSession) ? Math.max(0, Math.floor(runsCountSession)) : 0,
+        sessionStartedAt:
+          typeof rawEntry.sessionStartedAt === 'number' && Number.isFinite(rawEntry.sessionStartedAt)
+            ? rawEntry.sessionStartedAt
+            : undefined,
+        lastPlayedAt:
+          typeof rawEntry.lastPlayedAt === 'number' && Number.isFinite(rawEntry.lastPlayedAt)
+            ? rawEntry.lastPlayedAt
+            : undefined,
+        bestScore:
+          typeof rawEntry.bestScore === 'number' && Number.isFinite(rawEntry.bestScore)
+            ? Math.max(0, Math.min(100, Math.round(rawEntry.bestScore)))
+            : undefined,
+        lastScore:
+          typeof rawEntry.lastScore === 'number' && Number.isFinite(rawEntry.lastScore)
+            ? Math.max(0, Math.min(100, Math.round(rawEntry.lastScore)))
+            : undefined,
+      };
+      return acc;
+    }, {});
     return {
       profile: {
         ...createDefaultState().profile,
@@ -362,6 +550,7 @@ function loadState(): GameState {
         roleId: safeRole,
       },
       turns: Array.isArray(parsed.turns) ? parsed.turns : [],
+      activityProgress,
     };
   } catch {
     return createDefaultState();
@@ -485,6 +674,99 @@ function applyRewards(profile: PlayerProfile, rewards: Rewards, source: 'turn' |
   };
 }
 
+function normalizeActivityProgress(
+  value: ActivityProgress | undefined,
+  now: number
+): ActivityProgress {
+  const runsCountSession = Number(value?.runsCountSession ?? 0);
+  const sessionStartedAt =
+    typeof value?.sessionStartedAt === 'number' && Number.isFinite(value.sessionStartedAt)
+      ? value.sessionStartedAt
+      : undefined;
+  const lastPlayedAt =
+    typeof value?.lastPlayedAt === 'number' && Number.isFinite(value.lastPlayedAt)
+      ? value.lastPlayedAt
+      : undefined;
+  const bestScore =
+    typeof value?.bestScore === 'number' && Number.isFinite(value.bestScore)
+      ? Math.max(0, Math.min(100, Math.round(value.bestScore)))
+      : undefined;
+  const lastScore =
+    typeof value?.lastScore === 'number' && Number.isFinite(value.lastScore)
+      ? Math.max(0, Math.min(100, Math.round(value.lastScore)))
+      : undefined;
+
+  const sanitizedRuns = Number.isFinite(runsCountSession) ? Math.max(0, Math.floor(runsCountSession)) : 0;
+  if (!sessionStartedAt || now - sessionStartedAt > ACTIVITY_SESSION_WINDOW_MS) {
+    return {
+      runsCountSession: 0,
+      sessionStartedAt: undefined,
+      lastPlayedAt,
+      bestScore,
+      lastScore,
+    };
+  }
+
+  return {
+    runsCountSession: sanitizedRuns,
+    sessionStartedAt,
+    lastPlayedAt,
+    bestScore,
+    lastScore,
+  };
+}
+
+function getActivityAvailability(
+  activity: Activity,
+  progress: ActivityProgress | undefined,
+  now: number
+): ActivityAvailability {
+  const normalized = normalizeActivityProgress(progress, now);
+  const elapsed = normalized.lastPlayedAt ? now - normalized.lastPlayedAt : Number.POSITIVE_INFINITY;
+  const cooldownMs = Math.max(0, activity.cooldownSeconds * 1000);
+  const remainingSeconds =
+    Number.isFinite(elapsed) && elapsed < cooldownMs
+      ? Math.max(0, Math.ceil((cooldownMs - elapsed) / 1000))
+      : 0;
+  const maxRuns = Math.max(1, activity.maxRunsPerSession);
+  const runsUsed = Math.min(maxRuns, Math.max(0, normalized.runsCountSession));
+  const runsRemaining = Math.max(0, maxRuns - runsUsed);
+
+  if (remainingSeconds > 0) {
+    return {
+      canPlay: false,
+      reason: 'cooldown',
+      remainingSeconds,
+      runsUsed,
+      runsRemaining,
+      maxRunsPerSession: maxRuns,
+      cooldownSeconds: activity.cooldownSeconds,
+    };
+  }
+
+  if (runsRemaining <= 0) {
+    return {
+      canPlay: false,
+      reason: 'session_limit',
+      remainingSeconds: 0,
+      runsUsed,
+      runsRemaining,
+      maxRunsPerSession: maxRuns,
+      cooldownSeconds: activity.cooldownSeconds,
+    };
+  }
+
+  return {
+    canPlay: true,
+    reason: null,
+    remainingSeconds: 0,
+    runsUsed,
+    runsRemaining,
+    maxRunsPerSession: maxRuns,
+    cooldownSeconds: activity.cooldownSeconds,
+  };
+}
+
 export function computeTurnRewards(event: GameEvent, roleId: RoleId): Rewards {
   const bonus = event.focusRole === roleId ? 15 : 0;
   return {
@@ -519,7 +801,8 @@ type GameContextValue = {
   markBadgesSeen: () => void;
   updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage'>>) => void;
   registerTurn: (eventId: string, roleId: RoleId) => TurnRecord | null;
-  completeActivity: (activityId: string) => { activity: Activity; rewards: Rewards } | null;
+  getActivityAvailability: (activityId: string) => ActivityAvailability;
+  completeActivity: (activityId: string, score?: number) => ActivityCompletionResult;
   resetProgress: () => Promise<void>;
   changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
@@ -553,6 +836,12 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [badgesLoading, setBadgesLoading] = useState(false);
   const [followedEvents, setFollowedEvents] = useState<GameEvent[]>([]);
   const [followedEventsLoading, setFollowedEventsLoading] = useState(false);
+  const [remoteActivityProgress, setRemoteActivityProgress] = useState<Record<string, ActivityProgress>>({});
+
+  const activityProgress = useMemo(
+    () => (isSupabaseConfigured && authUserId ? remoteActivityProgress : state.activityProgress),
+    [authUserId, remoteActivityProgress, state.activityProgress]
+  );
 
   const turnStats = useMemo(
     () => (isSupabaseConfigured && authUserId ? remoteTurnStats ?? localTurnStats : localTurnStats),
@@ -646,6 +935,41 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       setRemoteBadges(nextBadges);
     }
     setBadgesLoading(false);
+  }, [authUserId]);
+
+  const refreshActivityProgress = useCallback(async () => {
+    if (!supabase || !authUserId) return;
+    const { data, error } = await supabase
+      .from('activity_progress')
+      .select('activity_id,runs_count_session,session_started_at,last_played_at,best_score,last_score')
+      .eq('user_id', authUserId);
+    if (error || !data) return;
+    const now = Date.now();
+    const nextProgress = data.reduce<Record<string, ActivityProgress>>((acc, row: any) => {
+      const entry: ActivityProgress = normalizeActivityProgress(
+        {
+          runsCountSession: Number(row.runs_count_session ?? 0),
+          sessionStartedAt: row.session_started_at ? new Date(row.session_started_at).getTime() : undefined,
+          lastPlayedAt: row.last_played_at ? new Date(row.last_played_at).getTime() : undefined,
+          bestScore:
+            row.best_score == null
+              ? undefined
+              : Math.max(0, Math.min(100, Math.round(Number(row.best_score)))),
+          lastScore:
+            row.last_score == null
+              ? undefined
+              : Math.max(0, Math.min(100, Math.round(Number(row.last_score)))),
+        },
+        now
+      );
+      acc[row.activity_id] = entry;
+      return acc;
+    }, {});
+    setRemoteActivityProgress(nextProgress);
+    setState((prev: GameState) => ({
+      ...prev,
+      activityProgress: nextProgress,
+    }));
   }, [authUserId]);
 
   type LeaderboardRow = {
@@ -837,13 +1161,15 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       setRemoteTurnStats(null);
       setRemoteBadges([]);
       setRemoteTheatreReputation([]);
+      setRemoteActivityProgress({});
       return;
     }
     refreshTurnStats();
     refreshTheatreReputation();
     refreshBadges();
+    refreshActivityProgress();
     refreshLeaderboard();
-  }, [authUserId, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
+  }, [authUserId, refreshActivityProgress, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !authUserId) {
@@ -865,7 +1191,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           .select('id,name,theatre,event_date,event_time,genre,base_rewards,focus_role'),
         supabase!
           .from('activities')
-          .select('id,title,description,duration,xp_reward,cachet_reward,difficulty'),
+          .select('id,title,description,duration,xp_reward,cachet_reward,reputation_reward,minigame_type,cooldown_seconds,max_runs_per_session,difficulty'),
       ]);
 
       if (!isMounted) return;
@@ -911,8 +1237,12 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             title: activity.title,
             description: activity.description,
             duration: activity.duration,
-            xpReward: activity.xp_reward,
-            cachetReward: activity.cachet_reward,
+            xpReward: Number(activity.xp_reward ?? 0),
+            cachetReward: Number(activity.cachet_reward ?? 0),
+            reputationReward: Number(activity.reputation_reward ?? 5),
+            minigameType: (activity.minigame_type as ActivityMinigameType) ?? 'timing',
+            cooldownSeconds: Math.max(0, Number(activity.cooldown_seconds ?? 60)),
+            maxRunsPerSession: Math.max(1, Number(activity.max_runs_per_session ?? 3)),
             difficulty: activity.difficulty as Activity['difficulty'],
           }));
 
@@ -936,19 +1266,24 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true;
 
     const loadRemoteState = async () => {
-      const [userRes, profileRes, turnsRes] = await Promise.all([
+      const [userRes, profileRes, turnsRes, activityProgressRes] = await Promise.all([
         supabase!.auth.getUser(),
         supabase!.from('profiles').select('*').eq('id', authUserId).maybeSingle(),
         supabase!.from('turns').select('*').eq('user_id', authUserId).order('created_at', { ascending: false }),
+        supabase!
+          .from('activity_progress')
+          .select('activity_id,runs_count_session,session_started_at,last_played_at,best_score,last_score')
+          .eq('user_id', authUserId),
       ]);
 
       if (!isMounted) return;
 
-      if (userRes.error || profileRes.error || turnsRes.error) {
+      if (userRes.error || profileRes.error || turnsRes.error || activityProgressRes.error) {
         notifyCriticalError('Non riusciamo a caricare il profilo dal database.', [
           userRes.error,
           profileRes.error,
           turnsRes.error,
+          activityProgressRes.error,
         ]);
       }
 
@@ -998,6 +1333,26 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         }))
         : [];
 
+      const now = Date.now();
+      const remoteActivityProgress = Array.isArray(activityProgressRes.data)
+        ? activityProgressRes.data.reduce<Record<string, ActivityProgress>>((acc, row: any) => {
+          acc[row.activity_id] = normalizeActivityProgress(
+            {
+              runsCountSession: Number(row.runs_count_session ?? 0),
+              sessionStartedAt: row.session_started_at ? new Date(row.session_started_at).getTime() : undefined,
+              lastPlayedAt: row.last_played_at ? new Date(row.last_played_at).getTime() : undefined,
+              bestScore:
+                row.best_score == null ? undefined : Math.max(0, Math.min(100, Math.round(Number(row.best_score)))),
+              lastScore:
+                row.last_score == null ? undefined : Math.max(0, Math.min(100, Math.round(Number(row.last_score)))),
+            },
+            now
+          );
+          return acc;
+        }, {})
+        : {};
+      setRemoteActivityProgress(remoteActivityProgress);
+
       if (profileRow) {
         const user = userRes.data?.user;
         setState((prev: GameState) => ({
@@ -1022,6 +1377,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             lastActivityAt: profileRow.last_activity_at ? new Date(profileRow.last_activity_at).getTime() : Date.now(),
           },
           turns: remoteTurns,
+          activityProgress: remoteActivityProgress,
         }));
       }
 
@@ -1137,6 +1493,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       )
       .on(
         'postgres_changes',
+        { event: '*', schema: 'public', table: 'activity_progress', filter: `user_id=eq.${authUserId}` },
+        () => {
+          refreshActivityProgress();
+        }
+      )
+      .on(
+        'postgres_changes',
         { event: '*', schema: 'public', table: 'followed_events', filter: `user_id=eq.${authUserId}` },
         () => {
           refreshFollowedEvents(catalog.events);
@@ -1150,6 +1513,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   }, [
     authUserId,
     catalog.events,
+    refreshActivityProgress,
     refreshBadges,
     refreshFollowedEvents,
     refreshTheatreReputation,
@@ -1182,6 +1546,36 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         .then(({ error }) => {
           if (error) {
             console.warn('Supabase profile upsert failed', error);
+          }
+        });
+    },
+    [authUserId, hasHydratedRemote]
+  );
+
+  const persistActivityProgress = useCallback(
+    (activityId: string, progress: ActivityProgress) => {
+      if (!supabase || !authUserId || !hasHydratedRemote) return;
+      supabase
+        .from('activity_progress')
+        .upsert(
+          {
+            user_id: authUserId,
+            activity_id: activityId,
+            runs_count_session: progress.runsCountSession,
+            session_started_at: progress.sessionStartedAt
+              ? new Date(progress.sessionStartedAt).toISOString()
+              : null,
+            last_played_at: progress.lastPlayedAt
+              ? new Date(progress.lastPlayedAt).toISOString()
+              : null,
+            best_score: progress.bestScore ?? null,
+            last_score: progress.lastScore ?? null,
+          },
+          { onConflict: 'user_id,activity_id' }
+        )
+        .then(({ error }) => {
+          if (error) {
+            console.warn('Supabase activity progress upsert failed', error);
           }
         });
     },
@@ -1234,6 +1628,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       setState((prev: GameState) => {
         nextProfile = applyRewards(prev.profile, rewards, 'turn');
         return {
+          ...prev,
           profile: nextProfile,
           turns: [record, ...prev.turns].slice(0, MAX_TURNS),
         };
@@ -1269,33 +1664,102 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     [catalog.events, authUserId, persistProfile]
   );
 
-  const completeActivity = useCallback(
+  const getAvailabilityForActivity = useCallback(
     (activityId: string) => {
       const activity = catalog.activities.find((item) => item.id === activityId);
-      if (!activity) return null;
-      const rewards: Rewards = { xp: activity.xpReward, cachet: activity.cachetReward, reputation: 5 };
+      if (!activity) {
+        return {
+          canPlay: false,
+          reason: 'session_limit' as const,
+          remainingSeconds: 0,
+          runsUsed: 0,
+          runsRemaining: 0,
+          maxRunsPerSession: 0,
+          cooldownSeconds: 0,
+        };
+      }
+      return getActivityAvailability(activity, activityProgress[activityId], Date.now());
+    },
+    [activityProgress, catalog.activities]
+  );
+
+  const completeActivity = useCallback(
+    (activityId: string, score?: number): ActivityCompletionResult => {
+      const activity = catalog.activities.find((item) => item.id === activityId);
+      if (!activity) {
+        return { ok: false, reason: 'missing_activity' };
+      }
+
+      const now = Date.now();
+      const currentProgress = normalizeActivityProgress(activityProgress[activityId], now);
+      const availability = getActivityAvailability(activity, currentProgress, now);
+      if (!availability.canPlay) {
+        return {
+          ok: false,
+          reason: availability.reason === 'cooldown' ? 'cooldown' : 'session_limit',
+          availability,
+        };
+      }
+
+      const rewards: Rewards = {
+        xp: activity.xpReward,
+        cachet: activity.cachetReward,
+        reputation: activity.reputationReward,
+      };
+
+      const normalizedScore =
+        typeof score === 'number' && Number.isFinite(score)
+          ? Math.max(0, Math.min(100, Math.round(score)))
+          : undefined;
+      const nextProgress: ActivityProgress = {
+        runsCountSession: currentProgress.runsCountSession + 1,
+        sessionStartedAt: currentProgress.sessionStartedAt ?? now,
+        lastPlayedAt: now,
+        bestScore:
+          normalizedScore == null
+            ? currentProgress.bestScore
+            : Math.max(currentProgress.bestScore ?? normalizedScore, normalizedScore),
+        lastScore: normalizedScore ?? currentProgress.lastScore,
+      };
 
       let nextProfile: PlayerProfile | null = null;
       const completionId =
         supabase && authUserId && globalThis.crypto?.randomUUID
           ? globalThis.crypto.randomUUID()
           : `activity-${Date.now()}`;
+
       setState((prev: GameState) => {
         nextProfile = applyRewards(prev.profile, rewards, 'activity');
         return {
           ...prev,
           profile: nextProfile,
+          activityProgress: {
+            ...prev.activityProgress,
+            [activity.id]: nextProgress,
+          },
         };
       });
+
+      setRemoteActivityProgress((prev) => ({
+        ...prev,
+        [activity.id]: nextProgress,
+      }));
 
       if (nextProfile) {
         persistProfile(nextProfile);
       }
+      persistActivityProgress(activity.id, nextProgress);
 
       if (supabase && authUserId) {
         supabase
           .from('activity_completions')
-          .insert({ id: completionId, user_id: authUserId, activity_id: activity.id, rewards })
+          .insert({
+            id: completionId,
+            user_id: authUserId,
+            activity_id: activity.id,
+            rewards,
+            score: normalizedScore ?? null,
+          })
           .then(({ error }) => {
             if (error) {
               console.warn('Supabase activity insert failed', error);
@@ -1303,9 +1767,15 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           });
       }
 
-      return { activity, rewards };
+      const nextAvailability = getActivityAvailability(activity, nextProgress, now);
+      return {
+        ok: true,
+        activity,
+        rewards,
+        availability: nextAvailability,
+      };
     },
-    [catalog.activities, authUserId, persistProfile]
+    [activityProgress, authUserId, catalog.activities, persistActivityProgress, persistProfile]
   );
 
   const resetProgress = useCallback(async () => {
@@ -1328,12 +1798,20 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         cachet: 0,
       },
       turns: [],
+      activityProgress: {},
     }));
 
+    setRemoteActivityProgress({});
+
     if (isSupabaseConfigured && supabase && authUserId) {
-      await Promise.all([refreshTurnStats(), refreshTheatreReputation(), refreshBadges()]);
+      await Promise.all([
+        refreshTurnStats(),
+        refreshTheatreReputation(),
+        refreshBadges(),
+        refreshActivityProgress(),
+      ]);
     }
-  }, [authUserId, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
+  }, [authUserId, refreshActivityProgress, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
 
   const changePassword = useCallback(
     async (newPassword: string, currentPassword?: string) => {
@@ -1455,6 +1933,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       markBadgesSeen,
       updateProfile,
       registerTurn,
+      getActivityAvailability: getAvailabilityForActivity,
       completeActivity,
       resetProgress,
       changePassword,
@@ -1484,6 +1963,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       markBadgesSeen,
       updateProfile,
       registerTurn,
+      getAvailabilityForActivity,
       completeActivity,
       resetProgress,
       changePassword,
