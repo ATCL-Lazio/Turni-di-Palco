@@ -26,7 +26,7 @@ function verifyLocalFallback(code: string, eventIds: string[]): QrVerificationRe
   }
 
   // Strictly dev-only legacy support: only if explicitly allowed or no Supabase
-  const isDev = import.meta.env.DEV;
+  const isDev = (import.meta as any).env?.DEV;
   if (isDev && !isSupabaseConfigured) {
     const legacyEvent = eventIds.find((id) => code.trim() === id);
     if (legacyEvent) {
