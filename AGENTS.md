@@ -54,6 +54,10 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - You should always commits submodules **before** the main repository
 
+- **Merge policy (MANDATORY for all agents): unless explicitly specified otherwise by the user, the merge target is ALWAYS `main`.**
+  - If the target branch is not written clearly in the request, assume `main`.
+  - Do not infer a different merge target from recent context/history.
+
 ## Identity & Git Hygiene
 
 - Author/committer identity is managed by the repo owner; do not change git config locally (no `git config` commands). Use the existing configuration as-is. Use $ENV variables for agent-specific commits.
