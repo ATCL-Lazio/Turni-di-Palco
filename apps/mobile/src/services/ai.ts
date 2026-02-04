@@ -8,6 +8,7 @@ type AiSupportRequest = {
   memory?: string;
   messages: AiChatMessage[];
   endpoint?: string;
+  signal?: AbortSignal;
 };
 
 type AiSupportResponse = {
@@ -142,6 +143,7 @@ export async function requestAiSupport({
   memory,
   messages,
   endpoint,
+  signal,
 }: AiSupportRequest) {
   const target = resolveEndpoint(endpoint);
   const response = await fetch(target, {
@@ -149,6 +151,7 @@ export async function requestAiSupport({
     headers: {
       'Content-Type': 'application/json',
     },
+    signal,
     body: JSON.stringify({
       prompt: SUPPORT_PROMPT,
       messages,
