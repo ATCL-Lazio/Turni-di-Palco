@@ -254,6 +254,8 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasLoadedRef = useRef(false);
   const issueTrackerRef = useRef(new Set<string>());
+  const requestIdRef = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -280,6 +282,12 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
     }
     hasLoadedRef.current = true;
   }, [displayName, greetingMessage]);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!hasLoadedRef.current || !activeSessionId) return;
@@ -328,6 +336,13 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
   const handleSend = async () => {
     if (!hasInput || isLoading) return;
     const content = input.trim();
+    const requestSessionId = activeSessionId;
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setInput('');
     setErrorMessage(null);
 
@@ -337,12 +352,20 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
     setIsLoading(true);
 
     try {
-      const memory = buildMemorySnippet(chatSessions, activeSessionId);
+      const memory = buildMemorySnippet(chatSessions, requestSessionId);
       const reply = await requestAiSupport({
         userName: displayName,
         memory,
         messages: buildChatPayload(nextMessages),
+        signal: controller.signal,
       });
+      if (
+        controller.signal.aborted ||
+        requestIdRef.current !== requestId ||
+        activeSessionId !== requestSessionId
+      ) {
+        return;
+      }
       const { text, draft } = extractIssueDraft(reply);
       if (draft) {
         void handleIssueDraft(draft);
@@ -353,6 +376,13 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
         buildSupportMessage('assistant', displayText),
       ]);
     } catch {
+      if (
+        controller.signal.aborted ||
+        requestIdRef.current !== requestId ||
+        activeSessionId !== requestSessionId
+      ) {
+        return;
+      }
       const fallback =
         "Il supporto automatizzato non e' disponibile in questo momento. Riprova tra poco.";
       setErrorMessage(fallback);
@@ -361,11 +391,14 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
         buildSupportMessage('assistant', fallback),
       ]);
     } finally {
-      setIsLoading(false);
+      if (requestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleSelectSession = (sessionId: string) => {
+    if (isLoading) return;
     const session = chatSessions.find((item) => item.id === sessionId);
     if (!session) return;
     setActiveSessionId(session.id);
@@ -374,6 +407,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
   };
 
   const handleNewSession = () => {
+    if (isLoading) return;
     const sessionId = buildMessageId();
     const session: ChatSession = {
       id: sessionId,
@@ -596,12 +630,18 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
             <DrawerDescription className="text-left text-[#b8b2b3]">
               Riprendi una conversazione oppure apri una nuova sessione.
             </DrawerDescription>
+            {isLoading ? (
+              <p className="mt-2 text-left text-[12px] text-[#f4bf4f]">
+                Attendi la risposta di Maxwell prima di cambiare sessione.
+              </p>
+            ) : null}
           </DrawerHeader>
 
           <div className="px-4 pt-3">
             <Button
               type="button"
               onClick={handleNewSession}
+              disabled={isLoading}
               className="h-[44px] w-full rounded-xl"
               aria-label="Inizia una nuova chat con Maxwell"
             >
@@ -619,6 +659,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
                     key={session.id}
                     type="button"
                     onClick={() => handleSelectSession(session.id)}
+                    disabled={isLoading}
                     className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors ${
                       isActive
                         ? 'border-[#a82847] bg-[#2d0a0f]/60'
