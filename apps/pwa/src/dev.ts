@@ -62,7 +62,7 @@ const start = async () => {
 
   const devAppBar = renderAppBar({ eyebrow: "Turni di Palco", subtitle: "Dev playground", actions: devNav });
 
-  const ACTIVITY_COOLDOWN_MS = 20000;
+  const ACTIVITY_COOLDOWN_MS = 60000;
   const MAX_ACTIVITY_RUNS = 3;
   const activities: Activity[] = [
     {
@@ -119,6 +119,177 @@ const start = async () => {
           label: "Semplifica gli elementi",
           summary: "Rimuovi un paio di props superflui per restare nei tempi.",
           rewards: { xp: 12, cachet: 10, reputation: 7 },
+        },
+      ],
+    },
+    {
+      id: "recitazione",
+      title: "Prova di recitazione",
+      description: "Interpreta un passaggio critico mantenendo ritmo e intenzione scenica.",
+      choices: [
+        {
+          id: "intonazione",
+          label: "Cura intenzione e ritmo",
+          summary: "Rafforzi il testo e migliori la resa davanti alla regia.",
+          rewards: { xp: 16, cachet: 8, reputation: 6 },
+        },
+        {
+          id: "improvvisare",
+          label: "Improvvisa su richiesta",
+          summary: "Trovi una soluzione creativa ma con qualche incertezza.",
+          rewards: { xp: 12, cachet: 10, reputation: 4 },
+        },
+      ],
+    },
+    {
+      id: "luci_cue",
+      title: "Tempismo cue luci",
+      description: "Allinea i cue luce con ingressi e cambi scena in tempi stretti.",
+      choices: [
+        {
+          id: "sync-ritmo",
+          label: "Segui il metronomo regia",
+          summary: "Sincronizzi i cue e riduci gli errori di timing.",
+          rewards: { xp: 18, cachet: 11, reputation: 7 },
+        },
+        {
+          id: "manuale",
+          label: "Correggi manualmente",
+          summary: "Recuperi i tempi ma con una gestione piu stressante.",
+          rewards: { xp: 14, cachet: 12, reputation: 5 },
+        },
+      ],
+    },
+    {
+      id: "monitor_mix",
+      title: "Mix monitor di palco",
+      description: "Bilancia monitor per cast e musicisti durante una prova tesa.",
+      choices: [
+        {
+          id: "bilanciare",
+          label: "Bilancia per sezioni",
+          summary: "Separi i gruppi e migliori chiarezza e ascolto reciproco.",
+          rewards: { xp: 19, cachet: 12, reputation: 7 },
+        },
+        {
+          id: "taglio-frequenze",
+          label: "Taglia le frequenze critiche",
+          summary: "Riduci feedback velocemente sacrificando parte del corpo sonoro.",
+          rewards: { xp: 15, cachet: 13, reputation: 5 },
+        },
+      ],
+    },
+    {
+      id: "microfoni_wireless",
+      title: "Setup microfoni wireless",
+      description: "Configura canali e gain senza interferenze prima dell'apertura sala.",
+      choices: [
+        {
+          id: "scan-rf",
+          label: "Scansione RF completa",
+          summary: "Trovi canali puliti e consegni setup stabile.",
+          rewards: { xp: 22, cachet: 14, reputation: 8 },
+        },
+        {
+          id: "preset-rapido",
+          label: "Preset rapido",
+          summary: "Parti in fretta ma restano piccoli rischi di conflitto.",
+          rewards: { xp: 16, cachet: 14, reputation: 5 },
+        },
+      ],
+    },
+    {
+      id: "line_check",
+      title: "Line check finale",
+      description: "Verifica linee e routing audio negli ultimi minuti pre-show.",
+      choices: [
+        {
+          id: "check-completo",
+          label: "Controllo completo",
+          summary: "Confermi ogni linea e previeni problemi in scena.",
+          rewards: { xp: 16, cachet: 10, reputation: 6 },
+        },
+        {
+          id: "check-essenziale",
+          label: "Solo linee critiche",
+          summary: "Riduci i tempi ma lasci margine a piccoli imprevisti.",
+          rewards: { xp: 12, cachet: 11, reputation: 4 },
+        },
+      ],
+    },
+    {
+      id: "memory_blocking",
+      title: "Memoria blocking scena",
+      description: "Ricostruisci ordine e tempi dei movimenti del cast.",
+      choices: [
+        {
+          id: "sequenza-completa",
+          label: "Ricostruisci tutta la sequenza",
+          summary: "Memorizzi i passaggi chiave e riduci incertezze in replica.",
+          rewards: { xp: 18, cachet: 11, reputation: 6 },
+        },
+        {
+          id: "focus-entrate",
+          label: "Priorita a ingressi/uscite",
+          summary: "Copri i momenti critici ma perdi dettagli minori.",
+          rewards: { xp: 14, cachet: 10, reputation: 5 },
+        },
+      ],
+    },
+    {
+      id: "prop_placement",
+      title: "Posizionamento props",
+      description: "Sistema oggetti scena nei punti corretti prima del cambio atto.",
+      choices: [
+        {
+          id: "mappa-scena",
+          label: "Segui mappa props",
+          summary: "Posizioni tutto con precisione e zero ritardi.",
+          rewards: { xp: 17, cachet: 10, reputation: 6 },
+        },
+        {
+          id: "reset-minimo",
+          label: "Reset minimo indispensabile",
+          summary: "Completi in tempo ma con margine di errore sui dettagli.",
+          rewards: { xp: 13, cachet: 9, reputation: 4 },
+        },
+      ],
+    },
+    {
+      id: "rapid_reset",
+      title: "Sprint reset palco",
+      description: "Chiudi un reset tecnico completo tra due scene senza sforare.",
+      choices: [
+        {
+          id: "checklist",
+          label: "Checklist a cronometro",
+          summary: "Mantieni ritmo alto senza perdere passaggi obbligatori.",
+          rewards: { xp: 16, cachet: 10, reputation: 5 },
+        },
+        {
+          id: "brute-force",
+          label: "Corri su priorita fisiche",
+          summary: "Chiudi il reset, ma con meno controllo qualitativo.",
+          rewards: { xp: 12, cachet: 11, reputation: 4 },
+        },
+      ],
+    },
+    {
+      id: "cue_priority",
+      title: "Priorita cue regia",
+      description: "Ordina i cue critici per evitare errori durante la replica.",
+      choices: [
+        {
+          id: "triage-cue",
+          label: "Triage per rischio",
+          summary: "Metti in sicurezza i cue ad alto impatto prima degli altri.",
+          rewards: { xp: 20, cachet: 13, reputation: 8 },
+        },
+        {
+          id: "ordine-standard",
+          label: "Mantieni ordine standard",
+          summary: "Resti coerente ma perdi efficienza nei passaggi urgenti.",
+          rewards: { xp: 15, cachet: 12, reputation: 5 },
         },
       ],
     },
