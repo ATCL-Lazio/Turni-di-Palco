@@ -56,6 +56,35 @@
 15. **MVP milestone**
     - Task aggregata: profilo, XP/monete base, 1–2 minigiochi, QR test.
 
+## MVP milestone: piano di azione e controllo stato
+
+### Piano di azione (da eseguire in ordine)
+
+1. **Consolidare profilo e progressione base**
+   - Confermare flusso: creazione profilo + scelta ruolo + avatar + cachet/XP/rep.
+   - Verificare persistenza e reset di prova in ambiente dev.
+2. **Definire 1–2 minigiochi MVP**
+   - Selezionare i minigiochi da prototipare (es. tempismo luci, audio base).
+   - Definire input/output minimi, durata e reward base.
+3. **Integrare attività simulate**
+   - Collegare i minigiochi al loop di attività simulate.
+   - Aggiungere cooldown/limite sessione e tracking di progressi.
+4. **Preparare flusso QR di test**
+   - Definire schema evento mock + validazione QR (anche via codice fisso).
+   - Collegare la registrazione turno a XP/monete base.
+5. **Checklist di Done per la milestone**
+   - Profilo configurabile, XP/cachet aggiornabili, 1–2 minigiochi giocabili, flusso QR di test end-to-end.
+
+### Controllo stato (repo attuale)
+
+| Elemento MVP | Stato | Evidenza/Note |
+| --- | --- | --- |
+| Profilo giocatore + scelta ruolo | Parziale | UI profilo e ruoli presenti, con campi base e riepilogo stat.【F:apps/pwa/src/profile.ts†L1-L178】 |
+| XP/cachet/reputazione base | Parziale | Struttura dati e metriche base presenti nello stato; valori gestiti a livello di profilo/turni.【F:apps/pwa/src/state.ts†L1-L158】 |
+| Attività simulate narrative | Parziale | Sezione “Attività simulate” presente in pagina dev con selezione e risultati mock.【F:apps/pwa/src/dev.ts†L220-L271】 |
+| 1–2 minigiochi MVP | Non avviato | Nessun riferimento a minigiochi nei sorgenti PWA attuali. |
+| Flusso QR di test | Parziale | Mock “Turno ATCL (mock QR)” disponibile in pagina dev; richiede validazione reale/QR scan.【F:apps/pwa/src/dev.ts†L254-L271】 |
+
 ## Note operative
 
 - Questa lista va verificata contro le issue esistenti e aggiornata in GitHub.
