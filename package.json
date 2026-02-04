@@ -4,7 +4,8 @@
   "workspaces": [
     "apps/pwa",
     "apps/mobile",
-    "apps/reactbricks"
+    "apps/reactbricks",
+    "tools"
   ],
   "scripts": {
     "clean:builds": "node tools/clean-builds.js",
@@ -24,13 +25,10 @@
     "keep-alive": "node tools/keep-alive-reciprocal.js",
     "watchdog": "node tools/maxwell-watchdog.js"
   },
-  "devDependencies": {
-    "qrcode": "^1.5.4",
-    "qrcode-terminal": "^0.12.0"
-  },
+  "devDependencies": {},
   "dependencies": {
     "ajv": "^8.17.1",
-    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/supabase-js": "^2.50.0",
     "dotenv": "^16.3.1"
   }
 }
