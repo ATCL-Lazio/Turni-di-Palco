@@ -41,11 +41,28 @@ jobs:
 
       - name: Sync branch
         id: sync-render-branch
+        env:
+          GH_SYNC_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git fetch origin main
+          set -euo pipefail
+
+          git remote set-url origin "https://x-access-token:${GH_SYNC_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          retry() {
+            for attempt in 1 2 3; do
+              if "$@"; then
+                return 0
+              fi
+              echo "Command failed (attempt ${attempt}/3): $*" >&2
+              sleep 2
+            done
+            return 1
+          }
+
+          retry git fetch origin main
           # Hard align render/preview to main to avoid merge commits
           git checkout -B render/preview origin/main
-          git push -f origin render/preview
+          retry git push -f origin render/preview
           echo "deploy_sha=$(git rev-parse origin/main)" >> "$GITHUB_OUTPUT"
           echo "sync_epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
 
@@ -70,7 +87,7 @@ jobs:
           description: 'Deploy Maxwell-AI-Support to Render preview'
 
       - name: Mark deployments in progress - Render
-        if: always()
+        if: always() && steps.deployment-main.outputs.deployment_id != ''
         uses: chrnorm/deployment-status@v2
         with:
           token: '${{ github.token }}'
@@ -79,7 +96,7 @@ jobs:
           environment-url: https://turni-di-palco.onrender.com
 
       - name: Mark deployments in progress - Maxwell
-        if: always()
+        if: always() && steps.deployment-ai.outputs.deployment_id != ''
         uses: chrnorm/deployment-status@v2
         with:
           token: '${{ github.token }}'
@@ -232,7 +249,7 @@ jobs:
           echo "maxwell_status=$maxwell_status" >> "$GITHUB_OUTPUT"
 
       - name: Update deployment status (success) - Turni-di-Palco
-        if: always() && steps.wait-render.outputs.turni_status == 'success'
+        if: always() && steps.wait-render.outputs.turni_status == 'success' && steps.deployment-main.outputs.deployment_id != ''
         uses: chrnorm/deployment-status@v2
         with:
           token: '${{ github.token }}'
@@ -241,7 +258,7 @@ jobs:
           environment-url: https://turni-di-palco.onrender.com
 
       - name: Update deployment status (success) - Maxwell-AI-Support
-        if: always() && steps.wait-render.outputs.maxwell_status == 'success'
+        if: always() && steps.wait-render.outputs.maxwell_status == 'success' && steps.deployment-ai.outputs.deployment_id != ''
         uses: chrnorm/deployment-status@v2
         with:
           token: '${{ github.token }}'
@@ -250,7 +267,7 @@ jobs:
           environment-url: https://maxwell-ai-support.onrender.com
 
       - name: Update deployment status (failure) - Turni-di-Palco
-        if: always() && steps.wait-render.outputs.turni_status != 'success'
+        if: always() && steps.wait-render.outputs.turni_status != 'success' && steps.deployment-main.outputs.deployment_id != ''
         uses: chrnorm/deployment-status@v2
         with:
           token: '${{ github.token }}'
@@ -259,7 +276,7 @@ jobs:
           environment-url: https://turni-di-palco.onrender.com
 
       - name: Update deployment status (failure) - Maxwell-AI-Support
-        if: always() && steps.wait-render.outputs.maxwell_status != 'success'
+        if: always() && steps.wait-render.outputs.maxwell_status != 'success' && steps.deployment-ai.outputs.deployment_id != ''
         uses: chrnorm/deployment-status@v2
         with:
           token: '${{ github.token }}'
@@ -292,11 +309,28 @@ jobs:
 
       - name: Sync branch
         id: sync-netlify-branch
+        env:
+          GH_SYNC_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git fetch origin main
+          set -euo pipefail
+
+          git remote set-url origin "https://x-access-token:${GH_SYNC_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          retry() {
+            for attempt in 1 2 3; do
+              if "$@"; then
+                return 0
+              fi
+              echo "Command failed (attempt ${attempt}/3): $*" >&2
+              sleep 2
+            done
+            return 1
+          }
+
+          retry git fetch origin main
           # Hard align netlify/preview to main to avoid merge commits
           git checkout -B netlify/preview origin/main
-          git push -f origin netlify/preview
+          retry git push -f origin netlify/preview
           echo "deploy_sha=$(git rev-parse origin/main)" >> "$GITHUB_OUTPUT"
           echo "sync_epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
 
@@ -311,7 +345,7 @@ jobs:
           description: 'Deploy to Netlify preview environment'
 
       - name: Mark deployment in progress - Netlify
-        if: always()
+        if: always() && steps.deployment-netlify.outputs.deployment_id != ''
         uses: chrnorm/deployment-status@v2
         with:
           token: '${{ github.token }}'
@@ -457,7 +491,7 @@ jobs:
           echo "netlify_status=$status" >> "$GITHUB_OUTPUT"
 
       - name: Update deployment status (success) - Netlify
-        if: always() && steps.wait-netlify.outputs.netlify_status == 'success'
+        if: always() && steps.wait-netlify.outputs.netlify_status == 'success' && steps.deployment-netlify.outputs.deployment_id != ''
         uses: chrnorm/deployment-status@v2
         with:
           token: '${{ github.token }}'
@@ -466,7 +500,7 @@ jobs:
           environment-url: https://turni-di-palco.netlify.app
 
       - name: Update deployment status (failure) - Netlify
-        if: always() && steps.wait-netlify.outputs.netlify_status != 'success'
+        if: always() && steps.wait-netlify.outputs.netlify_status != 'success' && steps.deployment-netlify.outputs.deployment_id != ''
         uses: chrnorm/deployment-status@v2
         with:
           token: '${{ github.token }}'
