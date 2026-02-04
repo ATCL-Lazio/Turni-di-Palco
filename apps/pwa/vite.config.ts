@@ -63,7 +63,9 @@ if (!isPublicMode) {
 
 export default defineConfig({
   appType: "mpa",
-  plugins: [tailwindcss()],
+  plugins: [tailwindcss({
+    config: path.resolve(__dirname, '..', '..', 'shared', 'tailwind.config.js'),
+  })],
   build: {
     rollupOptions: {
       input: buildInputs,

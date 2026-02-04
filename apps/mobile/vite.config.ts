@@ -51,7 +51,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: '/mobile/',
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss({
+      config: path.resolve(__dirname, '..', '..', 'shared', 'tailwind.config.js'),
+    })],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {
