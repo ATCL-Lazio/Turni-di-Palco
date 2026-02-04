@@ -100,7 +100,7 @@ export function AccountSettings({
   });
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermissionState>(() => getPermission());
   const [supportStatus, setSupportStatus] = useState<
-    'checking' | 'available' | 'unavailable'
+    'checking' | 'available' | 'unavailable' | 'unknown'
   >('checking');
 
   const notificationStatusLabel = (() => {
@@ -161,9 +161,9 @@ export function AccountSettings({
     let mounted = true;
 
     const checkSupport = async () => {
-      const available = await checkAiSupportAvailability();
+      const availability = await checkAiSupportAvailability();
       if (!mounted) return;
-      setSupportStatus(available ? 'available' : 'unavailable');
+      setSupportStatus(availability);
     };
 
     checkSupport();
@@ -361,6 +361,7 @@ export function AccountSettings({
     typeof navigator !== 'undefined' && !!navigator.geolocation;
   const supportUnavailable = supportStatus === 'unavailable';
   const supportChecking = supportStatus === 'checking';
+  const supportUnknown = supportStatus === 'unknown';
 
   return (
     <Screen
@@ -591,6 +592,11 @@ export function AccountSettings({
           {supportUnavailable ? (
             <p className="text-[14px] leading-[20px] text-[#ff4d4f]">
               Supporto AI attualmente non disponibile.
+            </p>
+          ) : null}
+          {supportUnknown ? (
+            <p className="text-[14px] leading-[20px] text-[#f4bf4f]">
+              Stato del supporto non verificabile. Puoi comunque provare ad aprire la chat.
             </p>
           ) : null}
 
