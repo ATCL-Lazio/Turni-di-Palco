@@ -39,6 +39,13 @@ async function updateServiceWorker(cacheSuffix) {
   const cacheNameMatch = swContent.match(/const CACHE_NAME = "([^"]*)";/);
   const coreCacheNameMatch = swContent.match(/const CORE_CACHE_NAME = "([^"]*)";/);
   const tileCacheNameMatch = swContent.match(/const TILE_CACHE_NAME = "([^"]*)";/);
+  const hasDynamicCoreCache =
+    /const\s+CORE_CACHE_VERSION\s*=/.test(swContent) &&
+    /const\s+CORE_CACHE_NAME\s*=\s*`/.test(swContent);
+
+  if (hasDynamicCoreCache) {
+    return null;
+  }
 
   if (!cacheNameMatch && !coreCacheNameMatch) {
     throw new Error(
@@ -88,7 +95,11 @@ async function main() {
   const files = await collectFiles(PUBLIC_DIR);
   const hash = await calculateHash(files);
   const cacheName = await updateServiceWorker(hash);
-  console.log(`Updated CACHE_NAME to ${cacheName}`);
+  if (cacheName) {
+    console.log(`Updated CACHE_NAME to ${cacheName}`);
+    return;
+  }
+  console.log('Skipped CACHE_NAME update: service worker uses dynamic cache versioning');
 }
 
 main().catch((error) => {

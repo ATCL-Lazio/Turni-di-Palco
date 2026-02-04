@@ -1,7 +1,31 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Bot, Send } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bot,
+  Clock3,
+  History,
+  Loader2,
+  Plus,
+  Send,
+  User,
+} from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { Textarea } from '../ui/textarea';
+import { Card } from '../ui/Card';
+import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
+import { ScrollArea } from '../ui/scroll-area';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '../ui/drawer';
+import { Skeleton } from '../ui/skeleton';
+import { useIsMobile } from '../ui/use-mobile';
 import {
   requestAiIssue,
   requestAiSupport,
@@ -138,6 +162,15 @@ function formatSessionDate(timestamp: number) {
   )} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function formatMessageTime(timestamp: number) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return '--:--';
+  return date.toLocaleTimeString('it-IT', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 function buildSessionPreview(session: ChatSession) {
   const lastMessage = [...session.messages].reverse().find(Boolean);
   if (!lastMessage) return 'Conversazione vuota';
@@ -209,6 +242,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
     () => buildGreetingMessage(displayName),
     [displayName]
   );
+  const isMobile = useIsMobile();
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState('');
@@ -257,6 +291,10 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
   }, [messages, activeSessionId, displayName]);
 
   const hasInput = input.trim().length > 0;
+  const activeSession = useMemo(
+    () => chatSessions.find((session) => session.id === activeSessionId) ?? null,
+    [chatSessions, activeSessionId]
+  );
 
   const buildChatPayload = (nextMessages: SupportMessage[]): AiChatMessage[] => {
     const base: AiChatMessage = {
@@ -355,130 +393,268 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
     <Screen
       withBottomNavPadding={false}
       className="relative items-start justify-start"
-      contentClassName="relative w-full flex-1 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom,_0px)+20px)] space-y-0 box-border"
+      contentClassName="relative flex min-h-0 w-full flex-1 flex-col box-border px-4 pt-6 pb-[calc(env(safe-area-inset-bottom,_0px)+16px)] md:px-6 md:pt-8"
     >
-      <div className="flex h-full w-full flex-col gap-4">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
-          aria-label="Indietro"
-        >
-          <ArrowLeft size={24} />
-        </button>
-
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[#f5f5f5]">
-              Supporto
-            </p>
-            <button
-              type="button"
-              onClick={() => setIsHistoryOpen((prev) => !prev)}
-              className="text-[12px] leading-[18px] text-[#f4bf4f] border border-[#2d2728] rounded-[999px] px-3 py-1"
-              aria-pressed={isHistoryOpen}
-            >
-              Cronologia chat
-            </button>
-          </div>
-          <div className="flex items-center gap-2 text-[13px] leading-[18px] text-[#b8b2b3]">
-            <Bot className="text-[#f4bf4f]" size={16} />
-            <span>Chat con Maxwell</span>
-          </div>
-          <p className="text-[14px] leading-[20px] text-[#7a7577]">
-            Maxwell ti aiuta a risolvere problemi e a semplificarti la vita.
-          </p>
-        </div>
-
-        {isHistoryOpen ? (
-          <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[14px] leading-[20px] text-white font-semibold">
-                Cronologia chat
-              </p>
+      <Drawer
+        open={isHistoryOpen}
+        onOpenChange={setIsHistoryOpen}
+        direction={isMobile ? 'bottom' : 'right'}
+      >
+        <div className="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-4 min-h-0">
+          <Card className="border border-[#2d2728] bg-gradient-to-b from-[#241f20] to-[#1a1617] p-4 md:p-5">
+            <div className="flex items-start gap-3 md:gap-4">
               <button
                 type="button"
-                onClick={handleNewSession}
-                className="text-[12px] leading-[18px] text-[#f4bf4f]"
+                onClick={onBack}
+                className="flex size-[44px] shrink-0 items-center justify-center rounded-xl border border-[#2d2728] bg-[#0f0d0e] text-[#f4bf4f] transition-colors hover:bg-[#241f20]"
+                aria-label="Torna indietro"
               >
-                Nuova chat
+                <ArrowLeft size={20} />
               </button>
-            </div>
-            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-              {chatSessions.map((session) => (
-                <button
-                  key={session.id}
-                  type="button"
-                  onClick={() => handleSelectSession(session.id)}
-                  className="w-full text-left bg-[#0f0d0e] border border-[#2d2728] rounded-[12px] px-3 py-2"
-                >
-                  <div className="text-[12px] leading-[18px] text-white">
-                    {formatSessionDate(session.updatedAt)}
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-medium uppercase tracking-[0.08em] text-[#b8b2b3]">
+                      Supporto intelligente
+                    </p>
+                    <h1 className="text-[25px] font-bold leading-[30px] text-[#f5f5f5]">
+                      Maxwell
+                    </h1>
                   </div>
-                  <div className="text-[11px] leading-[16px] text-[#b8b2b3]">
-                    {buildSessionPreview(session)}
-                  </div>
-                </button>
-              ))}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsHistoryOpen(true)}
+                    className="h-[40px] rounded-xl border border-[#3b3436] px-3 text-[#f4bf4f]"
+                    aria-label={`Apri cronologia chat, ${chatSessions.length} sessioni`}
+                  >
+                    <History size={16} />
+                    Cronologia
+                  </Button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2" aria-live="polite">
+                  <Badge variant="success" size="sm">
+                    <span className="size-1.5 rounded-full bg-[#52c41a]" />
+                    Maxwell online
+                  </Badge>
+                  {isLoading ? (
+                    <Badge variant="default" size="sm">
+                      <Loader2 size={12} className="animate-spin" />
+                      Risposta in corso
+                    </Badge>
+                  ) : null}
+                  {isCreatingIssue ? (
+                    <Badge variant="outline" size="sm">
+                      <Clock3 size={12} />
+                      Segnalazione in preparazione
+                    </Badge>
+                  ) : null}
+                </div>
+                <p className="text-[13px] leading-[19px] text-[#7a7577]">
+                  Descrivi il problema con parole semplici. Maxwell ti risponde e,
+                  se serve, prepara automaticamente una segnalazione.
+                </p>
+              </div>
             </div>
-          </div>
-        ) : null}
+          </Card>
 
-        <div className="flex-1 overflow-y-auto pr-1 space-y-3">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          <Card className="flex min-h-0 flex-1 flex-col border border-[#2d2728] bg-[#120f10] p-0">
+            <div className="border-b border-[#2d2728] px-4 py-3">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[#b8b2b3]">
+                <span className="inline-flex items-center gap-1.5 text-[#f4bf4f]">
+                  <Bot size={14} />
+                  Chat attiva
+                </span>
+                {activeSession ? (
+                  <span className="inline-flex items-center gap-1 text-[#7a7577]">
+                    <Clock3 size={12} />
+                    Aggiornata: {formatSessionDate(activeSession.updatedAt)}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+
+            <ScrollArea
+              className="min-h-0 flex-1 px-3 py-4 md:px-4"
+              aria-label="Messaggi chat Maxwell"
             >
-              <div
-                className={`max-w-[85%] rounded-[16.4px] px-4 py-3 text-[14px] leading-[20px] ${
-                  message.role === 'user'
-                    ? 'bg-[#2d0a0f] text-white'
-                    : 'bg-[#1a1617] text-white'
-                }`}
-              >
-                {message.content}
+              <div className="space-y-3">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${
+                      message.role === 'user' ? 'justify-end' : 'justify-start'
+                    }`}
+                  >
+                    <article
+                      className={`max-w-[88%] rounded-2xl border px-3 py-2.5 md:max-w-[78%] ${
+                        message.role === 'user'
+                          ? 'border-[#7f2038] bg-gradient-to-b from-[#8c1c38] to-[#6b1529] text-white'
+                          : 'border-[#2d2728] bg-[#1a1617] text-white'
+                      }`}
+                      aria-label={message.role === 'user' ? 'Messaggio utente' : 'Messaggio Maxwell'}
+                    >
+                      <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px]">
+                        <span className="inline-flex items-center gap-1">
+                          {message.role === 'user' ? (
+                            <User size={12} />
+                          ) : (
+                            <Bot size={12} />
+                          )}
+                          {message.role === 'user' ? 'Tu' : 'Maxwell'}
+                        </span>
+                        <span className="inline-flex items-center gap-1 opacity-80">
+                          <Clock3 size={11} />
+                          {formatMessageTime(message.createdAt)}
+                        </span>
+                      </div>
+                      <p className="whitespace-pre-wrap text-[14px] leading-[20px]">
+                        {message.content}
+                      </p>
+                    </article>
+                  </div>
+                ))}
+
+                {isLoading ? (
+                  <div className="flex justify-start">
+                    <div className="max-w-[88%] rounded-2xl border border-[#2d2728] bg-[#1a1617] px-3 py-3 md:max-w-[78%]">
+                      <div className="mb-2 inline-flex items-center gap-2 text-[12px] text-[#b8b2b3]">
+                        <Loader2 size={12} className="animate-spin" />
+                        Maxwell sta scrivendo...
+                      </div>
+                      <div className="space-y-2">
+                        <Skeleton className="h-2.5 w-40 bg-[#2d2728]" />
+                        <Skeleton className="h-2.5 w-28 bg-[#2d2728]" />
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {errorMessage ? (
+                  <div
+                    role="alert"
+                    className="rounded-xl border border-[#ff4d4f]/40 bg-[#ff4d4f]/10 px-3 py-2 text-[12px] leading-[18px] text-[#ffd8d8]"
+                  >
+                    {errorMessage}
+                  </div>
+                ) : null}
+                <div ref={scrollRef} />
               </div>
-            </div>
-          ))}
-          {isLoading ? (
-            <div className="flex justify-start">
-              <div className="max-w-[85%] rounded-[16.4px] px-4 py-3 text-[14px] leading-[20px] bg-[#1a1617] text-[#b8b2b3]">
-                Sto scrivendo...
+            </ScrollArea>
+          </Card>
+
+          <div className="sticky bottom-[calc(env(safe-area-inset-bottom,_0px)+2px)]">
+            <Card className="border border-[#2d2728] bg-[#1a1617]/95 p-3 backdrop-blur md:p-4">
+              <div className="flex items-end gap-3">
+                <Textarea
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  placeholder="Scrivi il tuo messaggio..."
+                  rows={2}
+                  aria-label="Scrivi un messaggio per Maxwell"
+                  className="max-h-40 min-h-[56px] bg-[#0f0d0e] text-[14px] leading-[20px] text-white border-[#2d2728] pr-4"
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault();
+                      void handleSend();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  onClick={handleSend}
+                  disabled={!hasInput || isLoading}
+                  aria-label={isLoading ? 'Invio in corso' : 'Invia messaggio'}
+                  className="h-[44px] min-w-[44px] rounded-[14px] px-3"
+                >
+                  {isLoading ? (
+                    <Loader2 size={17} className="animate-spin" />
+                  ) : (
+                    <Send size={17} />
+                  )}
+                  <span className="hidden md:inline">
+                    {isLoading ? 'Invio...' : 'Invia'}
+                  </span>
+                </Button>
               </div>
-            </div>
-          ) : null}
-          {errorMessage ? (
-            <p className="text-[12px] leading-[18px] text-[#ff4d4f]">{errorMessage}</p>
-          ) : null}
-          <div ref={scrollRef} />
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#7a7577]">
+                <span>Invio: Enter - Nuova riga: Shift + Enter</span>
+                {isCreatingIssue ? (
+                  <span className="text-[#f4bf4f]">Segnalazione automatica in corso</span>
+                ) : null}
+              </div>
+            </Card>
+          </div>
         </div>
 
-        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-3 flex items-end gap-3">
-          <Textarea
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder="Scrivi qui il tuo messaggio..."
-            rows={2}
-            className="bg-[#0f0d0e] border-[#2d2728] text-white text-[14px] leading-[20px]"
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                void handleSend();
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={!hasInput || isLoading}
-            className="flex items-center justify-center size-[44px] rounded-[14px] bg-gradient-to-b from-[#8c1c38] to-[#a82847] text-white disabled:opacity-60"
-            aria-label="Invia"
-          >
-            <Send size={18} />
-          </button>
-        </div>
-      </div>
+        <DrawerContent className="border-[#2d2728] bg-[#120f10] text-white data-[vaul-drawer-direction=bottom]:max-h-[82vh] data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:max-w-[420px]">
+          <DrawerHeader className="border-b border-[#2d2728]">
+            <DrawerTitle className="text-left text-[18px] text-white">
+              Cronologia chat
+            </DrawerTitle>
+            <DrawerDescription className="text-left text-[#b8b2b3]">
+              Riprendi una conversazione oppure apri una nuova sessione.
+            </DrawerDescription>
+          </DrawerHeader>
+
+          <div className="px-4 pt-3">
+            <Button
+              type="button"
+              onClick={handleNewSession}
+              className="h-[44px] w-full rounded-xl"
+              aria-label="Inizia una nuova chat con Maxwell"
+            >
+              <Plus size={16} />
+              Nuova chat
+            </Button>
+          </div>
+
+          <ScrollArea className="flex-1 px-4 py-3" aria-label="Lista cronologia chat">
+            <div className="space-y-2 pr-1">
+              {chatSessions.map((session) => {
+                const isActive = session.id === activeSessionId;
+                return (
+                  <button
+                    key={session.id}
+                    type="button"
+                    onClick={() => handleSelectSession(session.id)}
+                    className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                      isActive
+                        ? 'border-[#a82847] bg-[#2d0a0f]/60'
+                        : 'border-[#2d2728] bg-[#1a1617] hover:bg-[#241f20]'
+                    }`}
+                    aria-pressed={isActive}
+                    aria-label={`Apri sessione del ${formatSessionDate(session.updatedAt)}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[12px] leading-[18px] text-[#f4bf4f]">
+                        {formatSessionDate(session.updatedAt)}
+                      </span>
+                      {isActive ? (
+                        <span className="rounded-full border border-[#a82847] px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-[#f4bf4f]">
+                          Attiva
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-[12px] leading-[18px] text-[#b8b2b3]">
+                      {buildSessionPreview(session)}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </ScrollArea>
+
+          <DrawerFooter className="border-t border-[#2d2728]">
+            <DrawerClose asChild>
+              <Button type="button" variant="ghost" className="h-[42px] rounded-xl">
+                Chiudi
+              </Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </Screen>
   );
 }

@@ -46,6 +46,13 @@ Tutti gli script vanno eseguiti dalla root con `npm run <script>`.
 - `lint`: lancia ESLint sull'intero workspace PWA.
 - `format`: formatta i file del workspace PWA con Prettier (modifica i file in-place).
 
+#### Aggiornamento Service Worker
+
+- Aggiorna le liste in `apps/pwa/public/sw.js` (`CORE_ASSETS_BY_ENV.common|prod|dev`) quando cambia un asset core o una pagina pubblica.
+- La chiave della cache e calcolata automaticamente dai contenuti di `CORE_ASSETS`, quindi qualsiasi modifica agli asset core forza un nuovo cache name.
+- Le pagine di sviluppo (`/dev.html` e simili) restano escluse dalla cache in produzione per evitare contenuti non pubblici.
+- Dopo l'aggiornamento, esegui `npm run build:pwa` o `npm run dev:pwa` per rigenerare/servire il service worker aggiornato.
+
 ### UI mobile (`apps/mobile`)
 
 - `dev:mobile`: avvia il dev server Vite React su `http://localhost:3000` con base `/mobile/`.
@@ -60,6 +67,19 @@ Il sorgente della PWA vive in `apps/pwa/src` ed e suddiviso in:
 - `features/`: moduli funzionali (es. gestione permessi, schede stato).
 - `services/`: logica di business e integrazioni browser/API.
 - `utils/`: funzioni di utilita generiche.
+
+## Modalita dev vs public
+
+La PWA distingue tra ambienti di sviluppo e build pubbliche:
+
+- **Dev**: `VITE_PUBLIC_MODE` non impostato o `false`. Il gate Supabase (`requireDevAccess`) protegge le pagine dev e `dev.html` viene incluso tra gli entrypoint della build.
+- **Public**: `VITE_PUBLIC_MODE=true`. Il gate viene bypassato per consentire l'accesso diretto alle pagine pubbliche e i link al playground dev spariscono dalla home. In questa modalita `dev.html` non viene incluso nel build PWA e non viene precacheato dal service worker.
+
+Per attivare la modalita public, impostare la variabile d'ambiente prima di lanciare `build:pwa`:
+
+```bash
+VITE_PUBLIC_MODE=true npm run build:pwa
+```
 
 ## Contributi
 
