@@ -42,23 +42,101 @@ const createCacheVersion = (assets) => {
   return `v${(hash >>> 0).toString(36)}`;
 };
 const CORE_CACHE_VERSION = createCacheVersion(CORE_ASSETS);
-const CORE_CACHE_NAME = `turni-di-palco-core-${CORE_CACHE_VERSION}`;
-const TILE_CACHE_NAME = `turni-di-palco-tiles-${CORE_CACHE_VERSION}`;
+const CACHE_VERSION_TAG = "v2";
+const CORE_CACHE_NAME = `turni-di-palco-core-${CORE_CACHE_VERSION}-${CACHE_VERSION_TAG}`;
+const TILE_CACHE_NAME = `turni-di-palco-tiles-${CORE_CACHE_VERSION}-${CACHE_VERSION_TAG}`;
+const META_CACHE_NAME = `turni-di-palco-meta-${CORE_CACHE_VERSION}-${CACHE_VERSION_TAG}`;
+const CORE_CACHE_MAX_ENTRIES = 80;
+const CORE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const TILE_CACHE_MAX_ENTRIES = 300;
+const TILE_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const TILE_HOSTS = new Set([
   "tile.openstreetmap.org",
   "a.tile.openstreetmap.org",
   "b.tile.openstreetmap.org",
   "c.tile.openstreetmap.org",
 ]);
+const CORE_ASSET_PATHS = new Set(CORE_ASSETS);
 
 const isNonPublicPath = (url) => !isDevEnvironment && NON_PUBLIC_PATHS.has(url.pathname);
 const shouldCacheRequest = (url) => url.origin === self.location.origin && !isNonPublicPath(url);
+
+const getRequestUrl = (requestOrUrl) =>
+  typeof requestOrUrl === "string"
+    ? new URL(requestOrUrl, self.location.origin).href
+    : requestOrUrl.url;
+const createMetaRequest = (cacheName, requestOrUrl) =>
+  new Request(
+    `${self.location.origin}/__sw-meta/${encodeURIComponent(cacheName)}/${encodeURIComponent(
+      getRequestUrl(requestOrUrl)
+    )}`
+  );
+
+const recordMetadata = async (cacheName, requestOrUrl) => {
+  const metaCache = await caches.open(META_CACHE_NAME);
+  await metaCache.put(
+    createMetaRequest(cacheName, requestOrUrl),
+    new Response(JSON.stringify({ timestamp: Date.now() }))
+  );
+};
+
+const pruneCache = async ({ cacheName, maxEntries, maxAgeMs, shouldKeep }) => {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys();
+  if (!keys.length) return;
+
+  const metaCache = await caches.open(META_CACHE_NAME);
+  const now = Date.now();
+  const entries = [];
+
+  for (const request of keys) {
+    if (shouldKeep?.(request)) {
+      continue;
+    }
+
+    const metaResponse = await metaCache.match(createMetaRequest(cacheName, request));
+    let timestamp = 0;
+    if (metaResponse) {
+      const data = await metaResponse.json().catch(() => null);
+      if (data && typeof data.timestamp === "number") {
+        timestamp = data.timestamp;
+      }
+    }
+
+    if (maxAgeMs && timestamp && now - timestamp > maxAgeMs) {
+      await cache.delete(request);
+      await metaCache.delete(createMetaRequest(cacheName, request));
+      continue;
+    }
+
+    entries.push({ request, timestamp });
+  }
+
+  if (maxEntries && entries.length > maxEntries) {
+    entries.sort((a, b) => a.timestamp - b.timestamp);
+    const overflow = entries.length - maxEntries;
+    const toDelete = entries.slice(0, overflow);
+    await Promise.all(
+      toDelete.map(({ request }) =>
+        Promise.all([cache.delete(request), metaCache.delete(createMetaRequest(cacheName, request))])
+      )
+    );
+  }
+};
+
+const isCriticalCoreAsset = (request) => {
+  const url = new URL(request.url);
+  return url.origin === self.location.origin && CORE_ASSET_PATHS.has(url.pathname);
+};
 
 const cacheCoreAssets = async (cache) => {
   // Optional entries (for example /dev.html in public-mode builds) must not break SW install.
   await Promise.all(
     CORE_ASSETS.map((assetUrl) =>
-      cache.add(assetUrl).catch(() => undefined)
+      cache
+        .add(assetUrl)
+        .then(() => recordMetadata(CORE_CACHE_NAME, assetUrl))
+        .catch(() => undefined)
     )
   );
 };
@@ -82,6 +160,21 @@ self.addEventListener("activate", (event) => {
             .filter((key) => ![CORE_CACHE_NAME, TILE_CACHE_NAME].includes(key))
             .map((key) => caches.delete(key))
         )
+      )
+      .then(() =>
+        Promise.all([
+          pruneCache({
+            cacheName: CORE_CACHE_NAME,
+            maxEntries: CORE_CACHE_MAX_ENTRIES,
+            maxAgeMs: CORE_CACHE_TTL_MS,
+            shouldKeep: isCriticalCoreAsset,
+          }),
+          pruneCache({
+            cacheName: TILE_CACHE_NAME,
+            maxEntries: TILE_CACHE_MAX_ENTRIES,
+            maxAgeMs: TILE_CACHE_TTL_MS,
+          }),
+        ])
       )
       .then(() => self.clients.claim())
   );
@@ -121,6 +214,15 @@ self.addEventListener("fetch", (event) => {
               caches
                 .open(CORE_CACHE_NAME)
                 .then((cache) => cache.put(request, copy))
+                .then(() => recordMetadata(CORE_CACHE_NAME, request))
+                .then(() =>
+                  pruneCache({
+                    cacheName: CORE_CACHE_NAME,
+                    maxEntries: CORE_CACHE_MAX_ENTRIES,
+                    maxAgeMs: CORE_CACHE_TTL_MS,
+                    shouldKeep: isCriticalCoreAsset,
+                  })
+                )
                 .catch(() => undefined)
             );
           }
@@ -138,7 +240,17 @@ self.addEventListener("fetch", (event) => {
           const fetchRequest = fetch(request)
             .then((response) => {
               if (response && (response.ok || response.type === "opaque")) {
-                cache.put(request, response.clone()).catch(() => undefined);
+                cache
+                  .put(request, response.clone())
+                  .then(() => recordMetadata(TILE_CACHE_NAME, request))
+                  .then(() =>
+                    pruneCache({
+                      cacheName: TILE_CACHE_NAME,
+                      maxEntries: TILE_CACHE_MAX_ENTRIES,
+                      maxAgeMs: TILE_CACHE_TTL_MS,
+                    })
+                  )
+                  .catch(() => undefined);
               }
               return response;
             })
@@ -160,7 +272,16 @@ self.addEventListener("fetch", (event) => {
               if (!response || !response.ok || !canCacheRequest) return;
               return caches
                 .open(CORE_CACHE_NAME)
-                .then((cache) => cache.put(request, response.clone()));
+                .then((cache) => cache.put(request, response.clone()))
+                .then(() => recordMetadata(CORE_CACHE_NAME, request))
+                .then(() =>
+                  pruneCache({
+                    cacheName: CORE_CACHE_NAME,
+                    maxEntries: CORE_CACHE_MAX_ENTRIES,
+                    maxAgeMs: CORE_CACHE_TTL_MS,
+                    shouldKeep: isCriticalCoreAsset,
+                  })
+                );
             })
             .catch(() => undefined)
         );
@@ -171,7 +292,19 @@ self.addEventListener("fetch", (event) => {
         .then((response) => {
           if (response && response.ok && canCacheRequest) {
             const copy = response.clone();
-            caches.open(CORE_CACHE_NAME).then((cache) => cache.put(request, copy).catch(() => undefined));
+            caches
+              .open(CORE_CACHE_NAME)
+              .then((cache) => cache.put(request, copy))
+              .then(() => recordMetadata(CORE_CACHE_NAME, request))
+              .then(() =>
+                pruneCache({
+                  cacheName: CORE_CACHE_NAME,
+                  maxEntries: CORE_CACHE_MAX_ENTRIES,
+                  maxAgeMs: CORE_CACHE_TTL_MS,
+                  shouldKeep: isCriticalCoreAsset,
+                })
+              )
+              .catch(() => undefined);
           }
           return response;
         })
