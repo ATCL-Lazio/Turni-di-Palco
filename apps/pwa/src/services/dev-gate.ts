@@ -17,6 +17,7 @@ const allowedEmails = parseEnvList(import.meta.env.VITE_PWA_DEV_EMAILS ?? "");
 const publicModeValue = import.meta.env.VITE_PUBLIC_MODE;
 
 export const isPublicMode = publicModeValue === "true" || publicModeValue === "1";
+const serverAccessFunction = "dev-access";
 
 function parseEnvList(value: string) {
   return value
@@ -60,6 +61,35 @@ function isUserAllowed(user: User | null | undefined) {
   return userRoles.some((role) => allowedRoles.includes(role));
 }
 
+type DevAccessResponse = {
+  allowed: boolean;
+  reason?: string;
+};
+
+async function verifyServerAccess() {
+  if (!supabase) {
+    return { allowed: false, reason: "Supabase non configurato." };
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke<DevAccessResponse>(serverAccessFunction, {
+      body: { path: window.location.pathname },
+    });
+
+    if (error) {
+      return { allowed: false, reason: error.message };
+    }
+
+    return {
+      allowed: Boolean(data?.allowed),
+      reason: data?.reason ?? undefined,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Errore sconosciuto.";
+    return { allowed: false, reason: message };
+  }
+}
+
 function renderGate(root: HTMLElement) {
   root.innerHTML = `
     <main class="dev-gate">
@@ -67,7 +97,9 @@ function renderGate(root: HTMLElement) {
         <div>
           <p class="eyebrow">Area riservata</p>
           <h1 class="heading-2">Accesso developer PWA</h1>
-          <p class="muted">Per continuare devi autenticarti con un account abilitato su Supabase.</p>
+          <p class="muted">
+            Per continuare devi autenticarti con un account abilitato su Supabase: le autorizzazioni sono verificate anche lato server.
+          </p>
         </div>
         <form class="dev-gate-form" data-dev-gate-form>
           <label class="field">
@@ -168,13 +200,22 @@ export async function requireDevAccess() {
   }
 
   const { data } = await supabase.auth.getUser();
-  if (isUserAllowed(data.user)) return true;
+  const currentUser = data.user;
+  let serverCheck: DevAccessResponse | null = null;
+
+  if (currentUser && isUserAllowed(currentUser)) {
+    serverCheck = await verifyServerAccess();
+    if (serverCheck.allowed) return true;
+  }
 
   const state = renderGate(root);
-  const currentUser = data.user;
 
   if (currentUser) {
-    setGateMessage(state, "Account autenticato ma non autorizzato.", "error");
+    if (!serverCheck) {
+      serverCheck = await verifyServerAccess();
+    }
+    const message = serverCheck.reason ?? "Account autenticato ma non autorizzato.";
+    setGateMessage(state, message, "error");
   }
 
   return new Promise<boolean>((resolve) => {
@@ -195,10 +236,12 @@ export async function requireDevAccess() {
       }
 
       const { data: freshData } = await supabase.auth.getUser();
-      if (!isUserAllowed(freshData.user)) {
+      const serverCheck = await verifyServerAccess();
+      if (!isUserAllowed(freshData.user) || !serverCheck.allowed) {
         await supabase.auth.signOut();
         setGateBusy(state, false);
-        setGateMessage(state, "Utente non autorizzato per la PWA.", "error");
+        const message = serverCheck.reason ?? "Utente non autorizzato per la PWA.";
+        setGateMessage(state, message, "error");
         return;
       }
 
