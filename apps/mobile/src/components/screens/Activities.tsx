@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Clock, Coins, Play, TrendingUp } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
@@ -19,6 +19,69 @@ const difficultyLabels: Record<Activity['difficulty'], string> = {
 
 export function Activities({ activities, getAvailability, onStartActivity }: ActivitiesProps) {
   const totalActivities = activities.length;
+
+  const handleStartActivity = useCallback((activityId: string) => {
+    onStartActivity(activityId);
+  }, [onStartActivity]);
+
+  const activitiesList = useMemo(() => activities.map((activity) => {
+    const difficultyLabel = difficultyLabels[activity.difficulty] ?? activity.difficulty;
+    const availability = getAvailability(activity.id);
+    const isLocked = !availability.canPlay;
+    
+    return (
+      <Card
+        key={activity.id}
+        hoverable
+        onClick={() => handleStartActivity(activity.id)}
+      >
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
+            <Play className="text-[#f4bf4f]" size={22} />
+          </div>
+          <div className="flex-1 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <h4 className="text-white">{activity.title}</h4>
+              <Play className="text-[#f4bf4f]" size={18} />
+            </div>
+            <p className="text-sm text-[#b8b2b3]">
+              {activity.description}
+            </p>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-[#b8b2b3]">
+              <span className="inline-flex items-center gap-2">
+                <Clock size={14} />
+                {activity.duration}
+              </span>
+              <Badge variant="outline" size="sm">
+                {difficultyLabel}
+              </Badge>
+              <Badge variant={isLocked ? 'default' : 'success'} size="sm">
+                {availability.runsUsed}/{availability.maxRunsPerSession} run
+              </Badge>
+              {availability.reason === 'cooldown' ? (
+                <Badge variant="default" size="sm">
+                  Cooldown {availability.remainingSeconds}s
+                </Badge>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="gold" size="sm">
+                <TrendingUp size={12} />
+                +{activity.xpReward} XP
+              </Badge>
+              <Badge variant="default" size="sm">
+                <Coins size={12} />
+                +{activity.cachetReward}
+              </Badge>
+              <Badge variant="success" size="sm">
+                +{activity.reputationReward} Rep
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  }), [activities, getAvailability, handleStartActivity]);
 
   return (
     <div
@@ -56,63 +119,7 @@ export function Activities({ activities, getAvailability, onStartActivity }: Act
           </div>
 
           <div className="space-y-3">
-            {activities.map((activity) => {
-              const difficultyLabel = difficultyLabels[activity.difficulty] ?? activity.difficulty;
-              const availability = getAvailability(activity.id);
-              const isLocked = !availability.canPlay;
-              return (
-                <Card
-                  key={activity.id}
-                  hoverable
-                  onClick={() => onStartActivity(activity.id)}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
-                      <Play className="text-[#f4bf4f]" size={22} />
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="text-white">{activity.title}</h4>
-                        <Play className="text-[#f4bf4f]" size={18} />
-                      </div>
-                      <p className="text-sm text-[#b8b2b3]">
-                        {activity.description}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2 text-sm text-[#b8b2b3]">
-                        <span className="inline-flex items-center gap-2">
-                          <Clock size={14} />
-                          {activity.duration}
-                        </span>
-                        <Badge variant="outline" size="sm">
-                          {difficultyLabel}
-                        </Badge>
-                        <Badge variant={isLocked ? 'default' : 'success'} size="sm">
-                          {availability.runsUsed}/{availability.maxRunsPerSession} run
-                        </Badge>
-                        {availability.reason === 'cooldown' ? (
-                          <Badge variant="default" size="sm">
-                            Cooldown {availability.remainingSeconds}s
-                          </Badge>
-                        ) : null}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="gold" size="sm">
-                          <TrendingUp size={12} />
-                          +{activity.xpReward} XP
-                        </Badge>
-                        <Badge variant="default" size="sm">
-                          <Coins size={12} />
-                          +{activity.cachetReward}
-                        </Badge>
-                        <Badge variant="success" size="sm">
-                          +{activity.reputationReward} Rep
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
+            {activitiesList}
           </div>
         </section>
 
