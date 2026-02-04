@@ -6,6 +6,15 @@ import { resolveDisplayName } from '../lib/profile-utils';
 import { formatErrorDetails, reportCriticalError } from '../services/error-handler';
 
 export type RoleId = 'attore' | 'luci' | 'fonico' | 'attrezzista' | 'palco';
+
+function isValidRoleId(value: string): value is RoleId {
+  return ['attore', 'luci', 'fonico', 'attrezzista', 'palco'].includes(value);
+}
+
+function validateRoleId(candidate: string | null | undefined): RoleId {
+  if (!candidate) return 'attore';
+  return isValidRoleId(candidate) ? candidate : 'attore';
+}
 export type Rewards = { xp: number; reputation: number; cachet: number };
 
 export type Role = {
@@ -838,10 +847,21 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [followedEventsLoading, setFollowedEventsLoading] = useState(false);
   const [remoteActivityProgress, setRemoteActivityProgress] = useState<Record<string, ActivityProgress>>({});
 
-  const activityProgress = useMemo(
-    () => (isSupabaseConfigured && authUserId ? remoteActivityProgress : state.activityProgress),
-    [authUserId, remoteActivityProgress, state.activityProgress]
-  );
+  const activityProgress = useMemo(() => {
+    if (!isSupabaseConfigured || !authUserId) {
+      return state.activityProgress;
+    }
+    
+    const mergedProgress = { ...state.activityProgress };
+    Object.entries(remoteActivityProgress).forEach(([activityId, remoteProgress]) => {
+      const localProgress = state.activityProgress[activityId];
+      if (!localProgress || remoteProgress.lastPlayedAt > localProgress.lastPlayedAt) {
+        mergedProgress[activityId] = remoteProgress;
+      }
+    });
+    
+    return mergedProgress;
+  }, [isSupabaseConfigured, authUserId, remoteActivityProgress, state.activityProgress]);
 
   const turnStats = useMemo(
     () => (isSupabaseConfigured && authUserId ? remoteTurnStats ?? localTurnStats : localTurnStats),
@@ -994,10 +1014,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       const rows = (data as LeaderboardRow[]) ?? [];
       const nextLeaderboard: LeaderboardEntry[] = rows.map((row) => {
-        const roleCandidate = row.role_id ?? 'attore';
-        const roleId: RoleId = (roleCandidate === 'attore' || roleCandidate === 'luci' || roleCandidate === 'fonico' || roleCandidate === 'attrezzista' || roleCandidate === 'palco')
-          ? (roleCandidate as RoleId)
-          : 'attore';
+        const roleId = validateRoleId(row.role_id);
         const lastActivityAt = row.last_activity_at ? new Date(row.last_activity_at).getTime() : undefined;
         return {
           id: row.id,
