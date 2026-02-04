@@ -30,6 +30,9 @@ services:
   - key: VITE_SUPABASE_URL
     value: ${VITE_SUPABASE_URL}
     sync: true
+  - key: AI_SUPPORT_ALLOWED_ORIGINS
+    value: https://turni-di-palco-fq85.onrender.com,https://turni-di-palco-fq85.onrender.com/mobile
+    sync: false
   region: frankfurt
   buildCommand: npm ci && npm install -g @openai/codex && npm install -g gh
   startCommand: npm run ai:support
