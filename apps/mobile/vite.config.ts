@@ -111,6 +111,10 @@ export default defineConfig(({ mode }) => {
           target: `http://localhost:${aiSupportPort}`,
           changeOrigin: true,
         },
+        '/health': {
+          target: `http://localhost:${aiSupportPort}`,
+          changeOrigin: true,
+        },
       },
     },
     preview: {
