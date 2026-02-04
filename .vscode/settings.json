@@ -1,6 +1,10 @@
 {
     "cSpell.language": "en,it",
     "workbench.colorTheme": "Default Dark Modern",
+    "workbench.editorAssociations": {
+        "*.sii": "default"
+    },
+    "window.confirmSaveUntitledWorkspace": false,
     "workbench.colorCustomizations": {
         "editor.background": "#0f0d0e",
         "editor.foreground": "#f5f5f5",
