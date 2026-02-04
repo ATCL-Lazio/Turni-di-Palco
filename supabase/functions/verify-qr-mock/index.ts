@@ -72,20 +72,32 @@ function timingSafeEqual(a: string, b: string) {
 }
 
 function parseSignedToken(code: string): SignedToken | null {
+  if (typeof code !== 'string' || code.length === 0) return null;
+  
   const parts = code.split(':');
   if (parts.length !== 5) return null;
+  
   const [prefix, eventId, issuedAtRaw, nonce, signature] = parts;
+  
   if (!prefix || !eventId || !issuedAtRaw || !nonce || !signature) return null;
   if (prefix !== SIGNED_PREFIX) return null;
+  
+  if (eventId.length > 100 || eventId.length === 0) return null;
+  if (!NONCE_PATTERN.test(nonce)) return null;
+  if (signature.length !== 64) return null;
 
   const issuedAt = Number(issuedAtRaw);
   if (!Number.isFinite(issuedAt) || issuedAt <= 0) return null;
+  
+  const now = Math.floor(Date.now() / 1000);
+  if (issuedAt > now + ALLOWED_FUTURE_SKEW_SECONDS) return null;
+  if (issuedAt < now - SIGNED_CODE_TTL_SECONDS) return null;
 
   return {
-    eventId,
+    eventId: eventId.trim(),
     issuedAt: Math.floor(issuedAt),
-    nonce,
-    signature: lowerCaseHex(signature),
+    nonce: nonce.trim(),
+    signature: lowerCaseHex(signature.trim()),
   };
 }
 
