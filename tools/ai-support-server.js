@@ -2847,6 +2847,51 @@ const server = httpsOptions
   ? https.createServer(httpsOptions, requestHandler)
   : http.createServer(requestHandler);
 
+let shutdownStarted = false;
+
+function stopTimer(timerRef) {
+  if (!timerRef) return null;
+  clearTimeout(timerRef);
+  return null;
+}
+
+function terminateChild(child) {
+  if (!child) return null;
+  if (!child.killed) {
+    try {
+      child.kill('SIGTERM');
+    } catch (error) {
+      logError(`Failed to terminate child process: ${error.message}`);
+    }
+  }
+  return null;
+}
+
+function shutdownServer(signal) {
+  if (shutdownStarted) return;
+  shutdownStarted = true;
+
+  keepAliveTimer = stopTimer(keepAliveTimer);
+  watchdogTimer = stopTimer(watchdogTimer);
+
+  codexLoginProcess = terminateChild(codexLoginProcess);
+  ghLoginProcess = terminateChild(ghLoginProcess);
+
+  if (server.listening) {
+    try {
+      server.close(() => {
+        logLine(`Server closed after ${signal ?? 'shutdown'} signal.`);
+      });
+    } catch (error) {
+      logError(`Failed to close server: ${error.message}`);
+    }
+  }
+}
+
+process.on('SIGINT', () => shutdownServer('SIGINT'));
+process.on('SIGTERM', () => shutdownServer('SIGTERM'));
+process.on('exit', () => shutdownServer('exit'));
+
 server.listen(port, host, () => {
   const protocol = httpsOptions ? 'https' : 'http';
   const baseUrl = `${protocol}://${host}:${port}`;
