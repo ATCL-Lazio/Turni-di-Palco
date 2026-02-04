@@ -1,5 +1,6 @@
 {
     "cSpell.language": "en,it",
+    "workbench.colorTheme": "Red",
     "files.associations": {
         "*.md": "markdown"
     },
