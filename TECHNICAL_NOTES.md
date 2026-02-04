@@ -23,6 +23,7 @@
 ## AI support (mobile)
 
 - Client calls `POST /api/ai/chat` (proxy in `apps/mobile/vite.config.ts`).
+- Availability check uses `GET /health` (proxy in `apps/mobile/vite.config.ts`).
 - Local server: `tools/ai-support-server.js` uses `codex exec`.
 - Optional env:
   - `AI_SUPPORT_PORT` (server port, default 8787)
@@ -34,6 +35,9 @@
   - `AI_SUPPORT_ADMIN_ENABLED` (admin endpoints `/auth` + `/auth/command`; default false)
   - `VITE_AI_SUPPORT_ENDPOINT` (client endpoint override)
   - `VITE_AI_SUPPORT_ISSUE_ENDPOINT` (issue endpoint override)
+- CORS: if the health endpoint is reached cross-origin, the server must reply with
+  `Access-Control-Allow-Origin` matching the calling origin (or `*`) so the browser can
+  read the response in `mode: "cors"`. In dev, prefer the same-origin `/health` proxy.
 
 ## PWA, cache e aggiornamenti
 
