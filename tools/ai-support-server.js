@@ -2233,7 +2233,8 @@ const requestHandler = (req, res) => {
 
   if (corsOrigin) {
     res.setHeader('Access-Control-Allow-Origin', corsOrigin);
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader(
       'Access-Control-Allow-Headers',
       'Content-Type, Authorization, X-AI-SUPPORT-TOKEN'
@@ -2257,6 +2258,10 @@ const requestHandler = (req, res) => {
   }
 
   if (req.url === '/health') {
+    if (!res.getHeader('Access-Control-Allow-Origin')) {
+      // Keep /health readable by external probes even without explicit allowed origins.
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
     logLine(
       `${requestId} GET /health\n  client=${clientIp}\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms`
     );
