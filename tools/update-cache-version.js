@@ -4,8 +4,7 @@ const path = require('path');
 
 const PUBLIC_DIR = path.resolve('apps/pwa/public');
 const SERVICE_WORKER_PATH = path.join(PUBLIC_DIR, 'sw.js');
-const CORE_CACHE_PREFIX = 'turni-di-palco-v';
-const TILE_CACHE_PREFIX = 'turni-di-palco-tiles-v';
+const CACHE_VERSION_TOKEN = '__SW_CACHE_VERSION__';
 
 async function collectFiles(dir) {
   const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -36,70 +35,36 @@ async function calculateHash(filePaths) {
 
 async function updateServiceWorker(cacheSuffix) {
   const swContent = await fs.readFile(SERVICE_WORKER_PATH, 'utf8');
-  const cacheNameMatch = swContent.match(/const CACHE_NAME = "([^"]*)";/);
-  const coreCacheNameMatch = swContent.match(/const CORE_CACHE_NAME = "([^"]*)";/);
-  const tileCacheNameMatch = swContent.match(/const TILE_CACHE_NAME = "([^"]*)";/);
-  const hasDynamicCoreCache =
-    /const\s+CORE_CACHE_VERSION\s*=/.test(swContent) &&
-    /const\s+CORE_CACHE_NAME\s*=\s*`/.test(swContent);
+  const coreVersionMatch = swContent.match(
+    /const CORE_CACHE_VERSION = "([^"]*)";/
+  );
 
-  if (hasDynamicCoreCache) {
-    return null;
+  if (!coreVersionMatch && !swContent.includes(CACHE_VERSION_TOKEN)) {
+    throw new Error('CORE_CACHE_VERSION token not found in service worker');
   }
 
-  if (!cacheNameMatch && !coreCacheNameMatch) {
-    throw new Error(
-      'CACHE_NAME/CORE_CACHE_NAME pattern not found in service worker'
-    );
-  }
+  const nextCacheVersion = cacheSuffix;
+  const updatedContent = swContent.includes(CACHE_VERSION_TOKEN)
+    ? swContent.replaceAll(CACHE_VERSION_TOKEN, nextCacheVersion)
+    : swContent.replace(
+        /const CORE_CACHE_VERSION = "([^"]*)";/,
+        `const CORE_CACHE_VERSION = "${nextCacheVersion}";`
+      );
 
-  const nextCoreCacheName = `${CORE_CACHE_PREFIX}${cacheSuffix}`;
-  const nextTileCacheName = `${TILE_CACHE_PREFIX}${cacheSuffix}`;
-
-  const currentCoreName = cacheNameMatch?.[1] ?? coreCacheNameMatch?.[1];
-  const currentTileName = tileCacheNameMatch?.[1] ?? null;
-
-  if (
-    currentCoreName === nextCoreCacheName &&
-    (!tileCacheNameMatch || currentTileName === nextTileCacheName)
-  ) {
-    return nextCoreCacheName;
-  }
-
-  let updatedContent = swContent;
-
-  if (cacheNameMatch) {
-    updatedContent = updatedContent.replace(
-      cacheNameMatch[0],
-      `const CACHE_NAME = "${nextCoreCacheName}";`
-    );
-  } else if (coreCacheNameMatch) {
-    updatedContent = updatedContent.replace(
-      coreCacheNameMatch[0],
-      `const CORE_CACHE_NAME = "${nextCoreCacheName}";`
-    );
-  }
-
-  if (tileCacheNameMatch) {
-    updatedContent = updatedContent.replace(
-      tileCacheNameMatch[0],
-      `const TILE_CACHE_NAME = "${nextTileCacheName}";`
-    );
+  if (updatedContent === swContent) {
+    return nextCacheVersion;
   }
 
   await fs.writeFile(SERVICE_WORKER_PATH, updatedContent);
-  return nextCoreCacheName;
+  return nextCacheVersion;
 }
 
 async function main() {
   const files = await collectFiles(PUBLIC_DIR);
   const hash = await calculateHash(files);
-  const cacheName = await updateServiceWorker(hash);
-  if (cacheName) {
-    console.log(`Updated CACHE_NAME to ${cacheName}`);
-    return;
-  }
-  console.log('Skipped CACHE_NAME update: service worker uses dynamic cache versioning');
+  const cacheVersion = process.env.SW_CACHE_VERSION ?? `v${hash}`;
+  const updatedVersion = await updateServiceWorker(cacheVersion);
+  console.log(`Updated CORE_CACHE_VERSION to ${updatedVersion}`);
 }
 
 main().catch((error) => {
