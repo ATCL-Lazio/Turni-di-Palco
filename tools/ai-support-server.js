@@ -49,6 +49,28 @@ function stripEnvValue(value) {
   return raw;
 }
 
+function resolveIssueAuthToken() {
+  return stripEnvValue(
+    process.env.AI_SUPPORT_API_TOKEN || process.env.AI_SUPPORT_ISSUE_TOKEN
+  );
+}
+
+function getRequestAuthToken(req) {
+  const headerToken =
+    typeof req.headers['x-ai-support-token'] === 'string'
+      ? req.headers['x-ai-support-token']
+      : '';
+  if (headerToken.trim()) {
+    return headerToken.trim();
+  }
+  const authHeader =
+    typeof req.headers.authorization === 'string' ? req.headers.authorization : '';
+  if (authHeader.toLowerCase().startsWith('bearer ')) {
+    return authHeader.slice(7).trim();
+  }
+  return '';
+}
+
 function readEnvFileValue(filePath, key) {
   if (!filePath || !fs.existsSync(filePath)) return null;
   const content = fs.readFileSync(filePath, 'utf8');
@@ -260,6 +282,7 @@ function resolveMaxwellCredentials() {
     ? {
         authMode: readCredentialString(codexRaw.auth_mode) || 'chatgpt',
         accountId: readCredentialString(codexRaw.account_id),
+        idToken: readCredentialString(codexRaw.id_token),
         accessToken: readCredentialString(codexRaw.access_token),
         refreshToken: readCredentialString(codexRaw.refresh_token),
         lastRefresh: readCredentialString(codexRaw.last_refresh),
@@ -329,6 +352,7 @@ function ensureCodexAuthJson(homeDir, codex) {
     auth_mode: codex.authMode || 'chatgpt',
     OPENAI_API_KEY: null,
     tokens: {
+      id_token: codex.idToken || codex.accessToken,
       access_token: codex.accessToken,
       refresh_token: codex.refreshToken,
       account_id: codex.accountId,
@@ -528,6 +552,167 @@ function resolveGithubRepo() {
     return `${process.env.GITHUB_REPO_OWNER}/${process.env.GITHUB_REPO_NAME}`;
   }
   return null;
+}
+
+function resolveGithubHost() {
+  const envHost = stripEnvValue(process.env.GH_HOST);
+  if (envHost) return envHost;
+  const credentialHost = readCredentialString(maxwellCredentials?.github?.hostname);
+  if (credentialHost) return credentialHost;
+  return 'github.com';
+}
+
+function resolveGithubToken() {
+  const envToken =
+    stripEnvValue(process.env.GH_TOKEN) || stripEnvValue(process.env.GITHUB_TOKEN);
+  if (envToken) return envToken;
+  return readCredentialString(maxwellCredentials?.github?.token);
+}
+
+function resolveGithubApiBase(host) {
+  if (!host || host === 'github.com') {
+    return 'https://api.github.com';
+  }
+  if (host.startsWith('http://') || host.startsWith('https://')) {
+    const url = new URL(host);
+    return `${url.protocol}//${url.host}/api/v3`;
+  }
+  return `https://${host}/api/v3`;
+}
+
+function resolveGithubApiContext() {
+  const repo = resolveGithubRepo();
+  const token = resolveGithubToken();
+  const host = resolveGithubHost();
+  if (!repo) {
+    throw new Error('GitHub repository is not configured');
+  }
+  if (!token) {
+    throw new Error('GitHub token is not configured');
+  }
+  return {
+    repo,
+    token,
+    host,
+    apiBase: resolveGithubApiBase(host),
+  };
+}
+
+async function githubApiRequest(method, endpoint, body) {
+  const ctx = resolveGithubApiContext();
+  const response = await fetch(`${ctx.apiBase}${endpoint}`, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${ctx.token}`,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'maxwell-ai-support',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  const raw = await response.text();
+  let payload = null;
+  if (raw) {
+    try {
+      payload = JSON.parse(raw);
+    } catch {
+      payload = raw;
+    }
+  }
+
+  if (!response.ok) {
+    const detail =
+      typeof payload === 'object' && payload !== null && typeof payload.message === 'string'
+        ? payload.message
+        : typeof payload === 'string'
+          ? payload.slice(0, 400)
+          : `HTTP ${response.status}`;
+    const error = new Error(`GitHub API ${method} ${endpoint} failed: ${detail}`);
+    error.status = response.status;
+    throw error;
+  }
+
+  return payload;
+}
+
+async function listGithubLabelsViaApi() {
+  const { repo } = resolveGithubApiContext();
+  const data = await githubApiRequest('GET', `/repos/${repo}/labels?per_page=100`);
+  if (!Array.isArray(data)) return new Set();
+  return new Set(
+    data
+      .map((label) => label?.name)
+      .filter((name) => typeof name === 'string')
+  );
+}
+
+async function ensureGithubLabelViaApi(label) {
+  if (!label) return false;
+  const labels = await listGithubLabelsViaApi();
+  if (labels.has(label)) return true;
+  const { repo } = resolveGithubApiContext();
+  try {
+    await githubApiRequest('POST', `/repos/${repo}/labels`, {
+      name: label,
+      color: 'FBCA04',
+    });
+    return true;
+  } catch (error) {
+    if (error?.status === 422) {
+      return true;
+    }
+    throw error;
+  }
+}
+
+async function findExistingIssueByTitleViaApi(title) {
+  const { repo } = resolveGithubApiContext();
+  const data = await githubApiRequest('GET', `/repos/${repo}/issues?state=open&per_page=100`);
+  if (!Array.isArray(data)) return null;
+  const normalized = title.trim().toLowerCase();
+  const issue =
+    data.find(
+      (candidate) =>
+        typeof candidate?.title === 'string' &&
+        candidate.title.trim().toLowerCase() === normalized
+    ) ?? null;
+  if (!issue) return null;
+  return {
+    number: issue.number,
+    title: issue.title,
+    url: issue.html_url,
+  };
+}
+
+async function createIssueViaApi({ title, body, labels }) {
+  const { repo } = resolveGithubApiContext();
+  const payload = {
+    title,
+    body,
+  };
+  if (Array.isArray(labels) && labels.length) {
+    payload.labels = labels;
+  }
+  const created = await githubApiRequest('POST', `/repos/${repo}/issues`, payload);
+  return {
+    url: created?.html_url ?? null,
+    output: created?.html_url ?? '',
+  };
+}
+
+async function commentIssueViaApi({ number, body }) {
+  const { repo } = resolveGithubApiContext();
+  await githubApiRequest('POST', `/repos/${repo}/issues/${number}/comments`, { body });
+}
+
+async function addIssueLabelsViaApi({ number, labels }) {
+  if (!labels.length) return;
+  const { repo } = resolveGithubApiContext();
+  await githubApiRequest('POST', `/repos/${repo}/issues/${number}/labels`, {
+    labels,
+  });
 }
 
 let codexLoginProcess = null;
@@ -841,7 +1026,7 @@ function formatStatus(status) {
 
 function parseAllowedOrigins() {
   const raw = process.env.AI_SUPPORT_ALLOWED_ORIGINS;
-  if (!raw) return ['*'];
+  if (!raw) return [];
   return raw
     .split(',')
     .map((origin) => origin.trim())
@@ -854,6 +1039,41 @@ function resolveCorsOrigin(origin, allowedOrigins) {
   if (allowedOrigins.includes(origin)) return origin;
   return '';
 }
+
+function resolveApiKey() {
+  return stripEnvValue(process.env.AI_SUPPORT_API_KEY) || '';
+}
+
+function isAdminEnabled() {
+  if (process.env.AI_SUPPORT_ADMIN_ENABLED === undefined) return false;
+  return isTruthy(process.env.AI_SUPPORT_ADMIN_ENABLED);
+}
+
+function createRateLimiter() {
+  const limit = Number(process.env.AI_SUPPORT_RATE_LIMIT_MAX) || 60;
+  const windowMs = Number(process.env.AI_SUPPORT_RATE_LIMIT_WINDOW_MS) || 60_000;
+  const store = new Map();
+
+  const consume = (key) => {
+    if (!key) return { ok: true, remaining: limit, resetAt: Date.now() + windowMs };
+    const now = Date.now();
+    const entry = store.get(key);
+    if (!entry || now >= entry.resetAt) {
+      const next = { count: 1, resetAt: now + windowMs };
+      store.set(key, next);
+      return { ok: true, remaining: limit - 1, resetAt: next.resetAt };
+    }
+    if (entry.count >= limit) {
+      return { ok: false, remaining: 0, resetAt: entry.resetAt };
+    }
+    entry.count += 1;
+    return { ok: true, remaining: Math.max(0, limit - entry.count), resetAt: entry.resetAt };
+  };
+
+  return { consume, limit, windowMs };
+}
+
+const rateLimiter = createRateLimiter();
 
 function resolveHttpsOptions() {
   const httpsEnv = process.env.AI_SUPPORT_HTTPS;
@@ -1842,16 +2062,49 @@ function runGhIssueAddLabels({ number, labels }) {
   });
 }
 
-async function listGhLabels() {
-  const data = await runGhJson(['label', 'list', '--json', 'name']);
-  if (!Array.isArray(data)) {
-    return new Set();
+async function runIssueCreateWithFallback({ title, body, labels }) {
+  try {
+    return await runGhIssueCreate({ title, body, labels });
+  } catch (error) {
+    logError(`gh issue create failed, trying GitHub API fallback: ${error.message}`);
+    return createIssueViaApi({ title, body, labels });
   }
-  return new Set(
-    data
-      .map((label) => label?.name)
-      .filter((name) => typeof name === 'string')
-  );
+}
+
+async function runIssueCommentWithFallback({ number, body }) {
+  try {
+    await runGhIssueComment({ number, body });
+  } catch (error) {
+    logError(`gh issue comment failed, trying GitHub API fallback: ${error.message}`);
+    await commentIssueViaApi({ number, body });
+  }
+}
+
+async function runIssueLabelWithFallback({ number, labels }) {
+  if (!labels.length) return;
+  try {
+    await runGhIssueAddLabels({ number, labels });
+  } catch (error) {
+    logError(`gh issue label update failed, trying GitHub API fallback: ${error.message}`);
+    await addIssueLabelsViaApi({ number, labels });
+  }
+}
+
+async function listGhLabels() {
+  try {
+    const data = await runGhJson(['label', 'list', '--json', 'name']);
+    if (!Array.isArray(data)) {
+      return new Set();
+    }
+    return new Set(
+      data
+        .map((label) => label?.name)
+        .filter((name) => typeof name === 'string')
+    );
+  } catch (error) {
+    logError(`gh label list failed, trying GitHub API fallback: ${error.message}`);
+    return listGithubLabelsViaApi();
+  }
 }
 
 async function ensureGhLabel(label) {
@@ -1860,56 +2113,72 @@ async function ensureGhLabel(label) {
   if (labels.has(label)) {
     return true;
   }
-  return new Promise((resolve) => {
-    const repo = resolveGithubRepo();
-    const args = ['label', 'create', label, '--color', 'FBCA04'];
-    if (repo) {
-      args.push('--repo', repo);
-    }
-    const child = spawnGhProcess(args);
-    let stderr = '';
 
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
-    });
-
-    child.on('error', () => {
-      resolve(false);
-    });
-
-    child.on('close', (code) => {
-      if (code !== 0) {
-        logError(`Label create failed (${label}): ${stderr.trim()}`);
-        resolve(false);
-        return;
+  try {
+    return await new Promise((resolve) => {
+      const repo = resolveGithubRepo();
+      const args = ['label', 'create', label, '--color', 'FBCA04'];
+      if (repo) {
+        args.push('--repo', repo);
       }
-      resolve(true);
+      const child = spawnGhProcess(args);
+      let stderr = '';
+
+      child.stderr.on('data', (chunk) => {
+        stderr += chunk.toString();
+      });
+
+      child.on('error', () => {
+        resolve(false);
+      });
+
+      child.on('close', (code) => {
+        if (code !== 0) {
+          logError(`Label create failed (${label}): ${stderr.trim()}`);
+          resolve(false);
+          return;
+        }
+        resolve(true);
+      });
     });
-  });
+  } catch (error) {
+    logError(`gh label create failed, trying GitHub API fallback: ${error.message}`);
+    try {
+      return await ensureGithubLabelViaApi(label);
+    } catch (apiError) {
+      logError(`GitHub API label create failed (${label}): ${apiError.message}`);
+      return false;
+    }
+  }
 }
 
 async function findExistingIssueByTitle(title) {
-  const data = await runGhJson([
-    'issue',
-    'list',
-    '--state',
-    'open',
-    '--limit',
-    '50',
-    '--search',
-    `in:title "${title.replace(/"/g, '\\"')}"`,
-    '--json',
-    'number,title,url',
-  ]);
-  if (!Array.isArray(data)) return null;
-  const normalized = title.trim().toLowerCase();
-  return (
-    data.find(
-      (issue) =>
-        typeof issue?.title === 'string' &&
-        issue.title.trim().toLowerCase() === normalized
-    ) ?? null
-  );
+  try {
+    const data = await runGhJson([
+      'issue',
+      'list',
+      '--state',
+      'open',
+      '--limit',
+      '50',
+      '--search',
+      `in:title "${title.replace(/"/g, '\\"')}"`,
+      '--json',
+      'number,title,url',
+    ]);
+    if (!Array.isArray(data)) return null;
+    const normalized = title.trim().toLowerCase();
+    return (
+      data.find(
+        (issue) =>
+          typeof issue?.title === 'string' &&
+          issue.title.trim().toLowerCase() === normalized
+      ) ?? null
+    );
+  } catch (error) {
+    logError(`gh issue lookup failed, trying GitHub API fallback: ${error.message}`);
+    return findExistingIssueByTitleViaApi(title);
+  }
 }
 
 function spawnCodexProcess(args) {
@@ -1965,7 +2234,10 @@ const requestHandler = (req, res) => {
   if (corsOrigin) {
     res.setHeader('Access-Control-Allow-Origin', corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-AI-SUPPORT-TOKEN'
+    );
   }
 
   if (req.method === 'OPTIONS') {
@@ -1993,6 +2265,13 @@ const requestHandler = (req, res) => {
   }
 
   if (req.url === '/auth') {
+    if (!isAdminEnabled()) {
+      logLine(
+        `${requestId} GET /auth\n  client=${clientIp}\n  status=${formatStatus(403)}\n  duration=${Date.now() - start}ms`
+      );
+      sendJson(res, 403, { error: 'Admin endpoints disabled' });
+      return;
+    }
     const codexAuth = checkCodexAuth();
     const ghAuth = checkGhAuth();
     logLine(
@@ -2033,6 +2312,13 @@ const requestHandler = (req, res) => {
   }
 
   if (req.url === '/auth/command' && req.method === 'POST') {
+    if (!isAdminEnabled()) {
+      logLine(
+        `${requestId} POST /auth/command\n  client=${clientIp}\n  status=${formatStatus(403)}\n  duration=${Date.now() - start}ms`
+      );
+      sendJson(res, 403, { error: 'Admin endpoints disabled' });
+      return;
+    }
     let authBody = '';
     req.on('data', (chunk) => {
       authBody += chunk.toString();
@@ -2098,6 +2384,49 @@ const requestHandler = (req, res) => {
     return;
   }
 
+  if (req.url === '/api/ai/issue') {
+    const requiredToken = resolveIssueAuthToken();
+    if (!requiredToken) {
+      logLine(
+        `${requestId} POST /api/ai/issue\n  client=${clientIp}\n  status=${formatStatus(503)}\n  duration=${Date.now() - start}ms`
+      );
+      sendJson(res, 503, { error: 'Issue auth token not configured' });
+      return;
+    }
+    const providedToken = getRequestAuthToken(req);
+    if (!providedToken || providedToken !== requiredToken) {
+      logLine(
+        `${requestId} POST /api/ai/issue\n  client=${clientIp}\n  status=${formatStatus(401)}\n  duration=${Date.now() - start}ms`
+      );
+      sendJson(res, 401, { error: 'Unauthorized' });
+      return;
+    }
+  }
+
+  const apiKey = resolveApiKey();
+  const token = getRequestAuthToken(req);
+  if (apiKey && req.url !== '/api/ai/issue' && (!token || token !== apiKey)) {
+    logLine(
+      `${requestId} POST ${req.url}\n  client=${clientIp}\n  status=${formatStatus(401)}\n  duration=${Date.now() - start}ms`
+    );
+    res.setHeader('WWW-Authenticate', 'Bearer, x-ai-support-token');
+    sendJson(res, 401, { error: 'Unauthorized' });
+    return;
+  }
+
+  const rateKey = token ? `token:${token}` : `ip:${clientIp}`;
+  const rateStatus = rateLimiter.consume(rateKey);
+  res.setHeader('X-RateLimit-Limit', String(rateLimiter.limit));
+  res.setHeader('X-RateLimit-Remaining', String(rateStatus.remaining));
+  res.setHeader('X-RateLimit-Reset', String(Math.floor(rateStatus.resetAt / 1000)));
+  if (!rateStatus.ok) {
+    logLine(
+      `${requestId} POST ${req.url}\n  client=${clientIp}\n  status=${formatStatus(429)}\n  duration=${Date.now() - start}ms`
+    );
+    sendJson(res, 429, { error: 'Rate limit exceeded' });
+    return;
+  }
+
   let body = '';
   req.on('data', (chunk) => {
     body += chunk.toString();
@@ -2142,10 +2471,15 @@ const requestHandler = (req, res) => {
           new Set([...requestedLabels, ...baseLabels])
         );
 
-        const usableLabels = [];
-        for (const label of targetLabels) {
-          const ok = await ensureGhLabel(label);
-          if (ok) usableLabels.push(label);
+        let usableLabels = [];
+        try {
+          for (const label of targetLabels) {
+            const ok = await ensureGhLabel(label);
+            if (ok) usableLabels.push(label);
+          }
+        } catch (error) {
+          logError(`${requestId} label resolution failed: ${error.message}`);
+          usableLabels = [];
         }
 
         if (!usableLabels.includes('Maxwell')) {
@@ -2159,13 +2493,8 @@ const requestHandler = (req, res) => {
         if (existing) {
           logLine(`${requestId} gh issue comment start`);
           const ghStart = Date.now();
-          await runGhIssueComment({ number: existing.number, body: issueBody });
-          if (usableLabels.length) {
-            await runGhIssueAddLabels({
-              number: existing.number,
-              labels: usableLabels,
-            });
-          }
+          await runIssueCommentWithFallback({ number: existing.number, body: issueBody });
+          await runIssueLabelWithFallback({ number: existing.number, labels: usableLabels });
           const ghElapsed = Date.now() - ghStart;
           logLine(`${requestId} gh issue comment done ${ghElapsed}ms`);
           sendJson(res, 200, {
@@ -2181,7 +2510,7 @@ const requestHandler = (req, res) => {
 
         logLine(`${requestId} gh issue create start`);
         const ghStart = Date.now();
-        const result = await runGhIssueCreate({
+        const result = await runIssueCreateWithFallback({
           title,
           body: issueBody,
           labels: usableLabels,
@@ -2235,6 +2564,211 @@ const requestHandler = (req, res) => {
   });
 };
 
+// Keep-alive reciproco integrato
+const TURNI_DI_PALCO_URL = 'https://turni-di-palco-fq85.onrender.com';
+const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // 10 minuti
+const KEEP_ALIVE_JITTER = 60000; // 1 minuto di jitter
+
+// Watchdog integration
+const WATCHDOG_INTERVAL = 60 * 60 * 1000; // 1 ora
+let watchdogTimer = null;
+let keepAliveTimer = null;
+
+function performKeepAlive() {
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    const client = https; // Sempre HTTPS per i servizi Render
+    
+    const req = client.get(`${TURNI_DI_PALCO_URL}/health`, { timeout: 30000 }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        const duration = Date.now() - startTime;
+        const success = res.statusCode === 200;
+        
+        logLine(`Keep-alive: Maxwell → Turni ${success ? '✓' : '✗'} (${res.statusCode}) ${duration}ms`);
+        
+        if (success && data) {
+          try {
+            const health = JSON.parse(data);
+            logLine(`  Turni Health: ${health.status} (${health.service}) uptime: ${Math.floor(health.uptime)}s`);
+          } catch (e) {
+            logLine(`  Response: ${data.substring(0, 100)}...`);
+          }
+        }
+        
+        resolve();
+      });
+    });
+
+    req.on('error', (error) => {
+      logLine(`Keep-alive error: ${error.message}`);
+      resolve();
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      logLine(`Keep-alive timeout`);
+      resolve();
+    });
+  });
+}
+
+function scheduleKeepAlive() {
+  if (keepAliveTimer) {
+    clearTimeout(keepAliveTimer);
+  }
+  
+  const interval = KEEP_ALIVE_INTERVAL + Math.random() * KEEP_ALIVE_JITTER;
+  const nextRun = new Date(Date.now() + interval);
+  
+  logLine(`Next keep-alive scheduled: ${nextRun.toISOString()}`);
+  
+  keepAliveTimer = setTimeout(async () => {
+    await performKeepAlive();
+    scheduleKeepAlive(); // Ri-schedula
+  }, interval);
+}
+
+function startKeepAlive() {
+  // Prima esecuzione dopo 30 secondi dall'avvio del server
+  setTimeout(() => {
+    logLine('Starting integrated keep-alive system...');
+    performKeepAlive().then(() => {
+      scheduleKeepAlive();
+    });
+  }, 30000);
+}
+
+// Watchdog integrato
+function performWatchdogCheck() {
+  return new Promise((resolve) => {
+    logLine('🐕 Starting watchdog scan...');
+    
+    // 1. Check servizi Render
+    const services = [
+      { name: 'Maxwell-AI-Support', url: 'https://maxwell-ai-support.onrender.com/health' },
+      { name: 'Turni-di-Palco', url: 'https://turni-di-palco-fq85.onrender.com/health' }
+    ];
+    
+    let problems = [];
+    let completed = 0;
+    
+    services.forEach(service => {
+      const startTime = Date.now();
+      const client = https;
+      
+      const req = client.get(service.url, { timeout: 10000 }, (res) => {
+        const responseTime = Date.now() - startTime;
+        
+        if (responseTime > 5000) {
+          problems.push({
+            type: 'performance',
+            severity: 'warning',
+            title: `Slow response: ${service.name}`,
+            details: `Response time: ${responseTime}ms (threshold: 5000ms)`,
+            data: { service: service.name, responseTime, url: service.url },
+            suggestion: 'Check service health and consider optimization'
+          });
+        }
+        
+        if (res.statusCode !== 200) {
+          problems.push({
+            type: 'availability',
+            severity: 'error',
+            title: `Service down: ${service.name}`,
+            details: `HTTP ${res.statusCode} from ${service.url}`,
+            data: { service: service.name, status: res.statusCode, url: service.url },
+            suggestion: 'Immediate investigation required'
+          });
+        }
+        
+        completed++;
+        if (completed === services.length) {
+          logLine(`Watchdog scan completed: ${problems.length} problems detected`);
+          resolve(problems);
+        }
+      });
+      
+      req.on('error', (error) => {
+        problems.push({
+          type: 'availability',
+          severity: 'error',
+          title: `Service unreachable: ${service.name}`,
+          details: `Failed to connect: ${error.message}`,
+          data: { service: service.name, error: error.message, url: service.url },
+          suggestion: 'Check service status and Render dashboard'
+        });
+        
+        completed++;
+        if (completed === services.length) {
+          logLine(`Watchdog scan completed: ${problems.length} problems detected`);
+          resolve(problems);
+        }
+      });
+      
+      req.on('timeout', () => {
+        req.destroy();
+        problems.push({
+          type: 'availability',
+          severity: 'error',
+          title: `Service timeout: ${service.name}`,
+          details: 'Request timeout after 10 seconds',
+          data: { service: service.name, url: service.url },
+          suggestion: 'Check service connectivity'
+        });
+        
+        completed++;
+        if (completed === services.length) {
+          logLine(`Watchdog scan completed: ${problems.length} problems detected`);
+          resolve(problems);
+        }
+      });
+    });
+  });
+}
+
+function scheduleWatchdog() {
+  if (watchdogTimer) {
+    clearTimeout(watchdogTimer);
+  }
+  
+  const interval = WATCHDOG_INTERVAL + Math.random() * 300000; // 1 ora ± 5 minuti jitter
+  const nextRun = new Date(Date.now() + interval);
+  
+  logLine(`Next watchdog scan scheduled: ${nextRun.toISOString()}`);
+  
+  watchdogTimer = setTimeout(async () => {
+    const problems = await performWatchdogCheck();
+    
+    // Log problemi rilevati
+    if (problems.length > 0) {
+      problems.forEach(problem => {
+        logLine(`🚨 WATCHDOG ALERT: ${problem.title}`);
+        logLine(`  Details: ${problem.details}`);
+        logLine(`  Suggestion: ${problem.suggestion}`);
+      });
+    }
+    
+    scheduleWatchdog(); // Ri-schedula
+  }, interval);
+}
+
+function startWatchdog() {
+  // Prima esecuzione dopo 2 minuti dall'avvio del server
+  setTimeout(() => {
+    logLine('🐕 Starting integrated watchdog system...');
+    performWatchdogCheck().then((problems) => {
+      if (problems.length > 0) {
+        logLine(`Initial watchdog scan found ${problems.length} problems`);
+      } else {
+        logLine('✅ Initial watchdog scan: No problems detected');
+      }
+      scheduleWatchdog();
+    });
+  }, 120000); // 2 minuti
+}
+
 const server = httpsOptions
   ? https.createServer(httpsOptions, requestHandler)
   : http.createServer(requestHandler);
@@ -2259,4 +2793,10 @@ server.listen(port, host, () => {
     }
     logLine(`Codex binary: ${codexBin}`);
   }
+  
+  // Avvia il keep-alive integrato
+  startKeepAlive();
+  
+  // Avvia il watchdog integrato
+  startWatchdog();
 });
