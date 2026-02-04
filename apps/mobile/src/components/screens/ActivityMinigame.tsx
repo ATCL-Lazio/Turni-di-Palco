@@ -1,5 +1,5 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { X, Timer, SlidersHorizontal, Target } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { X, Timer, SlidersHorizontal, Target, Hand, LayoutGrid, ListOrdered, ArrowUp, ArrowDown } from 'lucide-react';
 import { Activity } from '../../state/store';
 import {
   computeOutcome,
@@ -7,6 +7,7 @@ import {
   getMinigameConfig,
   MinigameConfig,
   MinigameOutcome,
+  MinigameRound,
 } from '../../gameplay/minigames';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -84,14 +85,14 @@ function MinigameShell({
   );
 }
 
-interface TimingMinigameProps {
+interface BaseMiniProps {
   config: MinigameConfig;
   activityTitle: string;
   onComplete: (outcome: MinigameOutcome) => void;
   onCancel: () => void;
 }
 
-function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingMinigameProps) {
+function TimingMinigame({ config, activityTitle, onComplete, onCancel }: BaseMiniProps) {
   const rounds = config.rounds;
   const [phase, setPhase] = useState<'intro' | 'playing' | 'feedback' | 'done'>('intro');
   const [roundIndex, setRoundIndex] = useState(0);
@@ -298,15 +299,7 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
     </MinigameShell>
   );
 }
-
-interface AudioMinigameProps {
-  config: MinigameConfig;
-  activityTitle: string;
-  onComplete: (outcome: MinigameOutcome) => void;
-  onCancel: () => void;
-}
-
-function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMinigameProps) {
+function AudioMinigame({ config, activityTitle, onComplete, onCancel }: BaseMiniProps) {
   const rounds = config.rounds;
   const [phase, setPhase] = useState<'intro' | 'adjust' | 'feedback' | 'done'>('intro');
   const [roundIndex, setRoundIndex] = useState(0);
@@ -474,11 +467,591 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
   );
 }
 
+const MEMORY_PADS = [
+  { id: 0, label: 'A' },
+  { id: 1, label: 'B' },
+  { id: 2, label: 'C' },
+  { id: 3, label: 'D' },
+];
+
+function MemoryMinigame({ config, activityTitle, onComplete, onCancel }: BaseMiniProps) {
+  const rounds = config.rounds;
+  const [phase, setPhase] = useState<'intro' | 'showing' | 'input' | 'feedback' | 'done'>('intro');
+  const [roundIndex, setRoundIndex] = useState(0);
+  const [roundScores, setRoundScores] = useState<number[]>([]);
+  const [highlightedPad, setHighlightedPad] = useState<number | null>(null);
+  const [input, setInput] = useState<number[]>([]);
+  const [feedback, setFeedback] = useState<{ label: string; accuracy: number } | null>(null);
+  const sequenceTimerRef = useRef<number | null>(null);
+  const feedbackTimerRef = useRef<number | null>(null);
+
+  const round = rounds[roundIndex];
+  const roundLabel = `Round ${roundIndex + 1}/${rounds.length}`;
+  const pattern = round.pattern ?? [0, 1, 2];
+
+  useEffect(() => {
+    if (phase !== 'showing') return;
+
+    let index = 0;
+    setInput([]);
+
+    sequenceTimerRef.current = window.setInterval(() => {
+      const pad = pattern[index];
+      setHighlightedPad(pad);
+      triggerHaptic(8);
+      index += 1;
+      if (index >= pattern.length) {
+        if (sequenceTimerRef.current != null) {
+          window.clearInterval(sequenceTimerRef.current);
+          sequenceTimerRef.current = null;
+        }
+        window.setTimeout(() => {
+          setHighlightedPad(null);
+          setPhase('input');
+        }, 320);
+      }
+    }, 650);
+
+    return () => {
+      if (sequenceTimerRef.current != null) {
+        window.clearInterval(sequenceTimerRef.current);
+        sequenceTimerRef.current = null;
+      }
+    };
+  }, [pattern, phase]);
+
+  useEffect(() => {
+    return () => {
+      if (sequenceTimerRef.current != null) {
+        window.clearInterval(sequenceTimerRef.current);
+      }
+      if (feedbackTimerRef.current != null) {
+        window.clearTimeout(feedbackTimerRef.current);
+      }
+    };
+  }, []);
+
+  const evaluateInput = useCallback((nextInput: number[]) => {
+    let matches = 0;
+    for (let i = 0; i < pattern.length; i += 1) {
+      if (nextInput[i] === pattern[i]) matches += 1;
+    }
+    const accuracy = pattern.length ? Math.round((matches / pattern.length) * 100) : 0;
+    const result = computeRoundScore(100, accuracy, round.tolerance);
+    const nextScores = [...roundScores, result.score];
+    setRoundScores(nextScores);
+    setFeedback({ label: result.label, accuracy });
+    setPhase('feedback');
+
+    feedbackTimerRef.current = window.setTimeout(() => {
+      if (roundIndex + 1 < rounds.length) {
+        setRoundIndex((value) => value + 1);
+        setPhase('showing');
+      } else {
+        setPhase('done');
+        onComplete(computeOutcome(config.type, nextScores));
+      }
+    }, 900);
+  }, [config.type, onComplete, pattern, round.tolerance, roundIndex, roundScores, rounds.length]);
+
+  const handlePadClick = (pad: number) => {
+    if (phase !== 'input') return;
+    triggerHaptic(6);
+    setInput((prev) => {
+      const nextInput = [...prev, pad];
+      if (nextInput.length >= pattern.length) {
+        evaluateInput(nextInput);
+      }
+      return nextInput;
+    });
+  };
+
+  return (
+    <MinigameShell
+      title={config.title}
+      subtitle={config.subtitle}
+      activityTitle={activityTitle}
+      roundLabel={roundLabel}
+      icon={<LayoutGrid className="text-[#f4bf4f]" size={22} />}
+      onCancel={onCancel}
+    >
+      <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-white font-semibold">{round.label}</p>
+          <Tag size="sm" variant="outline">
+            {pattern.length} step
+          </Tag>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {MEMORY_PADS.map((pad) => (
+            <button
+              key={pad.id}
+              type="button"
+              disabled={phase !== 'input'}
+              onClick={() => handlePadClick(pad.id)}
+              className={`h-16 rounded-xl border text-lg font-semibold transition-colors ${
+                highlightedPad === pad.id
+                  ? 'border-[#f4bf4f] bg-[#f4bf4f]/20 text-[#f4bf4f]'
+                  : 'border-[#2d2728] bg-[#241f20] text-white'
+              } disabled:opacity-60`}
+            >
+              {pad.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 text-xs text-[#7a7577]">
+          {phase === 'showing' ? 'Memorizza la sequenza mostrata.' : null}
+          {phase === 'input' ? `Sequenza inserita: ${input.length}/${pattern.length}` : null}
+        </div>
+
+        {feedback ? (
+          <div className="mt-4 flex items-center justify-between">
+            <Badge variant={feedback.label === 'Da migliorare' ? 'default' : 'success'} size="sm">
+              {feedback.label}
+            </Badge>
+            <span className="text-xs text-[#b8b2b3]">Accuratezza {feedback.accuracy}%</span>
+          </div>
+        ) : null}
+      </Card>
+
+      <div className="space-y-3">
+        {phase === 'intro' ? (
+          <Button variant="primary" size="lg" fullWidth onClick={() => setPhase('showing')}>
+            Inizia minigioco
+          </Button>
+        ) : phase === 'showing' ? (
+          <Button variant="primary" size="lg" fullWidth disabled>
+            Memorizza...
+          </Button>
+        ) : phase === 'input' ? (
+          <Button variant="primary" size="lg" fullWidth disabled>
+            Tocca la sequenza
+          </Button>
+        ) : (
+          <Button variant="primary" size="lg" fullWidth disabled>
+            Valutazione...
+          </Button>
+        )}
+
+        <Button variant="ghost" size="lg" fullWidth onClick={onCancel}>
+          Torna indietro
+        </Button>
+      </div>
+    </MinigameShell>
+  );
+}
+
+const ZONES = [
+  { id: 'left', label: 'Sinistra', value: 15 },
+  { id: 'center', label: 'Centro', value: 50 },
+  { id: 'right', label: 'Destra', value: 85 },
+];
+
+function PlacementMinigame({ config, activityTitle, onComplete, onCancel }: BaseMiniProps) {
+  const rounds = config.rounds;
+  const [phase, setPhase] = useState<'intro' | 'playing' | 'feedback' | 'done'>('intro');
+  const [roundIndex, setRoundIndex] = useState(0);
+  const [roundScores, setRoundScores] = useState<number[]>([]);
+  const [feedback, setFeedback] = useState<{ label: string; delta: number } | null>(null);
+  const feedbackTimerRef = useRef<number | null>(null);
+
+  const round = rounds[roundIndex];
+  const roundLabel = `Round ${roundIndex + 1}/${rounds.length}`;
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current != null) {
+        window.clearTimeout(feedbackTimerRef.current);
+      }
+    };
+  }, []);
+
+  const selectZone = (value: number) => {
+    if (phase !== 'playing') return;
+    const result = computeRoundScore(round.target, value, round.tolerance);
+    const nextScores = [...roundScores, result.score];
+    setRoundScores(nextScores);
+    setFeedback({ label: result.label, delta: result.delta });
+    setPhase('feedback');
+
+    feedbackTimerRef.current = window.setTimeout(() => {
+      if (roundIndex + 1 < rounds.length) {
+        setRoundIndex((current) => current + 1);
+        setPhase('playing');
+        setFeedback(null);
+      } else {
+        setPhase('done');
+        onComplete(computeOutcome(config.type, nextScores));
+      }
+    }, 900);
+  };
+
+  return (
+    <MinigameShell
+      title={config.title}
+      subtitle={config.subtitle}
+      activityTitle={activityTitle}
+      roundLabel={roundLabel}
+      icon={<LayoutGrid className="text-[#f4bf4f]" size={22} />}
+      onCancel={onCancel}
+    >
+      <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-white font-semibold">{round.label}</p>
+          <Tag size="sm" variant="outline">
+            Target zona
+          </Tag>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          {ZONES.map((zone) => (
+            <button
+              key={zone.id}
+              type="button"
+              disabled={phase !== 'playing'}
+              onClick={() => selectZone(zone.value)}
+              className="h-20 rounded-xl border border-[#2d2728] bg-[#241f20] text-white disabled:opacity-50"
+            >
+              {zone.label}
+            </button>
+          ))}
+        </div>
+
+        {feedback ? (
+          <div className="mt-4 flex items-center justify-between">
+            <Badge variant={feedback.label === 'Da migliorare' ? 'default' : 'success'} size="sm">
+              {feedback.label}
+            </Badge>
+            <span className="text-xs text-[#b8b2b3]">Scarto {Math.round(feedback.delta)}%</span>
+          </div>
+        ) : null}
+      </Card>
+
+      <div className="space-y-3">
+        {phase === 'intro' ? (
+          <Button variant="primary" size="lg" fullWidth onClick={() => setPhase('playing')}>
+            Inizia minigioco
+          </Button>
+        ) : phase === 'playing' ? (
+          <Button variant="primary" size="lg" fullWidth disabled>
+            Seleziona una zona
+          </Button>
+        ) : (
+          <Button variant="primary" size="lg" fullWidth disabled>
+            Valutazione...
+          </Button>
+        )}
+
+        <Button variant="ghost" size="lg" fullWidth onClick={onCancel}>
+          Torna indietro
+        </Button>
+      </div>
+    </MinigameShell>
+  );
+}
+
+function RapidMinigame({ config, activityTitle, onComplete, onCancel }: BaseMiniProps) {
+  const rounds = config.rounds;
+  const [phase, setPhase] = useState<'intro' | 'playing' | 'feedback' | 'done'>('intro');
+  const [roundIndex, setRoundIndex] = useState(0);
+  const [roundScores, setRoundScores] = useState<number[]>([]);
+  const [tapCount, setTapCount] = useState(0);
+  const [timeLeftMs, setTimeLeftMs] = useState(0);
+  const [feedback, setFeedback] = useState<{ label: string; delta: number } | null>(null);
+  const timerRef = useRef<number | null>(null);
+  const tickRef = useRef<number | null>(null);
+
+  const round = rounds[roundIndex];
+  const roundLabel = `Round ${roundIndex + 1}/${rounds.length}`;
+  const durationMs = round.durationMs ?? 4000;
+
+  const clearTimers = () => {
+    if (timerRef.current != null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    if (tickRef.current != null) {
+      window.clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
+  };
+
+  useEffect(() => clearTimers, []);
+
+  const evaluateRound = useCallback(() => {
+    const result = computeRoundScore(round.target, tapCount, round.tolerance);
+    const nextScores = [...roundScores, result.score];
+    setRoundScores(nextScores);
+    setFeedback({ label: result.label, delta: result.delta });
+    setPhase('feedback');
+
+    window.setTimeout(() => {
+      if (roundIndex + 1 < rounds.length) {
+        setRoundIndex((value) => value + 1);
+        setTapCount(0);
+        setFeedback(null);
+        setPhase('playing');
+      } else {
+        setPhase('done');
+        onComplete(computeOutcome(config.type, nextScores));
+      }
+    }, 900);
+  }, [config.type, onComplete, round.target, round.tolerance, roundIndex, roundScores, rounds.length, tapCount]);
+
+  useEffect(() => {
+    if (phase !== 'playing') return;
+    const start = Date.now();
+    setTimeLeftMs(durationMs);
+    clearTimers();
+
+    tickRef.current = window.setInterval(() => {
+      const elapsed = Date.now() - start;
+      const remaining = Math.max(0, durationMs - elapsed);
+      setTimeLeftMs(remaining);
+    }, 100);
+
+    timerRef.current = window.setTimeout(() => {
+      clearTimers();
+      evaluateRound();
+    }, durationMs);
+
+    return clearTimers;
+  }, [durationMs, evaluateRound, phase, roundIndex]);
+
+  const handleTap = () => {
+    if (phase !== 'playing') return;
+    setTapCount((value) => value + 1);
+    triggerHaptic(4);
+  };
+
+  return (
+    <MinigameShell
+      title={config.title}
+      subtitle={config.subtitle}
+      activityTitle={activityTitle}
+      roundLabel={roundLabel}
+      icon={<Hand className="text-[#f4bf4f]" size={22} />}
+      onCancel={onCancel}
+    >
+      <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20] text-center">
+        <p className="text-white font-semibold mb-1">{round.label}</p>
+        <p className="text-xs text-[#7a7577] mb-4">Target tap: {round.target}</p>
+
+        <button
+          type="button"
+          onClick={handleTap}
+          disabled={phase !== 'playing'}
+          className="w-full h-36 rounded-2xl border border-[#2d2728] bg-[#241f20] text-white text-2xl font-bold disabled:opacity-50"
+        >
+          TAP x{tapCount}
+        </button>
+
+        <div className="mt-4 flex items-center justify-between text-sm text-[#b8b2b3]">
+          <span>Tempo</span>
+          <span>{Math.max(0, (timeLeftMs / 1000)).toFixed(1)}s</span>
+        </div>
+
+        {feedback ? (
+          <div className="mt-4 flex items-center justify-between">
+            <Badge variant={feedback.label === 'Da migliorare' ? 'default' : 'success'} size="sm">
+              {feedback.label}
+            </Badge>
+            <span className="text-xs text-[#b8b2b3]">Scarto {Math.round(feedback.delta)}</span>
+          </div>
+        ) : null}
+      </Card>
+
+      <div className="space-y-3">
+        {phase === 'intro' ? (
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            onClick={() => {
+              setTapCount(0);
+              setFeedback(null);
+              setPhase('playing');
+            }}
+          >
+            Inizia minigioco
+          </Button>
+        ) : phase === 'playing' ? (
+          <Button variant="primary" size="lg" fullWidth disabled>
+            Tocca il pulsante centrale
+          </Button>
+        ) : (
+          <Button variant="primary" size="lg" fullWidth disabled>
+            Valutazione...
+          </Button>
+        )}
+
+        <Button variant="ghost" size="lg" fullWidth onClick={onCancel}>
+          Torna indietro
+        </Button>
+      </div>
+    </MinigameShell>
+  );
+}
+
+function computePriorityAccuracy(round: MinigameRound, order: number[]) {
+  const expected = round.expectedOrder ?? order;
+  if (!expected.length) return 0;
+  let matches = 0;
+  for (let i = 0; i < expected.length; i += 1) {
+    if (order[i] === expected[i]) matches += 1;
+  }
+  return Math.round((matches / expected.length) * 100);
+}
+
+function PriorityMinigame({ config, activityTitle, onComplete, onCancel }: BaseMiniProps) {
+  const rounds = config.rounds;
+  const [phase, setPhase] = useState<'intro' | 'sorting' | 'feedback' | 'done'>('intro');
+  const [roundIndex, setRoundIndex] = useState(0);
+  const [roundScores, setRoundScores] = useState<number[]>([]);
+  const [order, setOrder] = useState<number[]>([]);
+  const [feedback, setFeedback] = useState<{ label: string; accuracy: number } | null>(null);
+  const feedbackRef = useRef<number | null>(null);
+
+  const round = rounds[roundIndex];
+  const roundLabel = `Round ${roundIndex + 1}/${rounds.length}`;
+  const choices = round.choices ?? ['Cue 1', 'Cue 2', 'Cue 3'];
+
+  useEffect(() => {
+    setOrder(choices.map((_, index) => index));
+  }, [roundIndex]);
+
+  useEffect(() => {
+    return () => {
+      if (feedbackRef.current != null) window.clearTimeout(feedbackRef.current);
+    };
+  }, []);
+
+  const moveItem = (index: number, direction: -1 | 1) => {
+    setOrder((prev) => {
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= prev.length) return prev;
+      const copy = [...prev];
+      const [current] = copy.splice(index, 1);
+      copy.splice(nextIndex, 0, current);
+      return copy;
+    });
+  };
+
+  const confirmOrder = () => {
+    if (phase !== 'sorting') return;
+    const accuracy = computePriorityAccuracy(round, order);
+    const result = computeRoundScore(100, accuracy, round.tolerance);
+    const nextScores = [...roundScores, result.score];
+    setRoundScores(nextScores);
+    setFeedback({ label: result.label, accuracy });
+    setPhase('feedback');
+
+    feedbackRef.current = window.setTimeout(() => {
+      if (roundIndex + 1 < rounds.length) {
+        setRoundIndex((value) => value + 1);
+        setFeedback(null);
+        setPhase('sorting');
+      } else {
+        setPhase('done');
+        onComplete(computeOutcome(config.type, nextScores));
+      }
+    }, 900);
+  };
+
+  return (
+    <MinigameShell
+      title={config.title}
+      subtitle={config.subtitle}
+      activityTitle={activityTitle}
+      roundLabel={roundLabel}
+      icon={<ListOrdered className="text-[#f4bf4f]" size={22} />}
+      onCancel={onCancel}
+    >
+      <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+        <p className="text-white font-semibold mb-3">{round.label}</p>
+        <div className="space-y-2">
+          {order.map((choiceIndex, index) => (
+            <div key={`${round.label}-${choiceIndex}`} className="flex items-center gap-2 border border-[#2d2728] rounded-xl p-2 bg-[#241f20]">
+              <span className="text-[#f4bf4f] w-5 text-center">{index + 1}</span>
+              <span className="flex-1 text-white text-sm">{choices[choiceIndex]}</span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  className="size-8 rounded-lg border border-[#3a3435] text-[#f4bf4f] disabled:opacity-40"
+                  disabled={phase !== 'sorting' || index === 0}
+                  onClick={() => moveItem(index, -1)}
+                >
+                  <ArrowUp size={14} className="mx-auto" />
+                </button>
+                <button
+                  type="button"
+                  className="size-8 rounded-lg border border-[#3a3435] text-[#f4bf4f] disabled:opacity-40"
+                  disabled={phase !== 'sorting' || index === order.length - 1}
+                  onClick={() => moveItem(index, 1)}
+                >
+                  <ArrowDown size={14} className="mx-auto" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {feedback ? (
+          <div className="mt-4 flex items-center justify-between">
+            <Badge variant={feedback.label === 'Da migliorare' ? 'default' : 'success'} size="sm">
+              {feedback.label}
+            </Badge>
+            <span className="text-xs text-[#b8b2b3]">Accuratezza {feedback.accuracy}%</span>
+          </div>
+        ) : null}
+      </Card>
+
+      <div className="space-y-3">
+        {phase === 'intro' ? (
+          <Button variant="primary" size="lg" fullWidth onClick={() => setPhase('sorting')}>
+            Inizia minigioco
+          </Button>
+        ) : phase === 'sorting' ? (
+          <Button variant="primary" size="lg" fullWidth onClick={confirmOrder}>
+            Conferma ordine
+          </Button>
+        ) : (
+          <Button variant="primary" size="lg" fullWidth disabled>
+            Valutazione...
+          </Button>
+        )}
+
+        <Button variant="ghost" size="lg" fullWidth onClick={onCancel}>
+          Torna indietro
+        </Button>
+      </div>
+    </MinigameShell>
+  );
+}
+
 export function ActivityMinigame({ activity, onComplete, onCancel }: ActivityMinigameProps) {
   const config = useMemo(() => getMinigameConfig(activity.id), [activity.id]);
 
   if (config.type === 'audio') {
     return <AudioMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
+  }
+
+  if (config.type === 'memory') {
+    return <MemoryMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
+  }
+
+  if (config.type === 'placement') {
+    return <PlacementMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
+  }
+
+  if (config.type === 'rapid') {
+    return <RapidMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
+  }
+
+  if (config.type === 'priority') {
+    return <PriorityMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
   }
 
   return <TimingMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
