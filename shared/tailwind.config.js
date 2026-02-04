@@ -1,0 +1,122 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './apps/pwa/index.html',
+    './apps/pwa/game.html',
+    './apps/pwa/map.html',
+    './apps/pwa/avatar.html',
+    './apps/pwa/profile.html',
+    './apps/pwa/privacy.html',
+    './apps/pwa/events.html',
+    './apps/pwa/turns.html',
+    './apps/pwa/leaderboard.html',
+    './apps/pwa/src/**/*.{js,ts,jsx,tsx}',
+    './apps/mobile/index.html',
+    './apps/mobile/src/**/*.{js,ts,jsx,tsx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        'burgundy-950': '#2d0a0f',
+        'burgundy-900': '#4a0e1a',
+        'burgundy-800': '#6b1529',
+        'burgundy-700': '#8c1c38',
+        'burgundy-600': '#a82847',
+        'burgundy-500': '#c23456',
+        'gold-400': '#f4bf4f',
+        'gold-500': '#e6a23c',
+        'gold-600': '#d48806',
+        'bg-primary': '#0f0d0e',
+        'bg-surface': '#1a1617',
+        'bg-surface-elevated': '#241f20',
+        'bg-surface-hover': '#2d2728',
+        'text-primary': '#f5f5f5',
+        'text-secondary': '#b8b2b3',
+        'text-tertiary': '#7a7577',
+        success: '#52c41a',
+        error: '#ff4d4f',
+        warning: '#faad14',
+      },
+      spacing: {
+        xs: '0.25rem',
+        sm: '0.5rem',
+        md: '1rem',
+        lg: '1.5rem',
+        xl: '2rem',
+        '2xl': '3rem',
+      },
+      borderRadius: {
+        sm: '0.5rem',
+        md: '0.75rem',
+        lg: '1rem',
+        xl: '1.5rem',
+      },
+      boxShadow: {
+        sm: '0 1px 2px 0 rgba(0, 0, 0, 0.3)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4)',
+      },
+      keyframes: {
+        fadeIn: {
+          from: { opacity: 0, transform: 'translateY(10px)' },
+          to: { opacity: 1, transform: 'translateY(0)' },
+        },
+        slideUp: {
+          from: { opacity: 0, transform: 'translateY(20px)' },
+          to: { opacity: 1, transform: 'translateY(0)' },
+        },
+        pulse: {
+          '0%, 100%': { opacity: 1 },
+          '50%': { opacity: 0.5 },
+        },
+        'badge-pop': {
+          '0%': { opacity: 0, transform: 'translateY(6px) scale(0.98)' },
+          '45%': { opacity: 1, transform: 'translateY(0) scale(1.02)' },
+          '100%': { opacity: 1, transform: 'translateY(0) scale(1)' },
+        },
+        'hero-reveal': {
+          '0%': { opacity: 0, transform: 'translateY(10px)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' },
+        },
+        'pulse-gentle': {
+          '0%, 100%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.02)' },
+        },
+        'slide-in-right': {
+          '0%': { opacity: 0, transform: 'translateX(100%)' },
+          '100%': { opacity: 1, transform: 'translateX(0)' },
+        },
+        'slide-in-left': {
+          '0%': { opacity: 0, transform: 'translateX(-100%)' },
+          '100%': { opacity: 1, transform: 'translateX(0)' },
+        },
+        'slide-in-up': {
+          '0%': { opacity: 0, transform: 'translateY(30px)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' },
+        },
+        'slide-in-down': {
+          '0%': { opacity: 0, transform: 'translateY(-30px)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' },
+        },
+        'fade-in': {
+          '0%': { opacity: 0 },
+          '100%': { opacity: 1 },
+        },
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.3s ease-out',
+        'slide-up': 'slideUp 0.4s ease-out',
+        'badge-pop': 'badge-pop 520ms ease-out',
+        'hero-reveal': 'hero-reveal 420ms ease-out',
+        'pulse-once': 'pulse-gentle 600ms ease-in-out',
+        'slide-in-right': 'slide-in-right 300ms ease-out',
+        'slide-in-left': 'slide-in-left 300ms ease-out',
+        'slide-in-up': 'slide-in-up 300ms ease-out',
+        'slide-in-down': 'slide-in-down 300ms ease-out',
+        'fade-in-tab': 'fade-in 250ms ease-out',
+        'icon-pulse': 'pulse-gentle 400ms ease-in-out',
+      },
+    },
+  },
+  plugins: [],
+};
