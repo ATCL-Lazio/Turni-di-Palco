@@ -25,13 +25,13 @@ function verifyLocalFallback(code: string, eventIds: string[]): QrVerificationRe
     return { ok: true, eventId: fallbackEventId, source: 'fixed' };
   }
 
-  if (!import.meta.env.DEV || isSupabaseConfigured) {
-    return { ok: false, error: 'QR non valido.' };
-  }
-
-  const legacyEvent = eventIds.find((id) => code.toLowerCase().includes(id.toLowerCase()));
-  if (legacyEvent) {
-    return { ok: true, eventId: legacyEvent, source: 'legacy' };
+  // Strictly dev-only legacy support: only if explicitly allowed or no Supabase
+  const isDev = (import.meta as any).env?.DEV;
+  if (isDev && !isSupabaseConfigured) {
+    const legacyEvent = eventIds.find((id) => code.trim() === id);
+    if (legacyEvent) {
+      return { ok: true, eventId: legacyEvent, source: 'legacy' };
+    }
   }
 
   return { ok: false, error: 'QR non valido.' };
@@ -48,13 +48,13 @@ export async function verifyQrCode(code: string, eventIds: string[]): Promise<Qr
   }
 
   const fallbackEventId = resolveFallbackEventId(eventIds);
-  
+
   try {
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error('Timeout')), 5000);
     });
 
-    const supabasePromise = supabase.functions.invoke('verify-qr-mock', {
+    const supabasePromise = supabase.functions.invoke('verify-qr', {
       body: {
         code: trimmed,
         fallbackEventId,
