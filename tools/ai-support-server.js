@@ -600,41 +600,108 @@ function resolveGithubApiContext() {
 
 async function githubApiRequest(method, endpoint, body) {
   const ctx = resolveGithubApiContext();
-  const response = await fetch(`${ctx.apiBase}${endpoint}`, {
-    method,
-    headers: {
-      'Authorization': `Bearer ${ctx.token}`,
-      'Accept': 'application/vnd.github+json',
-      'Content-Type': 'application/json',
-      'User-Agent': 'maxwell-ai-support',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  const maxRetries = 2;
+  const baseDelayMs = 400;
 
-  const raw = await response.text();
-  let payload = null;
-  if (raw) {
-    try {
-      payload = JSON.parse(raw);
-    } catch {
-      payload = raw;
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    const response = await fetch(`${ctx.apiBase}${endpoint}`, {
+      method,
+      headers: {
+        'Authorization': `Bearer ${ctx.token}`,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'maxwell-ai-support',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+
+    const raw = await response.text();
+    let payload = null;
+    if (raw) {
+      try {
+        payload = JSON.parse(raw);
+      } catch {
+        payload = raw;
+      }
     }
-  }
 
-  if (!response.ok) {
-    const detail =
+    if (response.ok) {
+      return payload;
+    }
+
+    const rateRemaining = Number(response.headers.get('X-RateLimit-Remaining'));
+    const rateResetSeconds = Number(response.headers.get('X-RateLimit-Reset'));
+    const rateResetAt =
+      Number.isFinite(rateResetSeconds) && rateResetSeconds > 0
+        ? rateResetSeconds * 1000
+        : null;
+    const retryAfterHeader = response.headers.get('Retry-After');
+    const retryAfterSeconds = Number(retryAfterHeader);
+    const now = Date.now();
+    let detail =
       typeof payload === 'object' && payload !== null && typeof payload.message === 'string'
         ? payload.message
         : typeof payload === 'string'
           ? payload.slice(0, 400)
           : `HTTP ${response.status}`;
+    const lowerDetail = String(detail).toLowerCase();
+    const isRateLimited =
+      response.status === 429 ||
+      (response.status === 403 &&
+        ((Number.isFinite(rateRemaining) && rateRemaining <= 0) ||
+          lowerDetail.includes('rate limit') ||
+          lowerDetail.includes('secondary rate')));
+    const isAuthError =
+      response.status === 401 ||
+      (response.status === 403 && !isRateLimited);
+    const hasMoreRetries = attempt < maxRetries;
+
+    if (isRateLimited) {
+      const resetHint = rateResetAt
+        ? `Rate limit resets at ${new Date(rateResetAt).toISOString()}.`
+        : null;
+      if (resetHint && !lowerDetail.includes('reset')) {
+        detail = `${detail} ${resetHint}`.trim();
+      }
+      const resetDelayMs =
+        Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+          ? retryAfterSeconds * 1000
+          : rateResetAt
+            ? Math.max(0, rateResetAt - now)
+            : null;
+      const sleepMs =
+        resetDelayMs !== null ? Math.min(resetDelayMs, 2000) : 0;
+      if (sleepMs > 0 && hasMoreRetries) {
+        await new Promise((resolve) => setTimeout(resolve, sleepMs));
+        continue;
+      }
+    }
+
+    if (response.status >= 500 && response.status < 600 && hasMoreRetries) {
+      const jitter = Math.floor(Math.random() * 200);
+      const delay = baseDelayMs * Math.pow(2, attempt) + jitter;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      continue;
+    }
+
     const error = new Error(`GitHub API ${method} ${endpoint} failed: ${detail}`);
     error.status = response.status;
+    if (isRateLimited) {
+      error.category = 'rate_limited';
+      error.rateLimit = {
+        remaining: Number.isFinite(rateRemaining) ? rateRemaining : null,
+        resetAt: rateResetAt,
+      };
+    } else if (isAuthError) {
+      error.category = 'auth_misconfigured';
+    } else if (response.status >= 500) {
+      error.category = 'github_unavailable';
+    }
     throw error;
   }
 
-  return payload;
+  throw new Error(`GitHub API ${method} ${endpoint} failed after retries`);
 }
 
 async function listGithubLabelsViaApi() {
