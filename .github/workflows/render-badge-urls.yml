@@ -1,6 +1,8 @@
 name: Render Badge URLs
 
 on:
+  schedule:
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -27,7 +29,7 @@ jobs:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID_TURNI }}
         run: |
-          url="$(npm run -s badge:render -- --label 'Render Turni')"
+          url="$(npm run -s badge:render -- --label 'Turni-di-Palco')"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Generate Maxwell badge URL
@@ -36,7 +38,7 @@ jobs:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID_MAXWELL }}
         run: |
-          url="$(npm run -s badge:render -- --label 'Render Maxwell')"
+          url="$(npm run -s badge:render -- --label 'Maxwell-AI-Support')"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Publish URLs
