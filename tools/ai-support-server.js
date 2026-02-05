@@ -1188,10 +1188,30 @@ function resolveHttpsOptions() {
 }
 
 function resolveHost() {
-  if (process.env.AI_SUPPORT_HOST) {
-    return process.env.AI_SUPPORT_HOST;
+  const configuredHost = process.env.AI_SUPPORT_HOST;
+  const runningOnRender = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID);
+  const allowLocalhostOnRender =
+    process.env.AI_SUPPORT_ALLOW_LOCALHOST_ON_RENDER === '1' ||
+    process.env.AI_SUPPORT_ALLOW_LOCALHOST_ON_RENDER === 'true';
+
+  if (configuredHost) {
+    const normalizedHost = configuredHost.trim().toLowerCase();
+    const isLoopbackHost =
+      normalizedHost === '127.0.0.1' ||
+      normalizedHost === 'localhost' ||
+      normalizedHost === '::1';
+
+    if (runningOnRender && isLoopbackHost && !allowLocalhostOnRender) {
+      logLine(
+        `AI_SUPPORT_HOST=${configuredHost} ignored on Render; forcing 0.0.0.0 for port binding`
+      );
+      return '0.0.0.0';
+    }
+
+    return configuredHost;
   }
-  if (process.env.RENDER || process.env.RENDER_SERVICE_ID) {
+
+  if (runningOnRender) {
     return '0.0.0.0';
   }
   return '127.0.0.1';
