@@ -193,7 +193,8 @@
     "git.allowForcePush": true,
     "git.autofetch": "all",
     "git.branchProtection": [
-        "main"
+        "main",
+        "render/preview"
     ],
     "editor.defaultFormatter": "vscode.markdown-language-features"
 }
