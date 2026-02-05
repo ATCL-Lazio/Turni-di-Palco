@@ -1,85 +1,69 @@
-# Turni di Palco - Monorepo
+﻿# Turni di Palco
 [![Mobile Build](https://github.com/Heartran/Turni-di-Palco/actions/workflows/mobile-build.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/mobile-build.yml)
 [![Cleanup Old Events](https://github.com/Heartran/Turni-di-Palco/actions/workflows/cleanup-events.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/cleanup-events.yml)
 [![CI](https://github.com/Heartran/Turni-di-Palco/actions/workflows/ci.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/ci.yml)
 [![Update Server Repository](https://github.com/Heartran/Turni-di-Palco/actions/workflows/update-server-repository.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/update-server-repository.yml)
 [![Sync Deploy Branches](https://github.com/Heartran/Turni-di-Palco/actions/workflows/sync-deploy-branches.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/sync-deploy-branches.yml)
 
-Turni di Palco è una Progressive Web App pensata per gestire i turni teatrali con meccaniche di gioco (XP, livelli, ruoli) per rendere l'organizzazione piu coinvolgente.
+Turni di Palco è un progetto che unisce spettacolo dal vivo e gioco digitale.
+L’obiettivo è semplice: vivere il teatro in modo più attivo, scoprendo non solo la scena ma anche tutto il lavoro dietro le quinte.
 
-Il monorepo contiene:
 
-- `apps/pwa`: shell PWA multipagina (Vite + TypeScript + Vanilla).
-- `apps/mobile`: UI mobile React/Vite; il bundle statico finisce in `apps/pwa/public/mobile/`.
-- `shared`: codice e stili condivisi.
-- `docs/`: documenti di design e GDD.
+![Icona app](apps/pwa/public/icons/badge.png)
 
-## Requisiti
+## Cos'è
 
-- Node.js 18+ (setup corrente: 22.14.0).
-- npm.
+Turni di Palco è una app in cui l’utente costruisce una carriera teatrale virtuale.
+La progressione non dipende solo dal gioco: cresce davvero quando si partecipa agli eventi reali del circuito.
 
-## Installazione
+## A chi serve
 
-Installa tutte le dipendenze dei workspace dalla root:
+- Giovani e studenti che vogliono avvicinarsi al teatro in modo coinvolgente.
+- Spettatori e appassionati che vogliono capire meglio i mestieri dello spettacolo.
+- Scuole e operatori culturali che cercano uno strumento educativo pratico e moderno.
+
+## Perché è utile
+
+- Incentiva la partecipazione reale agli spettacoli.
+- Valorizza professioni spesso poco visibili (luci, suono, palco, organizzazione).
+- Trasforma l’esperienza teatrale in un percorso di crescita personale.
+- Favorisce continuità: non è un evento isolato, ma un percorso nel tempo.
+
+## Come funziona in breve
+
+1. Crei un profilo scegliendo un ruolo teatrale.
+2. Completi attività rapide e sfide narrative.
+3. Registri la presenza agli eventi tramite QR code.
+4. Guadagni esperienza, reputazione e nuovi traguardi.
+
+## Struttura del repository
+
+- `apps/pwa`: applicazione web principale.
+- `apps/mobile`: interfaccia mobile.
+- `shared`: risorse condivise tra moduli.
+- `docs/`: materiali di progetto e design.
+
+## Avvio rapido (sviluppo)
+
+Prerequisiti:
+
+- Node.js 18+ (setup corrente: 22.14.0)
+- npm
+
+Installazione:
 
 ```bash
 npm install
 ```
 
-## Comandi disponibili
-
-Tutti gli script vanno eseguiti dalla root con `npm run <script>`.
-
-### Manutenzione
-
-- `clean:builds`: elimina gli output di build standard (`dist/`, `apps/pwa/dist`, `apps/mobile/dist`) per partire da un albero pulito.
-
-### PWA (`apps/pwa`)
-
-- `dev:pwa`: avvia il dev server Vite su `http://localhost:5173` (host 0.0.0.0) con ricarica a caldo.
-- `dev:pwa:https`: stesso server ma in HTTPS; usa le variabili `SSL_CRT_FILE`/`SSL_KEY_FILE` se impostate, altrimenti un certificato generato da Vite.
-- `build:pwa`: aggiorna il nome della cache nel service worker (`apps/pwa/public/sw.js`) in base agli asset pubblici e compila la PWA in `apps/pwa/dist`.
-- `preview:pwa`: serve il build gia compilato (porta 4173 per default); richiede una build precedente.
-- `test:pwa`: esegue Vitest una volta sola con la configurazione in `apps/pwa/src/test/setup.ts` (`--passWithNoTests` attivo).
-- `lint`: lancia ESLint sull'intero workspace PWA.
-- `format`: formatta i file del workspace PWA con Prettier (modifica i file in-place).
-
-#### Aggiornamento Service Worker
-
-- Aggiorna le liste in `apps/pwa/public/sw.js` (`CORE_ASSETS_BY_ENV.common|prod|dev`) quando cambia un asset core o una pagina pubblica.
-- La chiave della cache e calcolata automaticamente dai contenuti di `CORE_ASSETS`, quindi qualsiasi modifica agli asset core forza un nuovo cache name.
-- Le pagine di sviluppo (`/dev.html` e simili) restano escluse dalla cache in produzione per evitare contenuti non pubblici.
-- Dopo l'aggiornamento, esegui `npm run build:pwa` o `npm run dev:pwa` per rigenerare/servire il service worker aggiornato.
-
-### UI mobile (`apps/mobile`)
-
-- `dev:mobile`: avvia il dev server Vite React su `http://localhost:3000` con base `/mobile/`.
-- `build:mobile`: build Vite in `apps/mobile/build` e copia il bundle statico in `apps/pwa/public/mobile/` tramite `sync:mobile`.
-- `sync:mobile`: solo copia l'ultimo build da `apps/mobile/build` a `apps/pwa/public/mobile/` (scrive un checksum per saltare copie inutili).
-
-## Struttura del codice PWA
-
-Il sorgente della PWA vive in `apps/pwa/src` ed e suddiviso in:
-
-- `components/`: componenti UI riutilizzabili.
-- `features/`: moduli funzionali (es. gestione permessi, schede stato).
-- `services/`: logica di business e integrazioni browser/API.
-- `utils/`: funzioni di utilita generiche.
-
-## Modalita dev vs public
-
-La PWA distingue tra ambienti di sviluppo e build pubbliche:
-
-- **Dev**: `VITE_PUBLIC_MODE` non impostato o `false`. Il gate Supabase (`requireDevAccess`) protegge le pagine dev e `dev.html` viene incluso tra gli entrypoint della build.
-- **Public**: `VITE_PUBLIC_MODE=true`. Il gate viene bypassato per consentire l'accesso diretto alle pagine pubbliche e i link al playground dev spariscono dalla home. In questa modalita `dev.html` non viene incluso nel build PWA e non viene precacheato dal service worker.
-
-Per attivare la modalita public, impostare la variabile d'ambiente prima di lanciare `build:pwa`:
+Comandi principali:
 
 ```bash
-VITE_PUBLIC_MODE=true npm run build:pwa
+npm run dev:pwa
+npm run build:pwa
+npm run test:pwa
 ```
 
 ## Contributi
 
-Consulta `contributing.md` per stile del codice, convenzioni di commit e setup ambiente. Per note di design vedi `docs/`.
+Per linee guida di collaborazione e convenzioni di sviluppo, vedi `contributing.md`.
