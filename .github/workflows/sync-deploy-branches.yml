@@ -10,23 +10,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  configuration:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
   sync-render-preview:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      actions: write
-      deployments: write
-
+    outputs:
+      deploy_sha: ${{ steps.sync-render-branch.outputs.deploy_sha }}
+      sync_epoch: ${{ steps.sync-render-branch.outputs.sync_epoch }}
     steps:
       - name: Configure Git
         run: |
@@ -66,9 +56,17 @@ jobs:
           echo "deploy_sha=$(git rev-parse origin/main)" >> "$GITHUB_OUTPUT"
           echo "sync_epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
 
+  deploy-turni:
+    runs-on: ubuntu-latest
+    needs: sync-render-preview
+    permissions:
+      contents: read
+      actions: write
+      deployments: write
+    steps:
       - name: Create GitHub Deployment - Turni-di-Palco
         uses: chrnorm/deployment-action@v2
-        id: deployment-main
+        id: deployment-turni
         with:
           token: '${{ github.token }}'
           ref: render/preview
@@ -76,9 +74,180 @@ jobs:
           environment: render/preview - Turni-di-Palco
           description: 'Deploy Turni-di-Palco to Render preview'
 
+      - name: Mark deployment in progress - Turni-di-Palco
+        if: always() && steps.deployment-turni.outputs.deployment_id != ''
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-turni.outputs.deployment_id }}
+          state: 'in_progress'
+          environment-url: https://turni-di-palco.onrender.com
+
+      - name: Wait for Turni-di-Palco auto-deploy
+        id: wait-turni
+        env:
+          DEPLOY_SHA: ${{ needs.sync-render-preview.outputs.deploy_sha }}
+          SYNC_EPOCH: ${{ needs.sync-render-preview.outputs.sync_epoch }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID_TURNI: ${{ secrets.RENDER_SERVICE_ID_TURNI }}
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for var in DEPLOY_SHA SYNC_EPOCH RENDER_API_KEY RENDER_SERVICE_ID_TURNI; do
+            if [ -z "${!var:-}" ]; then
+              echo "Missing required value: $var"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            echo "deploy_status=failure" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          status="pending"
+          min_epoch="$((SYNC_EPOCH - 300))"
+
+          for attempt in $(seq 1 90); do
+            if ! response="$(curl -fsS \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              "https://api.render.com/v1/services/${RENDER_SERVICE_ID_TURNI}/deploys?limit=20")"; then
+              echo "[Turni-di-Palco] Render API request failed (attempt $attempt/90)" >&2
+              status="failure"
+              break
+            fi
+
+            deploys_json="$(echo "$response" | jq -c '
+              [
+                .. | objects
+                | select((has("status") or has("state") or has("deployStatus")) and (has("id") or has("deployId")))
+                | {
+                    id: (.id // .deployId // ""),
+                    status: (.status // .state // .deployStatus // "unknown"),
+                    commit: (
+                      (
+                        if has("commit") then
+                          (
+                            .commit as $c
+                            | if ($c | type) == "object" then ($c.id // $c.sha // "")
+                              elif ($c | type) == "string" then $c
+                              else ""
+                              end
+                          )
+                        else
+                          ""
+                        end
+                      ) as $commit
+                      | if $commit != "" then $commit else (.commitId // .commitHash // "") end
+                    ),
+                    createdAt: (.createdAt // .created_at // .created // ""),
+                    createdEpoch: (
+                      (.createdAt // .created_at // .created // 0) as $created
+                      | if ($created | type) == "string" and $created != "" then
+                          ($created | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601? // 0)
+                        elif ($created | type) == "number" then
+                          (if $created > 20000000000 then ($created / 1000 | floor) else ($created | floor) end)
+                        else 0
+                        end
+                    )
+                  }
+                | select(.id != "")
+              ]
+              | unique_by(.id)
+            ')"
+
+            recent_deploys="$(echo "$deploys_json" | jq -c --argjson min_epoch "$min_epoch" '
+              map(select(.createdEpoch >= $min_epoch))
+              | sort_by(.createdEpoch)
+              | reverse
+            ')"
+
+            deploy_match="$(echo "$recent_deploys" | jq -c --arg sha "$DEPLOY_SHA" '
+              map(
+                select(
+                  (.commit // "") as $c
+                  | ($c | tostring) as $cs
+                  | ($cs != "" and ($cs == $sha or ($sha | startswith($cs)) or ($cs | startswith($sha[0:7]))))
+                )
+              )
+              | first // empty
+            ')"
+            if [ -n "$deploy_match" ]; then
+              deploy="$deploy_match"
+            else
+              deploy="$(echo "$recent_deploys" | jq -c 'first // empty')"
+            fi
+
+            if [ "$deploy" = "null" ] || [ -z "$deploy" ]; then
+              latest_id="$(echo "$deploys_json" | jq -r 'sort_by(.createdEpoch) | reverse | first | (.id // "none")')"
+              latest_commit="$(echo "$deploys_json" | jq -r 'sort_by(.createdEpoch) | reverse | first | (.commit // "none")')"
+              if [ "$attempt" -eq 1 ]; then
+                echo "[Turni-di-Palco] Render candidates found: $(echo "$deploys_json" | jq -r 'length')" >&2
+              fi
+              echo "[Turni-di-Palco] attempt $attempt/90: no recent deploy found for $DEPLOY_SHA (latest id: $latest_id, latest commit: $latest_commit)" >&2
+              sleep 20
+              continue
+            fi
+
+            deploy_id="$(echo "$deploy" | jq -r '.id // "none"')"
+            deploy_commit="$(echo "$deploy" | jq -r '.commit // "none"')"
+            deploy_status="$(echo "$deploy" | jq -r '.status // "unknown"')"
+            echo "[Turni-di-Palco] attempt $attempt/90: deploy_id=$deploy_id commit=$deploy_commit status=$deploy_status" >&2
+
+            case "$deploy_status" in
+              live|deployed|ready|success)
+                status="success"
+                break
+                ;;
+              *_failed|failed|error|canceled|cancelled)
+                status="failure"
+                break
+                ;;
+              *)
+                sleep 20
+                ;;
+            esac
+          done
+
+          if [ "$status" = "pending" ]; then
+            status="failure"
+          fi
+
+          echo "deploy_status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Update deployment status (success) - Turni-di-Palco
+        if: always() && steps.wait-turni.outputs.deploy_status == 'success' && steps.deployment-turni.outputs.deployment_id != ''
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-turni.outputs.deployment_id }}
+          state: 'success'
+          environment-url: https://turni-di-palco.onrender.com
+
+      - name: Update deployment status (failure) - Turni-di-Palco
+        if: always() && steps.wait-turni.outputs.deploy_status != 'success' && steps.deployment-turni.outputs.deployment_id != ''
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-turni.outputs.deployment_id }}
+          state: 'failure'
+          environment-url: https://turni-di-palco.onrender.com
+
+      - name: Fail job if Turni-di-Palco deploy failed
+        if: always() && steps.wait-turni.outputs.deploy_status != 'success'
+        run: exit 1
+
+  deploy-maxwell:
+    runs-on: ubuntu-latest
+    needs: sync-render-preview
+    permissions:
+      contents: read
+      actions: write
+      deployments: write
+    steps:
       - name: Create GitHub Deployment - Maxwell-AI-Support
         uses: chrnorm/deployment-action@v2
-        id: deployment-ai
+        id: deployment-maxwell
         with:
           token: '${{ github.token }}'
           ref: render/preview
@@ -86,206 +255,165 @@ jobs:
           environment: render/preview - Maxwell-AI-Support
           description: 'Deploy Maxwell-AI-Support to Render preview'
 
-      - name: Mark deployments in progress - Render
-        if: always() && steps.deployment-main.outputs.deployment_id != ''
+      - name: Mark deployment in progress - Maxwell-AI-Support
+        if: always() && steps.deployment-maxwell.outputs.deployment_id != ''
         uses: chrnorm/deployment-status@v2
         with:
           token: '${{ github.token }}'
-          deployment-id: ${{ steps.deployment-main.outputs.deployment_id }}
-          state: 'in_progress'
-          environment-url: https://turni-di-palco.onrender.com
-
-      - name: Mark deployments in progress - Maxwell
-        if: always() && steps.deployment-ai.outputs.deployment_id != ''
-        uses: chrnorm/deployment-status@v2
-        with:
-          token: '${{ github.token }}'
-          deployment-id: ${{ steps.deployment-ai.outputs.deployment_id }}
+          deployment-id: ${{ steps.deployment-maxwell.outputs.deployment_id }}
           state: 'in_progress'
           environment-url: https://maxwell-ai-support.onrender.com
 
-      - name: Wait for Render auto-deploys
-        id: wait-render
+      - name: Wait for Maxwell-AI-Support auto-deploy
+        id: wait-maxwell
         env:
-          DEPLOY_SHA: ${{ steps.sync-render-branch.outputs.deploy_sha }}
-          SYNC_EPOCH: ${{ steps.sync-render-branch.outputs.sync_epoch }}
+          DEPLOY_SHA: ${{ needs.sync-render-preview.outputs.deploy_sha }}
+          SYNC_EPOCH: ${{ needs.sync-render-preview.outputs.sync_epoch }}
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          RENDER_SERVICE_ID_TURNI: ${{ secrets.RENDER_SERVICE_ID_TURNI }}
           RENDER_SERVICE_ID_MAXWELL: ${{ secrets.RENDER_SERVICE_ID_MAXWELL }}
         run: |
           set -euo pipefail
 
           missing=0
-          for var in DEPLOY_SHA SYNC_EPOCH RENDER_API_KEY RENDER_SERVICE_ID_TURNI RENDER_SERVICE_ID_MAXWELL; do
+          for var in DEPLOY_SHA SYNC_EPOCH RENDER_API_KEY RENDER_SERVICE_ID_MAXWELL; do
             if [ -z "${!var:-}" ]; then
               echo "Missing required value: $var"
               missing=1
             fi
           done
           if [ "$missing" -eq 1 ]; then
-            echo "turni_status=failure" >> "$GITHUB_OUTPUT"
-            echo "maxwell_status=failure" >> "$GITHUB_OUTPUT"
+            echo "deploy_status=failure" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          poll_render() {
-            service_id="$1"
-            label="$2"
-            status="pending"
-            min_epoch="$((SYNC_EPOCH - 300))"
+          status="pending"
+          min_epoch="$((SYNC_EPOCH - 300))"
 
-            for attempt in $(seq 1 90); do
-              if ! response="$(curl -fsS \
-                -H "Authorization: Bearer $RENDER_API_KEY" \
-                "https://api.render.com/v1/services/${service_id}/deploys?limit=20")"; then
-                echo "[$label] Render API request failed (attempt $attempt/90)" >&2
-                status="failure"
-                break
-              fi
-
-              deploys_json="$(echo "$response" | jq -c '
-                [
-                  .. | objects
-                  | select((has("status") or has("state") or has("deployStatus")) and (has("id") or has("deployId")))
-                  | {
-                      id: (.id // .deployId // ""),
-                      status: (.status // .state // .deployStatus // "unknown"),
-                      commit: (
-                        (
-                          if has("commit") then
-                            (
-                              .commit as $c
-                              | if ($c | type) == "object" then ($c.id // $c.sha // "")
-                                elif ($c | type) == "string" then $c
-                                else ""
-                                end
-                            )
-                          else
-                            ""
-                          end
-                        ) as $commit
-                        | if $commit != "" then $commit else (.commitId // .commitHash // "") end
-                      ),
-                      createdAt: (.createdAt // .created_at // .created // ""),
-                      createdEpoch: (
-                        (.createdAt // .created_at // .created // 0) as $created
-                        | if ($created | type) == "string" and $created != "" then
-                            ($created | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601? // 0)
-                          elif ($created | type) == "number" then
-                            (if $created > 20000000000 then ($created / 1000 | floor) else ($created | floor) end)
-                          else 0
-                          end
-                      )
-                    }
-                  | select(.id != "")
-                ]
-                | unique_by(.id)
-              ')"
-
-              recent_deploys="$(echo "$deploys_json" | jq -c --argjson min_epoch "$min_epoch" '
-                map(select(.createdEpoch >= $min_epoch))
-                | sort_by(.createdEpoch)
-                | reverse
-              ')"
-
-              deploy_match="$(echo "$recent_deploys" | jq -c --arg sha "$DEPLOY_SHA" '
-                map(
-                  select(
-                    (.commit // "") as $c
-                    | ($c | tostring) as $cs
-                    | ($cs != "" and ($cs == $sha or ($sha | startswith($cs)) or ($cs | startswith($sha[0:7]))))
-                  )
-                )
-                | first // empty
-              ')"
-              if [ -n "$deploy_match" ]; then
-                deploy="$deploy_match"
-              else
-                deploy="$(echo "$recent_deploys" | jq -c 'first // empty')"
-              fi
-
-              if [ "$deploy" = "null" ] || [ -z "$deploy" ]; then
-                latest_id="$(echo "$deploys_json" | jq -r 'sort_by(.createdEpoch) | reverse | first | (.id // "none")')"
-                latest_commit="$(echo "$deploys_json" | jq -r 'sort_by(.createdEpoch) | reverse | first | (.commit // "none")')"
-                if [ "$attempt" -eq 1 ]; then
-                  echo "[$label] Render candidates found: $(echo "$deploys_json" | jq -r 'length')" >&2
-                fi
-                echo "[$label] attempt $attempt/90: no recent deploy found for $DEPLOY_SHA (latest id: $latest_id, latest commit: $latest_commit)" >&2
-                sleep 20
-                continue
-              fi
-
-              deploy_id="$(echo "$deploy" | jq -r '.id // "none"')"
-              deploy_commit="$(echo "$deploy" | jq -r '.commit // "none"')"
-              deploy_status="$(echo "$deploy" | jq -r '.status // "unknown"')"
-              echo "[$label] attempt $attempt/90: deploy_id=$deploy_id commit=$deploy_commit status=$deploy_status" >&2
-
-              case "$deploy_status" in
-                live|deployed|ready|success)
-                  status="success"
-                  break
-                  ;;
-                *_failed|failed|error|canceled|cancelled)
-                  status="failure"
-                  break
-                  ;;
-                *)
-                  sleep 20
-                  ;;
-              esac
-            done
-
-            if [ "$status" = "pending" ]; then
+          for attempt in $(seq 1 90); do
+            if ! response="$(curl -fsS \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              "https://api.render.com/v1/services/${RENDER_SERVICE_ID_MAXWELL}/deploys?limit=20")"; then
+              echo "[Maxwell-AI-Support] Render API request failed (attempt $attempt/90)" >&2
               status="failure"
+              break
             fi
 
-            echo "$status"
-          }
+            deploys_json="$(echo "$response" | jq -c '
+              [
+                .. | objects
+                | select((has("status") or has("state") or has("deployStatus")) and (has("id") or has("deployId")))
+                | {
+                    id: (.id // .deployId // ""),
+                    status: (.status // .state // .deployStatus // "unknown"),
+                    commit: (
+                      (
+                        if has("commit") then
+                          (
+                            .commit as $c
+                            | if ($c | type) == "object" then ($c.id // $c.sha // "")
+                              elif ($c | type) == "string" then $c
+                              else ""
+                              end
+                          )
+                        else
+                          ""
+                        end
+                      ) as $commit
+                      | if $commit != "" then $commit else (.commitId // .commitHash // "") end
+                    ),
+                    createdAt: (.createdAt // .created_at // .created // ""),
+                    createdEpoch: (
+                      (.createdAt // .created_at // .created // 0) as $created
+                      | if ($created | type) == "string" and $created != "" then
+                          ($created | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601? // 0)
+                        elif ($created | type) == "number" then
+                          (if $created > 20000000000 then ($created / 1000 | floor) else ($created | floor) end)
+                        else 0
+                        end
+                    )
+                  }
+                | select(.id != "")
+              ]
+              | unique_by(.id)
+            ')"
 
-          turni_status="$(poll_render "$RENDER_SERVICE_ID_TURNI" "Turni-di-Palco")"
-          maxwell_status="$(poll_render "$RENDER_SERVICE_ID_MAXWELL" "Maxwell-AI-Support")"
+            recent_deploys="$(echo "$deploys_json" | jq -c --argjson min_epoch "$min_epoch" '
+              map(select(.createdEpoch >= $min_epoch))
+              | sort_by(.createdEpoch)
+              | reverse
+            ')"
 
-          echo "turni_status=$turni_status" >> "$GITHUB_OUTPUT"
-          echo "maxwell_status=$maxwell_status" >> "$GITHUB_OUTPUT"
+            deploy_match="$(echo "$recent_deploys" | jq -c --arg sha "$DEPLOY_SHA" '
+              map(
+                select(
+                  (.commit // "") as $c
+                  | ($c | tostring) as $cs
+                  | ($cs != "" and ($cs == $sha or ($sha | startswith($cs)) or ($cs | startswith($sha[0:7]))))
+                )
+              )
+              | first // empty
+            ')"
+            if [ -n "$deploy_match" ]; then
+              deploy="$deploy_match"
+            else
+              deploy="$(echo "$recent_deploys" | jq -c 'first // empty')"
+            fi
 
-      - name: Update deployment status (success) - Turni-di-Palco
-        if: always() && steps.wait-render.outputs.turni_status == 'success' && steps.deployment-main.outputs.deployment_id != ''
-        uses: chrnorm/deployment-status@v2
-        with:
-          token: '${{ github.token }}'
-          deployment-id: ${{ steps.deployment-main.outputs.deployment_id }}
-          state: 'success'
-          environment-url: https://turni-di-palco.onrender.com
+            if [ "$deploy" = "null" ] || [ -z "$deploy" ]; then
+              latest_id="$(echo "$deploys_json" | jq -r 'sort_by(.createdEpoch) | reverse | first | (.id // "none")')"
+              latest_commit="$(echo "$deploys_json" | jq -r 'sort_by(.createdEpoch) | reverse | first | (.commit // "none")')"
+              if [ "$attempt" -eq 1 ]; then
+                echo "[Maxwell-AI-Support] Render candidates found: $(echo "$deploys_json" | jq -r 'length')" >&2
+              fi
+              echo "[Maxwell-AI-Support] attempt $attempt/90: no recent deploy found for $DEPLOY_SHA (latest id: $latest_id, latest commit: $latest_commit)" >&2
+              sleep 20
+              continue
+            fi
+
+            deploy_id="$(echo "$deploy" | jq -r '.id // "none"')"
+            deploy_commit="$(echo "$deploy" | jq -r '.commit // "none"')"
+            deploy_status="$(echo "$deploy" | jq -r '.status // "unknown"')"
+            echo "[Maxwell-AI-Support] attempt $attempt/90: deploy_id=$deploy_id commit=$deploy_commit status=$deploy_status" >&2
+
+            case "$deploy_status" in
+              live|deployed|ready|success)
+                status="success"
+                break
+                ;;
+              *_failed|failed|error|canceled|cancelled)
+                status="failure"
+                break
+                ;;
+              *)
+                sleep 20
+                ;;
+            esac
+          done
+
+          if [ "$status" = "pending" ]; then
+            status="failure"
+          fi
+
+          echo "deploy_status=$status" >> "$GITHUB_OUTPUT"
 
       - name: Update deployment status (success) - Maxwell-AI-Support
-        if: always() && steps.wait-render.outputs.maxwell_status == 'success' && steps.deployment-ai.outputs.deployment_id != ''
+        if: always() && steps.wait-maxwell.outputs.deploy_status == 'success' && steps.deployment-maxwell.outputs.deployment_id != ''
         uses: chrnorm/deployment-status@v2
         with:
           token: '${{ github.token }}'
-          deployment-id: ${{ steps.deployment-ai.outputs.deployment_id }}
+          deployment-id: ${{ steps.deployment-maxwell.outputs.deployment_id }}
           state: 'success'
           environment-url: https://maxwell-ai-support.onrender.com
 
-      - name: Update deployment status (failure) - Turni-di-Palco
-        if: always() && steps.wait-render.outputs.turni_status != 'success' && steps.deployment-main.outputs.deployment_id != ''
-        uses: chrnorm/deployment-status@v2
-        with:
-          token: '${{ github.token }}'
-          deployment-id: ${{ steps.deployment-main.outputs.deployment_id }}
-          state: 'failure'
-          environment-url: https://turni-di-palco.onrender.com
-
       - name: Update deployment status (failure) - Maxwell-AI-Support
-        if: always() && steps.wait-render.outputs.maxwell_status != 'success' && steps.deployment-ai.outputs.deployment_id != ''
+        if: always() && steps.wait-maxwell.outputs.deploy_status != 'success' && steps.deployment-maxwell.outputs.deployment_id != ''
         uses: chrnorm/deployment-status@v2
         with:
           token: '${{ github.token }}'
-          deployment-id: ${{ steps.deployment-ai.outputs.deployment_id }}
+          deployment-id: ${{ steps.deployment-maxwell.outputs.deployment_id }}
           state: 'failure'
           environment-url: https://maxwell-ai-support.onrender.com
 
-      - name: Fail workflow if Render deploys failed
-        if: always() && (steps.wait-render.outputs.turni_status != 'success' || steps.wait-render.outputs.maxwell_status != 'success')
+      - name: Fail job if Maxwell-AI-Support deploy failed
+        if: always() && steps.wait-maxwell.outputs.deploy_status != 'success'
         run: exit 1
-
-  
