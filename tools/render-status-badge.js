@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 require('dotenv').config();
+const { readEnvFirst } = require('./env-utils');
 
 const API_BASE = 'https://api.render.com/v1';
 
@@ -101,10 +102,10 @@ async function fetchLatestDeployStatus(apiKey, serviceId) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const apiKey = process.env.RENDER_API_KEY;
-  const serviceId = args['service-id'] || process.env.RENDER_SERVICE_ID;
-  const label = args.label || process.env.RENDER_BADGE_LABEL || 'Render';
-  const style = args.style || process.env.RENDER_BADGE_STYLE || 'for-the-badge';
+  const apiKey = readEnvFirst(['RENDER_API_KEY']);
+  const serviceId = args['service-id'] || readEnvFirst(['RENDER_SERVICE_ID']);
+  const label = args.label || readEnvFirst(['RENDER_BADGE_LABEL']) || 'Render';
+  const style = args.style || readEnvFirst(['RENDER_BADGE_STYLE']) || 'for-the-badge';
   const logo = args.logo || 'render';
 
   if (!apiKey) {

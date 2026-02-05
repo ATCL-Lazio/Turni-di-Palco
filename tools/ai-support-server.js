@@ -5,28 +5,26 @@ const { spawn, spawnSync } = require('node:child_process');
 const os = require('node:os');
 const path = require('node:path');
 const fs = require('node:fs');
+const {
+  hasEnv,
+  readEnvBool,
+  readEnvFirst,
+  readEnvNumber,
+  stripQuotes,
+} = require('./env-utils');
 
 const repoRoot = path.resolve(__dirname, '..');
 
-const port =
-  Number(process.env.PORT) ||
-  Number(process.env.AI_SUPPORT_PORT || process.env.VITE_AI_SUPPORT_PORT) ||
-  8787;
+const port = readEnvNumber(['PORT', 'AI_SUPPORT_PORT', 'VITE_AI_SUPPORT_PORT'], 8787);
 const host = resolveHost();
 const codexBin = resolveCodexBin();
 const ghBin = resolveGhBin();
-const codexArgs = process.env.CODEX_ARGS ? process.env.CODEX_ARGS.split(' ') : [];
+const codexArgsRaw = readEnvFirst(['CODEX_ARGS'], { strip: false });
+const codexArgs = codexArgsRaw ? codexArgsRaw.split(' ') : [];
 const maxBodySize = 1_000_000;
-const verbose =
-  process.env.AI_SUPPORT_VERBOSE !== '0' &&
-  process.env.AI_SUPPORT_VERBOSE !== 'false';
-const logMessages =
-  process.env.AI_SUPPORT_LOG_MESSAGES === '1' ||
-  process.env.AI_SUPPORT_LOG_MESSAGES === 'true';
-const enableColor =
-  process.env.AI_SUPPORT_COLOR !== '0' &&
-  process.env.AI_SUPPORT_COLOR !== 'false' &&
-  process.stdout.isTTY;
+const verbose = readEnvBool(['AI_SUPPORT_VERBOSE'], true);
+const logMessages = readEnvBool(['AI_SUPPORT_LOG_MESSAGES'], false);
+const enableColor = readEnvBool(['AI_SUPPORT_COLOR'], true) && process.stdout.isTTY;
 const authStorage = resolveAuthStorage();
 const maxwellCredentials = resolveMaxwellCredentials();
 hydrateMaxwellCredentials(maxwellCredentials);
@@ -38,21 +36,15 @@ function isTruthy(value) {
 }
 
 function stripEnvValue(value) {
-  const raw = String(value ?? '').trim();
-  if (!raw) return '';
-  if (
-    (raw.startsWith('"') && raw.endsWith('"')) ||
-    (raw.startsWith("'") && raw.endsWith("'"))
-  ) {
-    return raw.slice(1, -1);
-  }
-  return raw;
+  return stripQuotes(value);
+}
+
+function isRenderEnvironment() {
+  return hasEnv(['RENDER', 'RENDER_SERVICE_ID']);
 }
 
 function resolveIssueAuthToken() {
-  return stripEnvValue(
-    process.env.AI_SUPPORT_API_TOKEN || process.env.AI_SUPPORT_ISSUE_TOKEN
-  );
+  return readEnvFirst(['AI_SUPPORT_API_TOKEN', 'AI_SUPPORT_ISSUE_TOKEN']);
 }
 
 function getRequestAuthToken(req) {
@@ -110,11 +102,10 @@ function writeEnvFileValue(filePath, key, value) {
 }
 
 function resolveAuthStorage() {
-  const envFilePath = process.env.AI_SUPPORT_AUTH_ENV_FILE
-    ? path.resolve(process.env.AI_SUPPORT_AUTH_ENV_FILE)
-    : null;
-  const writeEnvFile = isTruthy(process.env.AI_SUPPORT_AUTH_ENV_WRITE);
-  let authDir = process.env.AI_SUPPORT_AUTH_DIR || null;
+  const authEnvFile = readEnvFirst(['AI_SUPPORT_AUTH_ENV_FILE']);
+  const envFilePath = authEnvFile ? path.resolve(authEnvFile) : null;
+  const writeEnvFile = readEnvBool(['AI_SUPPORT_AUTH_ENV_WRITE'], false);
+  let authDir = readEnvFirst(['AI_SUPPORT_AUTH_DIR']) || null;
   let source = authDir ? 'env' : null;
   let envFileStatus = envFilePath ? 'missing' : 'disabled';
 
@@ -187,8 +178,9 @@ function readMaxwellCredentialsFile(filePath) {
 }
 
 function resolveMaxwellCredentialsPath() {
-  if (process.env.AI_SUPPORT_CREDENTIALS_FILE) {
-    return path.resolve(process.env.AI_SUPPORT_CREDENTIALS_FILE);
+  const credentialsFile = readEnvFirst(['AI_SUPPORT_CREDENTIALS_FILE']);
+  if (credentialsFile) {
+    return path.resolve(credentialsFile);
   }
 
   const candidates = [
@@ -205,7 +197,7 @@ function resolveMaxwellCredentialsPath() {
   ];
 
   const renderSecretDirs = [];
-  if (process.env.RENDER || process.env.RENDER_SERVICE_ID) {
+  if (isRenderEnvironment()) {
     for (const envKey of [
       'RENDER_SECRET_FILES_DIR',
       'RENDER_SECRET_DIR',
@@ -423,10 +415,10 @@ function buildGhEnv() {
   const credentialHost = readCredentialString(credentialGithub?.hostname);
   const credentialToken = readCredentialString(credentialGithub?.token);
 
-  const envToken = stripEnvValue(process.env.GH_TOKEN) || stripEnvValue(process.env.GITHUB_TOKEN);
+  const envToken = readEnvFirst(['GH_TOKEN', 'GITHUB_TOKEN']);
   const token = envToken || credentialToken;
 
-  const envHost = stripEnvValue(process.env.GH_HOST);
+  const envHost = readEnvFirst(['GH_HOST']);
   const host = envHost || credentialHost || 'github.com';
 
   if (!authStorage?.enabled && !token) return null;
@@ -474,8 +466,9 @@ function sendHtml(res, statusCode, html) {
 }
 
 function resolveCodexBin() {
-  if (process.env.CODEX_BIN) {
-    return process.env.CODEX_BIN;
+  const configuredCodexBin = readEnvFirst(['CODEX_BIN'], { strip: false });
+  if (configuredCodexBin) {
+    return configuredCodexBin;
   }
 
   if (process.platform === 'win32') {
@@ -508,8 +501,9 @@ function resolveCodexBin() {
 }
 
 function resolveGhBin() {
-  if (process.env.AI_SUPPORT_GH_BIN) {
-    return process.env.AI_SUPPORT_GH_BIN;
+  const configuredGhBin = readEnvFirst(['AI_SUPPORT_GH_BIN'], { strip: false });
+  if (configuredGhBin) {
+    return configuredGhBin;
   }
 
   if (process.platform === 'win32') {
@@ -542,20 +536,20 @@ function resolveGhBin() {
 }
 
 function resolveGithubRepo() {
-  if (process.env.AI_SUPPORT_GH_REPO) {
-    return process.env.AI_SUPPORT_GH_REPO;
+  const explicitRepo = readEnvFirst(['AI_SUPPORT_GH_REPO', 'GITHUB_REPO']);
+  if (explicitRepo) {
+    return explicitRepo;
   }
-  if (process.env.GITHUB_REPO) {
-    return process.env.GITHUB_REPO;
-  }
-  if (process.env.GITHUB_REPO_OWNER && process.env.GITHUB_REPO_NAME) {
-    return `${process.env.GITHUB_REPO_OWNER}/${process.env.GITHUB_REPO_NAME}`;
+  const owner = readEnvFirst(['GITHUB_REPO_OWNER']);
+  const name = readEnvFirst(['GITHUB_REPO_NAME']);
+  if (owner && name) {
+    return `${owner}/${name}`;
   }
   return null;
 }
 
 function resolveGithubHost() {
-  const envHost = stripEnvValue(process.env.GH_HOST);
+  const envHost = readEnvFirst(['GH_HOST']);
   if (envHost) return envHost;
   const credentialHost = readCredentialString(maxwellCredentials?.github?.hostname);
   if (credentialHost) return credentialHost;
@@ -563,8 +557,7 @@ function resolveGithubHost() {
 }
 
 function resolveGithubToken() {
-  const envToken =
-    stripEnvValue(process.env.GH_TOKEN) || stripEnvValue(process.env.GITHUB_TOKEN);
+  const envToken = readEnvFirst(['GH_TOKEN', 'GITHUB_TOKEN']);
   if (envToken) return envToken;
   return readCredentialString(maxwellCredentials?.github?.token);
 }
@@ -1016,8 +1009,7 @@ function checkCodexAuth() {
 }
 
 function checkGhAuth() {
-  const tokenFromEnv =
-    stripEnvValue(process.env.GH_TOKEN) || stripEnvValue(process.env.GITHUB_TOKEN);
+  const tokenFromEnv = readEnvFirst(['GH_TOKEN', 'GITHUB_TOKEN']);
   const tokenFromFile =
     maxwellCredentials?.status === 'loaded'
       ? readCredentialString(maxwellCredentials?.github?.token)
@@ -1092,7 +1084,7 @@ function formatStatus(status) {
 }
 
 function parseAllowedOrigins() {
-  const raw = process.env.AI_SUPPORT_ALLOWED_ORIGINS;
+  const raw = readEnvFirst(['AI_SUPPORT_ALLOWED_ORIGINS'], { strip: false });
   if (!raw) return [];
   return raw
     .split(',')
@@ -1108,17 +1100,17 @@ function resolveCorsOrigin(origin, allowedOrigins) {
 }
 
 function resolveApiKey() {
-  return stripEnvValue(process.env.AI_SUPPORT_API_KEY) || '';
+  return readEnvFirst(['AI_SUPPORT_API_KEY']);
 }
 
 function isAdminEnabled() {
   if (process.env.AI_SUPPORT_ADMIN_ENABLED === undefined) return false;
-  return isTruthy(process.env.AI_SUPPORT_ADMIN_ENABLED);
+  return readEnvBool(['AI_SUPPORT_ADMIN_ENABLED'], false);
 }
 
 function createRateLimiter() {
-  const limit = Number(process.env.AI_SUPPORT_RATE_LIMIT_MAX) || 60;
-  const windowMs = Number(process.env.AI_SUPPORT_RATE_LIMIT_WINDOW_MS) || 60_000;
+  const limit = readEnvNumber(['AI_SUPPORT_RATE_LIMIT_MAX'], 60);
+  const windowMs = readEnvNumber(['AI_SUPPORT_RATE_LIMIT_WINDOW_MS'], 60_000);
   const store = new Map();
 
   const consume = (key) => {
@@ -1143,14 +1135,14 @@ function createRateLimiter() {
 const rateLimiter = createRateLimiter();
 
 function resolveHttpsOptions() {
-  const httpsEnv = process.env.AI_SUPPORT_HTTPS;
+  const httpsEnv = readEnvFirst(['AI_SUPPORT_HTTPS']).toLowerCase();
   if (httpsEnv === 'false' || httpsEnv === '0') {
     return null;
   }
 
   const flag = httpsEnv === 'true' || httpsEnv === '1';
-  const certPath = process.env.SSL_CRT_FILE;
-  const keyPath = process.env.SSL_KEY_FILE;
+  const certPath = readEnvFirst(['SSL_CRT_FILE']);
+  const keyPath = readEnvFirst(['SSL_KEY_FILE']);
 
   if (certPath && keyPath && fs.existsSync(certPath) && fs.existsSync(keyPath)) {
     return {
@@ -1188,11 +1180,12 @@ function resolveHttpsOptions() {
 }
 
 function resolveHost() {
-  const configuredHost = process.env.AI_SUPPORT_HOST;
-  const runningOnRender = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID);
-  const allowLocalhostOnRender =
-    process.env.AI_SUPPORT_ALLOW_LOCALHOST_ON_RENDER === '1' ||
-    process.env.AI_SUPPORT_ALLOW_LOCALHOST_ON_RENDER === 'true';
+  const configuredHost = readEnvFirst(['AI_SUPPORT_HOST'], { strip: false });
+  const runningOnRender = isRenderEnvironment();
+  const allowLocalhostOnRender = readEnvBool(
+    ['AI_SUPPORT_ALLOW_LOCALHOST_ON_RENDER'],
+    false
+  );
 
   if (configuredHost) {
     const normalizedHost = configuredHost.trim().toLowerCase();
