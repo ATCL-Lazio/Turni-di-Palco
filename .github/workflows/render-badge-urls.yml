@@ -1,0 +1,49 @@
+name: Render Badge URLs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Turni badge URL
+        id: turni
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID_TURNI }}
+        run: |
+          url="$(npm run -s badge:render -- --label 'Render Turni')"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Generate Maxwell badge URL
+        id: maxwell
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID_MAXWELL }}
+        run: |
+          url="$(npm run -s badge:render -- --label 'Render Maxwell')"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Publish URLs
+        run: |
+          {
+            echo "## Render badge URLs"
+            echo ""
+            echo "- Turni: ${{ steps.turni.outputs.url }}"
+            echo "- Maxwell: ${{ steps.maxwell.outputs.url }}"
+          } >> "$GITHUB_STEP_SUMMARY"
