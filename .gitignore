@@ -5,6 +5,9 @@
 # Temporary files
 .temp/
 
+# Keep specific files
+!.temp/qrcodes/RenderStaticQR.png
+
 # Keep empty directories
 !*/.gitkeep
 
