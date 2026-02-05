@@ -4,8 +4,7 @@
 [![CI](https://github.com/Heartran/Turni-di-Palco/actions/workflows/ci.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/ci.yml)
 [![Update Server Repository](https://github.com/Heartran/Turni-di-Palco/actions/workflows/update-server-repository.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/update-server-repository.yml)
 [![Sync Deploy Branches](https://github.com/Heartran/Turni-di-Palco/actions/workflows/sync-deploy-branches.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/sync-deploy-branches.yml)
-[!Render deploy status (Turni)](https://img.shields.io/badge/Render%20Turni-Deploying-blue?logo=render&style=for-the-badge)
-[!Render deploy status (Maxwell)](https://img.shields.io/badge/Render%20Maxwell-Deploying-blue?logo=render&style=for-the-badge)
+![Render deploy status (Turni)](https://img.shields.io/badge/Render%20Turni-Deploying-blue?logo=render&style=for-the-badge)![Render deploy status (Maxwell)](https://img.shields.io/badge/Render%20Maxwell-Deploying-blue?logo=render&style=for-the-badge)
 
 Turni di Palco è una Progressive Web App pensata per gestire i turni teatrali con meccaniche di gioco (XP, livelli, ruoli) per rendere l'organizzazione piu coinvolgente.
 
