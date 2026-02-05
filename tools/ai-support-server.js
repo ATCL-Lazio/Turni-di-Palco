@@ -1210,6 +1210,76 @@ function resolveHost() {
   return '127.0.0.1';
 }
 
+function resolveRenderServiceId(target) {
+  if (target === 'turni') {
+    return readEnvFirst(['AI_SUPPORT_RENDER_SERVICE_ID_TURNI', 'RENDER_SERVICE_ID_TURNI']);
+  }
+  if (target === 'maxwell') {
+    return readEnvFirst([
+      'AI_SUPPORT_RENDER_SERVICE_ID_MAXWELL',
+      'RENDER_SERVICE_ID_MAXWELL',
+      'RENDER_SERVICE_ID',
+    ]);
+  }
+  return '';
+}
+
+function mapRenderBadgeStatus(status) {
+  const normalized = String(status || '').trim().toLowerCase();
+  if (['live', 'deployed', 'ready', 'success', 'succeeded'].includes(normalized)) {
+    return { message: 'Live', color: 'brightgreen' };
+  }
+  if (
+    [
+      'created',
+      'queued',
+      'pending',
+      'in_progress',
+      'build_in_progress',
+      'update_in_progress',
+      'deploying',
+    ].includes(normalized)
+  ) {
+    return { message: 'Deploying', color: 'blue' };
+  }
+  if (
+    ['failed', 'error', 'build_failed', 'update_failed', 'deactivate_failed'].includes(
+      normalized
+    )
+  ) {
+    return { message: 'Failed', color: 'red' };
+  }
+  if (['canceled', 'cancelled'].includes(normalized)) {
+    return { message: 'Canceled', color: 'lightgrey' };
+  }
+  if (normalized === 'deactivated') {
+    return { message: 'Inactive', color: 'lightgrey' };
+  }
+  return { message: 'Unknown', color: 'lightgrey' };
+}
+
+async function fetchRenderDeployStatus(serviceId) {
+  const apiKey = readEnvFirst(['RENDER_API_KEY']);
+  if (!apiKey || !serviceId) return 'unknown';
+
+  const response = await fetch(`https://api.render.com/v1/services/${serviceId}/deploys?limit=1`, {
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+  });
+  if (!response.ok) return 'unknown';
+
+  const payload = await response.json();
+  const deploy = Array.isArray(payload)
+    ? payload[0]
+    : Array.isArray(payload?.deploys)
+      ? payload.deploys[0]
+      : payload?.deploy ?? null;
+  const status = deploy?.status || deploy?.state || deploy?.deployStatus;
+  return typeof status === 'string' ? status : 'unknown';
+}
+
 function getLocalIPv4Addresses() {
   const interfaces = os.networkInterfaces();
   const addresses = [];
@@ -2348,6 +2418,59 @@ const requestHandler = (req, res) => {
       `${requestId} GET /health\n  client=${clientIp}\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms`
     );
     sendJson(res, 200, { status: 'ok', service: 'ai-support', uptime: process.uptime() });
+    return;
+  }
+
+  if (req.method === 'GET' && req.url.startsWith('/badge/render/')) {
+    const badgePath = req.url.split('?')[0];
+    const target = badgePath.slice('/badge/render/'.length).trim().toLowerCase();
+    const labelsByTarget = {
+      turni: 'Turni-di-Palco',
+      maxwell: 'Maxwell-AI-Support',
+    };
+    const label = labelsByTarget[target];
+
+    if (!label) {
+      logLine(
+        `${requestId} GET ${badgePath}\n  client=${clientIp}\n  status=${formatStatus(404)}\n  duration=${Date.now() - start}ms`
+      );
+      sendJson(res, 404, { error: 'Unknown badge target' });
+      return;
+    }
+
+    if (!res.getHeader('Access-Control-Allow-Origin')) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    }
+    res.setHeader('Cache-Control', 'public, max-age=30');
+
+    (async () => {
+      const serviceId = resolveRenderServiceId(target);
+      const deployStatus = await fetchRenderDeployStatus(serviceId);
+      const badge = mapRenderBadgeStatus(deployStatus);
+
+      logLine(
+        `${requestId} GET ${badgePath}\n  client=${clientIp}\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms\n  target=${target}\n  deployStatus=${deployStatus}`
+      );
+
+      sendJson(res, 200, {
+        schemaVersion: 1,
+        label,
+        message: badge.message,
+        color: badge.color,
+      });
+    })().catch((error) => {
+      logError(
+        `${requestId} GET ${badgePath}\n  status=${formatStatus(500)}\n  duration=${Date.now() - start}ms\n  error=${error.message}`
+      );
+      sendJson(res, 500, {
+        schemaVersion: 1,
+        label,
+        message: 'Unknown',
+        color: 'lightgrey',
+      });
+    });
     return;
   }
 
