@@ -73,12 +73,12 @@ export default defineConfig({
     host: true,
     port: 5173,
     https: httpsOption,
-    allowedHosts: ["turni-di-palco-fq85.onrender.com", ".onrender.com"],
+    allowedHosts: ["turni-di-palco-fq85.onrender.com"],
   },
   preview: {
     host: true,
     port: 4173,
     https: httpsOption,
-    allowedHosts: ["turni-di-palco-fq85.onrender.com", ".onrender.com"],
+    allowedHosts: ["turni-di-palco-fq85.onrender.com"],
   },
 });
