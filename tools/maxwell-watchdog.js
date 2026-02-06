@@ -6,7 +6,7 @@
  */
 
 const https = require('https');
-const { spawn } = require('child_process');
+const { spawnSync } = require('child_process');
 
 // Configurazione
 const CONFIG = {
@@ -194,12 +194,24 @@ class ProblemDetector {
     const problems = [];
     
     try {
-      const result = spawnSync('npm', ['audit', '--json'], { 
+      const result = spawnSync('npm', ['audit', '--json'], {
         encoding: 'utf8',
         cwd: process.cwd()
       });
 
-      if (result.stdout) {
+      if (result.error) {
+        throw result.error;
+      }
+
+      if (!result.stdout) {
+        log('warn', 'Security audit returned no output', {
+          status: result.status,
+          stderr: result.stderr ? result.stderr.trim() : ''
+        });
+        return problems;
+      }
+
+      try {
         const audit = JSON.parse(result.stdout);
         const vulnerabilities = audit.vulnerabilities || {};
 
@@ -214,6 +226,11 @@ class ProblemDetector {
               suggestion: `Run 'npm audit fix' or update ${pkg} to safe version`
             });
           }
+        });
+      } catch (parseError) {
+        log('warn', 'Failed to parse security audit output', {
+          error: parseError.message,
+          output: result.stdout.slice(0, 2000)
         });
       }
     } catch (error) {
@@ -461,23 +478,6 @@ class MaxwellWatchdog {
 
     log('info', `⏰ Next scan scheduled in ${CONFIG.scanInterval / 1000 / 60} minutes`);
   }
-}
-
-// Helper function for sync processes
-function spawnSync(command, args, options = {}) {
-  const { spawn } = require('child_process');
-  return new Promise((resolve) => {
-    const child = spawn(command, args, { ...options, encoding: 'utf8' });
-    let stdout = '';
-    let stderr = '';
-
-    child.stdout?.on('data', (data) => stdout += data);
-    child.stderr?.on('data', (data) => stderr += data);
-
-    child.on('close', (code) => {
-      resolve({ stdout, stderr, status: code });
-    });
-  });
 }
 
 // Start if run directly
