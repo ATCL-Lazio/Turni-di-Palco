@@ -1,3 +1,5 @@
+export const INSTALL_DISMISS_KEY = 'tdp-install-dismissed';
+
 export function isStandaloneApp(): boolean {
   if (typeof window === 'undefined') return false;
 
