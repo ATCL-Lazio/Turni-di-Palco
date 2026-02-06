@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { isStandaloneApp } from '../lib/pwa';
+import { INSTALL_DISMISS_KEY, isStandaloneApp } from '../lib/pwa';
 
 export function useQrLanding(_authReady: boolean, _isAuthValid: boolean, onLanding: (target: 'welcome' | 'install') => void) {
     const hasHandledQrLanding = useRef(false);
@@ -10,19 +10,25 @@ export function useQrLanding(_authReady: boolean, _isAuthValid: boolean, onLandi
 
         const search = new URLSearchParams(window.location.search);
         const isFromQr = search.get('from') === 'qr';
+        const isShortcutQr = search.get('shortcut') === 'qr';
+        const shouldHandle = isFromQr || isShortcutQr;
+
+        if (!shouldHandle) return;
+
+        hasHandledQrLanding.current = true;
+
         const isInstalled = isStandaloneApp();
+        const dismissed = window.sessionStorage.getItem(INSTALL_DISMISS_KEY) === '1';
 
-        if (!isFromQr && isInstalled) return;
-
-        if (!isInstalled) {
-            hasHandledQrLanding.current = true;
+        if (!isInstalled && !dismissed) {
             onLanding('install');
         }
 
         try {
-            if (isFromQr) {
-                window.history.replaceState({}, '', window.location.pathname);
-            }
+            const url = new URL(window.location.href);
+            url.searchParams.delete('from');
+            url.searchParams.delete('shortcut');
+            window.history.replaceState({}, '', url.toString());
         } catch {
             // ignore
         }

@@ -235,7 +235,12 @@ function AppShell() {
       case 'welcome': return <Welcome onStart={() => setCurrentScreen('signup')} onLogin={() => setCurrentScreen('login')} />;
       case 'login': return <Login onBack={() => setCurrentScreen('welcome')} onLogin={handleLogin} onSignup={() => setCurrentScreen('signup')} onForgotPassword={() => { }} errorMessage={authError} />;
       case 'signup': return <Signup onBack={() => setCurrentScreen('welcome')} onSignup={handleSignup} onLogin={() => setCurrentScreen('login')} onViewTerms={() => openLegal('terms', 'signup')} onViewPrivacy={() => openLegal('privacy', 'signup')} errorMessage={authError} />;
-      case 'install': return <InstallApp onContinue={() => setCurrentScreen(state.profile.roleId ? 'home' : 'welcome')} />;
+      case 'install': return (
+        <InstallApp
+          onContinue={() => setCurrentScreen(state.profile.roleId ? 'home' : 'welcome')}
+          onDismiss={() => setCurrentScreen(state.profile.roleId ? 'home' : 'welcome')}
+        />
+      );
       case 'role-selection': return <RoleSelection roles={roles} onComplete={(role) => { updateProfile({ roleId: role.id as any }); setCurrentScreen('home'); }} />;
       case 'home': return <Home userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpToNextLevel={state.profile.xpToNextLevel} reputation={state.profile.reputation} onScanQR={() => setCurrentScreen('qr-scanner')} onViewActivities={() => handleTabChange('activities')} onViewTurni={() => handleTabChange('turns')} onViewEventDetails={() => { setScannedEventId(upcomingEvent?.id ?? ''); setCurrentScreen('event-details'); }} onNavigateToEvent={() => openInMaps(upcomingEvent?.theatre ?? '')} upcomingEvent={upcomingEvent} totalTurns={turnStats.totalTurns} turnsThisMonth={turnStats.turnsThisMonth} uniqueTheatres={turnStats.uniqueTheatres} activitiesCount={activities.length} eventLoading={followedEventsLoading} statsLoading={statsLoading} newBadgesCount={newBadges.length} newBadgeTitle={newestNewBadge?.title} onDismissBadgeNotification={markBadgesSeen} />;
       case 'turns': return <ATCLTurns events={events} isEventFollowed={isEventFollowed} onToggleFollow={(id: string) => isEventFollowed(id) ? unfollowEvent(id) : followEvent(id)} onViewMap={() => openEventsMap(events.map(e => e.theatre))} onViewEvent={(id: string) => { setScannedEventId(id); setCurrentScreen('event-details'); }} onScanQR={() => setCurrentScreen('qr-scanner')} />;
