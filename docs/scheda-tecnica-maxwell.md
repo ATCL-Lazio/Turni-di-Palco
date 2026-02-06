@@ -14,12 +14,12 @@ Nel `README.md` è presente anche un link pubblico alla versione deployata (con 
 
 ## Topologia di deploy e componenti runtime
 
-Il file `render.yaml` (esportato con timestamp **2026-01-16T13:19:18Z**) definisce una topologia a **due servizi web** su entity["company","Render","cloud hosting platform"], entrambi runtime Node e collocati in region `frankfurt`:
+Il file `render.yaml` (esportato con timestamp **2026-01-16T13:19:18Z**) definisce una topologia a **due servizi web** su Render, entrambi runtime Node e collocati in region `frankfurt`:
 
 - **Turni-di-Palco**: servizio principale, build `npm ci && npm run build:mobile && npm run build:pwa`, start tramite uno script di preview/serve della PWA che ascolta su `0.0.0.0` e porta `$PORT`.
 - **Maxwell-AI-Support**: servizio dedicato (Maxwell), build `npm ci` + install global di `@openai/codex` e `gh`, start `npm run ai:support`.
 
-Entrambi i servizi leggono variabili `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (in Maxwell sono interpolate da variabili “sorelle”, mentre nel servizio Turni sono dichiarate con `sync: false`). Il significato operativo di `sync: false` (“Render ignora variabili con sync: false quando si aggiorna un Blueprint; e non le include nei preview environments”) è esplicitato nella spec del blueprint Render. citeturn1search1
+Entrambi i servizi leggono variabili `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (in Maxwell sono interpolate da variabili “sorelle”, mentre nel servizio Turni sono dichiarate con `sync: false`). Il significato operativo di `sync: false` (“Render ignora variabili con sync: false quando si aggiorna un Blueprint; e non le include nei preview environments”) è esplicitato nella spec del blueprint Render.
 
 Maxwell, sempre in `render.yaml`, definisce `AI_SUPPORT_ALLOWED_ORIGINS` includendo il dominio deploy e anche lo stesso dominio con suffisso `/mobile`. Questo combacia con lo schema CORS implementato nel server Maxwell (sezione successiva), e con l’idea che l’interfaccia mobile possa chiamare le API di Maxwell dal browser installato/embedded.
 
@@ -28,12 +28,12 @@ Maxwell, sempre in `render.yaml`, definisce `AI_SUPPORT_ALLOWED_ORIGINS` include
 **Maxwell** nel repository è implementato principalmente nello script `tools/ai-support-server.js`, che è un server Node “puro” (usa `node:http` / `node:https`), non un framework tipo Express. Il servizio nasce per fare da **control-plane** di supporto, con due funzioni centrali:
 
 - una **chat API** (`/api/ai/chat`) che costruisce un prompt testuale a partire da `messages` + contesto e invoca **Codex CLI** come motore di risposta;
-- una **issue API** (`/api/ai/issue`) che crea o aggiorna issue su entity["company","GitHub","code hosting platform"] usando **GitHub CLI** (`gh`) come prima scelta e una **fallback** su GitHub REST API quando la CLI fallisce.
+- una **issue API** (`/api/ai/issue`) che crea o aggiorna issue su GitHub usando **GitHub CLI** (`gh`) come prima scelta e una **fallback** su GitHub REST API quando la CLI fallisce.
 
 Dal punto di vista “di prodotto”, Maxwell è una specie di “stanza regia”: si mette tra UI (probabilmente `/mobile`) e automazioni/strumenti (Codex, GitHub), e fornisce anche un **dashboard HTML** (route `/`) per monitorare stato, uptime, memoria, autenticazione e health.
 
-Maxwell incentra la parte LLM su **Codex CLI**: dalla documentazione ufficiale, Codex CLI è un “coding agent” eseguibile da terminale, installabile via `npm i -g @openai/codex`, con modalità interactive e scripting (`exec`). citeturn2search2  
-L’autenticazione di Codex CLI su ambienti headless supporta un flusso device-code con comando `codex login --device-auth` e caching dei token in `~/.codex/auth.json`. citeturn2search3
+Maxwell incentra la parte LLM su **Codex CLI**: dalla documentazione ufficiale, Codex CLI è un “coding agent” eseguibile da terminale, installabile via `npm i -g @openai/codex`, con modalità interactive e scripting (`exec`).  
+L’autenticazione di Codex CLI su ambienti headless supporta un flusso device-code con comando `codex login --device-auth` e caching dei token in `~/.codex/auth.json`.
 
 ## Surface API e flussi operativi di Maxwell
 
@@ -47,15 +47,15 @@ Dallo script `tools/ai-support-server.js`, Maxwell espone (almeno) queste route:
 - `POST /api/ai/issue` → crea/commenta issue e risponde con metadati (URL, flag `existing`, azione eseguita).
 - `GET /auth` e `POST /auth/command` → endpoint admin (protetti da flag) per controllare/avviare login Codex e GitHub.
 
-La porta è determinata in modo “cloud-friendly”: prima `process.env.PORT`, poi `AI_SUPPORT_PORT` o `VITE_AI_SUPPORT_PORT`, fallback `8787`. L’host è risolto in modo diverso in locale vs entity["company","Render","cloud hosting platform"]: su Render viene forzato `0.0.0.0` per consentire il binding corretto della porta del servizio.
+La porta è determinata in modo “cloud-friendly”: prima `process.env.PORT`, poi `AI_SUPPORT_PORT` o `VITE_AI_SUPPORT_PORT`, fallback `8787`. L’host è risolto in modo diverso in locale vs Render: su Render viene forzato `0.0.0.0` per consentire il binding corretto della porta del servizio.
 
 ### Flusso chat: costruzione prompt e invocazione Codex CLI
 
 Il flusso `/api/ai/chat` è deliberatamente semplice (e robusto da deployare): Maxwell prende `prompt`, `messages[]` e `context` (supporta almeno `userName` e `memory`), compone un testo lineare Multi-turn con prefissi `System:`, `User:` e `Assistant:` e poi invoca `codex exec ... -` passando il prompt su `stdin`.
 
-L’invocazione di Codex CLI avviene in modalità “scripting” con `exec`, e Maxwell usa un file temporaneo di output per recuperare “l’ultimo messaggio” tramite flag `--output-last-message <path>`. Questo è coerente con l’idea di “automatizzare workflow ripetibili” via `exec` (Codex CLI come tool invocabile da processi esterni). citeturn2search2
+L’invocazione di Codex CLI avviene in modalità “scripting” con `exec`, e Maxwell usa un file temporaneo di output per recuperare “l’ultimo messaggio” tramite flag `--output-last-message <path>`. Questo è coerente con l’idea di “automatizzare workflow ripetibili” via `exec` (Codex CLI come tool invocabile da processi esterni).
 
-Per l’autenticazione, Maxwell include una parte piuttosto articolata: può “idratare” un set token/credenziali in un file `auth.json` nello stile `~/.codex/auth.json` e/o avviare un device-flow (`codex login --device-auth`) quando gira in ambienti headless. La doc ufficiale spiega esplicitamente sia la posizione `~/.codex/auth.json` sia la modalità device-code per contesti remoti/headless. citeturn2search3
+Per l’autenticazione, Maxwell include una parte piuttosto articolata: può “idratare” un set token/credenziali in un file `auth.json` nello stile `~/.codex/auth.json` e/o avviare un device-flow (`codex login --device-auth`) quando gira in ambienti headless. La doc ufficiale spiega esplicitamente sia la posizione `~/.codex/auth.json` sia la modalità device-code per contesti remoti/headless.
 
 ### Flusso issue: GitHub CLI come preferenza, REST API come fallback
 
@@ -69,11 +69,11 @@ Quando l’autorizzazione è ok, Maxwell:
 2. gestisce `labels` (accetta labels richieste dal client ma aggiunge anche labels “base”, in particolare `supporto` e `Maxwell`, e prova a crearle se non esistono);
 3. cerca un’issue già aperta con lo stesso titolo; se esiste, commenta e aggiorna labels; se non esiste, crea una nuova issue.
 
-Sulla parte REST, Maxwell implementa internamente chiamate a endpoint standard GitHub (create issue, list issues, list/create labels, comment, add labels), includendo header consigliati come `Accept: application/vnd.github+json` e la versione API (`X-GitHub-Api-Version`). Gli endpoint “Create an issue” e “Labels endpoints” sono documentati ufficialmente da GitHub. citeturn2search1turn1search0
+Sulla parte REST, Maxwell implementa internamente chiamate a endpoint standard GitHub (create issue, list issues, list/create labels, comment, add labels), includendo header consigliati come `Accept: application/vnd.github+json` e la versione API (`X-GitHub-Api-Version`). Gli endpoint “Create an issue” e “Labels endpoints” sono documentati ufficialmente da GitHub.
 
-Maxwell prova prima la strada `gh` (GitHub CLI), poi ripiega su REST API se la CLI fallisce. La CLI, secondo doc, supporta sia login interattivo sia l’uso headless via token d’ambiente (`GH_TOKEN`) ed è adatta proprio a scenari di automazione. citeturn2search5
+Maxwell prova prima la strada `gh` (GitHub CLI), poi ripiega su REST API se la CLI fallisce. La CLI, secondo doc, supporta sia login interattivo sia l’uso headless via token d’ambiente (`GH_TOKEN`) ed è adatta proprio a scenari di automazione.
 
-Per la resilienza, quando usa REST API Maxwell implementa gestione rate limit (riconosce `403/429` e legge `x-ratelimit-remaining`, `x-ratelimit-reset`, oltre a `retry-after` per secondary limits), con piccoli retry e backoff. La semantica dei rate limit header e dei comportamenti corretti quando `x-ratelimit-remaining` va a `0` è descritta nelle linee guida GitHub sui rate limits. citeturn2search0
+Per la resilienza, quando usa REST API Maxwell implementa gestione rate limit (riconosce `403/429` e legge `x-ratelimit-remaining`, `x-ratelimit-reset`, oltre a `retry-after` per secondary limits), con piccoli retry e backoff. La semantica dei rate limit header e dei comportamenti corretti quando `x-ratelimit-remaining` va a `0` è descritta nelle linee guida GitHub sui rate limits.
 
 ## Configurazione, segreti e autenticazione in Maxwell
 
@@ -97,8 +97,8 @@ La repo evidenzia (anche indirettamente) la presenza di credenziali locali:
 - `tools/ai-support-server.js` cerca credenziali in diversi path possibili nel repo root (`maxwell-ai-credentials.json`, varianti con `@`), oppure in directory tipiche di secret file mounts quando rileva un ambiente Render (include `/etc/secrets`, `/run/secrets`, ecc., e anche env come `RENDER_SECRET_FILES_DIR` se presenti).
 - Maxwell può costruire directory “runtime” dove tenere configurazioni CLI isolate (`codex` e `github`), e può anche usare un `AI_SUPPORT_AUTH_DIR` persistente e un env file (`AI_SUPPORT_AUTH_ENV_FILE`) per ricordarsi dove sono state salvate.
 
-Questa strategia si allinea bene con la doc ufficiale di Codex CLI: Codex conserva login localmente in `~/.codex/auth.json` (plaintext file) o cred store; e su headless consiglia device-code auth. citeturn2search3  
-Sul lato GitHub CLI, la doc chiarisce che `gh` memorizza token in credential store o, in mancanza, può cadere su file plaintext; e che l’ambiente (`GH_TOKEN`) è una modalità consigliata per headless/automation. citeturn2search5
+Questa strategia si allinea bene con la doc ufficiale di Codex CLI: Codex conserva login localmente in `~/.codex/auth.json` (plaintext file) o cred store; e su headless consiglia device-code auth.  
+Sul lato GitHub CLI, la doc chiarisce che `gh` memorizza token in credential store o, in mancanza, può cadere su file plaintext; e che l’ambiente (`GH_TOKEN`) è una modalità consigliata per headless/automation.
 
 ## Osservazioni di copertura e cosa non è stato possibile ricostruire qui
 
