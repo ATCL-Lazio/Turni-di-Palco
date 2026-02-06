@@ -29,16 +29,18 @@ serve(async (req) => {
     
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep)
+    const cutoffDateStr = cutoffDate.toISOString().slice(0, 10)
     
     const { data: events, error } = await supabaseClient
       .from('events')
       .select('id, name, event_date, event_time')
+      .lt('event_date', cutoffDateStr)
     
     if (error) throw error
     
-    const eventsToDelete = events.filter(event => {
-      const eventDateTime = new Date(`${event.event_date} ${event.event_time}`)
-      return eventDateTime < cutoffDate
+    const eventsToDelete = (events || []).filter(event => {
+      if (!event?.event_date) return false
+      return event.event_date < cutoffDateStr
     })
     
     if (eventsToDelete.length === 0) {
