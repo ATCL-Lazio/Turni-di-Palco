@@ -104,7 +104,7 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: 3000,
       https: httpsOption,
-      allowedHosts: ['turni-di-palco-fq85.onrender.com', '.onrender.com'],
+      allowedHosts: ['turni-di-palco-fq85.onrender.com'],
       open: true,
       proxy: {
         '/api/ai/chat': {
@@ -121,7 +121,7 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: 4174,
       https: httpsOption,
-      allowedHosts: ['turni-di-palco-fq85.onrender.com', '.onrender.com'],
+      allowedHosts: ['turni-di-palco-fq85.onrender.com'],
     },
   };
 });
