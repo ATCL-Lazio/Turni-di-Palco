@@ -3,10 +3,10 @@
 ## Struttura repo (high level)
 
 - `apps/pwa`: PWA Vite multipage (entry HTML nella root del package). Asset statici in `apps/pwa/public/` (incl. `public/sw.js` e `public/mobile/`).
-- `apps/mobile`: Mobile UI (React/Vite). Build copiato in `apps/pwa/public/mobile/` tramite script di sync.
+- `apps/mobile`: Mobile UI (React/Vite). Build in `apps/mobile/build`, copiato in `apps/pwa/public/mobile/` tramite script di sync (`build:mobile`, `sync:mobile`).
 - `shared/`: stili e utilità condivise.
 - `tools/`: script di automazione build/copy/cache.
-  - `tools/serve-dist.js` risolve le richieste `/mobile/*` su `apps/pwa/dist/public/mobile/*` in produzione.
+  - `tools/serve-dist.js` serve `apps/pwa/dist` e risolve le richieste `/mobile/*` su `apps/pwa/dist/public/mobile/*`.
 
 ## Build & run (sviluppo)
 
@@ -20,6 +20,7 @@
   - AI support server (local): `npm run ai:support` (default port 8787)
   - Dev + AI support together: `npm --workspace apps/mobile run dev:with-ai`
   - Build+sync in PWA: `npm run build:mobile`
+  - Allowlist host Vite (dev/preview): `VITE_ALLOWED_HOSTS` (comma-separated)
 
 ## AI support (mobile)
 
@@ -44,14 +45,21 @@
 
 - Service Worker: `apps/pwa/public/sw.js`
 - Il versioning della cache viene aggiornato dallo script `tools/update-cache-version.js` (invocato da `npm run build:pwa`) per forzare l’update degli asset core.
+- Il server `tools/serve-dist.js` imposta cache differenziata:
+  - `no-store` per HTML, `sw.js` e manifest.
+  - Cache aggressiva per asset hashed, icone e QR (immutabili).
+
+## Routing `/mobile` (produzione)
+
+- La Mobile UI ha `base: /mobile/` e viene copiata in `apps/pwa/public/mobile/` prima della build PWA.
+- In produzione, `tools/serve-dist.js` risolve `/mobile/*` su `apps/pwa/dist/public/mobile/*`.
+- Se si usa hosting statico esterno, garantire che `/mobile` punti a `dist/public/mobile` (o aggiungere rewrite equivalente), altrimenti `/mobile` va in 404.
 
 ## Header di sicurezza (Netlify/Render)
 
 - Netlify: gli header sono configurati in `netlify.toml` nella sezione `[[headers]]`.
 - Nota CSP: al momento `index.html` contiene uno script inline per il redirect mobile; per questo `script-src` include temporaneamente `'unsafe-inline'` finche' il bootstrap non viene spostato in un modulo esterno.
-- Render: il servizio PWA attuale usa `vite preview` (startCommand in `render.yaml`), quindi gli header vanno impostati a livello di reverse proxy o server applicativo.
-  - Opzione consigliata: mettere un reverse proxy (es. Caddy/Nginx) davanti al preview server e impostare gli header lì.
-  - In alternativa: sostituire il preview server con un piccolo server (Express/Fastify) che serva `apps/pwa/dist` e imposti gli stessi header.
+- Render: il servizio PWA usa `tools/serve-dist.js` (startCommand in `render.yaml`), quindi gli header e la cache vanno configurati lì.
   - Se si migra la PWA a “Static Site” su Render, utilizzare il supporto ai `headers` del manifest Render.
 
 ## Supabase (client)
