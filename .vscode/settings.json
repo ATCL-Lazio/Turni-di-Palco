@@ -178,10 +178,11 @@
     },
     "cSpell.words": [
         "ATCL",
+        "COOLDOWN",
+        "qrcodes",
         "quickbar",
         "sparkline",
         "topbar",
-        "COOLDOWN",
         "valuenow"
     ],
     "github-actions.workflows.pinned.workflows": [
