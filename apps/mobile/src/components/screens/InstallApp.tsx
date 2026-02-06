@@ -24,6 +24,7 @@ export function InstallApp({ onContinue, onDismiss }: InstallAppProps) {
   }, []);
 
   const standalone = useMemo(() => isStandaloneApp(), []);
+  const qrSrc = `${import.meta.env.BASE_URL}qrcodes/RenderStaticQR.png`;
 
   const handleDismiss = () => {
     if (typeof window !== 'undefined') {
@@ -81,7 +82,7 @@ export function InstallApp({ onContinue, onDismiss }: InstallAppProps) {
         <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 flex flex-col items-center gap-3">
           <p className="text-white font-semibold">QR per telefono</p>
           <img
-            src="/qrcodes/RenderStaticQR.png"
+            src={qrSrc}
             alt="QR per aprire Turni di Palco su mobile"
             className="w-[220px] h-[220px] rounded-[12px] bg-white p-2"
             loading="lazy"
