@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Screen } from '../ui/Screen';
-import { isStandaloneApp } from '../../lib/pwa';
+import { INSTALL_DISMISS_KEY, isStandaloneApp } from '../../lib/pwa';
 
 type Platform = 'ios' | 'android' | 'desktop';
 
@@ -12,13 +12,29 @@ function detectPlatform(userAgent: string): Platform {
 }
 
 
-export function InstallApp({ onContinue }: { onContinue: () => void }) {
+type InstallAppProps = {
+  onContinue: () => void;
+  onDismiss: () => void;
+};
+
+export function InstallApp({ onContinue, onDismiss }: InstallAppProps) {
   const platform = useMemo(() => {
     if (typeof navigator === 'undefined') return 'desktop' as const;
     return detectPlatform(navigator.userAgent);
   }, []);
 
   const standalone = useMemo(() => isStandaloneApp(), []);
+
+  const handleDismiss = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        window.sessionStorage.setItem(INSTALL_DISMISS_KEY, '1');
+      } catch {
+        // ignore
+      }
+    }
+    onDismiss();
+  };
 
   const steps = useMemo(() => {
     if (platform === 'ios') {
@@ -67,13 +83,22 @@ export function InstallApp({ onContinue }: { onContinue: () => void }) {
         </div>
       ) : null}
 
-      <button
-        type="button"
-        onClick={onContinue}
-        className="w-full bg-gradient-to-b from-[#8c1c38] to-[#a82847] rounded-[16.4px] h-[54px] flex items-center justify-center text-white font-semibold active:scale-[0.99] transition-transform"
-      >
-        Apri l’app
-      </button>
+      <div className="space-y-3">
+        <button
+          type="button"
+          onClick={onContinue}
+          className="w-full bg-gradient-to-b from-[#8c1c38] to-[#a82847] rounded-[16.4px] h-[54px] flex items-center justify-center text-white font-semibold active:scale-[0.99] transition-transform"
+        >
+          Apri l’app
+        </button>
+        <button
+          type="button"
+          onClick={handleDismiss}
+          className="w-full h-[48px] rounded-[16.4px] border border-[#2d2728] text-[#f4bf4f] font-semibold"
+        >
+          Non ora
+        </button>
+      </div>
     </Screen>
   );
 }
