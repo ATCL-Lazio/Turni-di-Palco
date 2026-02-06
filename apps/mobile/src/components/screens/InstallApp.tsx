@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Screen } from '../ui/Screen';
+import { isStandaloneApp } from '../../lib/pwa';
 
 type Platform = 'ios' | 'android' | 'desktop';
 
@@ -10,14 +11,6 @@ function detectPlatform(userAgent: string): Platform {
   return 'desktop';
 }
 
-function isStandalone(): boolean {
-  if (typeof window === 'undefined') return false;
-  // iOS Safari exposes `navigator.standalone` when launched from Home Screen.
-  // Other browsers use the display-mode media query.
-  const nav = window.navigator as Navigator & { standalone?: boolean };
-  if (typeof nav.standalone === 'boolean') return nav.standalone;
-  return window.matchMedia?.('(display-mode: standalone)').matches ?? false;
-}
 
 export function InstallApp({ onContinue }: { onContinue: () => void }) {
   const platform = useMemo(() => {
@@ -25,7 +18,7 @@ export function InstallApp({ onContinue }: { onContinue: () => void }) {
     return detectPlatform(navigator.userAgent);
   }, []);
 
-  const standalone = useMemo(() => isStandalone(), []);
+  const standalone = useMemo(() => isStandaloneApp(), []);
 
   const steps = useMemo(() => {
     if (platform === 'ios') {
