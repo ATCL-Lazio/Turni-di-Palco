@@ -53,6 +53,7 @@ export function InstallApp({ onContinue, onDismiss }: InstallAppProps) {
     }
     return [
       'Apri questo link dal tuo telefono.',
+      'Scansiona il QR qui sotto per aprire l’app.',
       'Usa il menu del browser per installare o aggiungere alla Home.',
     ];
   }, [platform]);
@@ -75,6 +76,21 @@ export function InstallApp({ onContinue, onDismiss }: InstallAppProps) {
           ))}
         </ol>
       </div>
+
+      {platform === 'desktop' ? (
+        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 flex flex-col items-center gap-3">
+          <p className="text-white font-semibold">QR per telefono</p>
+          <img
+            src="/qrcodes/RenderStaticQR.png"
+            alt="QR per aprire Turni di Palco su mobile"
+            className="w-[220px] h-[220px] rounded-[12px] bg-white p-2"
+            loading="lazy"
+          />
+          <p className="text-[#b8b2b3] text-sm text-center">
+            Inquadra il QR con la fotocamera per aprire la versione mobile.
+          </p>
+        </div>
+      ) : null}
 
       {standalone ? (
         <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4">
