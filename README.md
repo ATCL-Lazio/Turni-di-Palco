@@ -36,7 +36,7 @@ La progressione non dipende solo dal gioco: cresce davvero quando si partecipa a
 3. Registri la presenza agli eventi tramite QR code.
 4. Guadagni esperienza, reputazione e nuovi traguardi.
 
-[![RenderStaticQR](.temp/qrcodes/RenderStaticQR.png)](https://turni-di-palco-fq85.onrender.com/mobile)
+<a href="https://turni-di-palco-fq85.onrender.com/mobile"><img src=".temp/qrcodes/RenderStaticQR.png" alt="RenderStaticQR" width="200" height="200" style="margin: 20px;"></a>
 
 ## Struttura del repository
 
