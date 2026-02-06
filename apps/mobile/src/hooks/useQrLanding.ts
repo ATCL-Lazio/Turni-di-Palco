@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
+import { isStandaloneApp } from '../lib/pwa';
 
-export function useQrLanding(authReady: boolean, isAuthValid: boolean, onLanding: (target: 'welcome' | 'install') => void) {
+export function useQrLanding(_authReady: boolean, _isAuthValid: boolean, onLanding: (target: 'welcome' | 'install') => void) {
     const hasHandledQrLanding = useRef(false);
 
     useEffect(() => {
@@ -8,16 +9,22 @@ export function useQrLanding(authReady: boolean, isAuthValid: boolean, onLanding
         if (hasHandledQrLanding.current) return;
 
         const search = new URLSearchParams(window.location.search);
-        if (search.get('from') !== 'qr') return;
-        if (!authReady) return;
+        const isFromQr = search.get('from') === 'qr';
+        const isInstalled = isStandaloneApp();
 
-        hasHandledQrLanding.current = true;
-        onLanding(isAuthValid ? 'install' : 'welcome');
+        if (!isFromQr && isInstalled) return;
+
+        if (!isInstalled) {
+            hasHandledQrLanding.current = true;
+            onLanding('install');
+        }
 
         try {
-            window.history.replaceState({}, '', window.location.pathname);
+            if (isFromQr) {
+                window.history.replaceState({}, '', window.location.pathname);
+            }
         } catch {
             // ignore
         }
-    }, [authReady, isAuthValid, onLanding]);
+    }, [onLanding]);
 }

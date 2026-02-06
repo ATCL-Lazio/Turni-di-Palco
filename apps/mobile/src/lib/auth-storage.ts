@@ -5,7 +5,7 @@ export const SUPABASE_SESSION_KEY = 'tdp-supabase-session';
 export const SUPABASE_SESSION_ID_KEY = 'tdp-supabase-session-id';
 export const USER_STATE_KEY = 'tdp-mobile-ui-state';
 
-export const PUBLIC_SCREENS = new Set<Screen>(['welcome', 'login', 'signup', 'terms', 'privacy']);
+export const PUBLIC_SCREENS = new Set<Screen>(['welcome', 'login', 'signup', 'install', 'terms', 'privacy']);
 
 type StoredSession = { access_token?: unknown; refresh_token?: unknown };
 type StoredUserState = { profile?: { email?: unknown } };
