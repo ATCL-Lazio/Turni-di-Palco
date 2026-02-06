@@ -6,6 +6,7 @@
 - `apps/mobile`: Mobile UI (React/Vite). Build copiato in `apps/pwa/public/mobile/` tramite script di sync.
 - `shared/`: stili e utilità condivise.
 - `tools/`: script di automazione build/copy/cache.
+  - `tools/serve-dist.js` risolve le richieste `/mobile/*` su `apps/pwa/dist/public/mobile/*` in produzione.
 
 ## Build & run (sviluppo)
 
