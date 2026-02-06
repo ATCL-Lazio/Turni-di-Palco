@@ -42,9 +42,25 @@ function resolveHttps() {
   return flag || true;
 }
 
+const DEFAULT_ALLOWED_HOSTS = ['turni-di-palco-fq85.onrender.com'];
+
+function resolveAllowedHosts(env: Record<string, string>) {
+  const raw =
+    env.VITE_ALLOWED_HOSTS ||
+    env.ALLOWED_HOSTS ||
+    process.env.VITE_ALLOWED_HOSTS ||
+    process.env.ALLOWED_HOSTS;
+  if (!raw) return DEFAULT_ALLOWED_HOSTS;
+  return raw
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const httpsOption = resolveHttps();
+  const allowedHosts = resolveAllowedHosts(env);
   const aiSupportPort = Number(
     env.AI_SUPPORT_PORT || env.VITE_AI_SUPPORT_PORT || process.env.AI_SUPPORT_PORT
   ) || 8787;
@@ -104,7 +120,7 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: 3000,
       https: httpsOption,
-      allowedHosts: ['turni-di-palco-fq85.onrender.com'],
+      allowedHosts,
       open: true,
       proxy: {
         '/api/ai/chat': {
@@ -121,7 +137,7 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: 4174,
       https: httpsOption,
-      allowedHosts: ['turni-di-palco-fq85.onrender.com'],
+      allowedHosts,
     },
   };
 });
