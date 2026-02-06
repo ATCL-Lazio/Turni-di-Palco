@@ -112,6 +112,49 @@ function resolveRequestPath(distDir, urlPath) {
   return null;
 }
 
+function resolveMobileRequestPath(distDir, urlPath) {
+  const mobileRoot = path.join(distDir, 'public', 'mobile');
+  const safePath = decodeURIComponent(urlPath.split('?')[0]).replace(/\\/g, '/');
+  if (safePath === '/mobile' || safePath === '/mobile/') {
+    return resolveRequestPath(mobileRoot, '/');
+  }
+
+  if (!safePath.startsWith('/mobile/')) {
+    return null;
+  }
+
+  const withoutPrefix = safePath.slice('/mobile'.length);
+  return resolveRequestPath(mobileRoot, withoutPrefix || '/');
+}
+
+function hasHashedFilename(filePath) {
+  const file = path.basename(filePath);
+  return /-[a-f0-9]{8,}\./i.test(file);
+}
+
+function resolveCacheControl(distDir, filePath) {
+  const relPath = path.relative(distDir, filePath).replace(/\\/g, '/');
+  const ext = path.extname(filePath).toLowerCase();
+
+  if (ext === '.html' || ext === '.webmanifest') {
+    return 'no-store';
+  }
+
+  if (relPath.endsWith('/sw.js') || relPath === 'sw.js') {
+    return 'no-store';
+  }
+
+  if (relPath.startsWith('assets/') && hasHashedFilename(relPath)) {
+    return 'public, max-age=31536000, immutable';
+  }
+
+  if (relPath.includes('/icons/') || relPath.includes('/qrcodes/')) {
+    return 'public, max-age=31536000, immutable';
+  }
+
+  return 'no-cache';
+}
+
 function createHandler(distDir) {
   return (req, res) => {
     // Health check endpoint per keep-alive incrociato
@@ -133,7 +176,8 @@ function createHandler(distDir) {
       return;
     }
 
-    const filePath = resolveRequestPath(distDir, req.url);
+    const mobileFilePath = resolveMobileRequestPath(distDir, req.url);
+    const filePath = mobileFilePath || resolveRequestPath(distDir, req.url);
     if (!filePath) {
       res.statusCode = 404;
       res.end('Not Found');
@@ -142,7 +186,7 @@ function createHandler(distDir) {
 
     res.statusCode = 200;
     res.setHeader('Content-Type', getMimeType(filePath));
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', resolveCacheControl(distDir, filePath));
 
     const stream = fs.createReadStream(filePath);
     stream.on('error', () => {
