@@ -68,4 +68,4 @@ npm run test:pwa
 
 ## Contributi
 
-Per linee guida di collaborazione e convenzioni di sviluppo, vedi `contributing.md`.
+Per linee guida di collaborazione e convenzioni di sviluppo, vedi [CONTRIBUTING.MD](CONTRIBUTING.MD).
