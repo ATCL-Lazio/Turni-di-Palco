@@ -1,4 +1,5 @@
 import { colorTokens, radiusTokens, spacingTokens, typographyTokens } from "./tokens";
+import { buildAttributeString } from "../utils/html-attributes";
 
 export type ChipVariant = "solid" | "ghost";
 export type ChipSize = "sm" | "md";
@@ -30,13 +31,6 @@ const sizeConfig: Record<ChipSize, ChipSizeConfig> = {
   },
 };
 
-function dataAttributeString(dataAttributes?: Record<string, string>) {
-  if (!dataAttributes) return "";
-  return Object.entries(dataAttributes)
-    .map(([key, value]) => ` data-${key}="${value}"`)
-    .join("");
-}
-
 export function renderChip({
   label,
   href,
@@ -55,7 +49,7 @@ export function renderChip({
   const aria = title ? ` aria-label="${title}" title="${title}"` : "";
   const attrs = href ? `href="${href}"` : "type=\"button\"";
   const sizeVars = sizeConfig[size];
-  const dataAttrs = dataAttributeString(dataAttributes);
+  const dataAttrs = buildAttributeString(dataAttributes, { keyPrefix: "data-" });
   const style = `style="--chip-py:${sizeVars.paddingY};--chip-px:${sizeVars.paddingX};--chip-fz:${sizeVars.fontSize};--chip-radius:${radiusTokens.pill};--chip-bg:${colorTokens.surface};--chip-border:${colorTokens.surfaceBorder};--chip-hover-border:${colorTokens.surfaceHoverBorder};--chip-active-bg:${colorTokens.accentTint};--chip-active-border:${colorTokens.accentBorder};"`;
 
   return `<${tag} class="${classes.join(" ")}" data-state="${state}" ${attrs}${aria} ${style}${dataAttrs}>${iconMarkup}<span>${label}</span></${tag}>`;
