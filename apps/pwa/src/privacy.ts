@@ -1,5 +1,6 @@
 import "../../../shared/styles/main.css";
 import { renderPageHero } from "./components/page-hero";
+import { enforceDesktopOnly } from "./utils/desktop-only";
 
 const IUBENDA_PRIVACY_POLICY_URL = "https://www.iubenda.com/privacy-policy/78603233";
 const IUBENDA_SCRIPT_SRC = "https://cdn.iubenda.com/iubenda.js";
@@ -16,6 +17,7 @@ function ensureIubendaScript() {
 }
 
 const start = () => {
+  if (enforceDesktopOnly()) return;
   const root = document.querySelector<HTMLDivElement>("#app");
 
   if (!root) {
@@ -60,4 +62,3 @@ const start = () => {
 };
 
 void start();
-
