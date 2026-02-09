@@ -1,9 +1,8 @@
 import React, { useMemo } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
 import { ScanQRCard } from '../ScanQRCard';
-import { QrCode, MapPin, Calendar, TrendingUp, Theater, Bookmark, Map } from 'lucide-react';
+import { QrCode, MapPin, Calendar, TrendingUp, Theater, Bookmark, Map, Award } from 'lucide-react';
 import { GameEvent } from '../../state/store';
 
 interface ATCLTurnsProps {
@@ -105,17 +104,25 @@ export function ATCLTurns({
         </div>
 
         {sortedEvents.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {sortedEvents.map((evento) => (
-              <Card key={evento.id} hoverable onClick={() => onViewEvent(evento.id)}>
+              <Card
+                key={evento.id}
+                hoverable
+                onClick={() => onViewEvent(evento.id)}
+                className="border border-white/5 bg-gradient-to-br from-[#1a1617] via-[#1d1819] to-[#231e1f]"
+              >
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 bg-[#241f20] rounded-lg flex items-center justify-center">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-br from-[#a82847] to-[#6b1529] flex items-center justify-center shadow-[0_8px_20px_rgba(168,40,71,0.25)]">
                     <Theater className="text-[#f4bf4f]" size={24} />
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 className="text-white mb-1">{evento.name}</h4>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Evento ATCL</p>
+                        <h4 className="text-white text-lg leading-tight">{evento.name}</h4>
+                      </div>
                       <button
                         type="button"
                         aria-label="Segui evento"
@@ -123,37 +130,39 @@ export function ATCLTurns({
                           event.stopPropagation();
                           onToggleFollow(evento.id);
                         }}
-                        className={`flex items-center justify-center size-9 rounded-lg border ${isEventFollowed(evento.id)
-                            ? 'border-[#f4bf4f] text-[#f4bf4f]'
-                            : 'border-[#2d2728] text-[#7a7577]'
+                        className={`flex items-center justify-center size-10 rounded-xl border transition-colors ${isEventFollowed(evento.id)
+                            ? 'border-[#f4bf4f] text-[#f4bf4f] bg-[#f4bf4f]/10'
+                            : 'border-[#2d2728] text-[#7a7577] hover:text-[#f4bf4f]'
                           }`}
                       >
                         <Bookmark size={16} />
                       </button>
                     </div>
 
-                    <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mb-2">
+                    <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mt-3">
                       <MapPin size={14} />
                       <span>{evento.theatre}</span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mb-3">
+                    <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mt-2">
                       <Calendar size={14} />
-                      <span>{evento.date} - {evento.time}</span>
+                      <span>{evento.date} · {evento.time}</span>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 mt-4">
                       {evento.genre ? (
-                        <Badge variant="outline" size="sm">
+                        <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-[#f4bf4f] backdrop-blur">
                           {evento.genre}
-                        </Badge>
+                        </span>
                       ) : null}
-                      <Badge variant="gold" size="sm">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/90 backdrop-blur">
+                        <TrendingUp size={12} className="text-[#f4bf4f]" />
                         +{evento.baseRewards.xp} XP
-                      </Badge>
-                      <Badge variant="success" size="sm">
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/90 backdrop-blur">
+                        <Award size={12} className="text-[#f4bf4f]" />
                         +{evento.baseRewards.reputation} Rep
-                      </Badge>
+                      </span>
                     </div>
                   </div>
                 </div>
