@@ -1,8 +1,9 @@
 import React from 'react';
-import { Clock, Coins, Play, TrendingUp } from 'lucide-react';
+import { Clock, Coins, Play, TrendingUp, Flag } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Tag } from '../ui/Tag';
+import { ProgressBar } from '../ui/ProgressBar';
 import { Activity } from '../../state/store';
 
 interface ActivitiesProps {
@@ -18,6 +19,9 @@ const difficultyLabels: Record<Activity['difficulty'], string> = {
 
 export function Activities({ activities, onStartActivity }: ActivitiesProps) {
   const totalActivities = activities.length;
+  const dailyGoal = 3;
+  const completedToday = 0;
+  const dailyProgress = dailyGoal > 0 ? Math.min((completedToday / dailyGoal) * 100, 100) : 0;
 
   return (
     <div
@@ -46,6 +50,22 @@ export function Activities({ activities, onStartActivity }: ActivitiesProps) {
           </div>
         </Card>
 
+        <Card className="border border-[#2d2728] bg-[#1a1617]">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Missioni giornaliere</p>
+              <h3 className="text-white text-lg font-semibold">0/{dailyGoal} completate oggi</h3>
+              <p className="text-sm text-[#b8b2b3]">Completa le missioni per mantenere la streak attiva.</p>
+            </div>
+            <div className="w-12 h-12 rounded-full bg-[#241f20] flex items-center justify-center">
+              <Flag className="text-[#f4bf4f]" size={22} />
+            </div>
+          </div>
+          <div className="mt-4">
+            <ProgressBar value={dailyProgress} max={100} color="gold" size="md" />
+          </div>
+        </Card>
+
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-white">Attività disponibili</h3>
@@ -55,22 +75,28 @@ export function Activities({ activities, onStartActivity }: ActivitiesProps) {
           </div>
 
           <div className="space-y-3">
-            {activities.map((activity) => {
+            {activities.map((activity, index) => {
               const difficultyLabel = difficultyLabels[activity.difficulty] ?? activity.difficulty;
               return (
                 <Card
                   key={activity.id}
                   hoverable
                   onClick={() => onStartActivity(activity.id)}
+                  className="border border-white/5 bg-gradient-to-br from-[#1a1617] via-[#1d1819] to-[#221d1e]"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
+                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl flex items-center justify-center">
                       <Play className="text-[#f4bf4f]" size={22} />
                     </div>
-                    <div className="flex-1 space-y-2">
+                    <div className="flex-1 space-y-3">
                       <div className="flex items-start justify-between gap-2">
-                        <h4 className="text-white">{activity.title}</h4>
-                        <Play className="text-[#f4bf4f]" size={18} />
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Missione {index + 1}</p>
+                          <h4 className="text-white text-lg">{activity.title}</h4>
+                        </div>
+                        <div className="flex items-center gap-2 text-[#f4bf4f]">
+                          <Play size={18} />
+                        </div>
                       </div>
                       <p className="text-sm text-[#b8b2b3]">
                         {activity.description}
@@ -85,14 +111,14 @@ export function Activities({ activities, onStartActivity }: ActivitiesProps) {
                         </Badge>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="gold" size="sm">
-                          <TrendingUp size={12} />
+                        <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/90 backdrop-blur">
+                          <TrendingUp size={12} className="text-[#f4bf4f]" />
                           +{activity.xpReward} XP
-                        </Badge>
-                        <Badge variant="default" size="sm">
-                          <Coins size={12} />
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/90 backdrop-blur">
+                          <Coins size={12} className="text-[#f4bf4f]" />
                           +{activity.cachetReward}
-                        </Badge>
+                        </span>
                       </div>
                     </div>
                   </div>
