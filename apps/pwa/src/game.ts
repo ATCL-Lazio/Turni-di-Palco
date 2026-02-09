@@ -42,52 +42,75 @@ const start = async () => {
       ${pageHero}
 
       <section class="grid layout-grid">
-        <article class="card">
-          <h2>Profilo</h2>
-          <div class="profile-pane">
-            <div class="avatar-display large" data-avatar="profile">
-              <img data-avatar-img alt="Avatar ReadyPlayerMe" />
-              <span class="avatar-icon" data-avatar-label></span>
-            </div>
+        <article class="card dashboard-card layout-span-2">
+          <div class="dashboard-header">
             <div>
-              <p class="eyebrow" data-player-name>Profilo non configurato</p>
-              <p class="muted" data-player-role>Ruolo non impostato</p>
-              <div class="pill-row" data-role-tags></div>
+              <p class="eyebrow">Home dashboard</p>
+              <h2>Profilo in scena</h2>
+              <p class="muted">Riepilogo rapido con progressi circolari e statistiche chiave.</p>
             </div>
           </div>
-        </article>
-
-        <article class="card">
-          <h2>Statistiche</h2>
-          <ul class="stat-list">
-            <li><span>XP</span><strong data-stat="xp">0</strong></li>
-            <li><span>Cachet</span><strong data-stat="cachet">0</strong></li>  
-            <li><span>Reputazione ATCL</span><strong data-stat="rep">0</strong></li>
-          </ul>
-          <div class="progress-grid compact">
-            <div class="progress-track slim" data-track="xp">
-              <div class="progress-head">
-                <p class="muted" data-progress-copy="xp">Traguardi XP</p>      
-                <strong data-progress-value="xp">0 XP</strong>
+          <div class="dashboard-body">
+            <div class="profile-pane">
+              <div class="avatar-display large" data-avatar="profile">
+                <img data-avatar-img alt="Avatar ReadyPlayerMe" />
+                <span class="avatar-icon" data-avatar-label></span>
               </div>
-              <div class="progress-bar" role="progressbar" aria-label="Progresso XP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                <span class="progress-fill" data-progress-bar="xp" style="width: 0%"></span>
+              <div>
+                <p class="eyebrow" data-player-name>Profilo non configurato</p>
+                <p class="muted" data-player-role>Ruolo non impostato</p>
+                <div class="pill-row" data-role-tags></div>
               </div>
             </div>
-            <div class="progress-track slim" data-track="rep">
-              <div class="progress-head">
-                <p class="muted" data-progress-copy="rep">Traguardi reputazione</p>
-                <strong data-progress-value="rep">0 rep</strong>
+            <div class="dashboard-rings">
+              <div class="dashboard-ring">
+                <div
+                  class="progress-ring"
+                  data-ring="xp"
+                  role="progressbar"
+                  aria-label="Progresso XP"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="0"
+                >
+                  <span class="ring-value" data-progress-value="xp">0 XP</span>
+                  <span class="ring-label">XP</span>
+                </div>
+                <div class="dashboard-ring__meta">
+                  <p class="eyebrow">Crescita XP</p>
+                  <p class="muted" data-progress-copy="xp">Traguardi XP</p>
+                </div>
               </div>
-              <div class="progress-bar" role="progressbar" aria-label="Progresso reputazione" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                <span class="progress-fill accent" data-progress-bar="rep" style="width: 0%"></span>
+              <div class="dashboard-ring">
+                <div
+                  class="progress-ring accent"
+                  data-ring="rep"
+                  role="progressbar"
+                  aria-label="Progresso reputazione"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="0"
+                >
+                  <span class="ring-value" data-progress-value="rep">0 rep</span>
+                  <span class="ring-label">Rep</span>
+                </div>
+                <div class="dashboard-ring__meta">
+                  <p class="eyebrow">Reputazione</p>
+                  <p class="muted" data-progress-copy="rep">Traguardi reputazione</p>
+                </div>
               </div>
             </div>
+            <ul class="stat-quick-list">
+              <li><span>XP totali</span><strong data-stat="xp">0</strong></li>
+              <li><span>Cachet</span><strong data-stat="cachet">0</strong></li>
+              <li><span>Reputazione ATCL</span><strong data-stat="rep">0</strong></li>
+            </ul>
           </div>
         </article>
 
         <article class="card layout-span-2">
           <h2>Ultimi turni</h2>
+          <p class="muted">Registro rapido delle ultime sessioni salvate.</p>
           <ul class="log-list dense" data-turn-log></ul>
         </article>
       </section>
@@ -98,8 +121,8 @@ const start = async () => {
   const progressCopyRep = root.querySelector<HTMLElement>('[data-progress-copy="rep"]');
   const progressValueXp = root.querySelector<HTMLElement>('[data-progress-value="xp"]');
   const progressValueRep = root.querySelector<HTMLElement>('[data-progress-value="rep"]');
-  const progressBarXp = root.querySelector<HTMLElement>('[data-progress-bar="xp"]');
-  const progressBarRep = root.querySelector<HTMLElement>('[data-progress-bar="rep"]');
+  const progressRingXp = root.querySelector<HTMLElement>('[data-ring="xp"]');
+  const progressRingRep = root.querySelector<HTMLElement>('[data-ring="rep"]');
   const avatarDisplay = root.querySelector<HTMLElement>('[data-avatar="profile"]');
   const avatarImg = root.querySelector<HTMLImageElement>('[data-avatar-img]');
   const avatarLabel = root.querySelector<HTMLElement>('[data-avatar-label]');
@@ -147,13 +170,13 @@ const start = async () => {
     if (progressCopyRep) progressCopyRep.textContent = buildProgressCopy(repProgress, "punti rep");
     if (progressValueXp) progressValueXp.textContent = `${state.profile.xp} XP`;
     if (progressValueRep) progressValueRep.textContent = `${state.profile.repAtcl} rep`;
-    if (progressBarXp) {
-      progressBarXp.style.width = `${xpProgress.percent}%`;
-      progressBarXp.parentElement?.setAttribute("aria-valuenow", xpProgress.percent.toString());
+    if (progressRingXp) {
+      progressRingXp.style.setProperty("--ring-progress", xpProgress.percent.toString());
+      progressRingXp.setAttribute("aria-valuenow", xpProgress.percent.toString());
     }
-    if (progressBarRep) {
-      progressBarRep.style.width = `${repProgress.percent}%`;
-      progressBarRep.parentElement?.setAttribute("aria-valuenow", repProgress.percent.toString());
+    if (progressRingRep) {
+      progressRingRep.style.setProperty("--ring-progress", repProgress.percent.toString());
+      progressRingRep.setAttribute("aria-valuenow", repProgress.percent.toString());
     }
   }
 

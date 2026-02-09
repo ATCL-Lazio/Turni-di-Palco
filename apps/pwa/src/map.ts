@@ -436,7 +436,11 @@ const start = async () => {
             </div>
             <div class="event-card__meta">
               <span class="pill ghost">~${item.distanceKm} km</span>
-              <span class="pill ghost">${formatRewards(rewards)}</span>
+              <span class="pill ghost">Cachet +${rewards.cachet}</span>
+            </div>
+            <div class="event-card__badges">
+              <span class="glass-badge xp"><span aria-hidden="true">⚡</span> +${rewards.xp} XP</span>
+              <span class="glass-badge rep"><span aria-hidden="true">★</span> +${rewards.reputation} Rep</span>
             </div>
           </button>
         </li>`;
