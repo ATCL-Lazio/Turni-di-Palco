@@ -19,8 +19,10 @@ import {
 import { getAvatarVisual } from "./avatar-visual";
 import type { Rewards, RoleId, SaveStateResult, TurnRecord } from "./types";
 import { requireDevAccess } from "./services/dev-gate";
+import { enforceDesktopOnly } from "./utils/desktop-only";
 
 const start = async () => {
+  if (enforceDesktopOnly()) return;
   if (!(await requireDevAccess())) return;
 
   type DecoratedEvent = (typeof mockEvents)[number] & { distanceKm: number };
