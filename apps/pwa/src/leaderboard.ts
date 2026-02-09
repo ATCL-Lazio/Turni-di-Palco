@@ -5,8 +5,10 @@ import { calculateLeaderboardStats, loadState, STORAGE_KEY } from "./state";
 import type { LeaderboardEntry, RoleId } from "./types";
 import { supabase, isSupabaseConfigured } from "./services/supabase";
 import { requireDevAccess } from "./services/dev-gate";
+import { enforceDesktopOnly } from "./utils/desktop-only";
 
 const start = async () => {
+  if (enforceDesktopOnly()) return;
   if (!(await requireDevAccess())) return;
 
 
