@@ -18,7 +18,6 @@ interface HomeProps {
   level: number;
   xp: number;
   xpToNextLevel: number;
-  reputation: number;
   totalTurns: number;
   turnsThisMonth: number;
   uniqueTheatres: number;
@@ -43,7 +42,6 @@ export function Home({
   level,
   xp,
   xpToNextLevel,
-  reputation,
   totalTurns,
   turnsThisMonth,
   uniqueTheatres,
@@ -66,7 +64,6 @@ export function Home({
   const [animateBadges, setAnimateBadges] = React.useState(false);
   const hasNewBadges = newBadgesCount > 0;
   const xpProgress = xpToNextLevel > 0 ? Math.min(xp / xpToNextLevel, 1) : 0;
-  const reputationProgress = Math.min(reputation / 100, 1);
 
   // Trigger badge animations when component mounts or new badges arrive
   React.useEffect(() => {
@@ -229,15 +226,6 @@ export function Home({
                 label: 'XP livello',
                 helper: `${Math.round(xpProgress * 100)}% completato`,
                 color: 'gold',
-              })}
-            </Card>
-            <Card className="border border-[#2d2728] bg-[#1a1617]">
-              {renderProgressRing({
-                value: reputation,
-                max: 100,
-                label: 'Reputazione',
-                helper: `${Math.round(reputationProgress * 100)}% fiducia`,
-                color: 'burgundy',
               })}
             </Card>
           </div>
