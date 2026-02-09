@@ -17,8 +17,10 @@ import {
 import type { AvatarIcon, GameState, Rewards, RoleId, SaveStateResult, TurnRecord } from "./types";
 import { buildProgressCopy, getEarnedMilestones, getProgressState, repMilestones, xpMilestones } from "./progression";
 import { requireDevAccess } from "./services/dev-gate";
+import { enforceDesktopOnly } from "./utils/desktop-only";
 
 const start = async () => {
+  if (enforceDesktopOnly()) return;
   if (!(await requireDevAccess())) return;
 
 
