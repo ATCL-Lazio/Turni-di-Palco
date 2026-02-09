@@ -228,7 +228,30 @@ const start = async () => {
 
         <article class="card">
           <h2>Attivita simulate</h2>
-          <div class="form-grid">
+          <div class="mission-board">
+            <div class="mission-header">
+              <div>
+                <p class="eyebrow">Missioni giornaliere</p>
+                <p class="muted">Completa le missioni per mantenere la costanza di allenamento.</p>
+              </div>
+              <div class="mission-progress">
+                <span class="mission-progress__value" data-mission-progress-value>0 / 0</span>
+                <div
+                  class="mission-progress__track"
+                  role="progressbar"
+                  aria-label="Progresso giornaliero missioni"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="0"
+                >
+                  <span class="mission-progress__fill" data-mission-progress-bar style="width: 0%"></span>
+                </div>
+                <p class="muted tiny" data-mission-progress-copy>0% completato</p>
+              </div>
+            </div>
+            <div class="mission-list" data-mission-list></div>
+          </div>
+          <div class="form-grid mission-actions">
             <label class="field">
               <span>Scenario</span>
               <select data-field="activity-select"></select>
@@ -300,6 +323,10 @@ const start = async () => {
   const activityGuardChip = root.querySelector<HTMLElement>('[data-activity-guard]');
   const activityLimitChip = root.querySelector<HTMLElement>('[data-activity-limit]');
   const tutorialBox = root.querySelector<HTMLElement>('[data-activity-tutorial]');
+  const missionList = root.querySelector<HTMLElement>('[data-mission-list]');
+  const missionProgressBar = root.querySelector<HTMLElement>('[data-mission-progress-bar]');
+  const missionProgressValue = root.querySelector<HTMLElement>('[data-mission-progress-value]');
+  const missionProgressCopy = root.querySelector<HTMLElement>('[data-mission-progress-copy]');
   const eventSelect = root.querySelector<HTMLSelectElement>('[data-field="event-select"]');
   const turnRoleSelect = root.querySelector<HTMLSelectElement>('[data-field="turn-role"]');
   const turnFeedbackBox = root.querySelector<HTMLElement>('[data-turn-feedback]');
@@ -407,6 +434,59 @@ const start = async () => {
     }
     activityLimitChip.textContent = `Limite sessione: ${Math.min(stats.runs, MAX_ACTIVITY_RUNS)} / ${MAX_ACTIVITY_RUNS}`;
     activityLimitChip.dataset.state = stats.runs >= MAX_ACTIVITY_RUNS ? "warn" : "info";
+  }
+
+  function getMissionTotals() {
+    const runs = activities.reduce((acc, activity) => {
+      const stats = getActivityStats(activity.id);
+      return acc + Math.min(stats.runs, MAX_ACTIVITY_RUNS);
+    }, 0);
+    const limit = activities.length * MAX_ACTIVITY_RUNS;
+    const percent = limit ? Math.min(100, Math.round((runs / limit) * 100)) : 0;
+    return { runs, limit, percent };
+  }
+
+  function renderMissionProgress() {
+    if (!missionProgressBar || !missionProgressValue || !missionProgressCopy) return;
+    const { runs, limit, percent } = getMissionTotals();
+    missionProgressValue.textContent = `${runs} / ${limit}`;
+    missionProgressCopy.textContent = `${percent}% completato`;
+    missionProgressBar.style.width = `${percent}%`;
+    missionProgressBar.parentElement?.setAttribute("aria-valuenow", percent.toString());
+  }
+
+  function getMissionRewards(activity: Activity) {
+    const xp = Math.max(...activity.choices.map((choice) => choice.rewards.xp));
+    const reputation = Math.max(...activity.choices.map((choice) => choice.rewards.reputation));
+    return { xp, reputation };
+  }
+
+  function renderMissionList(selectedId?: string) {
+    if (!missionList) return;
+    if (!activities.length) {
+      missionList.innerHTML = '<p class="muted">Nessuna missione disponibile.</p>';
+      return;
+    }
+    missionList.innerHTML = activities
+      .map((activity) => {
+        const stats = getActivityStats(activity.id);
+        const { xp, reputation } = getMissionRewards(activity);
+        const isActive = activity.id === selectedId;
+        return `
+          <button class="mission-card${isActive ? " active" : ""}" type="button" data-activity-id="${activity.id}">
+            <div class="mission-card__title">
+              <h3>${activity.title}</h3>
+              <span class="mission-card__count">${Math.min(stats.runs, MAX_ACTIVITY_RUNS)} / ${MAX_ACTIVITY_RUNS}</span>
+            </div>
+            <p class="muted">${activity.description}</p>
+            <div class="mission-card__badges">
+              <span class="glass-badge xp"><span aria-hidden="true">⚡</span> +${xp} XP</span>
+              <span class="glass-badge rep"><span aria-hidden="true">★</span> +${reputation} Rep</span>
+            </div>
+          </button>
+        `;
+      })
+      .join("");
   }
 
   function renderTutorialBox() {
@@ -547,6 +627,8 @@ const start = async () => {
         activityChoices.innerHTML = "";
       }
       renderTutorialBox();
+      renderMissionList();
+      renderMissionProgress();
       return;
     }
 
@@ -562,6 +644,8 @@ const start = async () => {
     }
     renderActivityOptions(activity);
     renderActivityGuard(activity.id);
+    renderMissionList(activity.id);
+    renderMissionProgress();
     renderTutorialBox();
   }
 
@@ -602,6 +686,8 @@ const start = async () => {
     persistState(gameState, activityResultBox || undefined);
     renderCareerCard();
     renderActivityGuard(activity.id);
+    renderMissionList(activity.id);
+    renderMissionProgress();
     renderTutorialBox();
     if (activityResultBox) {
       activityResultBox.dataset.state = "ok";
@@ -697,6 +783,17 @@ const start = async () => {
     const choiceId = button.dataset.choiceId;
     if (choiceId) {
       handleActivityChoice(choiceId);
+    }
+  });
+
+  missionList?.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement | null;
+    const button = target?.closest<HTMLButtonElement>("[data-activity-id]");
+    if (!button || !activitySelect) return;
+    const missionId = button.dataset.activityId;
+    if (missionId) {
+      activitySelect.value = missionId;
+      renderActivityUI(missionId);
     }
   });
 

@@ -32,7 +32,8 @@ const start = async () => {
       <section class="grid layout-grid">
         <article class="card layout-span-2">
           <h2>Prossimi eventi</h2>
-          <ul class="log-list dense" data-event-list></ul>
+          <p class="muted">Schede ATCL con focus ruolo e ricompense principali.</p>
+          <ul class="event-grid" data-event-list></ul>
         </article>
       </section>
     </main>
@@ -45,10 +46,30 @@ const start = async () => {
       eventList.innerHTML = `<li class="muted">Nessun evento disponibile.</li>`;
     } else {
       eventList.innerHTML = mockEvents
-        .map(
-          (item) =>
-            `<li><div><strong>${item.name}</strong> - ${item.theatre}</div><div class="muted">${item.date} | Focus: ${item.focusRole ? resolveRole(item.focusRole).name : "Any"} - Lat ${item.lat.toFixed(3)} / Lng ${item.lng.toFixed(3)}</div></li>`
-        )
+        .map((item) => {
+          const focusRole = item.focusRole ? resolveRole(item.focusRole) : null;
+          return `
+            <li>
+              <article class="event-card static">
+                <div class="event-card__header">
+                  <div>
+                    <strong>${item.name}</strong>
+                    <p class="muted tiny">${item.theatre} • ${item.date}</p>
+                  </div>
+                  <span class="focus-pill ghost">${focusRole ? focusRole.name : "Multi-ruolo"}</span>
+                </div>
+                <div class="event-card__meta">
+                  <span class="pill ghost">Lat ${item.lat.toFixed(3)} / Lng ${item.lng.toFixed(3)}</span>
+                  <span class="pill ghost">Cachet +${item.baseRewards.cachet}</span>
+                </div>
+                <div class="event-card__badges">
+                  <span class="glass-badge xp"><span aria-hidden="true">⚡</span> +${item.baseRewards.xp} XP</span>
+                  <span class="glass-badge rep"><span aria-hidden="true">★</span> +${item.baseRewards.reputation} Rep</span>
+                </div>
+              </article>
+            </li>
+          `;
+        })
         .join("");
     }
   }
