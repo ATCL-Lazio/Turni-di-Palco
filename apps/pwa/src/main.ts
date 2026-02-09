@@ -4,8 +4,10 @@ import { renderPermissionsCard, attachPermissionsListeners } from "./features/pe
 import { renderStatusCard, attachStatusListeners } from "./features/status-card";
 import { isPublicMode, requireDevAccess } from "./services/dev-gate";
 import { isFeatureEnabled } from "./services/feature-flags";
+import { enforceDesktopOnly } from "./utils/desktop-only";
 
 const start = async () => {
+  if (enforceDesktopOnly()) return;
   if (!(await requireDevAccess())) return;
 
   const root = document.querySelector<HTMLDivElement>("#app");
