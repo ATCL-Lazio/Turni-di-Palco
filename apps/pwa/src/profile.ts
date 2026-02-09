@@ -4,8 +4,10 @@ import { buildProgressCopy, getEarnedMilestones, getProgressState, repMilestones
 import { formatRewards, loadState, resolveRole, STORAGE_KEY } from "./state";
 import { getAvatarVisual } from "./avatar-visual";
 import { requireDevAccess } from "./services/dev-gate";
+import { enforceDesktopOnly } from "./utils/desktop-only";
 
 const start = async () => {
+  if (enforceDesktopOnly()) return;
   if (!(await requireDevAccess())) return;
 
 

@@ -2,8 +2,10 @@ import "../../../shared/styles/main.css";
 import { renderPageHero } from "./components/page-hero";
 import { formatRewards, loadState, resolveRole, roles, STORAGE_KEY } from "./state";
 import { requireDevAccess } from "./services/dev-gate";
+import { enforceDesktopOnly } from "./utils/desktop-only";
 
 const start = async () => {
+  if (enforceDesktopOnly()) return;
   if (!(await requireDevAccess())) return;
 
 
