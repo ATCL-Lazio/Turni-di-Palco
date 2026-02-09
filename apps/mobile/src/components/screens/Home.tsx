@@ -132,7 +132,6 @@ export function Home({
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-lg text-white font-semibold">{value}</span>
-            <span className="text-[10px] text-[#b8b2b3]">/ {safeMax}</span>
           </div>
         </div>
         <div>
