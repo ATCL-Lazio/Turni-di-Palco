@@ -1,4 +1,5 @@
 import { colorTokens, radiusTokens, spacingTokens, typographyTokens } from "./tokens";
+import { buildAttributeString } from "../utils/html-attributes";
 
 export type StatPillSize = "sm" | "md";
 export type StatPillState = "default" | "positive" | "warning" | "danger";
@@ -27,13 +28,6 @@ const sizeConfig: Record<StatPillSize, PillSizeConfig> = {
   },
 };
 
-function valueAttributeString(valueAttributes?: Record<string, string>) {
-  if (!valueAttributes) return "";
-  return Object.entries(valueAttributes)
-    .map(([key, value]) => ` ${key}="${value}"`)
-    .join("");
-}
-
 export function renderStatPill({
   label,
   value,
@@ -46,7 +40,7 @@ export function renderStatPill({
   if (size === "sm") classes.push("stat-pill-sm");
   const iconMarkup = icon ? `<span class="pill-icon">${icon}</span>` : "";
   const sizeVars = sizeConfig[size];
-  const valueAttrs = valueAttributeString(valueAttributes);
+  const valueAttrs = buildAttributeString(valueAttributes);
   const style = `style="--pill-py:${sizeVars.paddingY};--pill-px:${sizeVars.paddingX};--pill-fz:${sizeVars.fontSize};--pill-radius:${radiusTokens.pill};--pill-bg:${colorTokens.surface};--pill-border:${colorTokens.surfaceBorder};--pill-text:${colorTokens.text};--pill-muted:${colorTokens.muted};--pill-positive:${colorTokens.success};--pill-warning:${colorTokens.warning};--pill-danger:${colorTokens.danger};"`;
 
   return `<div class="${classes.join(" ")}" data-state="${state}" ${style}>${iconMarkup}<span>${label}</span><strong${valueAttrs}>${value}</strong></div>`;
