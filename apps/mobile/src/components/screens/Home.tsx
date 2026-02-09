@@ -5,7 +5,7 @@ import { Tag } from '../ui/Tag';
 import { MetricTile } from '../ui/MetricTile';
 import { Skeleton } from '../ui/skeleton';
 import { Button } from '../ui/Button';
-import { Play, Calendar, TrendingUp, Award, ChevronRight, Navigation, CalendarPlus, X, Bell } from 'lucide-react';
+import { Play, Calendar, Award, ChevronRight, Navigation, CalendarPlus, X, Bell, Sparkles } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { GameEvent } from '../../state/store';
 import { ScanQRCard } from '../ScanQRCard';
@@ -65,6 +65,8 @@ export function Home({
   const [showBadge, setShowBadge] = React.useState(true);
   const [animateBadges, setAnimateBadges] = React.useState(false);
   const hasNewBadges = newBadgesCount > 0;
+  const xpProgress = xpToNextLevel > 0 ? Math.min(xp / xpToNextLevel, 1) : 0;
+  const reputationProgress = Math.min(reputation / 100, 1);
 
   // Trigger badge animations when component mounts or new badges arrive
   React.useEffect(() => {
@@ -84,13 +86,73 @@ export function Home({
 
   const eventState: EventState = eventError ? 'error' : eventLoading ? 'loading' : !upcomingEvent ? 'empty' : 'ready';
 
+  const renderProgressRing = ({
+    value,
+    max,
+    label,
+    helper,
+    color,
+  }: {
+    value: number;
+    max: number;
+    label: string;
+    helper: string;
+    color: 'gold' | 'burgundy';
+  }) => {
+    const safeMax = Math.max(max, 1);
+    const percentage = Math.min(value / safeMax, 1);
+    const radius = 26;
+    const stroke = 6;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - percentage * circumference;
+    const strokeColor = color === 'gold' ? '#f4bf4f' : '#a82847';
+    const trackColor = '#2d2728';
+
+    return (
+      <div className="flex items-center gap-4">
+        <div className="relative flex items-center justify-center">
+          <svg width={64} height={64} className="rotate-[-90deg]">
+            <circle
+              cx="32"
+              cy="32"
+              r={radius}
+              stroke={trackColor}
+              strokeWidth={stroke}
+              fill="transparent"
+            />
+            <circle
+              cx="32"
+              cy="32"
+              r={radius}
+              stroke={strokeColor}
+              strokeWidth={stroke}
+              fill="transparent"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={offset}
+              className="transition-all duration-500"
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-lg text-white font-semibold">{value}</span>
+            <span className="text-[10px] text-[#b8b2b3]">/ {safeMax}</span>
+          </div>
+        </div>
+        <div>
+          <p className="text-sm text-[#b8b2b3]">{label}</p>
+          <p className="text-white text-base font-semibold">{helper}</p>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
       className="min-h-screen flex flex-col justify-center items-center mobile-hero-reveal"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
     >
       <div className="w-full app-content px-6 pt-6 pb-8 space-y-6">
-        <header className="space-y-4 relative mobile-hero-reveal" style={{ marginBottom: '20px' }}>
+        <header className="space-y-5 relative mobile-hero-reveal" style={{ marginBottom: '20px' }}>
           <div className="absolute top-0 right-0">
             <Popover>
               <PopoverTrigger asChild>
@@ -131,31 +193,66 @@ export function Home({
               </PopoverContent>
             </Popover>
           </div>
-          <div style={{ marginBottom: '10px' }}>
-            <p className="text-sm text-[#b8b2b3]">Benvenuto,</p>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-2xl text-white font-semibold leading-tight">{userName || 'Profilo'}</h2>
-              </div>
-              <Tag size="sm">{userRole}</Tag>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-[#b8b2b3]">Benvenuto,</p>
+              <h2 className="text-2xl text-white font-semibold leading-tight">{userName || 'Profilo'}</h2>
             </div>
+            <Tag size="sm">{userRole}</Tag>
           </div>
 
+          <Card className="border border-[#2d2728] bg-gradient-to-br from-[#1a1617] to-[#231e1f]">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="w-14 h-14 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl flex items-center justify-center text-white text-xl font-semibold">
+                  {userName?.slice(0, 1) || 'T'}
+                </div>
+                <div className="absolute -bottom-2 -right-2 bg-[#f4bf4f] text-[#0f0d0e] text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                  Lv {level}
+                </div>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-[#b8b2b3]">Progressi attuali</p>
+                <p className="text-white text-base font-semibold">{xpToNext} XP al prossimo livello</p>
+              </div>
+              <Sparkles className="text-[#f4bf4f]" size={22} />
+            </div>
+          </Card>
+
           <div className="grid grid-cols-2 gap-4">
-            <MetricTile
-              label="Livello"
-              value={level}
-              helper={`${xp} / ${xpToNextLevel} XP`}
-              icon={<TrendingUp size={16} />}
-              progress={{ value: xp, max: xpToNextLevel, color: 'gold' }}
-              animateOnMount
-            />
-            <MetricTile
-              label="Reputazione ATCL"
-              value={reputation}
-              helper="Su 100"
-              progress={{ value: reputation, max: 100, color: 'burgundy' }}
-            />
+            <Card className="border border-[#2d2728] bg-[#1a1617]" animateOnMount>
+              {renderProgressRing({
+                value: xp,
+                max: xpToNextLevel,
+                label: 'XP livello',
+                helper: `${Math.round(xpProgress * 100)}% completato`,
+                color: 'gold',
+              })}
+            </Card>
+            <Card className="border border-[#2d2728] bg-[#1a1617]">
+              {renderProgressRing({
+                value: reputation,
+                max: 100,
+                label: 'Reputazione',
+                helper: `${Math.round(reputationProgress * 100)}% fiducia`,
+                color: 'burgundy',
+              })}
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl border border-[#2d2728] bg-[#1a1617] px-3 py-3 text-center">
+              <p className="text-xs text-[#b8b2b3]">Turni</p>
+              <p className="text-lg text-white font-semibold">{totalTurns}</p>
+            </div>
+            <div className="rounded-xl border border-[#2d2728] bg-[#1a1617] px-3 py-3 text-center">
+              <p className="text-xs text-[#b8b2b3]">Attività</p>
+              <p className="text-lg text-white font-semibold">{activitiesCount}</p>
+            </div>
+            <div className="rounded-xl border border-[#2d2728] bg-[#1a1617] px-3 py-3 text-center">
+              <p className="text-xs text-[#b8b2b3]">Teatri</p>
+              <p className="text-lg text-white font-semibold">{uniqueTheatres}</p>
+            </div>
           </div>
         </header>
 
