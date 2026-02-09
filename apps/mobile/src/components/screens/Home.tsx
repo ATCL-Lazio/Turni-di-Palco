@@ -5,7 +5,7 @@ import { Tag } from '../ui/Tag';
 import { MetricTile } from '../ui/MetricTile';
 import { Skeleton } from '../ui/skeleton';
 import { Button } from '../ui/Button';
-import { Play, Calendar, Award, ChevronRight, Navigation, CalendarPlus, X, Bell, Sparkles } from 'lucide-react';
+import { Play, Calendar, Award, ChevronRight, Navigation, CalendarPlus, X, Bell, Sparkles, Volume2 } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { GameEvent } from '../../state/store';
 import { ScanQRCard } from '../ScanQRCard';
@@ -198,14 +198,13 @@ export function Home({
               <p className="text-sm text-[#b8b2b3]">Benvenuto,</p>
               <h2 className="text-2xl text-white font-semibold leading-tight">{userName || 'Profilo'}</h2>
             </div>
-            <Tag size="sm">{userRole}</Tag>
           </div>
 
           <Card className="border border-[#2d2728] bg-gradient-to-br from-[#1a1617] to-[#231e1f]">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="w-14 h-14 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl flex items-center justify-center text-white text-xl font-semibold">
-                  {userName?.slice(0, 1) || 'T'}
+                <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl flex items-center justify-center">
+                  <Volume2 className="text-[#f4bf4f]" size={32} />
                 </div>
                 <div className="absolute -bottom-2 -right-2 bg-[#f4bf4f] text-[#0f0d0e] text-[10px] font-semibold px-2 py-0.5 rounded-full">
                   Lv {level}
@@ -214,6 +213,9 @@ export function Home({
               <div className="flex-1">
                 <p className="text-sm text-[#b8b2b3]">Progressi attuali</p>
                 <p className="text-white text-base font-semibold">{xpToNext} XP al prossimo livello</p>
+                <span className="mt-2 inline-flex items-center gap-1 rounded-full font-medium bg-[#241f20] text-[#f4bf4f] px-2.5 py-0.5 text-xs">
+                  {userRole}
+                </span>
               </div>
               <Sparkles className="text-[#f4bf4f]" size={22} />
             </div>
