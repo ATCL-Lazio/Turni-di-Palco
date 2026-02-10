@@ -1,59 +1,39 @@
-import "../../../shared/styles/main.css";
-import { renderPageHero } from "./components/page-hero";
-import { mockEvents, resolveRole } from "./state";
-import { requireDevAccess } from "./services/dev-gate";
-import { enforceDesktopOnly } from "./utils/desktop-only";
+import { renderDevSectionPage } from "./dev-sections/page-shell";
 
-const start = async () => {
-  if (enforceDesktopOnly()) return;
-  if (!(await requireDevAccess())) return;
-
-
-  const root = document.querySelector<HTMLDivElement>("#app");
-
-  if (!root) {
-    throw new Error("Root container missing");
-  }
-
-  const pageHero = renderPageHero({
-    title: "Eventi mock",
-    description: "Usati per testare la registrazione turni e la mappa.",
-    currentPage: "events",
-    breadcrumbs: [
-      { label: "Hub", href: "/game.html" },
-      { label: "Eventi" },
-    ],
-    backHref: "/game.html",
-    backLabel: "Torna all'hub",
-  });
-
-  root.innerHTML = `
-    <main class="page page-game layout-shell">
-      ${pageHero}
-
-      <section class="grid layout-grid">
-        <article class="card layout-span-2">
-          <h2>Prossimi eventi</h2>
-          <ul class="log-list dense" data-event-list></ul>
-        </article>
-      </section>
-    </main>
-  `;
-
-  const eventList = root.querySelector<HTMLElement>('[data-event-list]');
-
-  if (eventList) {
-    if (!mockEvents.length) {
-      eventList.innerHTML = `<li class="muted">Nessun evento disponibile.</li>`;
-    } else {
-      eventList.innerHTML = mockEvents
-        .map(
-          (item) =>
-            `<li><div><strong>${item.name}</strong> - ${item.theatre}</div><div class="muted">${item.date} | Focus: ${item.focusRole ? resolveRole(item.focusRole).name : "Any"} - Lat ${item.lat.toFixed(3)} / Lng ${item.lng.toFixed(3)}</div></li>`
-        )
-        .join("");
-    }
-  }
-};
-
-void start();
+void renderDevSectionPage({
+  currentPage: "events",
+  title: "Mobile Releases",
+  description: "Render deployment lifecycle for mobile delivery, rollout checks, and control actions.",
+  cards: [
+    {
+      title: "Deployment Read Path",
+      description: "Read release status before triggering any mobile-impacting action.",
+      bullets: [
+        "Service health snapshot",
+        "Recent deploy history",
+        "Status and failure context",
+      ],
+      pills: ["Render API", "Read First", "Safe Ops"],
+    },
+    {
+      title: "Controlled Triggers",
+      description: "Release triggers should always pass through prepare/execute flow.",
+      bullets: [
+        "Reason required for traceability",
+        "Dry-run recommended as first step",
+        "Confirmation token required for execution",
+      ],
+      links: [{ label: "Open Dev Plus Commands", href: "/dev-plus.html" }],
+    },
+    {
+      title: "Mobile Release Checklist",
+      description: "Standard checks to reduce regressions in live mobile environments.",
+      spanTwoColumns: true,
+      bullets: [
+        "Validate mobile runtime metrics before rollout",
+        "Run mobile smoke checks after deploy completion",
+        "Confirm audit records for all critical commands",
+      ],
+    },
+  ],
+});
