@@ -74,20 +74,11 @@ export default defineConfig(({ mode }) => {
     mobileReleases: path.resolve(__dirname, "mobile-releases.html"),
     mobileDataOps: path.resolve(__dirname, "mobile-data-ops.html"),
     mobileAudit: path.resolve(__dirname, "mobile-audit.html"),
-    gameLegacy: path.resolve(__dirname, "game.html"),
-    mapLegacy: path.resolve(__dirname, "map.html"),
-    avatarLegacy: path.resolve(__dirname, "avatar.html"),
-    profileLegacy: path.resolve(__dirname, "profile.html"),
-    eventsLegacy: path.resolve(__dirname, "events.html"),
-    turnsLegacy: path.resolve(__dirname, "turns.html"),
-    leaderboardLegacy: path.resolve(__dirname, "leaderboard.html"),
   };
 
   if (!isPublicMode) {
     buildInputs.devPlayground = path.resolve(__dirname, "dev-playground.html");
     buildInputs.controlPlane = path.resolve(__dirname, "control-plane.html");
-    buildInputs.devLegacy = path.resolve(__dirname, "dev.html");
-    buildInputs.devPlusLegacy = path.resolve(__dirname, "dev-plus.html");
   }
 
   return {
