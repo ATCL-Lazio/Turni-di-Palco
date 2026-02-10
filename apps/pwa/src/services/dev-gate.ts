@@ -1,5 +1,6 @@
 import type { User } from "@supabase/supabase-js";
 import { STORAGE_KEY } from "../state";
+import { appConfig } from "./app-config";
 import { isSupabaseConfigured, supabase } from "./supabase";
 
 type DevGateState = {
@@ -12,19 +13,8 @@ type DevGateState = {
   signOutButton: HTMLButtonElement;
 };
 
-const allowedRoles = parseEnvList(import.meta.env.VITE_PWA_DEV_ROLES ?? "dev");
-const allowedEmails = parseEnvList(import.meta.env.VITE_PWA_DEV_EMAILS ?? "");
-const publicModeValue = import.meta.env.VITE_PUBLIC_MODE;
-
-export const isPublicMode = publicModeValue === "true" || publicModeValue === "1";
-const serverAccessFunction = "dev-access";
-
-function parseEnvList(value: string) {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
+const { allowedRoles, allowedEmails, serverAccessFunction } = appConfig.devGate;
+export const isPublicMode = appConfig.publicMode;
 
 function getUserRoles(user: User) {
   const roles = new Set<string>();

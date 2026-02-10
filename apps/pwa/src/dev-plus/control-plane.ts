@@ -10,6 +10,7 @@ import type {
   RenderServiceStatus,
   SessionValidation,
 } from "./types";
+import { appConfig } from "../services/app-config";
 
 type JsonResponse<T> = {
   ok: boolean;
@@ -26,13 +27,7 @@ type RequestOptions = {
   signal?: AbortSignal;
 };
 
-const rawBase = (import.meta.env.VITE_DEV_CONTROL_PLANE_URL as string | undefined)?.trim();
-const fallbackOrigin = typeof window === "undefined" ? "" : window.location.origin;
-const controlPlaneBase = normalizeBase(rawBase || fallbackOrigin);
-
-function normalizeBase(input: string) {
-  return input.replace(/\/+$/, "");
-}
+const controlPlaneBase = appConfig.controlPlane.baseUrl;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -82,7 +77,7 @@ function parseErrorMessage(payload: unknown, fallback: string) {
 
 function buildUrl(path: string) {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${controlPlaneBase}${normalizedPath}`;
+  return controlPlaneBase ? `${controlPlaneBase}${normalizedPath}` : normalizedPath;
 }
 
 async function requestJson<T>(path: string, options: RequestOptions): Promise<JsonResponse<T>> {
