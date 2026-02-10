@@ -1,3 +1,5 @@
+import { appConfig } from "../services/app-config";
+
 type ServiceWorkerCallbacks = {
   onReady?: () => void;
   onRegistered?: (registration: ServiceWorkerRegistration) => void;
@@ -16,11 +18,12 @@ export function registerServiceWorker(callbacks: ServiceWorkerCallbacks = {}, op
   }
 
   const devMode: ServiceWorkerOptions["devMode"] =
-    options.devMode ?? (import.meta.env.VITE_SW_DEV === "true" ? "register" : "cleanup");
-  const devCleanupRegistrations = options.devCleanupRegistrations ?? true;
+    options.devMode ?? appConfig.serviceWorker.devMode;
+  const devCleanupRegistrations =
+    options.devCleanupRegistrations ?? appConfig.serviceWorker.devCleanupRegistrations;
 
   // In sviluppo: consenti SW controllati solo quando esplicitamente richiesto.
-  if (!import.meta.env.PROD) {
+  if (!appConfig.isProd) {
     if (devCleanupRegistrations) {
       navigator.serviceWorker.getRegistrations().then((registrations) => {
         registrations.forEach((registration) => registration.unregister().catch(() => undefined));
