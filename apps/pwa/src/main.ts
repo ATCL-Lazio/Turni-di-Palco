@@ -4,6 +4,7 @@ import { renderPermissionsCard, attachPermissionsListeners } from "./features/pe
 import { renderStatusCard, attachStatusListeners } from "./features/status-card";
 import { isPublicMode, requireDevAccess } from "./services/dev-gate";
 import { isFeatureEnabled } from "./services/feature-flags";
+import { appConfig, getConfigWarnings } from "./services/app-config";
 import { enforceDesktopOnly } from "./utils/desktop-only";
 
 const start = async () => {
@@ -50,6 +51,11 @@ const start = async () => {
     quickActions,
     ctaRow,
   });
+  const configWarnings = getConfigWarnings();
+  const runtimeControlPlane = appConfig.controlPlane.baseUrl || "relative origin";
+  const runtimeFlags = Object.entries(appConfig.featureFlags)
+    .map(([flag, enabled]) => `${flag}:${enabled ? "on" : "off"}`)
+    .join(" | ");
 
   root.innerHTML = `
     <main class="page">
@@ -88,6 +94,18 @@ const start = async () => {
             <span class="pill">Data Ops</span>
             <span class="pill">Audit</span>
           </div>
+        </article>
+
+        <article class="card">
+          <h2>Runtime Configuration</h2>
+          <ul class="list">
+            <li><strong>Environment:</strong> ${appConfig.environment}</li>
+            <li><strong>Public mode:</strong> ${appConfig.publicMode ? "enabled" : "disabled"}</li>
+            <li><strong>Supabase:</strong> ${appConfig.supabase.configured ? "configured" : "missing"}</li>
+            <li><strong>Control-plane:</strong> ${runtimeControlPlane}</li>
+            <li><strong>Feature flags:</strong> ${runtimeFlags}</li>
+          </ul>
+          ${configWarnings.length ? `<p class="muted">${configWarnings.join(" | ")}</p>` : "<p class=\"muted\">Config loaded without critical warnings.</p>"}
         </article>
 
         ${isFeatureEnabled("status-card") ? renderStatusCard() : ""}
