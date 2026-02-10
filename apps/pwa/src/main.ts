@@ -26,7 +26,12 @@ const start = async () => {
   ];
 
   if (!isPublicMode) {
-    quickActions.splice(2, 0, { id: "dev", label: "Dev playground", href: "/dev.html", icon: "🛠️" });
+    quickActions.splice(
+      2,
+      0,
+      { id: "dev", label: "Dev playground", href: "/dev.html", icon: "🛠️" },
+      { id: "dev-plus", label: "Dev Plus", href: "/dev-plus.html", icon: "⚙️" }
+    );
   }
 
   const ctaRow = [
@@ -35,7 +40,10 @@ const start = async () => {
   ];
 
   if (!isPublicMode) {
-    ctaRow.unshift({ id: "open-dev", label: "Apri dev playground", href: "/dev.html", variant: "primary", icon: "🛠️" });
+    ctaRow.unshift(
+      { id: "open-dev-plus", label: "Apri dev plus", href: "/dev-plus.html", variant: "primary", icon: "⚙️" },
+      { id: "open-dev", label: "Apri dev playground", href: "/dev.html", variant: "ghost", icon: "🛠️" }
+    );
   }
 
   const hero = renderPageHero({

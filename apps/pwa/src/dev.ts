@@ -1,4 +1,4 @@
-import "../../../shared/styles/main.css";
+﻿import "../../../shared/styles/main.css";
 import { registerServiceWorker } from "./pwa/register-sw";
 import { promptServiceWorkerUpdate } from "./pwa/sw-update";
 import { renderAppBar } from "./components/app-bar";
@@ -56,10 +56,11 @@ const start = async () => {
   ];
 
   const devNav = [
-    { label: "Landing", href: "/", icon: "🏠" },
-    { label: "Hub", href: "/game.html", icon: "🎛️" },
-    { label: "Mappa", href: "/map.html", icon: "🗺️" },
-    { label: "Avatar", href: "/avatar.html", icon: "🧑" },
+    { label: "Landing", href: "/", icon: "ðŸ " },
+    { label: "Hub", href: "/game.html", icon: "ðŸŽ›ï¸" },
+    { label: "Mappa", href: "/map.html", icon: "ðŸ—ºï¸" },
+    { label: "Avatar", href: "/avatar.html", icon: "ðŸ§‘" },
+    { label: "Dev Plus", href: "/dev-plus.html", icon: "⚙️" },
   ];
 
   const devAppBar = renderAppBar({ eyebrow: "Turni di Palco", subtitle: "Dev playground", actions: devNav });
@@ -143,6 +144,7 @@ const start = async () => {
         <h1>Dev playground</h1>
         <p class="lede">Profilo, carriera, attivita simulate e registrazione turni di test.</p>
         <div class="cta-row">
+          <a class="button primary" href="/dev-plus.html">Apri Dev Plus</a>
           <a class="button primary" href="/game.html">Vai all'hub</a>
           <a class="button ghost" href="/">Torna alla landing</a>
         </div>
@@ -334,7 +336,7 @@ const start = async () => {
     gameState = result.state;
     if (!result.ok && feedback) {
       feedback.dataset.state = "warn";
-      feedback.textContent = "Salvataggio locale non riuscito: verrà usato un backup in memoria.";
+      feedback.textContent = "Salvataggio locale non riuscito: verrÃ  usato un backup in memoria.";
     }
     return result;
   }
@@ -739,3 +741,4 @@ const start = async () => {
 };
 
 void start();
+
