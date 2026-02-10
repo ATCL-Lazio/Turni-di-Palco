@@ -259,7 +259,7 @@ export async function validateControlPlaneSession(token: string, signal?: AbortS
     method: "POST",
     token,
     body: {
-      path: typeof window === "undefined" ? "/dev-plus.html" : window.location.pathname,
+      path: typeof window === "undefined" ? "/control-plane.html" : window.location.pathname,
       source: "dev-plus",
     },
     signal,

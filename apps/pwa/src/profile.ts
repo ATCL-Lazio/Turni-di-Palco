@@ -29,9 +29,9 @@ void renderDevSectionPage({
       description: "Jump directly to sections that explain mobile anomalies.",
       spanTwoColumns: true,
       links: [
-        { label: "Dev Plus Metrics", href: "/dev-plus.html" },
-        { label: "Mobile Infrastructure", href: "/map.html" },
-        { label: "Mobile Audit", href: "/leaderboard.html" },
+        { label: "Dev Plus Metrics", href: "/control-plane.html" },
+        { label: "Mobile Infrastructure", href: "/mobile-infrastructure.html" },
+        { label: "Mobile Audit", href: "/mobile-audit.html" },
       ],
     },
   ],

@@ -24,8 +24,8 @@ void renderDevSectionPage({
         "Shared contracts through env examples and render.yaml",
       ],
       links: [
-        { label: "Deployments", href: "/events.html" },
-        { label: "Runtime Metrics", href: "/profile.html" },
+        { label: "Deployments", href: "/mobile-releases.html" },
+        { label: "Runtime Metrics", href: "/mobile-runtime.html" },
       ],
     },
     {
@@ -34,9 +34,9 @@ void renderDevSectionPage({
       spanTwoColumns: true,
       links: [
         { label: "Mobile Preview", href: "/mobile/" },
-        { label: "Dev Plus Console", href: "/dev-plus.html" },
-        { label: "Database Ops", href: "/turns.html" },
-        { label: "Audit Timeline", href: "/leaderboard.html" },
+        { label: "Dev Plus Console", href: "/control-plane.html" },
+        { label: "Database Ops", href: "/mobile-data-ops.html" },
+        { label: "Audit Timeline", href: "/mobile-audit.html" },
       ],
     },
   ],
