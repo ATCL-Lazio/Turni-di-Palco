@@ -16,6 +16,8 @@ export type RuntimeConfigOverride = {
     allowedRoles?: string[];
     allowedEmails?: string[];
     serverAccessFunction?: string;
+    sessionCacheTtlMs?: number;
+    staleCacheGraceMs?: number;
   };
 };
 
@@ -32,6 +34,8 @@ export type AppConfig = {
     allowedRoles: string[];
     allowedEmails: string[];
     serverAccessFunction: string;
+    sessionCacheTtlMs: number;
+    staleCacheGraceMs: number;
   };
   controlPlane: {
     baseUrl: string;
@@ -74,6 +78,15 @@ function parseBoolean(value: unknown, fallback = false): boolean {
     const normalized = value.trim().toLowerCase();
     if (normalized === "1" || normalized === "true" || normalized === "yes") return true;
     if (normalized === "0" || normalized === "false" || normalized === "no") return false;
+  }
+  return fallback;
+}
+
+function parseNumber(value: unknown, fallback: number): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed)) return parsed;
   }
   return fallback;
 }
@@ -188,6 +201,15 @@ export function resolveAppConfig(params?: {
     asString(env.VITE_DEV_ACCESS_FUNCTION) ??
     DEFAULT_DEV_ACCESS_FUNCTION;
 
+  const sessionCacheTtlMs = parseNumber(
+    runtimeOverride?.devGate?.sessionCacheTtlMs ?? env.VITE_DEV_SESSION_TTL_MS,
+    30 * 60 * 1000
+  );
+  const staleCacheGraceMs = parseNumber(
+    runtimeOverride?.devGate?.staleCacheGraceMs ?? env.VITE_DEV_SESSION_STALE_GRACE_MS,
+    5 * 60 * 1000
+  );
+
   return {
     environment,
     isProd,
@@ -201,6 +223,8 @@ export function resolveAppConfig(params?: {
       allowedRoles,
       allowedEmails,
       serverAccessFunction,
+      sessionCacheTtlMs,
+      staleCacheGraceMs,
     },
     controlPlane: {
       baseUrl: resolveControlPlaneBase(env, origin, runtimeOverride?.controlPlaneBaseUrl),
