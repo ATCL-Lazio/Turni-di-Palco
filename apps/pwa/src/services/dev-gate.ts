@@ -15,6 +15,15 @@ type DevGateState = {
 
 const { allowedRoles, allowedEmails, serverAccessFunction } = appConfig.devGate;
 export const isPublicMode = appConfig.publicMode;
+const DEV_GATE_SESSION_KEY = "tdp-dev-gate-session-v1";
+const { sessionCacheTtlMs, staleCacheGraceMs } = appConfig.devGate;
+
+type DevGateSession = {
+  userId: string;
+  email: string | null;
+  grantedAt: number;
+  expiresAt: number;
+};
 
 function getUserRoles(user: User) {
   const roles = new Set<string>();
@@ -49,6 +58,64 @@ function isUserAllowed(user: User | null | undefined) {
   if (!allowedRoles.length) return false;
   const userRoles = getUserRoles(user);
   return userRoles.some((role) => allowedRoles.includes(role));
+}
+
+function readDevGateSession(): DevGateSession | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(DEV_GATE_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<DevGateSession>;
+    if (!parsed || typeof parsed !== "object") return null;
+    if (!parsed.userId || typeof parsed.userId !== "string") return null;
+    if (!Number.isFinite(parsed.grantedAt) || !Number.isFinite(parsed.expiresAt)) return null;
+    return {
+      userId: parsed.userId,
+      email: typeof parsed.email === "string" ? parsed.email : null,
+      grantedAt: parsed.grantedAt,
+      expiresAt: parsed.expiresAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function persistDevGateSession(user: User) {
+  if (typeof window === "undefined") return;
+  const now = Date.now();
+  const payload: DevGateSession = {
+    userId: user.id,
+    email: user.email ?? null,
+    grantedAt: now,
+    expiresAt: now + sessionCacheTtlMs,
+  };
+  try {
+    window.localStorage.setItem(DEV_GATE_SESSION_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.warn("Failed to persist dev gate session", error);
+  }
+}
+
+function clearDevGateSession() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(DEV_GATE_SESSION_KEY);
+  } catch (error) {
+    console.warn("Failed to clear dev gate session", error);
+  }
+}
+
+function hasValidCachedSession(user: User, cached: DevGateSession | null) {
+  if (!cached) return false;
+  if (cached.userId !== user.id) return false;
+  return cached.expiresAt > Date.now();
+}
+
+function hasGraceCachedSession(user: User, cached: DevGateSession | null) {
+  if (!cached) return false;
+  if (cached.userId !== user.id) return false;
+  const now = Date.now();
+  return cached.expiresAt <= now && now - cached.expiresAt <= staleCacheGraceMs;
 }
 
 type DevAccessResponse = {
@@ -147,6 +214,7 @@ function setGateBusy(state: DevGateState, isBusy: boolean) {
 function clearLocalData() {
   try {
     window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(DEV_GATE_SESSION_KEY);
     window.sessionStorage.clear();
     const supabaseKeys: string[] = [];
     for (let index = 0; index < window.localStorage.length; index += 1) {
@@ -171,6 +239,7 @@ function exitDevGate(state?: DevGateState) {
     });
   }
 
+  clearDevGateSession();
   clearLocalData();
   window.location.assign("/");
 }
@@ -189,13 +258,24 @@ export async function requireDevAccess() {
     return false;
   }
 
-  const { data } = await supabase.auth.getUser();
-  const currentUser = data.user;
+  const { data: sessionData } = await supabase.auth.getSession();
+  const currentUser = sessionData.session?.user ?? null;
+  const cachedSession = readDevGateSession();
   let serverCheck: DevAccessResponse | null = null;
 
   if (currentUser && isUserAllowed(currentUser)) {
+    if (hasValidCachedSession(currentUser, cachedSession)) {
+      return true;
+    }
     serverCheck = await verifyServerAccess();
-    if (serverCheck.allowed) return true;
+    if (serverCheck.allowed) {
+      persistDevGateSession(currentUser);
+      return true;
+    }
+    if (hasGraceCachedSession(currentUser, cachedSession)) {
+      console.warn("Dev gate server check failed, using grace cached session.", serverCheck.reason);
+      return true;
+    }
   }
 
   const state = renderGate(root);
@@ -225,16 +305,21 @@ export async function requireDevAccess() {
         return;
       }
 
-      const { data: freshData } = await supabase.auth.getUser();
+      const { data: freshSessionData } = await supabase.auth.getSession();
+      const freshUser = freshSessionData.session?.user ?? null;
       const serverCheck = await verifyServerAccess();
-      if (!isUserAllowed(freshData.user) || !serverCheck.allowed) {
+      if (!isUserAllowed(freshUser) || !serverCheck.allowed) {
         await supabase.auth.signOut();
+        clearDevGateSession();
         setGateBusy(state, false);
         const message = serverCheck.reason ?? "Utente non autorizzato per la PWA.";
         setGateMessage(state, message, "error");
         return;
       }
 
+      if (freshUser) {
+        persistDevGateSession(freshUser);
+      }
       setGateMessage(state, "Accesso autorizzato.", "success");
       resolve(true);
     });
