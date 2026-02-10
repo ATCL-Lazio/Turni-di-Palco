@@ -13,13 +13,6 @@ const CORE_ASSETS_BY_ENV = {
     "/mobile-releases.html",
     "/mobile-data-ops.html",
     "/mobile-audit.html",
-    "/game.html",
-    "/map.html",
-    "/avatar.html",
-    "/profile.html",
-    "/events.html",
-    "/turns.html",
-    "/leaderboard.html",
     "/mobile/index.html",
     "/manifest.webmanifest",
     "/favicon.ico",
@@ -30,7 +23,7 @@ const CORE_ASSETS_BY_ENV = {
     "/icons/pwa-192.png",
     "/icons/pwa-512.png",
   ],
-  dev: ["/dev-playground.html", "/control-plane.html", "/dev.html", "/dev-plus.html"],
+  dev: ["/dev-playground.html", "/control-plane.html"],
   prod: [],
 };
 const CORE_ASSETS = [
@@ -40,7 +33,7 @@ const CORE_ASSETS = [
 const NON_PUBLIC_PATHS = new Set(CORE_ASSETS_BY_ENV.dev);
 const OFFLINE_URL = "/index.html";
 
-const CORE_CACHE_VERSION = "v6b493ed";
+const CORE_CACHE_VERSION = "v0d140fe";
 const CACHE_VERSION_TAG = "v5";
 const CORE_CACHE_NAME = `turni-di-palco-core-${CORE_CACHE_VERSION}-${CACHE_VERSION_TAG}`;
 const TILE_CACHE_NAME = `turni-di-palco-tiles-${CORE_CACHE_VERSION}-${CACHE_VERSION_TAG}`;
