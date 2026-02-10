@@ -78,6 +78,7 @@ export default defineConfig(({ mode }) => {
 
   if (!isPublicMode) {
     buildInputs.dev = path.resolve(__dirname, "dev.html");
+    buildInputs.devPlus = path.resolve(__dirname, "dev-plus.html");
   }
 
   return {

@@ -4,14 +4,18 @@
   "workspaces": [
     "apps/pwa",
     "apps/mobile",
-    "apps/reactbricks"
+    "apps/reactbricks",
+    "apps/control-plane"
   ],
   "scripts": {
     "clean:builds": "node tools/clean-builds.js",
     "dev:pwa": "npm --workspace apps/pwa run dev",
     "dev:pwa:https": "npm --workspace apps/pwa run dev:https",
+    "dev:control-plane": "npm --workspace apps/control-plane run dev",
+    "dev:control-plane:https": "npm run dev:control-plane",
     "build:pwa": "node tools/update-cache-version.js && npm --workspace apps/pwa run build && node tools/copy-mobile-to-dist.js",
     "preview:pwa": "npm --workspace apps/pwa run preview",
+    "start:control-plane": "npm --workspace apps/control-plane run start",
     "test:pwa": "npm --workspace apps/pwa run test",
     "lint": "npm --workspace apps/pwa run lint",
     "format": "npm --workspace apps/pwa run format",

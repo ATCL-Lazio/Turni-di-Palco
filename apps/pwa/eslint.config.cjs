@@ -5,10 +5,15 @@ const globals = require("globals");
 
 module.exports = [
   {
-    files: ["**/*.ts"],
+    files: ["**/*.ts", "**/*.tsx"],
     ignores: ["dist/**", "node_modules/**"],
     languageOptions: {
       parser: tsParser,
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
       ecmaVersion: "latest",
       sourceType: "module",
       globals: {
@@ -35,7 +40,7 @@ module.exports = [
     },
   },
   {
-    files: ["src/test/**/*.ts", "**/*.spec.ts", "**/*.test.ts"],
+    files: ["src/test/**/*.ts", "src/test/**/*.tsx", "**/*.spec.ts", "**/*.spec.tsx", "**/*.test.ts", "**/*.test.tsx"],
     languageOptions: {
       globals: {
         ...globals.browser,

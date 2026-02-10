@@ -23,7 +23,7 @@ const CORE_ASSETS_BY_ENV = {
     "/icons/pwa-192.png",
     "/icons/pwa-512.png",
   ],
-  dev: ["/dev.html"],
+  dev: ["/dev.html", "/dev-plus.html"],
   prod: [],
 };
 const CORE_ASSETS = [
@@ -33,7 +33,7 @@ const CORE_ASSETS = [
 const NON_PUBLIC_PATHS = new Set(CORE_ASSETS_BY_ENV.dev);
 const OFFLINE_URL = "/index.html";
 
-const CORE_CACHE_VERSION = "__SW_CACHE_VERSION__";
+const CORE_CACHE_VERSION = "v5382c364";
 const CACHE_VERSION_TAG = "v5";
 const CORE_CACHE_NAME = `turni-di-palco-core-${CORE_CACHE_VERSION}-${CACHE_VERSION_TAG}`;
 const TILE_CACHE_NAME = `turni-di-palco-tiles-${CORE_CACHE_VERSION}-${CACHE_VERSION_TAG}`;
