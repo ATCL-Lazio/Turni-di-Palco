@@ -4,6 +4,7 @@ import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import { SUPABASE_SESSION_ID_KEY, SUPABASE_SESSION_KEY } from '../lib/auth-storage';
 import { resolveDisplayName } from '../lib/profile-utils';
 import { formatErrorDetails, reportCriticalError } from '../services/error-handler';
+import { withMobileWatchdog } from '../services/mobile-watchdog';
 
 export type RoleId = 'attore' | 'luci' | 'fonico' | 'attrezzista' | 'palco';
 export type Rewards = { xp: number; reputation: number; cachet: number };
@@ -199,6 +200,25 @@ export const activities: Activity[] = [
 
 const STORAGE_KEY = 'tdp-mobile-ui-state';
 const MAX_TURNS = 20;
+const MOBILE_WATCHDOG_TIMEOUTS = {
+  refreshTurnStats: 10000,
+  refreshTheatreReputation: 12000,
+  refreshBadges: 15000,
+  refreshLeaderboard: 15000,
+  markBadgesSeen: 12000,
+  restoreSession: 15000,
+  refreshFollowedEvents: 12000,
+  followEvent: 10000,
+  unfollowEvent: 10000,
+  loadCatalog: 18000,
+  loadRemoteState: 20000,
+  persistProfile: 12000,
+  registerTurnInsert: 12000,
+  completeActivityInsert: 12000,
+  resetProgress: 20000,
+  changePassword: 20000,
+  sendPasswordResetEmail: 12000,
+} as const;
 const HTML_ENTITY_MAP: Record<string, string> = {
   amp: '&',
   lt: '<',
@@ -584,68 +604,107 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   const refreshTurnStats = useCallback(async () => {
     if (!supabase || !authUserId) return;
-    setStatsLoading(true);
-    const { data, error } = await supabase!
-      .from('my_turn_stats')
-      .select('total_turns,turns_this_month,unique_theatres')
-      .single();
-    if (!error && data) {
-      setRemoteTurnStats({
-        totalTurns: Number(data.total_turns ?? 0),
-        turnsThisMonth: Number(data.turns_this_month ?? 0),
-        uniqueTheatres: Number(data.unique_theatres ?? 0),
-      });
-    }
-    setStatsLoading(false);
+    await withMobileWatchdog(
+      async () => {
+        setStatsLoading(true);
+        try {
+          const { data, error } = await supabase!
+            .from('my_turn_stats')
+            .select('total_turns,turns_this_month,unique_theatres')
+            .single();
+          if (!error && data) {
+            setRemoteTurnStats({
+              totalTurns: Number(data.total_turns ?? 0),
+              turnsThisMonth: Number(data.turns_this_month ?? 0),
+              uniqueTheatres: Number(data.unique_theatres ?? 0),
+            });
+          }
+        } finally {
+          setStatsLoading(false);
+        }
+      },
+      {
+        operation: 'refreshTurnStats',
+        timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.refreshTurnStats,
+        title: 'Statistiche lente',
+        message: 'Il refresh delle statistiche turni sta impiegando troppo tempo.',
+      }
+    );
   }, [authUserId]);
 
   const refreshTheatreReputation = useCallback(async () => {
     if (!supabase || !authUserId) return;
-    setTheatreReputationLoading(true);
-    const { data, error } = await supabase!
-      .from('my_theatre_reputation')
-      .select('theatre,reputation,total_turns');
-    if (!error && data) {
-      const nextReputation: TheatreReputation[] = data
-        .map((row: any) => ({
-          theatre: (row.theatre ?? '').toString(),
-          reputation: Number(row.reputation ?? 0),
-          totalTurns: Number(row.total_turns ?? 0),
-        }))
-        .filter((entry) => entry.theatre)
-        .sort(
-          (a, b) =>
-            b.reputation - a.reputation ||
-            b.totalTurns - a.totalTurns ||
-            a.theatre.localeCompare(b.theatre)
-        );
-      setRemoteTheatreReputation(nextReputation);
-    }
-    setTheatreReputationLoading(false);
+    await withMobileWatchdog(
+      async () => {
+        setTheatreReputationLoading(true);
+        try {
+          const { data, error } = await supabase!
+            .from('my_theatre_reputation')
+            .select('theatre,reputation,total_turns');
+          if (!error && data) {
+            const nextReputation: TheatreReputation[] = data
+              .map((row: any) => ({
+                theatre: (row.theatre ?? '').toString(),
+                reputation: Number(row.reputation ?? 0),
+                totalTurns: Number(row.total_turns ?? 0),
+              }))
+              .filter((entry) => entry.theatre)
+              .sort(
+                (a, b) =>
+                  b.reputation - a.reputation ||
+                  b.totalTurns - a.totalTurns ||
+                  a.theatre.localeCompare(b.theatre)
+              );
+            setRemoteTheatreReputation(nextReputation);
+          }
+        } finally {
+          setTheatreReputationLoading(false);
+        }
+      },
+      {
+        operation: 'refreshTheatreReputation',
+        timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.refreshTheatreReputation,
+        title: 'Reputazione teatri lenta',
+        message: 'Il refresh della reputazione teatri sta impiegando troppo tempo.',
+      }
+    );
   }, [authUserId]);
 
   const refreshBadges = useCallback(async () => {
     if (!supabase || !authUserId) return;
-    setBadgesLoading(true);
-    await supabase!.rpc('evaluate_my_badges');
-    const { data, error } = await supabase!
-      .from('my_badges')
-      .select('id,title,description,icon,metric,threshold,unlocked_at,seen_at,unlocked');
-    if (!error && data) {
-      const nextBadges: Badge[] = data.map((row: any) => ({
-        id: row.id,
-        title: row.title,
-        description: row.description ?? null,
-        icon: row.icon ?? 'Award',
-        metric: (row.metric as BadgeMetric | null) ?? null,
-        threshold: row.threshold != null ? Number(row.threshold) : null,
-        unlocked: Boolean(row.unlocked),
-        unlockedAt: row.unlocked_at ? new Date(row.unlocked_at).getTime() : null,
-        seenAt: row.seen_at ? new Date(row.seen_at).getTime() : null,
-      }));
-      setRemoteBadges(nextBadges);
-    }
-    setBadgesLoading(false);
+    await withMobileWatchdog(
+      async () => {
+        setBadgesLoading(true);
+        try {
+          await supabase!.rpc('evaluate_my_badges');
+          const { data, error } = await supabase!
+            .from('my_badges')
+            .select('id,title,description,icon,metric,threshold,unlocked_at,seen_at,unlocked');
+          if (!error && data) {
+            const nextBadges: Badge[] = data.map((row: any) => ({
+              id: row.id,
+              title: row.title,
+              description: row.description ?? null,
+              icon: row.icon ?? 'Award',
+              metric: (row.metric as BadgeMetric | null) ?? null,
+              threshold: row.threshold != null ? Number(row.threshold) : null,
+              unlocked: Boolean(row.unlocked),
+              unlockedAt: row.unlocked_at ? new Date(row.unlocked_at).getTime() : null,
+              seenAt: row.seen_at ? new Date(row.seen_at).getTime() : null,
+            }));
+            setRemoteBadges(nextBadges);
+          }
+        } finally {
+          setBadgesLoading(false);
+        }
+      },
+      {
+        operation: 'refreshBadges',
+        timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.refreshBadges,
+        title: 'Badges lenti',
+        message: 'Il refresh dei badge sta impiegando troppo tempo.',
+      }
+    );
   }, [authUserId]);
 
   type LeaderboardRow = {
@@ -662,49 +721,69 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   const refreshLeaderboard = useCallback(async () => {
     if (!supabase) return;
-    setLeaderboardLoading(true);
+    await withMobileWatchdog(
+      async () => {
+        setLeaderboardLoading(true);
 
-    try {
-      const { data, error } = await supabase.rpc('get_leaderboard', { p_limit: 50 });
-      if (error) throw error;
+        try {
+          const { data, error } = await supabase.rpc('get_leaderboard', { p_limit: 50 });
+          if (error) throw error;
 
-      const rows = (data as LeaderboardRow[]) ?? [];
-      const nextLeaderboard: LeaderboardEntry[] = rows.map((row) => {
-        const roleCandidate = row.role_id ?? 'attore';
-        const roleId: RoleId = (roleCandidate === 'attore' || roleCandidate === 'luci' || roleCandidate === 'fonico' || roleCandidate === 'attrezzista' || roleCandidate === 'palco')
-          ? (roleCandidate as RoleId)
-          : 'attore';
-        const lastActivityAt = row.last_activity_at ? new Date(row.last_activity_at).getTime() : undefined;
-        return {
-          id: row.id,
-          name: row.name ?? 'Player',
-          roleId,
-          xpTotal: row.xp_total ?? 0,
-          cachet: row.cachet ?? 0,
-          reputation: row.reputation ?? 0,
-          turnsCount: row.turns_count ?? 0,
-          profileImage: row.profile_image ?? undefined,
-          lastActivityAt,
-        };
-      });
-      setLeaderboard(nextLeaderboard);
-    } catch (error) {
-      console.warn('Supabase leaderboard fetch failed', error);
-      notifyCriticalError('Non riusciamo a caricare la classifica dal database.', [error]);
-      setLeaderboard([]);
-    } finally {
-      setLeaderboardLoading(false);
-    }
+          const rows = (data as LeaderboardRow[]) ?? [];
+          const nextLeaderboard: LeaderboardEntry[] = rows.map((row) => {
+            const roleCandidate = row.role_id ?? 'attore';
+            const roleId: RoleId = (roleCandidate === 'attore' || roleCandidate === 'luci' || roleCandidate === 'fonico' || roleCandidate === 'attrezzista' || roleCandidate === 'palco')
+              ? (roleCandidate as RoleId)
+              : 'attore';
+            const lastActivityAt = row.last_activity_at ? new Date(row.last_activity_at).getTime() : undefined;
+            return {
+              id: row.id,
+              name: row.name ?? 'Player',
+              roleId,
+              xpTotal: row.xp_total ?? 0,
+              cachet: row.cachet ?? 0,
+              reputation: row.reputation ?? 0,
+              turnsCount: row.turns_count ?? 0,
+              profileImage: row.profile_image ?? undefined,
+              lastActivityAt,
+            };
+          });
+          setLeaderboard(nextLeaderboard);
+        } catch (error) {
+          console.warn('Supabase leaderboard fetch failed', error);
+          notifyCriticalError('Non riusciamo a caricare la classifica dal database.', [error]);
+          setLeaderboard([]);
+        } finally {
+          setLeaderboardLoading(false);
+        }
+      },
+      {
+        operation: 'refreshLeaderboard',
+        timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.refreshLeaderboard,
+        title: 'Classifica lenta',
+        message: 'Il refresh della classifica sta impiegando troppo tempo.',
+      }
+    );
   }, []);
 
   const markBadgesSeen = useCallback(async () => {
     if (!supabase || !authUserId) return;
-    try {
-      await supabase.rpc('mark_my_badges_seen');
-      await refreshBadges();
-    } catch (error) {
-      console.warn('Supabase mark badges seen failed', error);
-    }
+    await withMobileWatchdog(
+      async () => {
+        try {
+          await supabase.rpc('mark_my_badges_seen');
+          await refreshBadges();
+        } catch (error) {
+          console.warn('Supabase mark badges seen failed', error);
+        }
+      },
+      {
+        operation: 'markBadgesSeen',
+        timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.markBadgesSeen,
+        title: 'Conferma badge lenta',
+        message: 'La sincronizzazione badge sta impiegando troppo tempo.',
+      }
+    );
   }, [authUserId, refreshBadges]);
 
   useEffect(() => {
@@ -712,20 +791,30 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true;
 
     const restoreSession = async () => {
-      const stored = readStoredSession();
-      if (stored) {
-        await supabase!.auth.setSession({
-          access_token: stored.access_token,
-          refresh_token: stored.refresh_token,
-        });
-      }
+      await withMobileWatchdog(
+        async () => {
+          const stored = readStoredSession();
+          if (stored) {
+            await supabase!.auth.setSession({
+              access_token: stored.access_token,
+              refresh_token: stored.refresh_token,
+            });
+          }
 
-      const { data } = await supabase!.auth.getSession();
-      if (!isMounted) return;
+          const { data } = await supabase!.auth.getSession();
+          if (!isMounted) return;
 
-      persistStoredSession(data.session ?? null);
-      setAuthUserId(data.session?.user.id ?? null);
-      setAuthReady(true);
+          persistStoredSession(data.session ?? null);
+          setAuthUserId(data.session?.user.id ?? null);
+          setAuthReady(true);
+        },
+        {
+          operation: 'restoreSession',
+          timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.restoreSession,
+          title: 'Ripristino sessione lento',
+          message: 'Il ripristino della sessione mobile sta impiegando troppo tempo.',
+        }
+      );
     };
 
     restoreSession();
@@ -753,35 +842,48 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         setFollowedEvents(catalogEvents);
         return;
       }
-      setFollowedEventsLoading(true);
-      const { data, error } = await supabase
-        .from('followed_events')
-        .select('event_id, events:events(id,name,theatre,event_date,event_time,genre,base_rewards,focus_role)')
-        .eq('user_id', authUserId);
-      if (!error && data) {
-        const mapped = (data as any[])
-          .map((row) => {
-            const eventData = Array.isArray(row.events) ? row.events[0] : row.events;
-            if (!eventData) return null;
-            return {
-              id: eventData.id,
-              name: normalizeText(eventData.name),
-              theatre: normalizeText(eventData.theatre),
-              date: normalizeText(eventData.event_date),
-              time: normalizeText(eventData.event_time),
-              genre: normalizeText(eventData.genre),
-              baseRewards: {
-                xp: Number(eventData.base_rewards?.xp ?? 0),
-                reputation: Number(eventData.base_rewards?.reputation ?? 0),
-                cachet: Number(eventData.base_rewards?.cachet ?? 0),
-              },
-              focusRole: eventData.focus_role ?? undefined,
-            } as GameEvent;
-          })
-          .filter((e): e is GameEvent => !!e);
-        setFollowedEvents(mapped);
-      }
-      setFollowedEventsLoading(false);
+      await withMobileWatchdog(
+        async () => {
+          setFollowedEventsLoading(true);
+          try {
+            const { data, error } = await supabase
+              .from('followed_events')
+              .select('event_id, events:events(id,name,theatre,event_date,event_time,genre,base_rewards,focus_role)')
+              .eq('user_id', authUserId);
+            if (!error && data) {
+              const mapped = (data as any[])
+                .map((row) => {
+                  const eventData = Array.isArray(row.events) ? row.events[0] : row.events;
+                  if (!eventData) return null;
+                  return {
+                    id: eventData.id,
+                    name: normalizeText(eventData.name),
+                    theatre: normalizeText(eventData.theatre),
+                    date: normalizeText(eventData.event_date),
+                    time: normalizeText(eventData.event_time),
+                    genre: normalizeText(eventData.genre),
+                    baseRewards: {
+                      xp: Number(eventData.base_rewards?.xp ?? 0),
+                      reputation: Number(eventData.base_rewards?.reputation ?? 0),
+                      cachet: Number(eventData.base_rewards?.cachet ?? 0),
+                    },
+                    focusRole: eventData.focus_role ?? undefined,
+                  } as GameEvent;
+                })
+                .filter((e): e is GameEvent => !!e);
+              setFollowedEvents(mapped);
+            }
+          } finally {
+            setFollowedEventsLoading(false);
+          }
+        },
+        {
+          operation: 'refreshFollowedEvents',
+          timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.refreshFollowedEvents,
+          title: 'Eventi seguiti lenti',
+          message: 'Il refresh degli eventi seguiti sta impiegando troppo tempo.',
+        }
+      );
     },
     [authUserId]
   );
@@ -796,15 +898,25 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         });
         return;
       }
-      const { error } = await supabase
-        .from('followed_events')
-        .insert({ user_id: authUserId, event_id: eventId });
-      if (!error) {
-        const event = catalog.events.find((item) => item.id === eventId);
-        if (event) {
-          setFollowedEvents((prev) => [event, ...prev.filter((item) => item.id !== eventId)]);
+      await withMobileWatchdog(
+        async () => {
+          const { error } = await supabase
+            .from('followed_events')
+            .insert({ user_id: authUserId, event_id: eventId });
+          if (!error) {
+            const event = catalog.events.find((item) => item.id === eventId);
+            if (event) {
+              setFollowedEvents((prev) => [event, ...prev.filter((item) => item.id !== eventId)]);
+            }
+          }
+        },
+        {
+          operation: 'followEvent',
+          timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.followEvent,
+          title: 'Follow evento lento',
+          message: 'La registrazione dell evento seguito sta impiegando troppo tempo.',
         }
-      }
+      );
     },
     [authUserId, catalog.events]
   );
@@ -815,14 +927,24 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         setFollowedEvents((prev) => prev.filter((item) => item.id !== eventId));
         return;
       }
-      const { error } = await supabase
-        .from('followed_events')
-        .delete()
-        .eq('user_id', authUserId)
-        .eq('event_id', eventId);
-      if (!error) {
-        setFollowedEvents((prev) => prev.filter((item) => item.id !== eventId));
-      }
+      await withMobileWatchdog(
+        async () => {
+          const { error } = await supabase
+            .from('followed_events')
+            .delete()
+            .eq('user_id', authUserId)
+            .eq('event_id', eventId);
+          if (!error) {
+            setFollowedEvents((prev) => prev.filter((item) => item.id !== eventId));
+          }
+        },
+        {
+          operation: 'unfollowEvent',
+          timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.unfollowEvent,
+          title: 'Unfollow evento lento',
+          message: 'La rimozione dell evento seguito sta impiegando troppo tempo.',
+        }
+      );
     },
     [authUserId]
   );
@@ -858,70 +980,80 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true;
 
     const loadCatalog = async () => {
-      const [rolesRes, eventsRes, activitiesRes] = await Promise.all([
-        supabase!.from('roles').select('id,name,focus,stats'),
-        supabase!
-          .from('events')
-          .select('id,name,theatre,event_date,event_time,genre,base_rewards,focus_role'),
-        supabase!
-          .from('activities')
-          .select('id,title,description,duration,xp_reward,cachet_reward,difficulty'),
-      ]);
+      await withMobileWatchdog(
+        async () => {
+          const [rolesRes, eventsRes, activitiesRes] = await Promise.all([
+            supabase!.from('roles').select('id,name,focus,stats'),
+            supabase!
+              .from('events')
+              .select('id,name,theatre,event_date,event_time,genre,base_rewards,focus_role'),
+            supabase!
+              .from('activities')
+              .select('id,title,description,duration,xp_reward,cachet_reward,difficulty'),
+          ]);
 
-      if (!isMounted) return;
+          if (!isMounted) return;
 
-      const nextRoles =
-        rolesRes.error || !rolesRes.data?.length
-          ? roles
-          : rolesRes.data.map((role: any) => ({
-            id: role.id as RoleId,
-            name: role.name,
-            focus: role.focus,
-            stats: {
-              presence: Number(role.stats?.presence ?? 0),
-              precision: Number(role.stats?.precision ?? 0),
-              leadership: Number(role.stats?.leadership ?? 0),
-              creativity: Number(role.stats?.creativity ?? 0),
-            },
-          }));
+          const nextRoles =
+            rolesRes.error || !rolesRes.data?.length
+              ? roles
+              : rolesRes.data.map((role: any) => ({
+                id: role.id as RoleId,
+                name: role.name,
+                focus: role.focus,
+                stats: {
+                  presence: Number(role.stats?.presence ?? 0),
+                  precision: Number(role.stats?.precision ?? 0),
+                  leadership: Number(role.stats?.leadership ?? 0),
+                  creativity: Number(role.stats?.creativity ?? 0),
+                },
+              }));
 
-      const nextEvents =
-        eventsRes.error || !eventsRes.data?.length
-          ? (isSupabaseConfigured ? [] : import.meta.env.DEV ? events : [])
-          : eventsRes.data.map((event: any) => ({
-            id: event.id,
-            name: normalizeText(event.name),
-            theatre: normalizeText(event.theatre),
-            date: normalizeText(event.event_date),
-            time: normalizeText(event.event_time),
-            genre: normalizeText(event.genre),
-            baseRewards: {
-              xp: Number(event.base_rewards?.xp ?? 0),
-              reputation: Number(event.base_rewards?.reputation ?? 0),
-              cachet: Number(event.base_rewards?.cachet ?? 0),
-            },
-            focusRole: event.focus_role ?? undefined,
-          }));
+          const nextEvents =
+            eventsRes.error || !eventsRes.data?.length
+              ? (isSupabaseConfigured ? [] : import.meta.env.DEV ? events : [])
+              : eventsRes.data.map((event: any) => ({
+                id: event.id,
+                name: normalizeText(event.name),
+                theatre: normalizeText(event.theatre),
+                date: normalizeText(event.event_date),
+                time: normalizeText(event.event_time),
+                genre: normalizeText(event.genre),
+                baseRewards: {
+                  xp: Number(event.base_rewards?.xp ?? 0),
+                  reputation: Number(event.base_rewards?.reputation ?? 0),
+                  cachet: Number(event.base_rewards?.cachet ?? 0),
+                },
+                focusRole: event.focus_role ?? undefined,
+              }));
 
-      const nextActivities =
-        activitiesRes.error || !activitiesRes.data?.length
-          ? import.meta.env.DEV ? activities : []
-          : activitiesRes.data.map((activity: any) => ({
-            id: activity.id,
-            title: activity.title,
-            description: activity.description,
-            duration: activity.duration,
-            xpReward: activity.xp_reward,
-            cachetReward: activity.cachet_reward,
-            difficulty: activity.difficulty as Activity['difficulty'],
-          }));
+          const nextActivities =
+            activitiesRes.error || !activitiesRes.data?.length
+              ? import.meta.env.DEV ? activities : []
+              : activitiesRes.data.map((activity: any) => ({
+                id: activity.id,
+                title: activity.title,
+                description: activity.description,
+                duration: activity.duration,
+                xpReward: activity.xp_reward,
+                cachetReward: activity.cachet_reward,
+                difficulty: activity.difficulty as Activity['difficulty'],
+              }));
 
-      setCatalog({
-        roles: nextRoles,
-        events: nextEvents,
-        activities: nextActivities,
-      });
-      refreshFollowedEvents(nextEvents);
+          setCatalog({
+            roles: nextRoles,
+            events: nextEvents,
+            activities: nextActivities,
+          });
+          refreshFollowedEvents(nextEvents);
+        },
+        {
+          operation: 'loadCatalog',
+          timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.loadCatalog,
+          title: 'Catalogo mobile lento',
+          message: 'Il caricamento del catalogo mobile sta impiegando troppo tempo.',
+        }
+      );
     };
 
     loadCatalog();
@@ -936,98 +1068,108 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true;
 
     const loadRemoteState = async () => {
-      const [userRes, profileRes, turnsRes] = await Promise.all([
-        supabase!.auth.getUser(),
-        supabase!.from('profiles').select('*').eq('id', authUserId).maybeSingle(),
-        supabase!.from('turns').select('*').eq('user_id', authUserId).order('created_at', { ascending: false }),
-      ]);
+      await withMobileWatchdog(
+        async () => {
+          const [userRes, profileRes, turnsRes] = await Promise.all([
+            supabase!.auth.getUser(),
+            supabase!.from('profiles').select('*').eq('id', authUserId).maybeSingle(),
+            supabase!.from('turns').select('*').eq('user_id', authUserId).order('created_at', { ascending: false }),
+          ]);
 
-      if (!isMounted) return;
+          if (!isMounted) return;
 
-      if (userRes.error || profileRes.error || turnsRes.error) {
-        notifyCriticalError('Non riusciamo a caricare il profilo dal database.', [
-          userRes.error,
-          profileRes.error,
-          turnsRes.error,
-        ]);
-      }
+          if (userRes.error || profileRes.error || turnsRes.error) {
+            notifyCriticalError('Non riusciamo a caricare il profilo dal database.', [
+              userRes.error,
+              profileRes.error,
+              turnsRes.error,
+            ]);
+          }
 
-      let profileRow: any = profileRes.data;
+          let profileRow: any = profileRes.data;
 
-      if (!profileRow && userRes.data?.user?.email) {
-        const user = userRes.data.user;
-        const displayName = resolveDisplayName({
-          name: user.user_metadata?.name,
-          metadata: user.user_metadata,
-          email: user.email,
-          fallback: 'Utente',
-        });
-        const insertRes = await supabase!
-          .from('profiles')
-          .insert({
-            id: authUserId,
-            name: displayName,
-            email: user.email,
-            role_id: 'attore',
-          })
-          .select('*')
-          .single();
-        if (insertRes.error) {
-          notifyCriticalError('Non riusciamo a creare il profilo utente.', [insertRes.error]);
+          if (!profileRow && userRes.data?.user?.email) {
+            const user = userRes.data.user;
+            const displayName = resolveDisplayName({
+              name: user.user_metadata?.name,
+              metadata: user.user_metadata,
+              email: user.email,
+              fallback: 'Utente',
+            });
+            const insertRes = await supabase!
+              .from('profiles')
+              .insert({
+                id: authUserId,
+                name: displayName,
+                email: user.email,
+                role_id: 'attore',
+              })
+              .select('*')
+              .single();
+            if (insertRes.error) {
+              notifyCriticalError('Non riusciamo a creare il profilo utente.', [insertRes.error]);
+            }
+            profileRow = insertRes.data ?? null;
+          }
+
+          if (!isMounted) return;
+
+          const remoteTurns = Array.isArray(turnsRes.data)
+            ? turnsRes.data.map((turn: any) => ({
+              id: turn.id,
+              eventId: turn.event_id ?? '',
+              eventName: normalizeText(turn.event_name),
+              theatre: normalizeText(turn.theatre),
+              date: normalizeText(turn.event_date),
+              time: normalizeText(turn.event_time),
+              roleId: (turn.role_id as RoleId) ?? 'attore',
+              rewards: {
+                xp: Number(turn.rewards?.xp ?? 0),
+                reputation: Number(turn.rewards?.reputation ?? 0),
+                cachet: Number(turn.rewards?.cachet ?? 0),
+              },
+              createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
+            }))
+            : [];
+
+          if (profileRow) {
+            const user = userRes.data?.user;
+            setState((prev: GameState) => ({
+              profile: {
+                ...prev.profile,
+                name: resolveDisplayName({
+                  name: profileRow.name,
+                  metadata: user?.user_metadata,
+                  email: profileRow.email ?? user?.email ?? prev.profile.email,
+                  fallback: prev.profile.name,
+                }),
+                email: profileRow.email ?? prev.profile.email,
+                roleId: (profileRow.role_id as RoleId) ?? prev.profile.roleId,
+                level: profileRow.level ?? prev.profile.level,
+                xp: profileRow.xp ?? prev.profile.xp,
+                xpToNextLevel: profileRow.xp_to_next_level ?? prev.profile.xpToNextLevel,
+                xpTotal: profileRow.xp_total ?? prev.profile.xpTotal,
+                xpField: profileRow.xp_field ?? prev.profile.xpField,
+                reputation: profileRow.reputation ?? prev.profile.reputation,
+                cachet: profileRow.cachet ?? prev.profile.cachet,
+                profileImage: profileRow.profile_image ?? prev.profile.profileImage,
+                lastActivityAt: profileRow.last_activity_at ? new Date(profileRow.last_activity_at).getTime() : Date.now(),
+              },
+              turns: remoteTurns,
+            }));
+          }
+
+          if (profileRow || !profileRes.error) {
+            setHasHydratedRemote(true);
+          }
+        },
+        {
+          operation: 'loadRemoteState',
+          timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.loadRemoteState,
+          title: 'Stato remoto lento',
+          message: 'Il caricamento dello stato remoto mobile sta impiegando troppo tempo.',
         }
-        profileRow = insertRes.data ?? null;
-      }
-
-      if (!isMounted) return;
-
-      const remoteTurns = Array.isArray(turnsRes.data)
-        ? turnsRes.data.map((turn: any) => ({
-          id: turn.id,
-          eventId: turn.event_id ?? '',
-          eventName: normalizeText(turn.event_name),
-          theatre: normalizeText(turn.theatre),
-          date: normalizeText(turn.event_date),
-          time: normalizeText(turn.event_time),
-          roleId: (turn.role_id as RoleId) ?? 'attore',
-          rewards: {
-            xp: Number(turn.rewards?.xp ?? 0),
-            reputation: Number(turn.rewards?.reputation ?? 0),
-            cachet: Number(turn.rewards?.cachet ?? 0),
-          },
-          createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
-        }))
-        : [];
-
-      if (profileRow) {
-        const user = userRes.data?.user;
-        setState((prev: GameState) => ({
-          profile: {
-            ...prev.profile,
-            name: resolveDisplayName({
-              name: profileRow.name,
-              metadata: user?.user_metadata,
-              email: profileRow.email ?? user?.email ?? prev.profile.email,
-              fallback: prev.profile.name,
-            }),
-            email: profileRow.email ?? prev.profile.email,
-            roleId: (profileRow.role_id as RoleId) ?? prev.profile.roleId,
-            level: profileRow.level ?? prev.profile.level,
-            xp: profileRow.xp ?? prev.profile.xp,
-            xpToNextLevel: profileRow.xp_to_next_level ?? prev.profile.xpToNextLevel,
-            xpTotal: profileRow.xp_total ?? prev.profile.xpTotal,
-            xpField: profileRow.xp_field ?? prev.profile.xpField,
-            reputation: profileRow.reputation ?? prev.profile.reputation,
-            cachet: profileRow.cachet ?? prev.profile.cachet,
-            profileImage: profileRow.profile_image ?? prev.profile.profileImage,
-            lastActivityAt: profileRow.last_activity_at ? new Date(profileRow.last_activity_at).getTime() : Date.now(),
-          },
-          turns: remoteTurns,
-        }));
-      }
-
-      if (profileRow || !profileRes.error) {
-        setHasHydratedRemote(true);
-      }
+      );
     };
 
     loadRemoteState();
@@ -1159,31 +1301,41 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const persistProfile = useCallback(
     (profile: PlayerProfile) => {
       if (!supabase || !authUserId || !hasHydratedRemote) return;
-      supabase
-        .from('profiles')
-        .upsert(
-          {
-            id: authUserId,
-            name: profile.name,
-            email: profile.email,
-            role_id: profile.roleId,
-            level: profile.level,
-            xp: profile.xp,
-            xp_to_next_level: profile.xpToNextLevel,
-            xp_total: profile.xpTotal,
-            xp_field: profile.xpField,
-            reputation: profile.reputation,
-            cachet: profile.cachet,
-            profile_image: profile.profileImage,
-            last_activity_at: new Date(profile.lastActivityAt).toISOString(),
-          },
-          { onConflict: 'id' }
-        )
-        .then(({ error }) => {
+      void withMobileWatchdog(
+        async () => {
+          const { error } = await supabase
+            .from('profiles')
+            .upsert(
+              {
+                id: authUserId,
+                name: profile.name,
+                email: profile.email,
+                role_id: profile.roleId,
+                level: profile.level,
+                xp: profile.xp,
+                xp_to_next_level: profile.xpToNextLevel,
+                xp_total: profile.xpTotal,
+                xp_field: profile.xpField,
+                reputation: profile.reputation,
+                cachet: profile.cachet,
+                profile_image: profile.profileImage,
+                last_activity_at: new Date(profile.lastActivityAt).toISOString(),
+              },
+              { onConflict: 'id' }
+            );
           if (error) {
             console.warn('Supabase profile upsert failed', error);
           }
-        });
+        },
+        {
+          operation: 'persistProfile',
+          timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.persistProfile,
+          title: 'Sync profilo lenta',
+          message: 'La sincronizzazione del profilo mobile sta impiegando troppo tempo.',
+        }
+      ).catch((error) => {
+        console.warn('Supabase profile upsert failed', error);
+      });
     },
     [authUserId, hasHydratedRemote]
   );
@@ -1244,24 +1396,34 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (supabase && authUserId) {
-        supabase
-          .from('turns')
-          .insert({
-            id: turnId,
-            user_id: authUserId,
-            event_id: event.id,
-            event_name: event.name,
-            theatre: event.theatre,
-            event_date: event.date,
-            event_time: event.time,
-            role_id: roleId,
-            rewards,
-          })
-          .then(({ error }) => {
+        void withMobileWatchdog(
+          async () => {
+            const { error } = await supabase
+              .from('turns')
+              .insert({
+                id: turnId,
+                user_id: authUserId,
+                event_id: event.id,
+                event_name: event.name,
+                theatre: event.theatre,
+                event_date: event.date,
+                event_time: event.time,
+                role_id: roleId,
+                rewards,
+              });
             if (error) {
               console.warn('Supabase turn insert failed', error);
             }
-          });
+          },
+          {
+            operation: 'registerTurnInsert',
+            timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.registerTurnInsert,
+            title: 'Registrazione turno lenta',
+            message: 'La scrittura del turno sul database sta impiegando troppo tempo.',
+          }
+        ).catch((error) => {
+          console.warn('Supabase turn insert failed', error);
+        });
       }
 
       return record;
@@ -1293,14 +1455,24 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (supabase && authUserId) {
-        supabase
-          .from('activity_completions')
-          .insert({ id: completionId, user_id: authUserId, activity_id: activity.id, rewards })
-          .then(({ error }) => {
+        void withMobileWatchdog(
+          async () => {
+            const { error } = await supabase
+              .from('activity_completions')
+              .insert({ id: completionId, user_id: authUserId, activity_id: activity.id, rewards });
             if (error) {
               console.warn('Supabase activity insert failed', error);
             }
-          });
+          },
+          {
+            operation: 'completeActivityInsert',
+            timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.completeActivityInsert,
+            title: 'Salvataggio activity lento',
+            message: 'La registrazione dell activity completata sta impiegando troppo tempo.',
+          }
+        ).catch((error) => {
+          console.warn('Supabase activity insert failed', error);
+        });
       }
 
       return { activity, rewards };
@@ -1309,79 +1481,109 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const resetProgress = useCallback(async () => {
-    if (isSupabaseConfigured && supabase && authUserId) {
-      const { error } = await supabase.rpc('reset_my_progress');
-      if (error) throw error;
-    }
+    await withMobileWatchdog(
+      async () => {
+        if (isSupabaseConfigured && supabase && authUserId) {
+          const { error } = await supabase.rpc('reset_my_progress');
+          if (error) throw error;
+        }
 
-    setState((prev: GameState) => ({
-      ...prev,
-      profile: {
-        ...prev.profile,
-        roleId: 'attore',
-        level: 1,
-        xp: 0,
-        xpToNextLevel: 1000,
-        xpTotal: 0,
-        xpField: 0,
-        reputation: 0,
-        cachet: 0,
+        setState((prev: GameState) => ({
+          ...prev,
+          profile: {
+            ...prev.profile,
+            roleId: 'attore',
+            level: 1,
+            xp: 0,
+            xpToNextLevel: 1000,
+            xpTotal: 0,
+            xpField: 0,
+            reputation: 0,
+            cachet: 0,
+          },
+          turns: [],
+        }));
+
+        if (isSupabaseConfigured && supabase && authUserId) {
+          await Promise.all([refreshTurnStats(), refreshTheatreReputation(), refreshBadges()]);
+        }
       },
-      turns: [],
-    }));
-
-    if (isSupabaseConfigured && supabase && authUserId) {
-      await Promise.all([refreshTurnStats(), refreshTheatreReputation(), refreshBadges()]);
-    }
+      {
+        operation: 'resetProgress',
+        timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.resetProgress,
+        title: 'Reset progress lento',
+        message: 'Il reset del progress mobile sta impiegando troppo tempo.',
+      }
+    );
   }, [authUserId, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
 
   const changePassword = useCallback(
     async (newPassword: string, currentPassword?: string) => {
-      if (!isSupabaseConfigured || !supabase) {
-        throw new Error('Supabase non configurato');
-      }
-      if (!authUserId) {
-        throw new Error('Devi essere autenticato per cambiare la password');
-      }
+      await withMobileWatchdog(
+        async () => {
+          if (!isSupabaseConfigured || !supabase) {
+            throw new Error('Supabase non configurato');
+          }
+          if (!authUserId) {
+            throw new Error('Devi essere autenticato per cambiare la password');
+          }
 
-      if (currentPassword) {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-        const email = sessionData.session?.user.email;
-        if (!email) {
-          throw new Error('Email mancante');
-        }
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password: currentPassword,
-        });
-        if (signInError) {
-          throw new Error('Password attuale non valida');
-        }
-      }
+          if (currentPassword) {
+            const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError) throw sessionError;
+            const email = sessionData.session?.user.email;
+            if (!email) {
+              throw new Error('Email mancante');
+            }
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+              email,
+              password: currentPassword,
+            });
+            if (signInError) {
+              throw new Error('Password attuale non valida');
+            }
+          }
 
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
+          const { error } = await supabase.auth.updateUser({ password: newPassword });
+          if (error) throw error;
+        },
+        {
+          operation: 'changePassword',
+          timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.changePassword,
+          title: 'Cambio password lento',
+          message: 'Il cambio password sta impiegando troppo tempo.',
+        }
+      );
     },
     [authUserId]
   );
 
   const sendPasswordResetEmail = useCallback(async (email: string) => {
-    if (!isSupabaseConfigured || !supabase) {
-      throw new Error('Supabase non configurato');
-    }
-    if (!email) {
-      throw new Error('Email mancante');
-    }
+    await withMobileWatchdog(
+      async () => {
+        if (!isSupabaseConfigured || !supabase) {
+          throw new Error('Supabase non configurato');
+        }
+        if (!email) {
+          throw new Error('Email mancante');
+        }
 
-    const redirectTo =
-      typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : undefined;
+        const redirectTo =
+          typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : undefined;
 
-    const { error } = await supabase.auth.resetPasswordForEmail(
-      email,
-      redirectTo ? { redirectTo } : undefined
+        const { error } = await supabase.auth.resetPasswordForEmail(
+          email,
+          redirectTo ? { redirectTo } : undefined
+        );
+        if (error) throw error;
+      },
+      {
+        operation: 'sendPasswordResetEmail',
+        timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.sendPasswordResetEmail,
+        title: 'Reset password lento',
+        message: 'L invio email per il reset password sta impiegando troppo tempo.',
+      }
     );
-    if (error) throw error;
   }, []);
 
   const resetState = useCallback(() => {
