@@ -26,14 +26,15 @@ export type PageHeroProps = {
 };
 
 export const sharedShortcuts: PageShortcut[] = [
-  { id: "home", label: "Home", href: "/", icon: "🏠" },
-  { id: "game", label: "Hub", href: "/game.html", icon: "🎮" },
-  { id: "map", label: "Mappa", href: "/map.html", icon: "🗺️" },
-  { id: "turns", label: "Turni", href: "/turns.html", icon: "📒" },
-  { id: "events", label: "Eventi", href: "/events.html", icon: "🎟️" },
-  { id: "profile", label: "Profilo", href: "/profile.html", icon: "👤" },
-  { id: "avatar", label: "Avatar", href: "/avatar.html", icon: "🧩" },
-  { id: "privacy", label: "Privacy", href: "/privacy.html", icon: "🔒" },
+  { id: "home", label: "Landing", href: "/" },
+  { id: "game", label: "Mobile Ops Hub", href: "/mobile-ops.html" },
+  { id: "map", label: "Mobile Infrastructure", href: "/mobile-infrastructure.html" },
+  { id: "turns", label: "Mobile Data Ops", href: "/mobile-data-ops.html" },
+  { id: "events", label: "Mobile Releases", href: "/mobile-releases.html" },
+  { id: "profile", label: "Mobile Runtime", href: "/mobile-runtime.html" },
+  { id: "avatar", label: "Mobile Access", href: "/mobile-access.html" },
+  { id: "leaderboard", label: "Mobile Audit", href: "/mobile-audit.html" },
+  { id: "privacy", label: "Privacy", href: "/privacy.html" },
 ];
 
 function renderBreadcrumbs(items: Breadcrumb[] = []) {
@@ -116,7 +117,7 @@ export function renderPageHero({
   const ctas = renderCtaRow(ctaRow);
   const backLink = backHref
     ? `<a class="back-link" href="${backHref}" data-back>
-        <span aria-hidden="true">←</span>
+        <span aria-hidden="true">&larr;</span>
         <span>${backLabel}</span>
       </a>`
     : "";
