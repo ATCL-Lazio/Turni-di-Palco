@@ -58,9 +58,9 @@ export async function renderDevSectionPage(config: DevSectionPageConfig) {
   }
 
   const defaultCtas: PageShortcut[] = [
-    { id: "open-dev-plus", label: "Open Dev Plus", href: "/dev-plus.html", variant: "primary" },
+    { id: "open-dev-plus", label: "Open Dev Plus", href: "/control-plane.html", variant: "primary" },
     { id: "open-mobile-preview", label: "Open Mobile Preview", href: "/mobile/", variant: "ghost" },
-    { id: "open-overview", label: "Open Mobile Ops Hub", href: "/game.html", variant: "ghost" },
+    { id: "open-overview", label: "Open Mobile Ops Hub", href: "/mobile-ops.html", variant: "ghost" },
     { id: "back-home", label: "Back To Home", href: "/", variant: "ghost" },
   ];
 

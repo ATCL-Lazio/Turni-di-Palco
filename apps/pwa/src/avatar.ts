@@ -29,8 +29,8 @@ void renderDevSectionPage({
       description: "Use these pages to validate identity and privileges before interventions.",
       spanTwoColumns: true,
       links: [
-        { label: "Dev Plus Login + Session Check", href: "/dev-plus.html" },
-        { label: "Audit Timeline", href: "/leaderboard.html" },
+        { label: "Dev Plus Login + Session Check", href: "/control-plane.html" },
+        { label: "Audit Timeline", href: "/mobile-audit.html" },
       ],
     },
   ],

@@ -1,4 +1,4 @@
-﻿export type PageShortcut = {
+export type PageShortcut = {
   id: string;
   label: string;
   href?: string;
@@ -27,13 +27,13 @@ export type PageHeroProps = {
 
 export const sharedShortcuts: PageShortcut[] = [
   { id: "home", label: "Landing", href: "/" },
-  { id: "game", label: "Mobile Ops Hub", href: "/game.html" },
-  { id: "map", label: "Mobile Infrastructure", href: "/map.html" },
-  { id: "turns", label: "Mobile Data Ops", href: "/turns.html" },
-  { id: "events", label: "Mobile Releases", href: "/events.html" },
-  { id: "profile", label: "Mobile Runtime", href: "/profile.html" },
-  { id: "avatar", label: "Mobile Access", href: "/avatar.html" },
-  { id: "leaderboard", label: "Mobile Audit", href: "/leaderboard.html" },
+  { id: "game", label: "Mobile Ops Hub", href: "/mobile-ops.html" },
+  { id: "map", label: "Mobile Infrastructure", href: "/mobile-infrastructure.html" },
+  { id: "turns", label: "Mobile Data Ops", href: "/mobile-data-ops.html" },
+  { id: "events", label: "Mobile Releases", href: "/mobile-releases.html" },
+  { id: "profile", label: "Mobile Runtime", href: "/mobile-runtime.html" },
+  { id: "avatar", label: "Mobile Access", href: "/mobile-access.html" },
+  { id: "leaderboard", label: "Mobile Audit", href: "/mobile-audit.html" },
   { id: "privacy", label: "Privacy", href: "/privacy.html" },
 ];
 

@@ -1,4 +1,4 @@
-﻿import "../../../shared/styles/main.css";
+import "../../../shared/styles/main.css";
 import { renderPageHero } from "./components/page-hero";
 import { requireDevAccess } from "./services/dev-gate";
 import { enforceDesktopOnly } from "./utils/desktop-only";
@@ -24,16 +24,16 @@ const start = async () => {
     backHref: "/",
     backLabel: "Back To Landing",
     quickActions: [
-      { id: "dev-plus", label: "Dev Plus", href: "/dev-plus.html" },
-      { id: "game", label: "Mobile Ops Hub", href: "/game.html" },
-      { id: "events", label: "Mobile Releases", href: "/events.html" },
-      { id: "turns", label: "Mobile Data Ops", href: "/turns.html" },
+      { id: "dev-plus", label: "Dev Plus", href: "/control-plane.html" },
+      { id: "game", label: "Mobile Ops Hub", href: "/mobile-ops.html" },
+      { id: "events", label: "Mobile Releases", href: "/mobile-releases.html" },
+      { id: "turns", label: "Mobile Data Ops", href: "/mobile-data-ops.html" },
     ],
     ctaRow: [
-      { id: "open-dev-plus", label: "Open Dev Plus", href: "/dev-plus.html", variant: "primary" },
+      { id: "open-dev-plus", label: "Open Dev Plus", href: "/control-plane.html", variant: "primary" },
       { id: "open-mobile-preview", label: "Open Mobile Preview", href: "/mobile/", variant: "ghost" },
-      { id: "open-ops", label: "Open Mobile Ops Hub", href: "/game.html", variant: "ghost" },
-      { id: "open-infra", label: "Open Mobile Infrastructure", href: "/map.html", variant: "ghost" },
+      { id: "open-ops", label: "Open Mobile Ops Hub", href: "/mobile-ops.html", variant: "ghost" },
+      { id: "open-infra", label: "Open Mobile Infrastructure", href: "/mobile-infrastructure.html", variant: "ghost" },
     ],
   });
 
@@ -65,10 +65,10 @@ const start = async () => {
         <article class="card layout-span-2">
           <h2>Mobile Monitoring Links</h2>
           <div class="cta-row">
-            <a class="button ghost" href="/dev-plus.html">Dev Plus Console</a>
+            <a class="button ghost" href="/control-plane.html">Dev Plus Console</a>
             <a class="button ghost" href="/mobile/">Mobile Preview</a>
-            <a class="button ghost" href="/profile.html">Mobile Runtime</a>
-            <a class="button ghost" href="/leaderboard.html">Mobile Audit</a>
+            <a class="button ghost" href="/mobile-runtime.html">Mobile Runtime</a>
+            <a class="button ghost" href="/mobile-audit.html">Mobile Audit</a>
             <a class="button ghost" href="/privacy.html">Privacy</a>
           </div>
         </article>
