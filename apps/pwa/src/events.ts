@@ -23,7 +23,7 @@ void renderDevSectionPage({
         "Dry-run recommended as first step",
         "Confirmation token required for execution",
       ],
-      links: [{ label: "Open Dev Plus Commands", href: "/dev-plus.html" }],
+      links: [{ label: "Open Dev Plus Commands", href: "/control-plane.html" }],
     },
     {
       title: "Mobile Release Checklist",

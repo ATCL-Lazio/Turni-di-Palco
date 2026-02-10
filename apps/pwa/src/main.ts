@@ -1,4 +1,4 @@
-﻿import "../../../shared/styles/main.css";
+import "../../../shared/styles/main.css";
 import { renderPageHero } from "./components/page-hero";
 import { renderPermissionsCard, attachPermissionsListeners } from "./features/permissions-card";
 import { renderStatusCard, attachStatusListeners } from "./features/status-card";
@@ -22,24 +22,24 @@ const start = async () => {
     : "Installable shell with Dev Plus control-plane for mobile monitoring, rollout checks, and mobile data operations.";
 
   const quickActions = [
-    { id: "game", label: "Mobile Ops Hub", href: "/game.html" },
-    { id: "map", label: "Mobile Infrastructure", href: "/map.html" },
-    { id: "profile", label: "Mobile Runtime", href: "/profile.html" },
-    { id: "events", label: "Mobile Releases", href: "/events.html" },
-    { id: "turns", label: "Mobile Data Ops", href: "/turns.html" },
-    { id: "leaderboard", label: "Mobile Audit", href: "/leaderboard.html" },
+    { id: "game", label: "Mobile Ops Hub", href: "/mobile-ops.html" },
+    { id: "map", label: "Mobile Infrastructure", href: "/mobile-infrastructure.html" },
+    { id: "profile", label: "Mobile Runtime", href: "/mobile-runtime.html" },
+    { id: "events", label: "Mobile Releases", href: "/mobile-releases.html" },
+    { id: "turns", label: "Mobile Data Ops", href: "/mobile-data-ops.html" },
+    { id: "leaderboard", label: "Mobile Audit", href: "/mobile-audit.html" },
   ];
 
   if (!isPublicMode) {
-    quickActions.unshift({ id: "dev", label: "Dev Playground", href: "/dev.html" });
-    quickActions.unshift({ id: "dev-plus", label: "Dev Plus", href: "/dev-plus.html" });
+    quickActions.unshift({ id: "dev", label: "Dev Playground", href: "/dev-playground.html" });
+    quickActions.unshift({ id: "dev-plus", label: "Dev Plus", href: "/control-plane.html" });
   }
 
   const ctaRow = [
-    { id: "open-dev-plus", label: "Open Dev Plus", href: "/dev-plus.html", variant: "primary" },
+    { id: "open-dev-plus", label: "Open Dev Plus", href: "/control-plane.html", variant: "primary" },
     { id: "open-mobile-preview", label: "Open Mobile Preview", href: "/mobile/", variant: "ghost" },
-    { id: "open-ops-hub", label: "Open Mobile Ops Hub", href: "/game.html", variant: "ghost" },
-    { id: "open-dev", label: "Open Dev Playground", href: "/dev.html", variant: "ghost" },
+    { id: "open-ops-hub", label: "Open Mobile Ops Hub", href: "/mobile-ops.html", variant: "ghost" },
+    { id: "open-dev", label: "Open Dev Playground", href: "/dev-playground.html", variant: "ghost" },
     { id: "refresh", label: "Reload", kind: "button", dataAction: "refresh", variant: "ghost" },
   ];
 

@@ -23,7 +23,7 @@ void renderDevSectionPage({
         "Cross-check result status with runtime metrics",
         "Escalate repeated failures to incident log",
       ],
-      links: [{ label: "Open Dev Plus Audit View", href: "/dev-plus.html" }],
+      links: [{ label: "Open Dev Plus Audit View", href: "/control-plane.html" }],
     },
     {
       title: "Operational Hygiene",
