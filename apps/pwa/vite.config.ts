@@ -66,19 +66,28 @@ export default defineConfig(({ mode }) => {
 
   const buildInputs: Record<string, string> = {
     main: path.resolve(__dirname, "index.html"),
-    game: path.resolve(__dirname, "game.html"),
-    map: path.resolve(__dirname, "map.html"),
-    avatar: path.resolve(__dirname, "avatar.html"),
-    profile: path.resolve(__dirname, "profile.html"),
+    mobileOps: path.resolve(__dirname, "mobile-ops.html"),
+    mobileInfrastructure: path.resolve(__dirname, "mobile-infrastructure.html"),
+    mobileAccess: path.resolve(__dirname, "mobile-access.html"),
+    mobileRuntime: path.resolve(__dirname, "mobile-runtime.html"),
     privacy: path.resolve(__dirname, "privacy.html"),
-    events: path.resolve(__dirname, "events.html"),
-    turns: path.resolve(__dirname, "turns.html"),
-    leaderboard: path.resolve(__dirname, "leaderboard.html"),
+    mobileReleases: path.resolve(__dirname, "mobile-releases.html"),
+    mobileDataOps: path.resolve(__dirname, "mobile-data-ops.html"),
+    mobileAudit: path.resolve(__dirname, "mobile-audit.html"),
+    gameLegacy: path.resolve(__dirname, "game.html"),
+    mapLegacy: path.resolve(__dirname, "map.html"),
+    avatarLegacy: path.resolve(__dirname, "avatar.html"),
+    profileLegacy: path.resolve(__dirname, "profile.html"),
+    eventsLegacy: path.resolve(__dirname, "events.html"),
+    turnsLegacy: path.resolve(__dirname, "turns.html"),
+    leaderboardLegacy: path.resolve(__dirname, "leaderboard.html"),
   };
 
   if (!isPublicMode) {
-    buildInputs.dev = path.resolve(__dirname, "dev.html");
-    buildInputs.devPlus = path.resolve(__dirname, "dev-plus.html");
+    buildInputs.devPlayground = path.resolve(__dirname, "dev-playground.html");
+    buildInputs.controlPlane = path.resolve(__dirname, "control-plane.html");
+    buildInputs.devLegacy = path.resolve(__dirname, "dev.html");
+    buildInputs.devPlusLegacy = path.resolve(__dirname, "dev-plus.html");
   }
 
   return {

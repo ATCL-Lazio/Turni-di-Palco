@@ -496,8 +496,8 @@ function App() {
         <div className="devplus-header-actions">
           <div className="devplus-links">
             <a href="/">Home</a>
-            <a href="/dev.html">Dev playground</a>
-            <a href="/game.html">Hub</a>
+            <a href="/dev-playground.html">Dev playground</a>
+            <a href="/mobile-ops.html">Hub</a>
           </div>
           <div className="devplus-endpoint">
             <span>Control-plane</span>

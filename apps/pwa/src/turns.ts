@@ -23,7 +23,7 @@ void renderDevSectionPage({
         "Delete restricted to admin role",
         "Execution and audit persistence",
       ],
-      links: [{ label: "Open Dev Plus DB Commands", href: "/dev-plus.html" }],
+      links: [{ label: "Open Dev Plus DB Commands", href: "/control-plane.html" }],
     },
     {
       title: "DB Ops Runbook",

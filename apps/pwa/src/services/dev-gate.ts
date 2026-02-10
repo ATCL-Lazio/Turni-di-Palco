@@ -135,6 +135,31 @@ function normalizeServerAccessPath(pathname: string) {
   const stripped = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
   if (!stripped) return "/";
 
+  const compatibilityMap: Record<string, string> = {
+    "/mobile-ops": "/game.html",
+    "/mobile-ops.html": "/game.html",
+    "/mobile-infrastructure": "/map.html",
+    "/mobile-infrastructure.html": "/map.html",
+    "/mobile-access": "/avatar.html",
+    "/mobile-access.html": "/avatar.html",
+    "/mobile-runtime": "/profile.html",
+    "/mobile-runtime.html": "/profile.html",
+    "/mobile-releases": "/events.html",
+    "/mobile-releases.html": "/events.html",
+    "/mobile-data-ops": "/turns.html",
+    "/mobile-data-ops.html": "/turns.html",
+    "/mobile-audit": "/leaderboard.html",
+    "/mobile-audit.html": "/leaderboard.html",
+    "/dev-playground": "/dev.html",
+    "/dev-playground.html": "/dev.html",
+    "/control-plane": "/dev-plus.html",
+    "/control-plane.html": "/dev-plus.html",
+  };
+
+  if (compatibilityMap[stripped]) {
+    return compatibilityMap[stripped];
+  }
+
   const lastSegment = stripped.split("/").pop() ?? "";
   const hasExtension = lastSegment.includes(".");
   if (hasExtension) {
