@@ -1,3 +1,5 @@
+import { withMobileWatchdog } from './mobile-watchdog';
+
 export type AiChatMessage = {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -59,6 +61,10 @@ const DEFAULT_ENDPOINT =
   import.meta.env.VITE_AI_SUPPORT_ENDPOINT ?? buildDefaultEndpoint('/api/ai/chat');
 const DEFAULT_ISSUE_ENDPOINT =
   import.meta.env.VITE_AI_SUPPORT_ISSUE_ENDPOINT ?? null;
+const AI_SUPPORT_REQUEST_WATCHDOG_MS = 25000;
+const AI_ISSUE_REQUEST_WATCHDOG_MS = 20000;
+const AI_AVAILABILITY_WATCHDOG_MIN_MS = 5000;
+const AI_AVAILABILITY_WATCHDOG_BUFFER_MS = 1500;
 
 function isLocalHost(hostname: string) {
   return hostname === 'localhost' || hostname === '127.0.0.1';
@@ -145,56 +151,74 @@ export async function requestAiSupport({
   endpoint,
   signal,
 }: AiSupportRequest) {
-  const target = resolveEndpoint(endpoint);
-  const response = await fetch(target, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    signal,
-    body: JSON.stringify({
-      prompt: SUPPORT_PROMPT,
-      messages,
-      context: {
-        userName,
-        memory,
+  return withMobileWatchdog(async () => {
+    const target = resolveEndpoint(endpoint);
+    const response = await fetch(target, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-    }),
+      signal,
+      body: JSON.stringify({
+        prompt: SUPPORT_PROMPT,
+        messages,
+        context: {
+          userName,
+          memory,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(errorBody || 'AI request failed');
+    }
+
+    const data = (await response.json()) as AiSupportResponse;
+    const reply = extractReply(data);
+    if (!reply) {
+      throw new Error('Missing AI reply');
+    }
+    return reply;
+  }, {
+    operation: 'requestAiSupport',
+    timeoutMs: AI_SUPPORT_REQUEST_WATCHDOG_MS,
+    title: 'Supporto rallentato',
+    message: 'Il servizio di supporto sta impiegando troppo tempo a rispondere.',
   });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(errorBody || 'AI request failed');
-  }
-
-  const data = (await response.json()) as AiSupportResponse;
-  const reply = extractReply(data);
-  if (!reply) {
-    throw new Error('Missing AI reply');
-  }
-  return reply;
 }
 
 export async function checkAiSupportAvailability({
   endpoint,
   timeoutMs = 2500,
 }: AiSupportAvailabilityOptions = {}) {
-  const target = resolveHealthEndpoint(resolveEndpoint(endpoint));
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  const watchdogTimeoutMs = Math.max(
+    AI_AVAILABILITY_WATCHDOG_MIN_MS,
+    timeoutMs + AI_AVAILABILITY_WATCHDOG_BUFFER_MS
+  );
+  return withMobileWatchdog(async () => {
+    const target = resolveHealthEndpoint(resolveEndpoint(endpoint));
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    const response = await fetch(target, {
-      method: 'GET',
-      signal: controller.signal,
-      mode: 'cors',
-    });
-    return response.ok ? 'available' : 'unavailable';
-  } catch {
-    return 'unknown';
-  } finally {
-    window.clearTimeout(timeout);
-  }
+    try {
+      const response = await fetch(target, {
+        method: 'GET',
+        signal: controller.signal,
+        mode: 'cors',
+      });
+      return response.ok ? 'available' : 'unavailable';
+    } catch {
+      return 'unknown';
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }, {
+    operation: 'checkAiSupportAvailability',
+    timeoutMs: watchdogTimeoutMs,
+    title: 'Verifica supporto rallentata',
+    message: 'Il controllo disponibilita del supporto sta richiedendo troppo tempo.',
+  });
 }
 
 export async function requestAiIssue({
@@ -204,19 +228,26 @@ export async function requestAiIssue({
   payload: AiSupportIssuePayload;
   endpoint?: string;
 }) {
-  const target = resolveIssueEndpoint(endpoint);
-  const response = await fetch(target, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
+  return withMobileWatchdog(async () => {
+    const target = resolveIssueEndpoint(endpoint);
+    const response = await fetch(target, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(errorBody || 'Issue request failed');
+    }
+
+    return (await response.json()) as AiSupportIssueResponse;
+  }, {
+    operation: 'requestAiIssue',
+    timeoutMs: AI_ISSUE_REQUEST_WATCHDOG_MS,
+    title: 'Segnalazione rallentata',
+    message: 'L invio della segnalazione sta impiegando troppo tempo.',
   });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(errorBody || 'Issue request failed');
-  }
-
-  return (await response.json()) as AiSupportIssueResponse;
 }

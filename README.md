@@ -62,9 +62,44 @@ Comandi principali:
 
 ```bash
 npm run dev:pwa
+npm run dev:pwa:https
+npm run dev:control-plane
+npm run dev:control-plane:https
+npm run start:control-plane
 npm run build:pwa
 npm run test:pwa
 ```
+
+## Dev Dashboard + Control Plane
+
+Configurazione locale consigliata:
+
+1. Imposta le variabili da `.env.example` (root) e `apps/pwa/.env.example`.
+2. Avvia la dashboard PWA in HTTPS:
+
+```bash
+npm run dev:pwa:https
+```
+
+3. In un secondo terminale avvia il control-plane:
+
+```bash
+npm run dev:control-plane:https
+```
+
+Variabili principali:
+
+- `VITE_DEV_CONTROL_PLANE_URL` (default locale: `http://localhost:8787`)
+- `CONTROL_PLANE_ALLOWED_ORIGINS`
+- `CONTROL_PLANE_ALLOWED_EMAILS`
+- `CONTROL_PLANE_RATE_LIMIT_PER_MIN`
+- `CONTROL_PLANE_CONFIRM_TTL_MS`
+- `RENDER_API_KEY`
+- `RENDER_SERVICE_IDS_JSON`
+
+Deploy Render:
+
+- `render.yaml` include il servizio `Turni-di-Palco-Control-Plane` con `buildCommand`/`startCommand` dedicati.
 
 ## Contributi
 

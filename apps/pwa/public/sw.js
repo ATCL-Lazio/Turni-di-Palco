@@ -5,14 +5,14 @@ const CORE_ASSETS_BY_ENV = {
   common: [
     "/",
     "/index.html",
-    "/map.html",
-    "/game.html",
-    "/avatar.html",
-    "/profile.html",
+    "/mobile-ops.html",
+    "/mobile-infrastructure.html",
+    "/mobile-access.html",
+    "/mobile-runtime.html",
     "/privacy.html",
-    "/events.html",
-    "/turns.html",
-    "/leaderboard.html",
+    "/mobile-releases.html",
+    "/mobile-data-ops.html",
+    "/mobile-audit.html",
     "/mobile/index.html",
     "/manifest.webmanifest",
     "/favicon.ico",
@@ -23,7 +23,7 @@ const CORE_ASSETS_BY_ENV = {
     "/icons/pwa-192.png",
     "/icons/pwa-512.png",
   ],
-  dev: ["/dev.html"],
+  dev: ["/dev-playground.html", "/control-plane.html"],
   prod: [],
 };
 const CORE_ASSETS = [
@@ -33,7 +33,7 @@ const CORE_ASSETS = [
 const NON_PUBLIC_PATHS = new Set(CORE_ASSETS_BY_ENV.dev);
 const OFFLINE_URL = "/index.html";
 
-const CORE_CACHE_VERSION = "__SW_CACHE_VERSION__";
+const CORE_CACHE_VERSION = "v0d140fe";
 const CACHE_VERSION_TAG = "v5";
 const CORE_CACHE_NAME = `turni-di-palco-core-${CORE_CACHE_VERSION}-${CACHE_VERSION_TAG}`;
 const TILE_CACHE_NAME = `turni-di-palco-tiles-${CORE_CACHE_VERSION}-${CACHE_VERSION_TAG}`;
@@ -122,7 +122,7 @@ const isCriticalCoreAsset = (request) => {
 };
 
 const cacheCoreAssets = async (cache) => {
-  // Optional entries (for example /dev.html in public-mode builds) must not break SW install.
+  // Optional entries (for example /dev-playground.html in public-mode builds) must not break SW install.
   await Promise.all(
     CORE_ASSETS.map((assetUrl) =>
       cache
