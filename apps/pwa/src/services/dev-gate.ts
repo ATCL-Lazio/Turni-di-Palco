@@ -118,19 +118,45 @@ function hasGraceCachedSession(user: User, cached: DevGateSession | null) {
   return cached.expiresAt <= now && now - cached.expiresAt <= staleCacheGraceMs;
 }
 
+function canReuseCachedSessionWithoutUser(cached: DevGateSession | null) {
+  if (!cached) return false;
+  const now = Date.now();
+  if (cached.expiresAt > now) return true;
+  return now - cached.expiresAt <= staleCacheGraceMs;
+}
+
 type DevAccessResponse = {
   allowed: boolean;
   reason?: string;
 };
 
+function normalizeServerAccessPath(pathname: string) {
+  if (!pathname || pathname === "/") return "/";
+  const stripped = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  if (!stripped) return "/";
+
+  const lastSegment = stripped.split("/").pop() ?? "";
+  const hasExtension = lastSegment.includes(".");
+  if (hasExtension) {
+    return stripped;
+  }
+
+  return `${stripped}.html`;
+}
+
 async function verifyServerAccess() {
   if (!supabase) {
     return { allowed: false, reason: "Supabase non configurato." };
   }
+  const currentPath = typeof window === "undefined" ? "/" : window.location.pathname;
+  const normalizedPath = normalizeServerAccessPath(currentPath);
 
   try {
     const { data, error } = await supabase.functions.invoke<DevAccessResponse>(serverAccessFunction, {
-      body: { path: window.location.pathname },
+      body: {
+        path: normalizedPath,
+        originalPath: currentPath,
+      },
     });
 
     if (error) {
@@ -278,6 +304,10 @@ export async function requireDevAccess() {
     }
   }
 
+  if (!currentUser && canReuseCachedSessionWithoutUser(cachedSession)) {
+    return true;
+  }
+
   const state = renderGate(root);
 
   if (currentUser) {
@@ -294,7 +324,7 @@ export async function requireDevAccess() {
       setGateBusy(state, true);
       setGateMessage(state, "Verifico le credenziali...", "info");
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({
         email: state.emailInput.value.trim(),
         password: state.passwordInput.value,
       });
@@ -305,8 +335,7 @@ export async function requireDevAccess() {
         return;
       }
 
-      const { data: freshSessionData } = await supabase.auth.getSession();
-      const freshUser = freshSessionData.session?.user ?? null;
+      const freshUser = signInData.user ?? (await supabase.auth.getSession()).data.session?.user ?? null;
       const serverCheck = await verifyServerAccess();
       if (!isUserAllowed(freshUser) || !serverCheck.allowed) {
         await supabase.auth.signOut();
