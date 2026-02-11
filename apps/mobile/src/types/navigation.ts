@@ -21,7 +21,8 @@ export type Screen =
     | 'career'
     | 'terms'
     | 'privacy'
-    | 'earned-titles';
+    | 'earned-titles'
+    | 'ticket-qr-prototype';
 
 export type Tab = 'home' | 'turns' | 'leaderboard' | 'activities' | 'profile';
 
