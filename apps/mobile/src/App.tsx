@@ -250,7 +250,14 @@ function AppShell() {
       const activation = await activateTicketByDetails(eventId, ticketNumber, activationUserId);
       if (!activation.ok) return { ok: false as const, error: activation.error };
 
-      window.alert('Ticket attivato con successo (manuale).');
+      // Auto-register turn on success
+      if (activation.eventId) {
+        registerTurn(activation.eventId, state.profile.roleId);
+        window.alert('Ticket attivato e turno registrato con successo.');
+      } else {
+        window.alert('Ticket attivato.');
+      }
+      
       setCurrentScreen(activeTab === 'home' ? 'home' : 'turns');
       return { ok: true as const };
     }
@@ -267,7 +274,14 @@ function AppShell() {
         return { ok: false as const, error: activation.error };
       }
 
-      window.alert('Ticket attivato correttamente.');
+      // Auto-register turn on success
+      if (activation.eventId) {
+        registerTurn(activation.eventId, state.profile.roleId);
+        window.alert('Ticket attivato e turno registrato correttamente.');
+      } else {
+        window.alert('Ticket attivato correttamente.');
+      }
+      
       setCurrentScreen(activeTab === 'home' ? 'home' : 'turns');
       return { ok: true as const };
     }
