@@ -26,6 +26,7 @@ load_dotenv()
 
 @dataclass
 class TicketPayload:
+    circuit: str
     event_name: str
     event_id: str
     ticket_number: str
@@ -91,7 +92,7 @@ ITALIAN_MONTHS = {
 
 
 def default_ticket_circuit() -> str:
-    return os.getenv("TICKET_QR_CIRCUIT", "ATCL").strip() or "ATCL"
+    return os.getenv("TICKET_QR_CIRCUIT", "TicketOne").strip() or "TicketOne"
 
 
 def _normalize_month_token(value: str) -> str:
