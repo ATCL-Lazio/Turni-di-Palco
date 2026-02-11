@@ -30,13 +30,17 @@ class TicketQrGeneratorUI:
         self.root.title("Turni di Palco - Generatore QR Biglietteria")
         self.root.geometry("900x760")
 
+        supabase_url = os.getenv("SUPABASE_URL", "").strip()
+        service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+        has_creds = bool(supabase_url and service_role_key)
+
         self.circuit_var = tk.StringVar(value=default_ticket_circuit())
         self.calendar_event_var = tk.StringVar(value="")
         self.event_name_var = tk.StringVar(value="-")
         self.event_id_var = tk.StringVar(value="-")
         self.date_var = tk.StringVar(value="-")
-        self.ticket_number_var = tk.StringVar(value="1234567890")
-        self.skip_supabase_var = tk.BooleanVar(value=True)
+        self.ticket_number_var = tk.StringVar(value="")
+        self.skip_supabase_var = tk.BooleanVar(value=not has_creds)
         self.output_var = tk.StringVar(value=str(pathlib.Path("./out/ticket-qr.png").resolve()))
         self.calendar_status_var = tk.StringVar(value="Calendario non caricato.")
         self.calendar_events: list[CalendarEvent] = []
@@ -96,13 +100,13 @@ class TicketQrGeneratorUI:
 
         ttk.Checkbutton(
             frame,
-            text="Modalita locale (non prenota hash su Supabase)",
+            text="Modalità locale (non prenota hash su Supabase)",
             variable=self.skip_supabase_var,
         ).pack(anchor="w", pady=(8, 8))
 
         button_row = ttk.Frame(frame)
         button_row.pack(fill="x", pady=(0, 8))
-        ttk.Button(button_row, text="Genera QR", command=self._generate).pack(side="left")
+        ttk.Button(button_row, text="Genera e Prenota QR", command=self._generate).pack(side="left")
 
         ttk.Label(frame, text="JSON generato", font=("Arial", 10, "bold")).pack(anchor="w", pady=(8, 4))
         self.json_box = tk.Text(frame, height=9, wrap="word")
@@ -148,9 +152,12 @@ class TicketQrGeneratorUI:
 
             self.calendar_events = events
             self.calendar_combo.configure(values=options)
-            self.calendar_combo.current(selected_index)
-            self._set_selected_event(events[selected_index])
-            self.calendar_status_var.set(f"Calendario caricato: {len(events)} eventi.")
+            if options:
+                self.calendar_combo.current(selected_index)
+                self._set_selected_event(events[selected_index])
+                self.calendar_status_var.set(f"Calendario caricato: {len(events)} eventi.")
+            else:
+                self.calendar_status_var.set("Nessun evento trovato nel calendario.")
         except Exception as error:
             self.calendar_events = []
             self.calendar_combo.configure(values=[])
@@ -202,12 +209,13 @@ class TicketQrGeneratorUI:
             canonical_json = canonical_payload_json(payload)
             payload_hash = sha256_hex(canonical_json)
 
-            if not self.skip_supabase_var.get():
+            is_remote = not self.skip_supabase_var.get()
+            if is_remote:
                 supabase_url = os.getenv("SUPABASE_URL", "")
                 service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
                 if not supabase_url or not service_role_key:
                     raise ValueError(
-                        "Imposta SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY oppure abilita la modalita locale."
+                        "Imposta SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY oppure abilita la modalità locale."
                     )
 
                 reserved = reserve_hash(
@@ -217,7 +225,7 @@ class TicketQrGeneratorUI:
                     payload_hash=payload_hash,
                 )
                 if not reserved:
-                    raise ValueError("Hash gia presente su Supabase. Verifica i dati del ticket.")
+                    raise ValueError("Hash già presente su Supabase. Verifica i dati del ticket (forse già generato).")
 
             qr_value = f"turni://ticket/{payload_hash}"
             output_path = pathlib.Path(self.output_var.get()).resolve()
@@ -231,9 +239,14 @@ class TicketQrGeneratorUI:
             self.preview_image = ImageTk.PhotoImage(image)
             self.qr_preview_label.configure(image=self.preview_image, text="")
 
-            messagebox.showinfo("Completato", f"QR salvato in:\n{output_path}")
+            success_msg = f"QR salvato in:\n{output_path}"
+            if is_remote:
+                success_msg += "\n\nHash prenotato correttamente su Supabase."
+            
+            messagebox.showinfo("Completato", success_msg)
         except Exception as error:
             messagebox.showerror("Errore", str(error))
+
 
 
 def main() -> None:
