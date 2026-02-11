@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import hashlib
+import html
 import json
 import os
 import pathlib
@@ -168,7 +169,7 @@ def fetch_calendar_events(*, supabase_url: str, api_key: str, timeout_s: int = 1
     events: list[CalendarEvent] = []
     for row in rows:
         event_id = str(row.get("id", "")).strip()
-        event_name = str(row.get("name", "")).strip()
+        event_name = html.unescape(str(row.get("name", ""))).strip()
         event_date = str(row.get("event_date", "")).strip()
         event_time = str(row.get("event_time", "")).strip()
         if not all([event_id, event_name, event_date, event_time]):
