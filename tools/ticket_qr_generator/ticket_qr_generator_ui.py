@@ -11,9 +11,13 @@ from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk
 
 from generate_ticket_qr import (
+    CalendarEvent,
     TicketPayload,
     canonical_payload_json,
+    default_ticket_circuit,
+    fetch_calendar_events,
     generate_qr_png,
+    get_calendar_api_key,
     pretty_payload_json,
     reserve_hash,
     sha256_hex,
@@ -24,19 +28,23 @@ class TicketQrGeneratorUI:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("Turni di Palco - Generatore QR Biglietteria")
-        self.root.geometry("860x720")
+        self.root.geometry("900x760")
 
-        self.circuit_var = tk.StringVar(value="TicketOne")
-        self.event_name_var = tk.StringVar(value="Esempio")
-        self.event_id_var = tk.StringVar(value="1234567890")
+        self.circuit_var = tk.StringVar(value=default_ticket_circuit())
+        self.calendar_event_var = tk.StringVar(value="")
+        self.event_name_var = tk.StringVar(value="-")
+        self.event_id_var = tk.StringVar(value="-")
+        self.date_var = tk.StringVar(value="-")
         self.ticket_number_var = tk.StringVar(value="1234567890")
-        self.date_var = tk.StringVar(value="2026-02-11T11:54:00+01:00")
         self.skip_supabase_var = tk.BooleanVar(value=True)
         self.output_var = tk.StringVar(value=str(pathlib.Path("./out/ticket-qr.png").resolve()))
+        self.calendar_status_var = tk.StringVar(value="Calendario non caricato.")
+        self.calendar_events: list[CalendarEvent] = []
 
         self.preview_image: ImageTk.PhotoImage | None = None
 
         self._build_layout()
+        self.root.after(50, lambda: self._load_calendar_events(show_errors=False))
 
     def _build_layout(self) -> None:
         frame = ttk.Frame(self.root, padding=16)
@@ -44,23 +52,41 @@ class TicketQrGeneratorUI:
 
         ttk.Label(
             frame,
-            text="Compila i dati del biglietto e premi 'Genera QR'.",
+            text="Seleziona evento da calendario, inserisci il numero biglietto e genera il QR.",
             font=("Arial", 12, "bold"),
         ).pack(anchor="w", pady=(0, 12))
 
-        fields = [
+        event_row = ttk.Frame(frame)
+        event_row.pack(fill="x", pady=4)
+        ttk.Label(event_row, text="Evento", width=16).pack(side="left")
+        self.calendar_combo = ttk.Combobox(
+            event_row,
+            textvariable=self.calendar_event_var,
+            state="readonly",
+        )
+        self.calendar_combo.pack(side="left", fill="x", expand=True)
+        self.calendar_combo.bind("<<ComboboxSelected>>", self._on_calendar_selected)
+        ttk.Button(event_row, text="Aggiorna calendario", command=self._load_calendar_events).pack(side="left", padx=8)
+
+        ttk.Label(frame, textvariable=self.calendar_status_var).pack(anchor="w", pady=(2, 6))
+
+        readonly_fields = [
             ("Circuito", self.circuit_var),
             ("Nome evento", self.event_name_var),
             ("ID evento", self.event_id_var),
-            ("Numero biglietto", self.ticket_number_var),
             ("Data (ISO)", self.date_var),
         ]
 
-        for label, var in fields:
+        for label, var in readonly_fields:
             row = ttk.Frame(frame)
             row.pack(fill="x", pady=4)
             ttk.Label(row, text=label, width=16).pack(side="left")
-            ttk.Entry(row, textvariable=var).pack(side="left", fill="x", expand=True)
+            ttk.Entry(row, textvariable=var, state="readonly").pack(side="left", fill="x", expand=True)
+
+        ticket_row = ttk.Frame(frame)
+        ticket_row.pack(fill="x", pady=4)
+        ttk.Label(ticket_row, text="Numero biglietto", width=16).pack(side="left")
+        ttk.Entry(ticket_row, textvariable=self.ticket_number_var).pack(side="left", fill="x", expand=True)
 
         output_row = ttk.Frame(frame)
         output_row.pack(fill="x", pady=(8, 4))
@@ -70,7 +96,7 @@ class TicketQrGeneratorUI:
 
         ttk.Checkbutton(
             frame,
-            text="Modalità locale (non chiama Supabase)",
+            text="Modalita locale (non prenota hash su Supabase)",
             variable=self.skip_supabase_var,
         ).pack(anchor="w", pady=(8, 8))
 
@@ -99,13 +125,72 @@ class TicketQrGeneratorUI:
         if selected:
             self.output_var.set(selected)
 
+    def _load_calendar_events(self, show_errors: bool = True) -> None:
+        try:
+            supabase_url = os.getenv("SUPABASE_URL", "").strip()
+            api_key = get_calendar_api_key()
+            if not supabase_url or not api_key:
+                raise ValueError(
+                    "Imposta SUPABASE_URL e una chiave API Supabase "
+                    "(SUPABASE_SERVICE_ROLE_KEY o SUPABASE_ANON_KEY) per leggere il calendario."
+                )
+
+            current_event_id = self.event_id_var.get().strip()
+            events = fetch_calendar_events(supabase_url=supabase_url, api_key=api_key)
+            options = [
+                f"{event.event_date} {event.event_time} | {event.event_id} | {event.event_name}"
+                for event in events
+            ]
+            selected_index = next(
+                (index for index, event in enumerate(events) if event.event_id == current_event_id),
+                0,
+            )
+
+            self.calendar_events = events
+            self.calendar_combo.configure(values=options)
+            self.calendar_combo.current(selected_index)
+            self._set_selected_event(events[selected_index])
+            self.calendar_status_var.set(f"Calendario caricato: {len(events)} eventi.")
+        except Exception as error:
+            self.calendar_events = []
+            self.calendar_combo.configure(values=[])
+            self.calendar_event_var.set("")
+            self.event_name_var.set("-")
+            self.event_id_var.set("-")
+            self.date_var.set("-")
+            self.calendar_status_var.set("Calendario non disponibile.")
+            if show_errors:
+                messagebox.showerror("Errore calendario", str(error))
+
+    def _on_calendar_selected(self, _event: object | None = None) -> None:
+        if not self.calendar_events:
+            return
+        selected_index = self.calendar_combo.current()
+        if selected_index < 0 or selected_index >= len(self.calendar_events):
+            return
+        self._set_selected_event(self.calendar_events[selected_index])
+
+    def _set_selected_event(self, event: CalendarEvent) -> None:
+        self.event_name_var.set(event.event_name)
+        self.event_id_var.set(event.event_id)
+        self.date_var.set(event.event_datetime_iso)
+
+    def _selected_calendar_event(self) -> CalendarEvent:
+        if not self.calendar_events:
+            raise ValueError("Calendario eventi non caricato.")
+        selected_index = self.calendar_combo.current()
+        if selected_index < 0 or selected_index >= len(self.calendar_events):
+            raise ValueError("Seleziona un evento dal calendario.")
+        return self.calendar_events[selected_index]
+
     def _build_payload(self) -> TicketPayload:
+        selected_event = self._selected_calendar_event()
         payload = TicketPayload(
             circuit=self.circuit_var.get().strip(),
-            event_name=self.event_name_var.get().strip(),
-            event_id=self.event_id_var.get().strip(),
+            event_name=selected_event.event_name.strip(),
+            event_id=selected_event.event_id.strip(),
             ticket_number=self.ticket_number_var.get().strip(),
-            date=self.date_var.get().strip(),
+            date=selected_event.event_datetime_iso.strip(),
         )
         if not all([payload.circuit, payload.event_name, payload.event_id, payload.ticket_number, payload.date]):
             raise ValueError("Tutti i campi sono obbligatori.")
@@ -121,7 +206,9 @@ class TicketQrGeneratorUI:
                 supabase_url = os.getenv("SUPABASE_URL", "")
                 service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
                 if not supabase_url or not service_role_key:
-                    raise ValueError("Imposta SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY o abilita modalità locale.")
+                    raise ValueError(
+                        "Imposta SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY oppure abilita la modalita locale."
+                    )
 
                 reserved = reserve_hash(
                     supabase_url=supabase_url,
@@ -130,7 +217,7 @@ class TicketQrGeneratorUI:
                     payload_hash=payload_hash,
                 )
                 if not reserved:
-                    raise ValueError("Hash già presente su Supabase. Verifica i dati del ticket.")
+                    raise ValueError("Hash gia presente su Supabase. Verifica i dati del ticket.")
 
             qr_value = f"turni://ticket/{payload_hash}"
             output_path = pathlib.Path(self.output_var.get()).resolve()
