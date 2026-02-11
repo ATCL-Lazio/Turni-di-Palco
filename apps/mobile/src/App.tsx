@@ -29,6 +29,7 @@ import { isSupabaseConfigured } from './lib/supabase';
 import { hasStoredAuthState, PUBLIC_SCREENS } from './lib/auth-storage';
 import { openInMaps, openEventsMap } from './lib/navigation-utils';
 import { uploadProfileImage } from './services/storage';
+import { activateTicketHash, parseTicketQrValue } from './services/ticket-activation';
 import { ScreenTransition } from './components/ui/ScreenTransition';
 import { ErrorOverlay } from './components/ui/ErrorOverlay';
 import { initErrorHandler, subscribeToCriticalErrors, getLastCriticalError, clearLastCriticalError } from './services/error-handler';
@@ -237,6 +238,23 @@ function AppShell() {
   const handleQRScanAttempt = async (code: string) => {
     if (!authReady) return { ok: false as const, error: 'Verifica sessione...' };
     if (!isAuthValid) { setCurrentScreen('welcome'); return { ok: false as const, error: 'Login richiesto.' }; }
+
+    const ticketHash = parseTicketQrValue(code);
+    if (ticketHash) {
+      const activationUserId = (authUserId ?? state.profile.email ?? '').trim();
+      if (!activationUserId) {
+        return { ok: false as const, error: 'Utente non disponibile per l\'attivazione ticket.' };
+      }
+
+      const activation = await activateTicketHash(ticketHash, activationUserId);
+      if (!activation.ok) {
+        return { ok: false as const, error: activation.error };
+      }
+
+      window.alert('Ticket attivato correttamente.');
+      setCurrentScreen(activeTab === 'home' ? 'home' : 'turns');
+      return { ok: true as const };
+    }
 
     const result = await validateQrPayload(code, events.map((event) => event.id));
     if (!result.valid || !result.eventId) {
