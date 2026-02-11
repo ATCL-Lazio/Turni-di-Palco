@@ -144,12 +144,16 @@ async function activateRemotely(hash: string, userId: string) {
     throw new Error(error.message || 'Errore Supabase durante l\'attivazione.');
   }
 
-  return data as { ok?: boolean; alreadyActivated?: boolean; activatedBy?: string } | null;
+  return data as { ok?: boolean; alreadyActivated?: boolean; activatedBy?: string; error?: string } | null;
 }
 
-export async function activateTicketHash(hash: string, userId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function activateTicketHash(
+  hash: string,
+  userId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
   const normalizedHash = hash.trim().toLowerCase();
   const normalizedUserId = userId.trim();
+
   if (!/^[0-9a-f]{64}$/.test(normalizedHash)) {
     return { ok: false, error: 'Hash non valido.' };
   }
@@ -160,22 +164,34 @@ export async function activateTicketHash(hash: string, userId: string): Promise<
 
   try {
     const remote = await activateRemotely(normalizedHash, normalizedUserId);
-    if (remote?.alreadyActivated) {
-      return { ok: false, error: 'Ticket già attivato da un altro utente.' };
-    }
+    
     if (remote?.ok) {
       const currentRecord = localActivationStore.get(normalizedHash);
       localActivationStore.set(normalizedHash, {
         hash: normalizedHash,
-        ticketNumber: currentRecord?.ticketNumber ?? '',
+        ticketNumber: currentRecord?.ticketNumber ?? 'N/A',
         status: 'activated',
         activatedBy: normalizedUserId,
         activatedAtIso: new Date().toISOString(),
       });
       return { ok: true };
     }
-  } catch {
-    // fallback locale
+
+    if (remote?.alreadyActivated) {
+      return { ok: false, error: 'Ticket già attivato da un altro utente.' };
+    }
+
+    if (remote?.error) {
+      return { ok: false, error: remote.error };
+    }
+  } catch (error) {
+    console.error('Remote activation failed:', error);
+    if (supabase && isSupabaseConfigured) {
+      return { 
+        ok: false, 
+        error: error instanceof Error ? error.message : 'Errore durante la comunicazione con il server.' 
+      };
+    }
   }
 
   const record = localActivationStore.get(normalizedHash);
