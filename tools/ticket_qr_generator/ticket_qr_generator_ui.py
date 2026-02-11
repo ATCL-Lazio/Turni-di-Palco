@@ -14,6 +14,7 @@ from generate_ticket_qr import (
     TicketPayload,
     canonical_payload_json,
     generate_qr_png,
+    pretty_payload_json,
     reserve_hash,
     sha256_hex,
 )
@@ -113,8 +114,8 @@ class TicketQrGeneratorUI:
     def _generate(self) -> None:
         try:
             payload = self._build_payload()
-            json_payload = canonical_payload_json(payload)
-            payload_hash = sha256_hex(json_payload)
+            canonical_json = canonical_payload_json(payload)
+            payload_hash = sha256_hex(canonical_json)
 
             if not self.skip_supabase_var.get():
                 supabase_url = os.getenv("SUPABASE_URL", "")
@@ -136,7 +137,7 @@ class TicketQrGeneratorUI:
             generate_qr_png(qr_value, output_path)
 
             self.json_box.delete("1.0", tk.END)
-            self.json_box.insert(tk.END, json_payload)
+            self.json_box.insert(tk.END, pretty_payload_json(payload))
             self.hash_var.set(payload_hash)
 
             image = Image.open(output_path).resize((240, 240))
