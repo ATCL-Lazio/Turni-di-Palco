@@ -17,9 +17,11 @@ interface TicketQrActivationPrototypeProps {
 }
 
 export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivationPrototypeProps) {
-  const [ticketCode, setTicketCode] = useState('ATCL-2026-001');
-  const [theatreId, setTheatreId] = useState('teatro-rendano');
-  const [performanceIso, setPerformanceIso] = useState('2026-03-15T20:45:00+01:00');
+  const [circuit, setCircuit] = useState('TicketOne');
+  const [eventName, setEventName] = useState('Esempio');
+  const [eventID, setEventID] = useState('1234567890');
+  const [ticketNumber, setTicketNumber] = useState('1234567890');
+  const [date, setDate] = useState('2026-02-11T11:54:00+01:00');
   const [generated, setGenerated] = useState<GeneratedTicket | null>(null);
   const [generateMessage, setGenerateMessage] = useState<string | null>(null);
   const [scanInput, setScanInput] = useState('');
@@ -33,7 +35,13 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
     setGenerateMessage(null);
 
     try {
-      const result = await generateTicketQr({ ticketCode, theatreId, performanceIso });
+      const result = await generateTicketQr({
+        circuit,
+        eventName,
+        eventID,
+        ticketNumber,
+        date,
+      });
       setGenerated(result);
       setScanInput(result.qrValue);
       setGenerateMessage(
@@ -86,10 +94,15 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
           <QrCode size={18} className="text-[#f4bf4f]" />
           <h3 className="text-base !m-0">1) Generazione payload e hash QR</h3>
         </div>
+        <p className="text-sm text-[#b8b2b3]">
+          Struttura JSON richiesta: circuit, eventName, eventID, ticketNumber, date.
+        </p>
         <div className="grid grid-cols-1 gap-3">
-          <Input value={ticketCode} onChange={(event) => setTicketCode(event.target.value)} placeholder="Codice ticket" />
-          <Input value={theatreId} onChange={(event) => setTheatreId(event.target.value)} placeholder="ID teatro" />
-          <Input value={performanceIso} onChange={(event) => setPerformanceIso(event.target.value)} placeholder="Data ISO performance" />
+          <Input value={circuit} onChange={(event) => setCircuit(event.target.value)} placeholder="Circuito (es. TicketOne)" />
+          <Input value={eventName} onChange={(event) => setEventName(event.target.value)} placeholder="Nome evento" />
+          <Input value={eventID} onChange={(event) => setEventID(event.target.value)} placeholder="ID evento" />
+          <Input value={ticketNumber} onChange={(event) => setTicketNumber(event.target.value)} placeholder="Numero biglietto" />
+          <Input value={date} onChange={(event) => setDate(event.target.value)} placeholder="Data ISO (es. 2026-02-11T11:54:00+01:00)" />
         </div>
 
         <Button variant="primary" onClick={handleGenerate} disabled={busy}>
@@ -144,7 +157,7 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
                 records.map((record) => (
                   <tr key={record.hash} className="border-t border-[#2d2728]">
                     <td className="py-2 pr-2">{record.hash.slice(0, 12)}…</td>
-                    <td className="py-2 pr-2">{record.ticketCode}</td>
+                    <td className="py-2 pr-2">{record.ticketNumber}</td>
                     <td className="py-2 pr-2">{record.status}</td>
                     <td className="py-2">{record.activatedBy ?? '-'}</td>
                   </tr>

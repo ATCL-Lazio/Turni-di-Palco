@@ -1,12 +1,11 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 export type TicketPayload = {
-  source: string;
-  ticketCode: string;
-  theatreId: string;
-  performanceIso: string;
-  issuedAtIso: string;
-  salt: number;
+  circuit: string;
+  eventName: string;
+  eventID: string;
+  ticketNumber: string;
+  date: string;
 };
 
 export type GeneratedTicket = {
@@ -19,7 +18,7 @@ export type GeneratedTicket = {
 
 export type TicketActivationRecord = {
   hash: string;
-  ticketCode: string;
+  ticketNumber: string;
   status: 'generated' | 'activated';
   activatedBy: string | null;
   activatedAtIso: string | null;
@@ -30,12 +29,11 @@ const localActivationStore = new Map<string, TicketActivationRecord>();
 
 function stableStringify(value: TicketPayload): string {
   return JSON.stringify({
-    source: value.source,
-    ticketCode: value.ticketCode,
-    theatreId: value.theatreId,
-    performanceIso: value.performanceIso,
-    issuedAtIso: value.issuedAtIso,
-    salt: value.salt,
+    circuit: value.circuit,
+    eventName: value.eventName,
+    eventID: value.eventID,
+    ticketNumber: value.ticketNumber,
+    date: value.date,
   });
 }
 
@@ -66,66 +64,60 @@ async function reserveHashRemotely(payload: TicketPayload, hash: string) {
 }
 
 export async function generateTicketQr(params: {
-  ticketCode: string;
-  theatreId: string;
-  performanceIso: string;
-  source?: string;
-  maxAttempts?: number;
+  circuit: string;
+  eventName: string;
+  eventID: string;
+  ticketNumber: string;
+  date: string;
 }): Promise<GeneratedTicket> {
-  const ticketCode = params.ticketCode.trim().toUpperCase();
-  const theatreId = params.theatreId.trim();
-  const performanceIso = params.performanceIso.trim();
-  const source = (params.source ?? 'ticket-office').trim();
-  const maxAttempts = params.maxAttempts ?? 8;
+  const payload: TicketPayload = {
+    circuit: params.circuit.trim(),
+    eventName: params.eventName.trim(),
+    eventID: params.eventID.trim(),
+    ticketNumber: params.ticketNumber.trim(),
+    date: params.date.trim(),
+  };
 
-  if (!ticketCode || !theatreId || !performanceIso) {
-    throw new Error('Compila ticket, teatro e data performance.');
+  if (!payload.circuit || !payload.eventName || !payload.eventID || !payload.ticketNumber || !payload.date) {
+    throw new Error('Compila tutti i campi richiesti del JSON ticket.');
   }
 
-  for (let salt = 0; salt < maxAttempts; salt += 1) {
-    const payload: TicketPayload = {
-      source,
-      ticketCode,
-      theatreId,
-      performanceIso,
-      issuedAtIso: new Date().toISOString(),
-      salt,
-    };
+  const json = stableStringify(payload);
+  const hash = await sha256Hex(json);
 
-    const json = stableStringify(payload);
-    const hash = await sha256Hex(json);
-    const localCollision = localActivationStore.has(hash);
-    if (localCollision) continue;
+  if (localActivationStore.has(hash)) {
+    throw new Error('Hash già presente in archivio locale: controlla i dati ticket.');
+  }
 
-    let persistedRemotely = false;
-    try {
-      const reserved = await reserveHashRemotely(payload, hash);
-      persistedRemotely = reserved;
-      if (supabase && isSupabaseConfigured && !reserved) {
-        continue;
-      }
-    } catch {
-      persistedRemotely = false;
+  let persistedRemotely = false;
+  try {
+    const reserved = await reserveHashRemotely(payload, hash);
+    persistedRemotely = reserved;
+    if (supabase && isSupabaseConfigured && !reserved) {
+      throw new Error('Hash già esistente su Supabase: modifica il ticket e rigenera.');
     }
-
-    localActivationStore.set(hash, {
-      hash,
-      ticketCode,
-      status: 'generated',
-      activatedBy: null,
-      activatedAtIso: null,
-    });
-
-    return {
-      payload,
-      json,
-      hash,
-      qrValue: `${PROTOCOL_PREFIX}${hash}`,
-      persistedRemotely,
-    };
+  } catch (error) {
+    if (supabase && isSupabaseConfigured) {
+      throw error instanceof Error ? error : new Error('Errore durante la registrazione hash su Supabase.');
+    }
+    persistedRemotely = false;
   }
 
-  throw new Error('Collisione hash ripetuta: aumenta la complessità del payload.');
+  localActivationStore.set(hash, {
+    hash,
+    ticketNumber: payload.ticketNumber,
+    status: 'generated',
+    activatedBy: null,
+    activatedAtIso: null,
+  });
+
+  return {
+    payload,
+    json,
+    hash,
+    qrValue: `${PROTOCOL_PREFIX}${hash}`,
+    persistedRemotely,
+  };
 }
 
 export function parseTicketQrValue(input: string): string | null {
