@@ -17,11 +17,14 @@ from dataclasses import dataclass
 
 import qrcode
 import requests
+from dotenv import load_dotenv
+
+# Load local .env if present
+load_dotenv()
 
 
 @dataclass
 class TicketPayload:
-    circuit: str
     event_name: str
     event_id: str
     ticket_number: str
