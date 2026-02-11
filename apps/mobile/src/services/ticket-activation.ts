@@ -149,20 +149,29 @@ async function activateRemotely(hash: string, userId: string) {
 
 export async function activateTicketHash(hash: string, userId: string): Promise<{ ok: true } | { ok: false; error: string }> {
   const normalizedHash = hash.trim().toLowerCase();
+  const normalizedUserId = userId.trim();
   if (!/^[0-9a-f]{64}$/.test(normalizedHash)) {
     return { ok: false, error: 'Hash non valido.' };
   }
 
-  if (!userId.trim()) {
+  if (!normalizedUserId) {
     return { ok: false, error: 'Utente non disponibile per l\'attivazione.' };
   }
 
   try {
-    const remote = await activateRemotely(normalizedHash, userId.trim());
+    const remote = await activateRemotely(normalizedHash, normalizedUserId);
     if (remote?.alreadyActivated) {
       return { ok: false, error: 'Ticket già attivato da un altro utente.' };
     }
     if (remote?.ok) {
+      const currentRecord = localActivationStore.get(normalizedHash);
+      localActivationStore.set(normalizedHash, {
+        hash: normalizedHash,
+        ticketNumber: currentRecord?.ticketNumber ?? '',
+        status: 'activated',
+        activatedBy: normalizedUserId,
+        activatedAtIso: new Date().toISOString(),
+      });
       return { ok: true };
     }
   } catch {
@@ -181,7 +190,7 @@ export async function activateTicketHash(hash: string, userId: string): Promise<
   localActivationStore.set(normalizedHash, {
     ...record,
     status: 'activated',
-    activatedBy: userId,
+    activatedBy: normalizedUserId,
     activatedAtIso: new Date().toISOString(),
   });
 

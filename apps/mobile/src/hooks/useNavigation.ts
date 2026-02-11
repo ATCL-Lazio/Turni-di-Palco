@@ -11,6 +11,7 @@ const VALID_SCREENS = new Set<Screen>([
     'event-details', 'activities', 'activity-detail', 'activity-minigame', 'activity-result', 'profile',
     'account-settings', 'support', 'change-password', 'career',
     'terms', 'privacy', 'earned-titles',
+    'ticket-qr-prototype',
 ]);
 
 const VALID_TABS = new Set<Tab>(['home', 'turns', 'leaderboard', 'activities', 'profile']);
@@ -19,7 +20,7 @@ const VALID_LEGAL_RETURN_SCREENS = new Set<LegalReturnScreen>([
     'welcome', 'login', 'signup', 'role-selection', 'home', 'turns',
     'qr-scanner', 'event-confirmation', 'activities', 'activity-detail', 'activity-minigame', 'activity-result',
     'profile', 'account-settings', 'support', 'change-password',
-    'career', 'earned-titles',
+    'career', 'earned-titles', 'ticket-qr-prototype',
 ]);
 
 function readNavState(): PersistedNavState | null {
