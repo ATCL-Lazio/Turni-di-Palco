@@ -39,6 +39,8 @@ import { useNavigation } from './hooks/useNavigation';
 import { useAuth } from './hooks/useAuth';
 import { useNotifications } from './hooks/useNotifications';
 import { useQrLanding } from './hooks/useQrLanding';
+import { PENDING_EVENT_KEY, readPendingEventFromUrl, stripEventLinkParams } from './lib/event-linking';
+import { validateQrPayload } from './services/event-links';
 
 function AppShell() {
   const {
@@ -198,13 +200,49 @@ function AppShell() {
     setSelectedActivityId,
   ]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const pendingFromUrl = readPendingEventFromUrl(window.location.href);
+    if (!pendingFromUrl?.eventId) return;
+
+    window.sessionStorage.setItem(PENDING_EVENT_KEY, pendingFromUrl.eventId);
+
+    try {
+      window.history.replaceState({}, '', stripEventLinkParams(window.location.href));
+    } catch {
+      // ignore
+    }
+
+    if (authReady && isAuthValid) {
+      setScannedEventId(pendingFromUrl.eventId);
+      setCurrentScreen('event-confirmation');
+      window.sessionStorage.removeItem(PENDING_EVENT_KEY);
+    }
+  }, [authReady, isAuthValid, setCurrentScreen, setScannedEventId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!authReady || !isAuthValid) return;
+
+    const pendingEventId = window.sessionStorage.getItem(PENDING_EVENT_KEY);
+    if (!pendingEventId) return;
+
+    setScannedEventId(pendingEventId);
+    setCurrentScreen('event-confirmation');
+    window.sessionStorage.removeItem(PENDING_EVENT_KEY);
+  }, [authReady, isAuthValid, setCurrentScreen, setScannedEventId]);
+
   // Handler Actions
-  const handleQRScanAttempt = (code: string) => {
+  const handleQRScanAttempt = async (code: string) => {
     if (!authReady) return { ok: false as const, error: 'Verifica sessione...' };
     if (!isAuthValid) { setCurrentScreen('welcome'); return { ok: false as const, error: 'Login richiesto.' }; }
-    const resolved = events.find(e => code.toLowerCase().includes(e.id.toLowerCase()));
-    if (!resolved) return { ok: false as const, error: 'QR non valido.' };
-    setScannedEventId(resolved.id);
+
+    const result = await validateQrPayload(code, events.map((event) => event.id));
+    if (!result.valid || !result.eventId) {
+      return { ok: false as const, error: result.error ?? 'QR non valido.' };
+    }
+
+    setScannedEventId(result.eventId);
     setCurrentScreen('event-confirmation');
     return { ok: true as const };
   };
