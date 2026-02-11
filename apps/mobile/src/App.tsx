@@ -23,6 +23,7 @@ import { InstallApp } from './components/screens/InstallApp';
 import { TermsAndConditions } from './components/screens/TermsAndConditions';
 import { PrivacyPolicy } from './components/screens/PrivacyPolicy';
 import { EarnedTitles } from './components/screens/EarnedTitles';
+import { TicketQrActivationPrototype } from './components/screens/TicketQrActivationPrototype';
 import { Activity, GameStateProvider, Rewards, useGameState } from './state/store';
 import { isSupabaseConfigured } from './lib/supabase';
 import { hasStoredAuthState, PUBLIC_SCREENS } from './lib/auth-storage';
@@ -317,13 +318,14 @@ function AppShell() {
           <Activities activities={activities} onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }} />
         );
       case 'profile': return <Profile userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} theatreReputation={theatreReputation.map(tr => ({ name: tr.theatre, reputation: tr.reputation }))} theatreReputationLoading={theatreReputationLoading} badgesUnlockedCount={unlockedBadges.length} newBadgesCount={newBadges.length} profileImage={state.profile.profileImage} onViewCarriera={() => setCurrentScreen('career')} onViewTitoli={() => setCurrentScreen('earned-titles')} onSettings={() => setCurrentScreen('account-settings')} onLogout={handleLogout} onUploadProfileImage={handleUploadImage} />;
-      case 'account-settings': return <AccountSettings userName={state.profile.name} email={state.profile.email} onBack={() => setCurrentScreen('profile')} onViewTerms={() => openLegal('terms', 'account-settings')} onViewPrivacy={() => openLegal('privacy', 'account-settings')} onViewSupport={() => setCurrentScreen('support')} onChangePassword={() => { setIsPasswordRecovery(false); setCurrentScreen('change-password'); }} onResetProgress={async () => { await resetProgress(); handleTabChange('home'); setCurrentScreen('role-selection'); }} onLogout={handleLogout} />;
+      case 'account-settings': return <AccountSettings userName={state.profile.name} email={state.profile.email} onBack={() => setCurrentScreen('profile')} onViewTerms={() => openLegal('terms', 'account-settings')} onViewPrivacy={() => openLegal('privacy', 'account-settings')} onViewSupport={() => setCurrentScreen('support')} onViewTicketPrototype={() => setCurrentScreen('ticket-qr-prototype')} onChangePassword={() => { setIsPasswordRecovery(false); setCurrentScreen('change-password'); }} onResetProgress={async () => { await resetProgress(); handleTabChange('home'); setCurrentScreen('role-selection'); }} onLogout={handleLogout} />;
       case 'support': return <SupportChat userName={state.profile.name} onBack={() => setCurrentScreen('account-settings')} />;
       case 'change-password': return <ChangePassword email={state.profile.email} mode={isPasswordRecovery ? 'recovery' : 'change'} onBack={() => { setIsPasswordRecovery(false); setCurrentScreen(isPasswordRecovery ? 'home' : 'account-settings'); }} onChangePassword={(current, next) => changePassword(next, current)} onSendResetEmail={() => sendPasswordResetEmail(state.profile.email)} />;
       case 'career': return <Career userRole={selectedRole?.name ?? 'Ruolo'} roleId={state.profile.roleId} roleStats={selectedRole?.stats ?? { presence: 0, precision: 0, leadership: 0, creativity: 0 }} turnStats={turnStats} badges={badges} turns={state.turns} roles={roles} level={state.profile.level} xp={state.profile.xp} xpToNextLevel={state.profile.xpToNextLevel} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} onBack={() => setCurrentScreen('profile')} />;
       case 'terms': return <TermsAndConditions onBack={() => setCurrentScreen(legalReturnScreen)} />;
       case 'privacy': return <PrivacyPolicy onBack={() => setCurrentScreen(legalReturnScreen)} />;
       case 'earned-titles': return <EarnedTitles badges={unlockedBadges} onBack={() => setCurrentScreen('profile')} onViewed={markBadgesSeen} />;
+      case 'ticket-qr-prototype': return <TicketQrActivationPrototype userId={authUserId ?? state.profile.email ?? 'guest-user'} onBack={() => setCurrentScreen('account-settings')} />;
       default: return null;
     }
   };
