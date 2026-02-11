@@ -1,39 +1,60 @@
 # Ticket QR generator (Python prototype)
 
-Prototipo CLI per biglietterie teatrali, pensato per essere distribuibile come app standalone (es. PyInstaller).
+Prototipo per biglietterie teatrali con:
+- **CLI** per integrazioni/script.
+- **UI desktop (Tkinter)** semplice per operatori non tecnici.
 
-## Flusso implementato
+## Struttura JSON del ticket
 
-1. Raccoglie i dati del ticket (`ticket_code`, `theatre_id`, `performance_iso`).
-2. Costruisce JSON canonico con `salt` incrementale.
-3. Calcola hash SHA-256 del JSON.
-4. Chiama Supabase Edge Function `ticket-activation` (`action: reserve_hash`) per validare unicità.
-5. Genera PNG QR con payload `turni://ticket/<hash>`.
+Il payload usato per hashing e registrazione è:
 
-## Esecuzione
+```json
+{
+  "circuit": "TicketOne",
+  "eventName": "Esempio",
+  "eventID": "1234567890",
+  "ticketNumber": "1234567890",
+  "date": "2026-02-11T11:54:00+01:00"
+}
+```
+
+## Setup
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r tools/ticket_qr_generator/requirements.txt
-
-export SUPABASE_URL="https://<project>.supabase.co"
-export SUPABASE_SERVICE_ROLE_KEY="<service-role-key>"
-
-python tools/ticket_qr_generator/generate_ticket_qr.py \
-  --ticket-code "ATCL-2026-001" \
-  --theatre-id "teatro-rendano" \
-  --performance-iso "2026-03-15T20:45:00+01:00" \
-  --output "./out/atcl-2026-001.png"
 ```
 
-Per una demo locale senza backend:
+## Avvio UI desktop (consigliato)
+
+```bash
+python tools/ticket_qr_generator/ticket_qr_generator_ui.py
+```
+
+Nella UI:
+1. Compila i campi del ticket.
+2. Scegli il file PNG di output.
+3. Premi **Genera QR**.
+4. Ottieni hash, JSON e anteprima QR.
+
+Per usare Supabase nella UI, disattiva "Modalità locale" e imposta variabili ambiente:
+
+```bash
+export SUPABASE_URL="https://<project>.supabase.co"
+export SUPABASE_SERVICE_ROLE_KEY="<service-role-key>"
+```
+
+## Esecuzione CLI
 
 ```bash
 python tools/ticket_qr_generator/generate_ticket_qr.py \
-  --ticket-code "ATCL-LOCAL-001" \
-  --theatre-id "demo" \
-  --performance-iso "2026-01-01T18:00:00+01:00" \
+  --circuit "TicketOne" \
+  --event-name "Esempio" \
+  --event-id "1234567890" \
+  --ticket-number "1234567890" \
+  --date "2026-02-11T11:54:00+01:00" \
+  --output "./out/atcl-2026-001.png" \
   --skip-supabase
 ```
 
@@ -41,7 +62,7 @@ python tools/ticket_qr_generator/generate_ticket_qr.py \
 
 ```bash
 pip install pyinstaller
-pyinstaller --onefile tools/ticket_qr_generator/generate_ticket_qr.py
+pyinstaller --onefile tools/ticket_qr_generator/ticket_qr_generator_ui.py
 ```
 
 Output previsto: eseguibile singolo in `dist/` da distribuire sulle postazioni di biglietteria.
