@@ -2,17 +2,17 @@
 
 Prototipo per biglietterie teatrali con:
 - **CLI** per integrazioni/script.
-- **UI desktop (Tkinter)** semplice per operatori non tecnici.
+- **UI desktop (Tkinter)** per operatori non tecnici.
 
 ## Struttura JSON del ticket
 
-Il payload usato per hashing e registrazione è:
+Il payload usato per hashing e registrazione e:
 
 ```json
 {
-  "circuit": "TicketOne",
+  "circuit": "ATCL",
   "eventName": "Esempio",
-  "eventID": "1234567890",
+  "eventID": "ATCL-001",
   "ticketNumber": "1234567890",
   "date": "2026-02-11T11:54:00+01:00"
 }
@@ -33,25 +33,44 @@ python tools/ticket_qr_generator/ticket_qr_generator_ui.py
 ```
 
 Nella UI:
-1. Compila i campi del ticket.
-2. Scegli il file PNG di output.
-3. Premi **Genera QR**.
-4. Ottieni hash, JSON e anteprima QR.
+1. Premi **Aggiorna calendario** e seleziona l'evento.
+2. Inserisci **solo** il numero biglietto.
+3. Scegli il file PNG di output.
+4. Premi **Genera QR**.
+5. Ottieni hash, JSON e anteprima QR.
 
-Per usare Supabase nella UI, disattiva "Modalità locale" e imposta variabili ambiente:
+Per leggere il calendario eventi nella UI imposta:
 
 ```bash
 export SUPABASE_URL="https://<project>.supabase.co"
+export SUPABASE_ANON_KEY="<anon-or-service-key>"
+```
+
+Per prenotare hash su Supabase (quando disattivi "Modalita locale"), serve anche:
+
+```bash
 export SUPABASE_SERVICE_ROLE_KEY="<service-role-key>"
 ```
 
 ## Esecuzione CLI
 
+### Modalita calendario (consigliata)
+
 ```bash
 python tools/ticket_qr_generator/generate_ticket_qr.py \
-  --circuit "TicketOne" \
+  --event-id "ATCL-001" \
+  --ticket-number "1234567890" \
+  --event-from-calendar \
+  --output "./out/atcl-2026-001.png"
+```
+
+### Modalita manuale (compatibilita)
+
+```bash
+python tools/ticket_qr_generator/generate_ticket_qr.py \
+  --circuit "ATCL" \
   --event-name "Esempio" \
-  --event-id "1234567890" \
+  --event-id "ATCL-001" \
   --ticket-number "1234567890" \
   --date "2026-02-11T11:54:00+01:00" \
   --output "./out/atcl-2026-001.png" \
