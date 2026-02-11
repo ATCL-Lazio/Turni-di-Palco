@@ -111,7 +111,12 @@ serve(async (req) => {
       if (error) throw error;
 
       if (data && data.length > 0) {
-        return new Response(JSON.stringify({ ok: true }), {
+        const record = data[0];
+        return new Response(JSON.stringify({ 
+          ok: true, 
+          eventId: record.event_id,
+          eventName: record.event_name
+        }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
