@@ -9,6 +9,10 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from PIL import Image, ImageTk
+from dotenv import load_dotenv
+
+# Load local .env if present
+load_dotenv()
 
 from generate_ticket_qr import (
     CalendarEvent,
