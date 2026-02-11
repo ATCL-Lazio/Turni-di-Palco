@@ -3,14 +3,19 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { QrCode, X } from 'lucide-react';
 import jsQR from 'jsqr';
+import { GameEvent } from '../../state/store';
 
 interface QRScannerProps {
   onClose: () => void;
   onScan: (code: string) => Promise<{ ok: true } | { ok: false; error: string }> | { ok: true } | { ok: false; error: string };
+  events?: GameEvent[];
 }
 
-export function QRScanner({ onClose, onScan }: QRScannerProps) {
+export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
   const [manualCode, setManualCode] = useState('');
+  const [manualTicket, setManualTicket] = useState('');
+  const [manualEventId, setManualEventId] = useState('');
+  const [manualMode, setManualMode] = useState<'event' | 'ticket'>('event');
   const [isScanning, setIsScanning] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -247,8 +252,19 @@ export function QRScanner({ onClose, onScan }: QRScannerProps) {
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualCode.trim()) return;
-    await handleScanAttempt(manualCode);
+    
+    if (manualMode === 'event') {
+      if (!manualCode.trim()) return;
+      await handleScanAttempt(manualCode);
+    } else {
+      if (!manualTicket.trim() || !manualEventId.trim()) {
+        setScanError('Inserisci sia ID Evento che Numero Ticket.');
+        return;
+      }
+      // Proviamo a costruire un payload finto o chiamiamo direttamente onScan 
+      // col formato speciale che App.tsx capirà
+      await handleScanAttempt(`manual-ticket:${manualEventId}:${manualTicket}`);
+    }
   };
 
   return (
@@ -362,44 +378,109 @@ export function QRScanner({ onClose, onScan }: QRScannerProps) {
           </>
         ) : (
           // Manual Input
-          <div className="p-6 app-content">
+          <div className="p-6 app-content h-full overflow-y-auto pb-20">
             <div className="mb-6 text-center">
               <div className="w-16 h-16 bg-[#241f20] rounded-full flex items-center justify-center mx-auto mb-4">
                 <QrCode className="text-[#f4bf4f]" size={32} />
               </div>
-              <h3 className="text-white mb-2">Inserisci il codice evento</h3>
+              <h3 className="text-white mb-2">Inserimento Manuale</h3>
               <p className="text-sm text-[#b8b2b3]">
-                Trova il codice stampato sul tuo biglietto ATCL
+                Inserisci i dati se il QR non è leggibile
               </p>
             </div>
 
+            {/* Mode Toggle */}
+            <div className="flex bg-[#241f20] p-1 rounded-xl mb-6">
+              <button
+                onClick={() => setManualMode('event')}
+                className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+                  manualMode === 'event' ? 'bg-[#f4bf4f] text-[#0f0d0e]' : 'text-[#b8b2b3]'
+                }`}
+              >
+                Codice Evento
+              </button>
+              <button
+                onClick={() => setManualMode('ticket')}
+                className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+                  manualMode === 'ticket' ? 'bg-[#f4bf4f] text-[#0f0d0e]' : 'text-[#b8b2b3]'
+                }`}
+              >
+                Biglietto / Hash
+              </button>
+            </div>
+
             {scanError ? (
-              <div className="mb-4 rounded-xl border border-[#2d2728] bg-[#1a1617] px-4 py-3 text-center">
-                <p className="text-white mb-1">QR non valido</p>
-                <p className="text-sm text-[#b8b2b3]">{scanError}</p>
+              <div className="mb-4 rounded-xl border border-[#d32f2f]/30 bg-[#d32f2f]/10 px-4 py-3 text-center">
+                <p className="text-[#ff5252] text-xs">{scanError}</p>
               </div>
             ) : null}
 
             <form onSubmit={handleManualSubmit} className="space-y-4">
-              <Input
-                type="text"
-                placeholder="es. ATCL-001"
-                value={manualCode}
-                onChange={(e) => setManualCode(e.target.value)}
-                className="text-center uppercase"
-              />
+              {manualMode === 'event' ? (
+                <div className="space-y-2">
+                  <label className="text-xs text-[#7f797a] ml-1 uppercase font-bold tracking-wider">Codice stampato</label>
+                  <Input
+                    type="text"
+                    placeholder="es. ATCL-123"
+                    value={manualCode}
+                    onChange={(e) => setManualCode(e.target.value)}
+                    className="text-center uppercase"
+                  />
+                  <p className="text-[10px] text-[#7f797a] text-center px-2 italic">
+                    Inserisci l'ID alfuanumerico dell'evento (es. SR-98751)
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs text-[#7f797a] ml-1 uppercase font-bold tracking-wider">Seleziona Evento</label>
+                    <div className="relative">
+                      <select
+                        value={manualEventId}
+                        onChange={(e) => setManualEventId(e.target.value)}
+                        className="w-full bg-[#1a1617] border border-[#2d2728] rounded-xl px-4 py-3 text-sm text-white appearance-none focus:outline-none focus:border-[#f4bf4f] transition-colors"
+                      >
+                        <option value="" disabled>Scegli l'evento...</option>
+                        {events.map(event => (
+                          <option key={event.id} value={event.id}>
+                            {event.name} ({event.date})
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#f4bf4f]">
+                        <X size={14} className="rotate-45" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs text-[#7f797a] ml-1 uppercase font-bold tracking-wider">Numero Biglietto</label>
+                    <Input
+                      type="text"
+                      placeholder="es. 12345"
+                      value={manualTicket}
+                      onChange={(e) => setManualTicket(e.target.value)}
+                      className="text-center"
+                    />
+                    <p className="text-[10px] text-[#7f797a] text-center px-2 italic">
+                      Puoi anche incollare direttamente l'Hash se lo hai
+                    </p>
+                  </div>
+                </div>
+              )}
               
-              <Button type="submit" variant="primary" size="lg" fullWidth>
-                Conferma codice
-              </Button>
-              
-              <button
-                type="button"
-                onClick={() => setIsScanning(true)}
-                className="w-full rounded-md py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
-              >
-                Torna alla scansione QR
-              </button>
+              <div className="pt-4 space-y-3">
+                <Button type="submit" variant="primary" size="lg" fullWidth disabled={isHandlingScan}>
+                  {isHandlingScan ? 'Verifica in corso...' : 'Conferma dati'}
+                </Button>
+                
+                <button
+                  type="button"
+                  onClick={() => setIsScanning(true)}
+                  className="w-full rounded-md py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+                >
+                  Torna alla scansione QR
+                </button>
+              </div>
             </form>
           </div>
         )}
