@@ -122,11 +122,19 @@ export async function generateTicketQr(params: {
 
 export function parseTicketQrValue(input: string): string | null {
   const trimmed = input.trim();
-  if (!trimmed.startsWith(PROTOCOL_PREFIX)) return null;
+  
+  // if starts with protocol, extract hash
+  if (trimmed.startsWith(PROTOCOL_PREFIX)) {
+    const hash = trimmed.slice(PROTOCOL_PREFIX.length).split('?')[0]?.toLowerCase();
+    if (hash && /^[0-9a-f]{64}$/.test(hash)) return hash;
+  }
 
-  const hash = trimmed.slice(PROTOCOL_PREFIX.length).split('?')[0]?.toLowerCase();
-  if (!hash || !/^[0-9a-f]{64}$/.test(hash)) return null;
-  return hash;
+  // if is raw 64-char hex hash, return it directly
+  if (/^[0-9a-f]{64}$/i.test(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+
+  return null;
 }
 
 async function activateRemotely(hash: string, userId: string) {
@@ -211,6 +219,42 @@ export async function activateTicketHash(
   });
 
   return { ok: true };
+}
+
+export async function activateTicketByDetails(
+  eventID: string,
+  ticketNumber: string,
+  userId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const normalizedEventId = eventID.trim();
+  const normalizedTicket = ticketNumber.trim();
+  const normalizedUserId = userId.trim();
+
+  if (!normalizedEventId || !normalizedTicket || !normalizedUserId) {
+    return { ok: false, error: 'Dati mancanti per l\'attivazione manuale.' };
+  }
+
+  try {
+    if (!supabase || !isSupabaseConfigured) return { ok: false, error: 'Supabase non configurata.' };
+
+    const { data, error } = await supabase.functions.invoke('ticket-activation', {
+      body: {
+        action: 'activate_by_details',
+        payload: { eventID: normalizedEventId, ticketNumber: normalizedTicket },
+        userId: normalizedUserId,
+      },
+    });
+
+    if (error) throw new Error(error.message);
+    const remote = data as { ok?: boolean; alreadyActivated?: boolean; error?: string } | null;
+
+    if (remote?.ok) return { ok: true };
+    if (remote?.alreadyActivated) return { ok: false, error: 'Ticket già attivato.' };
+    return { ok: false, error: remote?.error || 'Errore durante l\'attivazione manuale.' };
+  } catch (error) {
+    console.error('Manual activation failed:', error);
+    return { ok: false, error: error instanceof Error ? error.message : 'Errore tecnico.' };
+  }
 }
 
 export function listLocalTicketRecords(): TicketActivationRecord[] {
