@@ -152,13 +152,13 @@ async function activateRemotely(hash: string, userId: string) {
     throw new Error(error.message || 'Errore Supabase durante l\'attivazione.');
   }
 
-  return data as { ok?: boolean; alreadyActivated?: boolean; activatedBy?: string; error?: string } | null;
+  return data as { ok?: boolean; alreadyActivated?: boolean; activatedBy?: string; eventId?: string; eventName?: string; error?: string } | null;
 }
 
 export async function activateTicketHash(
   hash: string,
   userId: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; eventId?: string } | { ok: false; error: string }> {
   const normalizedHash = hash.trim().toLowerCase();
   const normalizedUserId = userId.trim();
 
@@ -182,7 +182,7 @@ export async function activateTicketHash(
         activatedBy: normalizedUserId,
         activatedAtIso: new Date().toISOString(),
       });
-      return { ok: true };
+      return { ok: true, eventId: remote.eventId };
     }
 
     if (remote?.alreadyActivated) {
@@ -225,7 +225,7 @@ export async function activateTicketByDetails(
   eventID: string,
   ticketNumber: string,
   userId: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; eventId?: string } | { ok: false; error: string }> {
   const normalizedEventId = eventID.trim();
   const normalizedTicket = ticketNumber.trim();
   const normalizedUserId = userId.trim();
@@ -246,9 +246,9 @@ export async function activateTicketByDetails(
     });
 
     if (error) throw new Error(error.message);
-    const remote = data as { ok?: boolean; alreadyActivated?: boolean; error?: string } | null;
+    const remote = data as { ok?: boolean; alreadyActivated?: boolean; error?: string; eventId?: string } | null;
 
-    if (remote?.ok) return { ok: true };
+    if (remote?.ok) return { ok: true, eventId: remote.eventId };
     if (remote?.alreadyActivated) return { ok: false, error: 'Ticket già attivato.' };
     return { ok: false, error: remote?.error || 'Errore durante l\'attivazione manuale.' };
   } catch (error) {
