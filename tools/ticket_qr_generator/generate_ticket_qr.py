@@ -38,6 +38,11 @@ def to_payload_dict(payload: TicketPayload) -> OrderedDict[str, str]:
 
 
 def canonical_payload_json(payload: TicketPayload) -> str:
+    # Match browser JSON.stringify output exactly for cross-platform hash parity.
+    return json.dumps(to_payload_dict(payload), ensure_ascii=False, separators=(",", ":"))
+
+
+def pretty_payload_json(payload: TicketPayload) -> str:
     return json.dumps(to_payload_dict(payload), ensure_ascii=False, indent=2)
 
 
@@ -101,8 +106,8 @@ def main() -> int:
         print("All fields are required.", file=sys.stderr)
         return 1
 
-    json_payload = canonical_payload_json(payload)
-    payload_hash = sha256_hex(json_payload)
+    canonical_json = canonical_payload_json(payload)
+    payload_hash = sha256_hex(canonical_json)
 
     supabase_url = os.getenv("SUPABASE_URL", "")
     service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
@@ -133,7 +138,8 @@ def main() -> int:
             {
                 "hash": payload_hash,
                 "qr_value": qr_value,
-                "json_payload": json_payload,
+                "json_payload": pretty_payload_json(payload),
+                "canonical_json": canonical_json,
                 "output": str(output_path),
                 "supabase_reserved": reserved,
             },
