@@ -336,7 +336,7 @@ def main() -> int:
         print("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required (or use --skip-supabase).", file=sys.stderr)
         return 1
 
-    reserved = True
+    reserved = False
     if not args.skip_supabase:
         reserved = reserve_hash(
             supabase_url=supabase_url,
@@ -344,10 +344,9 @@ def main() -> int:
             payload=payload,
             payload_hash=payload_hash,
         )
-
-    if not reserved:
-        print("Hash already exists on Supabase. Please verify ticket details.", file=sys.stderr)
-        return 2
+        if not reserved:
+            print("Hash already exists on Supabase. Please verify ticket details.", file=sys.stderr)
+            return 2
 
     qr_value = f"turni://ticket/{payload_hash}"
     output_path = pathlib.Path(args.output).resolve()
