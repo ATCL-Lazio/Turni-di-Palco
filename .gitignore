@@ -57,3 +57,6 @@ apps/mobile/build/index.html
 apps/mobile/build/assets/index-*.js
 apps/mobile/build/assets/index-*.css
 maxwell-ai-credentials.json
+
+# Python cache
+*/__pycache__
