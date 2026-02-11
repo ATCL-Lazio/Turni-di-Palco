@@ -239,9 +239,25 @@ function AppShell() {
     if (!authReady) return { ok: false as const, error: 'Verifica sessione...' };
     if (!isAuthValid) { setCurrentScreen('welcome'); return { ok: false as const, error: 'Login richiesto.' }; }
 
+    const activationUserId = (authUserId ?? state.profile.email ?? '').trim();
+
+    // 1. Manual Ticket Entry (e.g. from manual-ticket:EVENT_ID:TICKET_NUM)
+    if (code.startsWith('manual-ticket:')) {
+      const [, eventId, ticketNumber] = code.split(':');
+      if (!eventId || !ticketNumber) return { ok: false as const, error: 'Dati manuali incompleti.' };
+
+      const { activateTicketByDetails } = await import('./services/ticket-activation');
+      const activation = await activateTicketByDetails(eventId, ticketNumber, activationUserId);
+      if (!activation.ok) return { ok: false as const, error: activation.error };
+
+      window.alert('Ticket attivato con successo (manuale).');
+      setCurrentScreen(activeTab === 'home' ? 'home' : 'turns');
+      return { ok: true as const };
+    }
+
+    // 2. Ticket Hash or turni://ticket/...
     const ticketHash = parseTicketQrValue(code);
     if (ticketHash) {
-      const activationUserId = (authUserId ?? state.profile.email ?? '').trim();
       if (!activationUserId) {
         return { ok: false as const, error: 'Utente non disponibile per l\'attivazione ticket.' };
       }
@@ -302,7 +318,7 @@ function AppShell() {
       case 'home': return <Home userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpToNextLevel={state.profile.xpToNextLevel} reputation={state.profile.reputation} onScanQR={() => setCurrentScreen('qr-scanner')} onViewActivities={() => handleTabChange('activities')} onViewTurni={() => handleTabChange('turns')} onViewEventDetails={() => { setScannedEventId(upcomingEvent?.id ?? ''); setCurrentScreen('event-details'); }} onNavigateToEvent={() => openInMaps(upcomingEvent?.theatre ?? '')} upcomingEvent={upcomingEvent} totalTurns={turnStats.totalTurns} turnsThisMonth={turnStats.turnsThisMonth} uniqueTheatres={turnStats.uniqueTheatres} activitiesCount={activities.length} eventLoading={followedEventsLoading} statsLoading={statsLoading} newBadgesCount={newBadges.length} newBadgeTitle={newestNewBadge?.title} onDismissBadgeNotification={markBadgesSeen} />;
       case 'turns': return <ATCLTurns events={events} isEventFollowed={isEventFollowed} onToggleFollow={(id: string) => isEventFollowed(id) ? unfollowEvent(id) : followEvent(id)} onViewMap={() => openEventsMap(events.map(e => e.theatre))} onViewEvent={(id: string) => { setScannedEventId(id); setCurrentScreen('event-details'); }} onScanQR={() => setCurrentScreen('qr-scanner')} />;
       case 'leaderboard': return <Leaderboard />;
-      case 'qr-scanner': return <QRScanner onClose={() => handleTabChange(activeTab === 'home' ? 'home' : 'turns')} onScan={handleQRScanAttempt} />;
+      case 'qr-scanner': return <QRScanner onClose={() => handleTabChange(activeTab === 'home' ? 'home' : 'turns')} onScan={handleQRScanAttempt} events={events} />;
       case 'event-confirmation': return <EventConfirmation event={selectedEvent} role={selectedRole} onConfirm={handleEventConfirm} onCancel={() => setCurrentScreen('turns')} />;
       case 'event-details': return <EventDetails event={selectedEvent} onBack={() => setCurrentScreen('home')} onNavigate={() => openInMaps(selectedEvent?.theatre ?? '')} />;
       case 'activities': return <Activities activities={activities} onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }} />;

@@ -70,23 +70,41 @@ serve(async (req) => {
       });
     }
 
-    if (action === 'activate_hash') {
-      if (!hash || !userId) {
-        return new Response(JSON.stringify({ error: 'Missing hash or userId' }), {
+    if (action === 'activate_hash' || action === 'activate_by_details') {
+      if (!userId || (action === 'activate_hash' && !hash) || (action === 'activate_by_details' && (!payload?.eventID || !payload?.ticketNumber))) {
+        return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      // Atomic activation update
-      // We use a query with a filter on activated_by is null to ensure atomicity
+      // 1. Resolve hash if using details
+      let targetHash = hash;
+      if (action === 'activate_by_details') {
+        const { data: ticket } = await supabase
+          .from('ticket_activations')
+          .select('hash')
+          .eq('event_id', payload.eventID)
+          .eq('ticket_number', payload.ticketNumber)
+          .single();
+        
+        if (!ticket) {
+          return new Response(JSON.stringify({ ok: false, error: 'Ticket non trovato.' }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        targetHash = ticket.hash;
+      }
+
+      // 2. Atomic activation update
       const { data, error } = await supabase
         .from('ticket_activations')
         .update({
           activated_by: userId,
           activated_at: new Date().toISOString(),
         })
-        .eq('hash', hash)
+        .eq('hash', targetHash)
         .is('activated_by', null)
         .select();
 
@@ -99,11 +117,11 @@ serve(async (req) => {
         });
       }
 
-      // If no rows updated, it was either not found or already activated
+      // 3. Check current status if update failed
       const { data: current } = await supabase
         .from('ticket_activations')
         .select('activated_by')
-        .eq('hash', hash)
+        .eq('hash', targetHash)
         .single();
 
       if (!current) {
