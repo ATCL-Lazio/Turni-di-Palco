@@ -60,3 +60,5 @@ maxwell-ai-credentials.json
 
 # Python cache
 */__pycache__
+# QR output
+tools/ticket_qr_generator/out/
