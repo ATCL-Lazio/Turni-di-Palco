@@ -183,7 +183,27 @@
         "quickbar",
         "sparkline",
         "topbar",
-        "valuenow"
+        "valuenow",
+        "arrowsize",
+        "bordercolor",
+        "borderwidth",
+        "darkcolor",
+        "fieldbackground",
+        "lightcolor",
+        "pady",
+        "padx",
+        "selectbackground",
+        "selectforeground",
+        "textvariable",
+        "dotenv",
+        "Vivaticket",
+        "Ciaotickets",
+        "creds",
+        "insertbackground",
+        "highlightthickness",
+        "highlightbackground",
+        "highlightcolor",
+        "LANCZOS"
     ],
     "github-actions.workflows.pinned.workflows": [
         ".github/workflows/sync-deploy-branches.yml"
