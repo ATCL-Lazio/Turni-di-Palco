@@ -141,8 +141,7 @@ serve(async (req) => {
         return jsonResponse({
           ok: false,
           alreadyActivated: true,
-          activatedBy: ticket.activated_by,
-          error: 'Ticket gia attivato.',
+          error: 'Ticket già attivato.',
         }, 200);
       }
 
@@ -218,7 +217,6 @@ serve(async (req) => {
       return jsonResponse({
         ok: false,
         alreadyActivated: true,
-        activatedBy: current.activated_by,
       }, 200);
     }
 
