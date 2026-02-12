@@ -570,7 +570,7 @@ class TicketQrGeneratorUI:
                 if not reserved:
                     raise ValueError("Hash gia presente su Supabase. Verifica i dati del ticket (forse gia generato).")
 
-            qr_value = f"turni://ticket/{payload_hash}"
+            qr_value = payload_hash
             output_path = pathlib.Path(self.output_var.get()).resolve()
             generate_qr_png(qr_value, output_path)
 

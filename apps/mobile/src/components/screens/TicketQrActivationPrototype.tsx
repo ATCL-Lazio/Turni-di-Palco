@@ -59,7 +59,7 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
   const handleActivate = async () => {
     const hash = parseTicketQrValue(scanInput);
     if (!hash) {
-      setScanMessage('Payload QR non valido. Formato atteso: turni://ticket/<hash>.');
+      setScanMessage('Payload QR non valido. Formato atteso: hash SHA-256 (64 caratteri).');
       return;
     }
 
@@ -113,7 +113,7 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
 
         {generated ? (
           <div className="rounded-xl border border-[#2d2728] bg-[#0f0d0e] p-3 text-xs text-[#d9d4d5] space-y-2">
-            <p className="!m-0"><strong>QR value:</strong> {generated.qrValue}</p>
+            <p className="!m-0"><strong>QR value (hash):</strong> {generated.qrValue}</p>
             <p className="!m-0 break-all"><strong>Hash SHA-256:</strong> {generated.hash}</p>
             <p className="!m-0 break-all"><strong>JSON:</strong> {generated.json}</p>
           </div>
@@ -122,11 +122,11 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
 
       <section className="rounded-2xl border border-[#2d2728] bg-[#1a1617] p-4 space-y-4">
         <h3 className="text-base text-white !m-0">2) Scansione e attivazione one-shot</h3>
-        <Input
-          value={scanInput}
-          onChange={(event) => setScanInput(event.target.value)}
-          placeholder="Incolla il valore del QR"
-        />
+          <Input
+            value={scanInput}
+            onChange={(event) => setScanInput(event.target.value)}
+            placeholder="Incolla hash o valore QR"
+          />
         <Button variant="secondary" onClick={handleActivate} disabled={busy}>
           Verifica e attiva
         </Button>
