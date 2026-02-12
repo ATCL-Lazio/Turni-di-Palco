@@ -26,6 +26,133 @@ export type TicketActivationRecord = {
 
 const LEGACY_PROTOCOL_PREFIX = 'turni://ticket/';
 const localActivationStore = new Map<string, TicketActivationRecord>();
+const SESSION_REQUIRED_MESSAGE = 'Sessione scaduta o non disponibile. Effettua di nuovo il login.';
+
+async function resolveFunctionErrorMessage(error: unknown, fallback: string): Promise<string> {
+  if (!error || typeof error !== 'object') {
+    return fallback;
+  }
+
+  const candidate = error as {
+    message?: unknown;
+    context?: {
+      status?: number;
+      json?: () => Promise<unknown>;
+      text?: () => Promise<string>;
+      clone?: () => unknown;
+    };
+  };
+
+  let message = typeof candidate.message === 'string' ? candidate.message.trim() : '';
+  const context = candidate.context;
+
+  if (context && typeof context === 'object') {
+    const cloneFn = typeof context.clone === 'function' ? context.clone.bind(context) : null;
+    const source = cloneFn ? (cloneFn() as typeof context) : context;
+
+    if (source && typeof source.json === 'function') {
+      try {
+        const body = await source.json();
+        if (body && typeof body === 'object') {
+          const payload = body as { error?: unknown; message?: unknown };
+          const bodyMessage =
+            (typeof payload.error === 'string' && payload.error.trim()) ||
+            (typeof payload.message === 'string' && payload.message.trim()) ||
+            '';
+          if (bodyMessage) {
+            return bodyMessage;
+          }
+        }
+      } catch {
+        // fall back to text/message below
+      }
+    }
+
+    const sourceForText = cloneFn ? (cloneFn() as typeof context) : context;
+    if (sourceForText && typeof sourceForText.text === 'function') {
+      try {
+        const text = (await sourceForText.text()).trim();
+        if (text) {
+          return text;
+        }
+      } catch {
+        // ignore and continue fallback
+      }
+    }
+
+    if (typeof context.status === 'number' && context.status > 0) {
+      if (message) {
+        return `HTTP ${context.status}: ${message}`;
+      }
+      return `HTTP ${context.status}: ${fallback}`;
+    }
+  }
+
+  if (!message || /non-2xx/i.test(message)) {
+    return fallback;
+  }
+
+  return message;
+}
+
+function getFunctionErrorStatus(error: unknown): number | null {
+  if (!error || typeof error !== 'object') return null;
+  const context = (error as { context?: { status?: unknown } }).context;
+  if (!context || typeof context !== 'object') return null;
+  return typeof context.status === 'number' ? context.status : null;
+}
+
+async function getAccessTokenForFunctions(): Promise<string> {
+  if (!supabase || !isSupabaseConfigured) {
+    throw new Error(SESSION_REQUIRED_MESSAGE);
+  }
+
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) {
+    throw new Error(SESSION_REQUIRED_MESSAGE);
+  }
+
+  const sessionToken = sessionData.session?.access_token?.trim();
+  if (sessionToken) return sessionToken;
+
+  const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError) {
+    throw new Error(SESSION_REQUIRED_MESSAGE);
+  }
+
+  const refreshedToken = refreshed.session?.access_token?.trim();
+  if (!refreshedToken) {
+    throw new Error(SESSION_REQUIRED_MESSAGE);
+  }
+
+  return refreshedToken;
+}
+
+async function invokeTicketActivation(body: Record<string, unknown>) {
+  if (!supabase || !isSupabaseConfigured) {
+    return { data: null, error: null };
+  }
+
+  const token = await getAccessTokenForFunctions();
+  let response = await supabase.functions.invoke('ticket-activation', {
+    headers: { Authorization: `Bearer ${token}` },
+    body,
+  });
+
+  // Retry once with a refreshed token if gateway rejects the request.
+  if (response.error && getFunctionErrorStatus(response.error) === 401) {
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+    const refreshedToken = refreshed.session?.access_token?.trim();
+    if (!refreshError && refreshedToken) {
+      response = await supabase.functions.invoke('ticket-activation', {
+        headers: { Authorization: `Bearer ${refreshedToken}` },
+        body,
+      });
+    }
+  }
+
+  return response;
+}
 
 function stableStringify(value: TicketPayload): string {
   return JSON.stringify({
@@ -48,16 +175,18 @@ async function sha256Hex(input: string): Promise<string> {
 async function reserveHashRemotely(payload: TicketPayload, hash: string) {
   if (!supabase || !isSupabaseConfigured) return false;
 
-  const { data, error } = await supabase.functions.invoke('ticket-activation', {
-    body: {
-      action: 'reserve_hash',
-      hash,
-      payload,
-    },
+  const { data, error } = await invokeTicketActivation({
+    action: 'reserve_hash',
+    hash,
+    payload,
   });
 
   if (error) {
-    throw new Error(error.message || 'Errore Supabase durante la prenotazione hash.');
+    const errorMessage = await resolveFunctionErrorMessage(
+      error,
+      'Errore Supabase durante la prenotazione hash.'
+    );
+    throw new Error(errorMessage);
   }
 
   return Boolean((data as { reserved?: boolean } | null)?.reserved);
@@ -140,16 +269,18 @@ export function parseTicketQrValue(input: string): string | null {
 async function activateRemotely(hash: string, userId: string) {
   if (!supabase || !isSupabaseConfigured) return null;
 
-  const { data, error } = await supabase.functions.invoke('ticket-activation', {
-    body: {
-      action: 'activate_hash',
-      hash,
-      userId,
-    },
+  const { data, error } = await invokeTicketActivation({
+    action: 'activate_hash',
+    hash,
+    userId,
   });
 
   if (error) {
-    throw new Error(error.message || 'Errore Supabase durante l\'attivazione.');
+    const errorMessage = await resolveFunctionErrorMessage(
+      error,
+      'Errore Supabase durante l\'attivazione ticket.'
+    );
+    throw new Error(errorMessage);
   }
 
   return data as { ok?: boolean; alreadyActivated?: boolean; activatedBy?: string; eventId?: string; eventName?: string; error?: string } | null;
@@ -237,15 +368,19 @@ export async function activateTicketByDetails(
   try {
     if (!supabase || !isSupabaseConfigured) return { ok: false, error: 'Supabase non configurata.' };
 
-    const { data, error } = await supabase.functions.invoke('ticket-activation', {
-      body: {
-        action: 'activate_by_details',
-        payload: { eventID: normalizedEventId, ticketNumber: normalizedTicket },
-        userId: normalizedUserId,
-      },
+    const { data, error } = await invokeTicketActivation({
+      action: 'activate_by_details',
+      payload: { eventID: normalizedEventId, ticketNumber: normalizedTicket },
+      userId: normalizedUserId,
     });
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      const errorMessage = await resolveFunctionErrorMessage(
+        error,
+        'Errore Supabase durante l\'attivazione manuale.'
+      );
+      throw new Error(errorMessage);
+    }
     const remote = data as { ok?: boolean; alreadyActivated?: boolean; error?: string; eventId?: string } | null;
 
     if (remote?.ok) return { ok: true, eventId: remote.eventId };
