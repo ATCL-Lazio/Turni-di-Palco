@@ -60,6 +60,9 @@ async function resolveFunctionErrorMessage(error: unknown, fallback: string): Pr
             (typeof payload.message === 'string' && payload.message.trim()) ||
             '';
           if (bodyMessage) {
+            if (/invalid jwt/i.test(bodyMessage)) {
+              return SESSION_REQUIRED_MESSAGE;
+            }
             return bodyMessage;
           }
         }
@@ -73,6 +76,9 @@ async function resolveFunctionErrorMessage(error: unknown, fallback: string): Pr
       try {
         const text = (await sourceForText.text()).trim();
         if (text) {
+          if (/invalid jwt/i.test(text)) {
+            return SESSION_REQUIRED_MESSAGE;
+          }
           return text;
         }
       } catch {
@@ -81,11 +87,18 @@ async function resolveFunctionErrorMessage(error: unknown, fallback: string): Pr
     }
 
     if (typeof context.status === 'number' && context.status > 0) {
+      if (context.status === 401) {
+        return SESSION_REQUIRED_MESSAGE;
+      }
       if (message) {
         return `HTTP ${context.status}: ${message}`;
       }
       return `HTTP ${context.status}: ${fallback}`;
     }
+  }
+
+  if (/invalid jwt/i.test(message)) {
+    return SESSION_REQUIRED_MESSAGE;
   }
 
   if (!message || /non-2xx/i.test(message)) {
