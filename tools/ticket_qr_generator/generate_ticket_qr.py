@@ -353,7 +353,7 @@ def main() -> int:
             print("Hash already exists on Supabase. Please verify ticket details.", file=sys.stderr)
             return 2
 
-    qr_value = f"turni://ticket/{payload_hash}"
+    qr_value = payload_hash
     output_path = pathlib.Path(args.output).resolve()
     generate_qr_png(qr_value, output_path)
 

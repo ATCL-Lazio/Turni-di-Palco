@@ -262,7 +262,7 @@ function AppShell() {
       return { ok: true as const };
     }
 
-    // 2. Ticket Hash or turni://ticket/...
+    // 2. Ticket hash (raw SHA-256) or legacy turni://ticket/...
     const ticketHash = parseTicketQrValue(code);
     if (ticketHash) {
       if (!activationUserId) {
