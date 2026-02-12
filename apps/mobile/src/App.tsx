@@ -23,11 +23,21 @@ import { InstallApp } from './components/screens/InstallApp';
 import { TermsAndConditions } from './components/screens/TermsAndConditions';
 import { PrivacyPolicy } from './components/screens/PrivacyPolicy';
 import { EarnedTitles } from './components/screens/EarnedTitles';
-import { Activity, GameStateProvider, Rewards, useGameState } from './state/store';
+import { TicketQrActivationPrototype } from './components/screens/TicketQrActivationPrototype';
+import { Activity, GameEvent, GameStateProvider, Rewards, useGameState } from './state/store';
 import { isSupabaseConfigured } from './lib/supabase';
 import { hasStoredAuthState, PUBLIC_SCREENS } from './lib/auth-storage';
 import { openInMaps, openEventsMap } from './lib/navigation-utils';
 import { uploadProfileImage } from './services/storage';
+import {
+  activateTicketByDetails,
+  activateTicketHash,
+  isManualTicketActivatedInSession,
+  isTicketHashActivatedInSession,
+  parseTicketQrValue,
+  resolveTicketHashPreview,
+  type ActivatedEventPayload,
+} from './services/ticket-activation';
 import { ScreenTransition } from './components/ui/ScreenTransition';
 import { ErrorOverlay } from './components/ui/ErrorOverlay';
 import { initErrorHandler, subscribeToCriticalErrors, getLastCriticalError, clearLastCriticalError } from './services/error-handler';
@@ -67,6 +77,11 @@ function AppShell() {
   const [screenAnimationKey, setScreenAnimationKey] = useState(0);
   const previousTabRef = useRef(activeTab);
   const [criticalError, setCriticalError] = useState<{ title?: string; message?: string; details?: string } | null>(null);
+  type PendingTicketActivation =
+    | { mode: 'hash'; hash: string; eventId: string; event?: ActivatedEventPayload }
+    | { mode: 'manual'; eventId: string; ticketNumber: string };
+  const [pendingTicketActivation, setPendingTicketActivation] = useState<PendingTicketActivation | null>(null);
+  const [confirmationEventOverride, setConfirmationEventOverride] = useState<GameEvent | null>(null);
 
   // Auth Hook
   const {
@@ -92,6 +107,8 @@ function AppShell() {
       setActiveTab('home');
       setActivityOutcome(null);
       setActivityCompletion(null);
+      setPendingTicketActivation(null);
+      setConfirmationEventOverride(null);
       resetState();
       setCurrentScreen('welcome');
     }
@@ -214,6 +231,8 @@ function AppShell() {
     }
 
     if (authReady && isAuthValid) {
+      setPendingTicketActivation(null);
+      setConfirmationEventOverride(null);
       setScannedEventId(pendingFromUrl.eventId);
       setCurrentScreen('event-confirmation');
       window.sessionStorage.removeItem(PENDING_EVENT_KEY);
@@ -227,32 +246,192 @@ function AppShell() {
     const pendingEventId = window.sessionStorage.getItem(PENDING_EVENT_KEY);
     if (!pendingEventId) return;
 
+    setPendingTicketActivation(null);
+    setConfirmationEventOverride(null);
     setScannedEventId(pendingEventId);
     setCurrentScreen('event-confirmation');
     window.sessionStorage.removeItem(PENDING_EVENT_KEY);
   }, [authReady, isAuthValid, setCurrentScreen, setScannedEventId]);
 
   // Handler Actions
+  const mapActivatedEvent = (eventId: string, eventPayload?: ActivatedEventPayload): GameEvent | undefined => {
+    const existingEvent = events.find((event) => event.id === eventId);
+    if (existingEvent) return existingEvent;
+    if (!eventPayload) return undefined;
+
+    const theatre = String(eventPayload.theatre ?? '').trim();
+    const date = String(eventPayload.event_date ?? '').trim();
+    const time = String(eventPayload.event_time ?? '').trim();
+    if (!theatre || !date || !time) return undefined;
+
+    const toNumber = (value: unknown) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+    const baseRewards = eventPayload.base_rewards ?? {};
+    return {
+      id: eventId,
+      name: String(eventPayload.name ?? eventId).trim() || eventId,
+      theatre,
+      date,
+      time,
+      genre: String(eventPayload.genre ?? 'Evento').trim() || 'Evento',
+      baseRewards: {
+        xp: toNumber(baseRewards.xp),
+        reputation: toNumber(baseRewards.reputation),
+        cachet: toNumber(baseRewards.cachet),
+      },
+    };
+  };
+
   const handleQRScanAttempt = async (code: string) => {
     if (!authReady) return { ok: false as const, error: 'Verifica sessione...' };
-    if (!isAuthValid) { setCurrentScreen('welcome'); return { ok: false as const, error: 'Login richiesto.' }; }
+    if (!isAuthValid) {
+      setCurrentScreen('welcome');
+      return { ok: false as const, error: 'Login richiesto.' };
+    }
+
+    const activationUserId = (authUserId ?? state.profile.email ?? '').trim();
+
+    // 1. Manual Ticket Entry (e.g. from manual-ticket:EVENT_ID:TICKET_NUM)
+    if (code.startsWith('manual-ticket:')) {
+      const [, eventId, ticketNumber] = code.split(':');
+      if (!eventId || !ticketNumber) return { ok: false as const, error: 'Dati manuali incompleti.' };
+
+      const normalizedEventId = eventId.trim();
+      const normalizedTicketNumber = ticketNumber.trim();
+      if (isManualTicketActivatedInSession(normalizedEventId, normalizedTicketNumber)) {
+        return { ok: false as const, error: 'Ticket già attivato in questa sessione.' };
+      }
+      if (!events.some((event) => event.id === normalizedEventId)) {
+        return { ok: false as const, error: 'Evento non presente nel calendario.' };
+      }
+
+      setPendingTicketActivation({
+        mode: 'manual',
+        eventId: normalizedEventId,
+        ticketNumber: normalizedTicketNumber,
+      });
+      setConfirmationEventOverride(mapActivatedEvent(normalizedEventId) ?? null);
+      setScannedEventId(normalizedEventId);
+      setCurrentScreen('event-confirmation');
+      return { ok: true as const };
+    }
+
+    // 2. Ticket hash (raw SHA-256) or legacy turni://ticket/...
+    const ticketHash = parseTicketQrValue(code);
+    if (ticketHash) {
+      if (!activationUserId) {
+        return { ok: false as const, error: 'Utente non disponibile per l\'attivazione ticket.' };
+      }
+      if (isTicketHashActivatedInSession(ticketHash)) {
+        return { ok: false as const, error: 'Ticket già attivato in questa sessione.' };
+      }
+
+      const preview = await resolveTicketHashPreview(ticketHash);
+      if (!preview.ok) {
+        return { ok: false as const, error: preview.error };
+      }
+
+      setPendingTicketActivation({
+        mode: 'hash',
+        hash: ticketHash,
+        eventId: preview.eventId,
+        event: preview.event,
+      });
+      setConfirmationEventOverride(mapActivatedEvent(preview.eventId, preview.event) ?? null);
+      setScannedEventId(preview.eventId);
+      setCurrentScreen('event-confirmation');
+      return { ok: true as const };
+    }
 
     const result = await validateQrPayload(code, events.map((event) => event.id));
     if (!result.valid || !result.eventId) {
       return { ok: false as const, error: result.error ?? 'QR non valido.' };
     }
 
+    setPendingTicketActivation(null);
+    setConfirmationEventOverride(null);
     setScannedEventId(result.eventId);
     setCurrentScreen('event-confirmation');
     return { ok: true as const };
   };
 
-  const handleEventConfirm = () => {
-    if (registerTurn(scannedEventId, state.profile.roleId)) {
+  const handleEventConfirm = async () => {
+    const activationUserId = (authUserId ?? state.profile.email ?? '').trim();
+
+    if (pendingTicketActivation?.mode === 'hash') {
+      if (!activationUserId) {
+        window.alert('Sessione non valida. Effettua di nuovo il login.');
+        setCurrentScreen('welcome');
+        return;
+      }
+
+      const activation = await activateTicketHash(pendingTicketActivation.hash, activationUserId);
+      if (!activation.ok) {
+        window.alert(activation.error);
+        return;
+      }
+
+      const resolvedEventId = activation.eventId ?? pendingTicketActivation.eventId;
+      const turnRecord = registerTurn(
+        resolvedEventId,
+        state.profile.roleId,
+        mapActivatedEvent(resolvedEventId, activation.event ?? pendingTicketActivation.event)
+      );
+      if (!turnRecord) {
+        window.alert('Ticket attivato, ma non e stato possibile registrare il turno.');
+        return;
+      }
+
+      setPendingTicketActivation(null);
+      setConfirmationEventOverride(null);
+      setScannedEventId(resolvedEventId);
+      handleTabChange('home');
+      return;
+    }
+
+    if (pendingTicketActivation?.mode === 'manual') {
+      if (!activationUserId) {
+        window.alert('Sessione non valida. Effettua di nuovo il login.');
+        setCurrentScreen('welcome');
+        return;
+      }
+
+      const activation = await activateTicketByDetails(
+        pendingTicketActivation.eventId,
+        pendingTicketActivation.ticketNumber,
+        activationUserId
+      );
+      if (!activation.ok) {
+        window.alert(activation.error);
+        return;
+      }
+
+      const resolvedEventId = activation.eventId ?? pendingTicketActivation.eventId;
+      const turnRecord = registerTurn(
+        resolvedEventId,
+        state.profile.roleId,
+        mapActivatedEvent(resolvedEventId, activation.event)
+      );
+      if (!turnRecord) {
+        window.alert('Ticket attivato, ma non e stato possibile registrare il turno.');
+        return;
+      }
+
+      setPendingTicketActivation(null);
+      setConfirmationEventOverride(null);
+      setScannedEventId(resolvedEventId);
+      handleTabChange('home');
+      return;
+    }
+
+    if (registerTurn(scannedEventId, state.profile.roleId, confirmationEventOverride ?? undefined)) {
+      setPendingTicketActivation(null);
+      setConfirmationEventOverride(null);
       handleTabChange('home');
     }
   };
-
   const handleUploadImage = async (file: File) => {
     if (!authUserId) return;
     const url = await uploadProfileImage(authUserId, file);
@@ -265,7 +444,7 @@ function AppShell() {
   };
 
   const renderScreen = () => {
-    const selectedEvent = events.find(e => e.id === scannedEventId);
+    const selectedEvent = confirmationEventOverride ?? events.find(e => e.id === scannedEventId);
     const selectedRole = roles.find(r => r.id === state.profile.roleId);
     const currentActivity = activities.find(a => a.id === selectedActivityId);
 
@@ -283,8 +462,20 @@ function AppShell() {
       case 'home': return <Home userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpToNextLevel={state.profile.xpToNextLevel} reputation={state.profile.reputation} onScanQR={() => setCurrentScreen('qr-scanner')} onViewActivities={() => handleTabChange('activities')} onViewTurni={() => handleTabChange('turns')} onViewEventDetails={() => { setScannedEventId(upcomingEvent?.id ?? ''); setCurrentScreen('event-details'); }} onNavigateToEvent={() => openInMaps(upcomingEvent?.theatre ?? '')} upcomingEvent={upcomingEvent} totalTurns={turnStats.totalTurns} turnsThisMonth={turnStats.turnsThisMonth} uniqueTheatres={turnStats.uniqueTheatres} activitiesCount={activities.length} eventLoading={followedEventsLoading} statsLoading={statsLoading} newBadgesCount={newBadges.length} newBadgeTitle={newestNewBadge?.title} onDismissBadgeNotification={markBadgesSeen} />;
       case 'turns': return <ATCLTurns events={events} isEventFollowed={isEventFollowed} onToggleFollow={(id: string) => isEventFollowed(id) ? unfollowEvent(id) : followEvent(id)} onViewMap={() => openEventsMap(events.map(e => e.theatre))} onViewEvent={(id: string) => { setScannedEventId(id); setCurrentScreen('event-details'); }} onScanQR={() => setCurrentScreen('qr-scanner')} />;
       case 'leaderboard': return <Leaderboard />;
-      case 'qr-scanner': return <QRScanner onClose={() => handleTabChange(activeTab === 'home' ? 'home' : 'turns')} onScan={handleQRScanAttempt} />;
-      case 'event-confirmation': return <EventConfirmation event={selectedEvent} role={selectedRole} onConfirm={handleEventConfirm} onCancel={() => setCurrentScreen('turns')} />;
+      case 'qr-scanner': return <QRScanner onClose={() => handleTabChange(activeTab === 'home' ? 'home' : 'turns')} onScan={handleQRScanAttempt} events={events} />;
+      case 'event-confirmation': return (
+        <EventConfirmation
+          event={selectedEvent}
+          role={selectedRole}
+          onConfirm={handleEventConfirm}
+          onCancel={() => {
+            setPendingTicketActivation(null);
+            setConfirmationEventOverride(null);
+            setScannedEventId('');
+            handleTabChange(activeTab === 'home' ? 'home' : 'turns');
+          }}
+        />
+      );
       case 'event-details': return <EventDetails event={selectedEvent} onBack={() => setCurrentScreen('home')} onNavigate={() => openInMaps(selectedEvent?.theatre ?? '')} />;
       case 'activities': return <Activities activities={activities} onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }} />;
       case 'activity-detail': return currentActivity && <ActivityDetail activity={currentActivity} onStart={() => { setActivityOutcome(null); setActivityCompletion(null); setCurrentScreen('activity-minigame'); }} onClose={() => setCurrentScreen('activities')} />;
@@ -317,13 +508,14 @@ function AppShell() {
           <Activities activities={activities} onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }} />
         );
       case 'profile': return <Profile userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} theatreReputation={theatreReputation.map(tr => ({ name: tr.theatre, reputation: tr.reputation }))} theatreReputationLoading={theatreReputationLoading} badgesUnlockedCount={unlockedBadges.length} newBadgesCount={newBadges.length} profileImage={state.profile.profileImage} onViewCarriera={() => setCurrentScreen('career')} onViewTitoli={() => setCurrentScreen('earned-titles')} onSettings={() => setCurrentScreen('account-settings')} onLogout={handleLogout} onUploadProfileImage={handleUploadImage} />;
-      case 'account-settings': return <AccountSettings userName={state.profile.name} email={state.profile.email} onBack={() => setCurrentScreen('profile')} onViewTerms={() => openLegal('terms', 'account-settings')} onViewPrivacy={() => openLegal('privacy', 'account-settings')} onViewSupport={() => setCurrentScreen('support')} onChangePassword={() => { setIsPasswordRecovery(false); setCurrentScreen('change-password'); }} onResetProgress={async () => { await resetProgress(); handleTabChange('home'); setCurrentScreen('role-selection'); }} onLogout={handleLogout} />;
+      case 'account-settings': return <AccountSettings userName={state.profile.name} email={state.profile.email} onBack={() => setCurrentScreen('profile')} onViewTerms={() => openLegal('terms', 'account-settings')} onViewPrivacy={() => openLegal('privacy', 'account-settings')} onViewSupport={() => setCurrentScreen('support')} onViewTicketPrototype={() => setCurrentScreen('ticket-qr-prototype')} onChangePassword={() => { setIsPasswordRecovery(false); setCurrentScreen('change-password'); }} onResetProgress={async () => { await resetProgress(); handleTabChange('home'); setCurrentScreen('role-selection'); }} onLogout={handleLogout} />;
       case 'support': return <SupportChat userName={state.profile.name} onBack={() => setCurrentScreen('account-settings')} />;
       case 'change-password': return <ChangePassword email={state.profile.email} mode={isPasswordRecovery ? 'recovery' : 'change'} onBack={() => { setIsPasswordRecovery(false); setCurrentScreen(isPasswordRecovery ? 'home' : 'account-settings'); }} onChangePassword={(current, next) => changePassword(next, current)} onSendResetEmail={() => sendPasswordResetEmail(state.profile.email)} />;
       case 'career': return <Career userRole={selectedRole?.name ?? 'Ruolo'} roleId={state.profile.roleId} roleStats={selectedRole?.stats ?? { presence: 0, precision: 0, leadership: 0, creativity: 0 }} turnStats={turnStats} badges={badges} turns={state.turns} roles={roles} level={state.profile.level} xp={state.profile.xp} xpToNextLevel={state.profile.xpToNextLevel} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} onBack={() => setCurrentScreen('profile')} />;
       case 'terms': return <TermsAndConditions onBack={() => setCurrentScreen(legalReturnScreen)} />;
       case 'privacy': return <PrivacyPolicy onBack={() => setCurrentScreen(legalReturnScreen)} />;
       case 'earned-titles': return <EarnedTitles badges={unlockedBadges} onBack={() => setCurrentScreen('profile')} onViewed={markBadgesSeen} />;
+      case 'ticket-qr-prototype': return <TicketQrActivationPrototype userId={authUserId ?? state.profile.email ?? 'guest-user'} onBack={() => setCurrentScreen('account-settings')} />;
       default: return null;
     }
   };
@@ -369,3 +561,4 @@ export default function App() {
     </GameStateProvider>
   );
 }
+
