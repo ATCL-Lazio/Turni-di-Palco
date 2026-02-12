@@ -52,6 +52,25 @@ const localActivationStore = new Map<string, TicketActivationRecord>();
 const localManualActivationStore = new Map<string, ManualTicketActivationRecord>();
 const SESSION_REQUIRED_MESSAGE = 'Sessione scaduta o non disponibile. Effettua di nuovo il login.';
 const MAX_HASH_GENERATION_ATTEMPTS = 8;
+const MAX_STORE_SIZE = 1000; // Prevent memory leaks
+
+// Cleanup function to prevent memory leaks
+function cleanupOldRecords() {
+  if (localActivationStore.size > MAX_STORE_SIZE) {
+    const entries = Array.from(localActivationStore.entries());
+    // Keep only the most recent half
+    const toKeep = entries.slice(-Math.floor(MAX_STORE_SIZE / 2));
+    localActivationStore.clear();
+    toKeep.forEach(([key, value]) => localActivationStore.set(key, value));
+  }
+
+  if (localManualActivationStore.size > MAX_STORE_SIZE) {
+    const entries = Array.from(localManualActivationStore.entries());
+    const toKeep = entries.slice(-Math.floor(MAX_STORE_SIZE / 2));
+    localManualActivationStore.clear();
+    toKeep.forEach(([key, value]) => localManualActivationStore.set(key, value));
+  }
+}
 
 function buildManualTicketKey(eventID: string, ticketNumber: string): string {
   return `${eventID.trim().toLowerCase()}::${ticketNumber.trim().toLowerCase()}`;
@@ -297,6 +316,7 @@ export async function generateTicketQr(params: {
     throw new Error('Impossibile generare un hash univoco dopo diversi tentativi.');
   }
 
+  cleanupOldRecords();
   localActivationStore.set(hash, {
     hash,
     eventId: payload.eventID,
@@ -451,6 +471,11 @@ export async function activateTicketHash(
     return { ok: false, error: 'Utente non disponibile per l\'attivazione.' };
   }
 
+  // Validate userId format - should be a valid UUID
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalizedUserId)) {
+    return { ok: false, error: 'ID utente non valido.' };
+  }
+
   if (isTicketHashActivatedInSession(normalizedHash)) {
     return { ok: false, error: 'Ticket già attivato in questa sessione.' };
   }
@@ -519,6 +544,11 @@ export async function activateTicketByDetails(
   if (!normalizedEventId || !normalizedTicket || !normalizedUserId) {
     return { ok: false, error: 'Dati mancanti per l\'attivazione manuale.' };
   }
+
+  // Validate userId format - should be a valid UUID
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalizedUserId)) {
+    return { ok: false, error: 'ID utente non valido.' };
+  }
   const manualTicketKey = buildManualTicketKey(normalizedEventId, normalizedTicket);
   if (localManualActivationStore.has(manualTicketKey)) {
     return { ok: false, error: 'Ticket già attivato in questa sessione.' };
@@ -549,6 +579,7 @@ export async function activateTicketByDetails(
     } | null;
 
     if (remote?.ok) {
+      cleanupOldRecords();
       localManualActivationStore.set(manualTicketKey, {
         eventId: normalizedEventId,
         ticketNumber: normalizedTicket,
