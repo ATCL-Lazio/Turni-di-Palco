@@ -31,7 +31,7 @@ async function loadEventSnapshot(supabase: ReturnType<typeof createClient>, even
   return data ?? null;
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
