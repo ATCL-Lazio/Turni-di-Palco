@@ -154,29 +154,55 @@ serve(async (req) => {
       }, 200);
     }
 
-    if (action === 'activate_hash' || action === 'activate_by_details') {
+    if (action === 'activate_hash' || action === 'activate_by_details' || action === 'activate_by_ticket_number') {
       if (
         !resolvedUserId ||
         (action === 'activate_hash' && !hash) ||
-        (action === 'activate_by_details' && (!payload?.eventID || !payload?.ticketNumber))
+        (action === 'activate_by_details' && (!payload?.eventID || !payload?.ticketNumber)) ||
+        (action === 'activate_by_ticket_number' && !payload?.ticketNumber)
       ) {
         return jsonResponse({ error: 'Missing required parameters' }, 400);
       }
 
-      // 1. Resolve hash if using details
+      // 1. Resolve hash if using details or ticket number
       let targetHash = hash;
+      
       if (action === 'activate_by_details') {
         const { data: ticket } = await supabase
           .from('ticket_activations')
           .select('hash')
           .eq('event_id', payload.eventID)
           .eq('ticket_number', payload.ticketNumber)
-          .single();
+          .maybeSingle(); // Use maybeSingle to avoid 406 if multiple found (though they should be unique per event)
         
         if (!ticket) {
           return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
         }
         targetHash = ticket.hash;
+      } else if (action === 'activate_by_ticket_number') {
+          // Search by ticket number only. Must be unique or we pick the first valid one? 
+          // Best to ensure specific ticket number is unique enough or handle duplicates.
+          // Here we assume we want to match a ticket that exists.
+          const { data: tickets, error: searchError } = await supabase
+            .from('ticket_activations')
+            .select('hash, event_id, ticket_number')
+            .eq('ticket_number', payload.ticketNumber);
+
+          if (searchError) throw searchError;
+
+          if (!tickets || tickets.length === 0) {
+              return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
+          }
+          
+          if (tickets.length > 1) {
+               // duplicate ticket numbers across events?
+               // If so, we can't activate unique without event ID.
+               // However, if only one is NOT activated, maybe we pick that one?
+               // For now, return error if ambiguous.
+               return jsonResponse({ ok: false, error: 'Ticket number non univoco. Usa il QR code.' }, 200);
+          }
+
+          targetHash = tickets[0].hash;
       }
 
       // 2. Atomic activation update
