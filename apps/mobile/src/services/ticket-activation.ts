@@ -24,7 +24,7 @@ export type TicketActivationRecord = {
   activatedAtIso: string | null;
 };
 
-const PROTOCOL_PREFIX = 'turni://ticket/';
+const LEGACY_PROTOCOL_PREFIX = 'turni://ticket/';
 const localActivationStore = new Map<string, TicketActivationRecord>();
 
 function stableStringify(value: TicketPayload): string {
@@ -115,23 +115,23 @@ export async function generateTicketQr(params: {
     payload,
     json,
     hash,
-    qrValue: `${PROTOCOL_PREFIX}${hash}`,
+    qrValue: hash,
     persistedRemotely,
   };
 }
 
 export function parseTicketQrValue(input: string): string | null {
   const trimmed = input.trim();
-  
-  // if starts with protocol, extract hash
-  if (trimmed.startsWith(PROTOCOL_PREFIX)) {
-    const hash = trimmed.slice(PROTOCOL_PREFIX.length).split('?')[0]?.toLowerCase();
-    if (hash && /^[0-9a-f]{64}$/.test(hash)) return hash;
-  }
 
-  // if is raw 64-char hex hash, return it directly
+  // Preferred format: raw 64-char SHA-256 hash.
   if (/^[0-9a-f]{64}$/i.test(trimmed)) {
     return trimmed.toLowerCase();
+  }
+
+  // Backward compatibility for legacy QR values.
+  if (trimmed.startsWith(LEGACY_PROTOCOL_PREFIX)) {
+    const hash = trimmed.slice(LEGACY_PROTOCOL_PREFIX.length).split('?')[0]?.toLowerCase();
+    if (hash && /^[0-9a-f]{64}$/.test(hash)) return hash;
   }
 
   return null;
