@@ -50,7 +50,8 @@ serve(async (req: Request) => {
   try {
     const { action, hash, payload, userId: requestedUserId } = await req.json();
 
-    const needsAuthenticatedUser = action === 'activate_hash' || action === 'activate_by_details';
+    const activationActions = ['activate_hash', 'activate_by_details', 'activate_by_ticket_number'];
+    const needsAuthenticatedUser = activationActions.includes(action);
     let resolvedUserId = typeof requestedUserId === 'string' ? requestedUserId.trim() : '';
 
     if (needsAuthenticatedUser) {
@@ -65,9 +66,7 @@ serve(async (req: Request) => {
 
       const authClient = createClient(supabaseUrl, anonKey, {
         global: {
-          headers: {
-            Authorization: authHeader,
-          },
+          headers: { Authorization: authHeader },
         },
       });
 
@@ -76,7 +75,7 @@ serve(async (req: Request) => {
         return jsonResponse({ error: 'Invalid JWT' }, 401);
       }
 
-      // Do not trust userId sent by client payload.
+      // Do not trust userId sent by client payload if we have an authenticated user.
       resolvedUserId = authData.user.id;
     }
 
