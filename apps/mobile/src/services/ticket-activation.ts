@@ -24,6 +24,13 @@ export type TicketActivationRecord = {
   activatedAtIso: string | null;
 };
 
+type ManualTicketActivationRecord = {
+  eventId: string;
+  ticketNumber: string;
+  activatedBy: string;
+  activatedAtIso: string;
+};
+
 export type ActivatedEventPayload = {
   id?: string | null;
   name?: string | null;
@@ -41,7 +48,12 @@ export type ActivatedEventPayload = {
 
 const LEGACY_PROTOCOL_PREFIX = 'turni://ticket/';
 const localActivationStore = new Map<string, TicketActivationRecord>();
+const localManualActivationStore = new Map<string, ManualTicketActivationRecord>();
 const SESSION_REQUIRED_MESSAGE = 'Sessione scaduta o non disponibile. Effettua di nuovo il login.';
+
+function buildManualTicketKey(eventID: string, ticketNumber: string): string {
+  return `${eventID.trim().toLowerCase()}::${ticketNumber.trim().toLowerCase()}`;
+}
 
 async function resolveFunctionErrorMessage(error: unknown, fallback: string): Promise<string> {
   if (!error || typeof error !== 'object') {
@@ -294,6 +306,17 @@ export function parseTicketQrValue(input: string): string | null {
   return null;
 }
 
+export function isTicketHashActivatedInSession(hash: string): boolean {
+  const normalizedHash = hash.trim().toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(normalizedHash)) return false;
+  return localActivationStore.get(normalizedHash)?.status === 'activated';
+}
+
+export function isManualTicketActivatedInSession(eventID: string, ticketNumber: string): boolean {
+  const key = buildManualTicketKey(eventID, ticketNumber);
+  return localManualActivationStore.has(key);
+}
+
 async function activateRemotely(hash: string, userId: string) {
   if (!supabase || !isSupabaseConfigured) return null;
 
@@ -322,6 +345,53 @@ async function activateRemotely(hash: string, userId: string) {
   } | null;
 }
 
+async function resolveRemotely(hash: string) {
+  if (!supabase || !isSupabaseConfigured) return null;
+
+  const { data, error } = await invokeTicketActivation({
+    action: 'resolve_hash',
+    hash,
+  });
+
+  if (error) {
+    const errorMessage = await resolveFunctionErrorMessage(
+      error,
+      'Errore Supabase durante la risoluzione del ticket.'
+    );
+    throw new Error(errorMessage);
+  }
+
+  return data as {
+    ok?: boolean;
+    eventId?: string;
+    eventName?: string;
+    event?: ActivatedEventPayload;
+    error?: string;
+  } | null;
+}
+
+export async function resolveTicketHashPreview(
+  hash: string
+): Promise<{ ok: true; eventId: string; event?: ActivatedEventPayload } | { ok: false; error: string }> {
+  const normalizedHash = hash.trim().toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(normalizedHash)) {
+    return { ok: false, error: 'Hash non valido.' };
+  }
+
+  try {
+    const remote = await resolveRemotely(normalizedHash);
+    if (!remote?.ok || !remote.eventId) {
+      return { ok: false, error: remote?.error ?? 'Ticket non trovato.' };
+    }
+    return { ok: true, eventId: remote.eventId, event: remote.event };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Errore tecnico durante la risoluzione ticket.',
+    };
+  }
+}
+
 export async function activateTicketHash(
   hash: string,
   userId: string
@@ -335,6 +405,10 @@ export async function activateTicketHash(
 
   if (!normalizedUserId) {
     return { ok: false, error: 'Utente non disponibile per l\'attivazione.' };
+  }
+
+  if (isTicketHashActivatedInSession(normalizedHash)) {
+    return { ok: false, error: 'Ticket già attivato in questa sessione.' };
   }
 
   try {
@@ -400,6 +474,10 @@ export async function activateTicketByDetails(
   if (!normalizedEventId || !normalizedTicket || !normalizedUserId) {
     return { ok: false, error: 'Dati mancanti per l\'attivazione manuale.' };
   }
+  const manualTicketKey = buildManualTicketKey(normalizedEventId, normalizedTicket);
+  if (localManualActivationStore.has(manualTicketKey)) {
+    return { ok: false, error: 'Ticket già attivato in questa sessione.' };
+  }
 
   try {
     if (!supabase || !isSupabaseConfigured) return { ok: false, error: 'Supabase non configurata.' };
@@ -425,7 +503,15 @@ export async function activateTicketByDetails(
       event?: ActivatedEventPayload;
     } | null;
 
-    if (remote?.ok) return { ok: true, eventId: remote.eventId, event: remote.event };
+    if (remote?.ok) {
+      localManualActivationStore.set(manualTicketKey, {
+        eventId: normalizedEventId,
+        ticketNumber: normalizedTicket,
+        activatedBy: normalizedUserId,
+        activatedAtIso: new Date().toISOString(),
+      });
+      return { ok: true, eventId: remote.eventId, event: remote.event };
+    }
     if (remote?.alreadyActivated) return { ok: false, error: 'Ticket già attivato.' };
     return { ok: false, error: remote?.error || 'Errore durante l\'attivazione manuale.' };
   } catch (error) {

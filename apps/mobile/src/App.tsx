@@ -29,7 +29,15 @@ import { isSupabaseConfigured } from './lib/supabase';
 import { hasStoredAuthState, PUBLIC_SCREENS } from './lib/auth-storage';
 import { openInMaps, openEventsMap } from './lib/navigation-utils';
 import { uploadProfileImage } from './services/storage';
-import { activateTicketHash, parseTicketQrValue, type ActivatedEventPayload } from './services/ticket-activation';
+import {
+  activateTicketByDetails,
+  activateTicketHash,
+  isManualTicketActivatedInSession,
+  isTicketHashActivatedInSession,
+  parseTicketQrValue,
+  resolveTicketHashPreview,
+  type ActivatedEventPayload,
+} from './services/ticket-activation';
 import { ScreenTransition } from './components/ui/ScreenTransition';
 import { ErrorOverlay } from './components/ui/ErrorOverlay';
 import { initErrorHandler, subscribeToCriticalErrors, getLastCriticalError, clearLastCriticalError } from './services/error-handler';
@@ -69,6 +77,11 @@ function AppShell() {
   const [screenAnimationKey, setScreenAnimationKey] = useState(0);
   const previousTabRef = useRef(activeTab);
   const [criticalError, setCriticalError] = useState<{ title?: string; message?: string; details?: string } | null>(null);
+  type PendingTicketActivation =
+    | { mode: 'hash'; hash: string; eventId: string; event?: ActivatedEventPayload }
+    | { mode: 'manual'; eventId: string; ticketNumber: string };
+  const [pendingTicketActivation, setPendingTicketActivation] = useState<PendingTicketActivation | null>(null);
+  const [confirmationEventOverride, setConfirmationEventOverride] = useState<GameEvent | null>(null);
 
   // Auth Hook
   const {
@@ -94,6 +107,8 @@ function AppShell() {
       setActiveTab('home');
       setActivityOutcome(null);
       setActivityCompletion(null);
+      setPendingTicketActivation(null);
+      setConfirmationEventOverride(null);
       resetState();
       setCurrentScreen('welcome');
     }
@@ -216,6 +231,8 @@ function AppShell() {
     }
 
     if (authReady && isAuthValid) {
+      setPendingTicketActivation(null);
+      setConfirmationEventOverride(null);
       setScannedEventId(pendingFromUrl.eventId);
       setCurrentScreen('event-confirmation');
       window.sessionStorage.removeItem(PENDING_EVENT_KEY);
@@ -229,83 +246,75 @@ function AppShell() {
     const pendingEventId = window.sessionStorage.getItem(PENDING_EVENT_KEY);
     if (!pendingEventId) return;
 
+    setPendingTicketActivation(null);
+    setConfirmationEventOverride(null);
     setScannedEventId(pendingEventId);
     setCurrentScreen('event-confirmation');
     window.sessionStorage.removeItem(PENDING_EVENT_KEY);
   }, [authReady, isAuthValid, setCurrentScreen, setScannedEventId]);
 
   // Handler Actions
-  const handleQRScanAttempt = async (code: string) => {
-    if (!authReady) return { ok: false as const, error: 'Verifica sessione...' };
-    if (!isAuthValid) { setCurrentScreen('welcome'); return { ok: false as const, error: 'Login richiesto.' }; }
+  const mapActivatedEvent = (eventId: string, eventPayload?: ActivatedEventPayload): GameEvent | undefined => {
+    const existingEvent = events.find((event) => event.id === eventId);
+    if (existingEvent) return existingEvent;
+    if (!eventPayload) return undefined;
 
-    const activationUserId = (authUserId ?? state.profile.email ?? '').trim();
-    const confirmTurnActivation = (details: string) =>
-      window.confirm(
-        `Confermi l'attivazione del turno per questo ticket?\n\n${details}`
-      );
+    const theatre = String(eventPayload.theatre ?? '').trim();
+    const date = String(eventPayload.event_date ?? '').trim();
+    const time = String(eventPayload.event_time ?? '').trim();
+    if (!theatre || !date || !time) return undefined;
+
     const toNumber = (value: unknown) => {
       const parsed = Number(value);
       return Number.isFinite(parsed) ? parsed : 0;
     };
-    const mapActivatedEvent = (
-      eventId: string,
-      eventPayload?: ActivatedEventPayload
-    ): GameEvent | undefined => {
-      const existingEvent = events.find((event) => event.id === eventId);
-      if (existingEvent) return existingEvent;
-      if (!eventPayload) return undefined;
-
-      const theatre = String(eventPayload.theatre ?? '').trim();
-      const date = String(eventPayload.event_date ?? '').trim();
-      const time = String(eventPayload.event_time ?? '').trim();
-      if (!theatre || !date || !time) return undefined;
-
-      const baseRewards = eventPayload.base_rewards ?? {};
-      return {
-        id: eventId,
-        name: String(eventPayload.name ?? eventId).trim() || eventId,
-        theatre,
-        date,
-        time,
-        genre: String(eventPayload.genre ?? 'Evento').trim() || 'Evento',
-        baseRewards: {
-          xp: toNumber(baseRewards.xp),
-          reputation: toNumber(baseRewards.reputation),
-          cachet: toNumber(baseRewards.cachet),
-        },
-      };
+    const baseRewards = eventPayload.base_rewards ?? {};
+    return {
+      id: eventId,
+      name: String(eventPayload.name ?? eventId).trim() || eventId,
+      theatre,
+      date,
+      time,
+      genre: String(eventPayload.genre ?? 'Evento').trim() || 'Evento',
+      baseRewards: {
+        xp: toNumber(baseRewards.xp),
+        reputation: toNumber(baseRewards.reputation),
+        cachet: toNumber(baseRewards.cachet),
+      },
     };
+  };
+
+  const handleQRScanAttempt = async (code: string) => {
+    if (!authReady) return { ok: false as const, error: 'Verifica sessione...' };
+    if (!isAuthValid) {
+      setCurrentScreen('welcome');
+      return { ok: false as const, error: 'Login richiesto.' };
+    }
+
+    const activationUserId = (authUserId ?? state.profile.email ?? '').trim();
 
     // 1. Manual Ticket Entry (e.g. from manual-ticket:EVENT_ID:TICKET_NUM)
     if (code.startsWith('manual-ticket:')) {
       const [, eventId, ticketNumber] = code.split(':');
       if (!eventId || !ticketNumber) return { ok: false as const, error: 'Dati manuali incompleti.' };
-      if (!confirmTurnActivation(`Evento: ${eventId}\nBiglietto: ${ticketNumber}`)) {
-        return { ok: false as const, error: 'Attivazione annullata.' };
+
+      const normalizedEventId = eventId.trim();
+      const normalizedTicketNumber = ticketNumber.trim();
+      if (isManualTicketActivatedInSession(normalizedEventId, normalizedTicketNumber)) {
+        return { ok: false as const, error: 'Ticket già attivato in questa sessione.' };
+      }
+      if (!events.some((event) => event.id === normalizedEventId)) {
+        return { ok: false as const, error: 'Evento non presente nel calendario.' };
       }
 
-      const { activateTicketByDetails } = await import('./services/ticket-activation');
-      const activation = await activateTicketByDetails(eventId, ticketNumber, activationUserId);
-      if (!activation.ok) return { ok: false as const, error: activation.error };
-
-      // Auto-register turn on success
-      if (activation.eventId) {
-        const turnRecord = registerTurn(
-          activation.eventId,
-          state.profile.roleId,
-          mapActivatedEvent(activation.eventId, activation.event)
-        );
-        if (turnRecord) {
-          window.alert('Ticket attivato e turno registrato con successo.');
-        } else {
-          window.alert('Ticket attivato, ma non è stato possibile aggiornare le statistiche turno.');
-        }
-      } else {
-        window.alert('Ticket attivato.');
-      }
-      
-      setCurrentScreen(activeTab === 'home' ? 'home' : 'turns');
+      setPendingTicketActivation({
+        mode: 'manual',
+        eventId: normalizedEventId,
+        ticketNumber: normalizedTicketNumber,
+      });
+      setConfirmationEventOverride(mapActivatedEvent(normalizedEventId) ?? null);
+      setScannedEventId(normalizedEventId);
+      setCurrentScreen('event-confirmation');
       return { ok: true as const };
     }
 
@@ -315,32 +324,24 @@ function AppShell() {
       if (!activationUserId) {
         return { ok: false as const, error: 'Utente non disponibile per l\'attivazione ticket.' };
       }
-      if (!confirmTurnActivation(`Hash ticket: ${ticketHash.slice(0, 12)}...`)) {
-        return { ok: false as const, error: 'Attivazione annullata.' };
+      if (isTicketHashActivatedInSession(ticketHash)) {
+        return { ok: false as const, error: 'Ticket già attivato in questa sessione.' };
       }
 
-      const activation = await activateTicketHash(ticketHash, activationUserId);
-      if (!activation.ok) {
-        return { ok: false as const, error: activation.error };
+      const preview = await resolveTicketHashPreview(ticketHash);
+      if (!preview.ok) {
+        return { ok: false as const, error: preview.error };
       }
 
-      // Auto-register turn on success
-      if (activation.eventId) {
-        const turnRecord = registerTurn(
-          activation.eventId,
-          state.profile.roleId,
-          mapActivatedEvent(activation.eventId, activation.event)
-        );
-        if (turnRecord) {
-          window.alert('Ticket attivato e turno registrato correttamente.');
-        } else {
-          window.alert('Ticket attivato, ma non è stato possibile aggiornare le statistiche turno.');
-        }
-      } else {
-        window.alert('Ticket attivato correttamente.');
-      }
-      
-      setCurrentScreen(activeTab === 'home' ? 'home' : 'turns');
+      setPendingTicketActivation({
+        mode: 'hash',
+        hash: ticketHash,
+        eventId: preview.eventId,
+        event: preview.event,
+      });
+      setConfirmationEventOverride(mapActivatedEvent(preview.eventId, preview.event) ?? null);
+      setScannedEventId(preview.eventId);
+      setCurrentScreen('event-confirmation');
       return { ok: true as const };
     }
 
@@ -349,17 +350,88 @@ function AppShell() {
       return { ok: false as const, error: result.error ?? 'QR non valido.' };
     }
 
+    setPendingTicketActivation(null);
+    setConfirmationEventOverride(null);
     setScannedEventId(result.eventId);
     setCurrentScreen('event-confirmation');
     return { ok: true as const };
   };
 
-  const handleEventConfirm = () => {
-    if (registerTurn(scannedEventId, state.profile.roleId)) {
+  const handleEventConfirm = async () => {
+    const activationUserId = (authUserId ?? state.profile.email ?? '').trim();
+
+    if (pendingTicketActivation?.mode === 'hash') {
+      if (!activationUserId) {
+        window.alert('Sessione non valida. Effettua di nuovo il login.');
+        setCurrentScreen('welcome');
+        return;
+      }
+
+      const activation = await activateTicketHash(pendingTicketActivation.hash, activationUserId);
+      if (!activation.ok) {
+        window.alert(activation.error);
+        return;
+      }
+
+      const resolvedEventId = activation.eventId ?? pendingTicketActivation.eventId;
+      const turnRecord = registerTurn(
+        resolvedEventId,
+        state.profile.roleId,
+        mapActivatedEvent(resolvedEventId, activation.event ?? pendingTicketActivation.event)
+      );
+      if (!turnRecord) {
+        window.alert('Ticket attivato, ma non e stato possibile registrare il turno.');
+        return;
+      }
+
+      setPendingTicketActivation(null);
+      setConfirmationEventOverride(null);
+      setScannedEventId(resolvedEventId);
+      handleTabChange('home');
+      return;
+    }
+
+    if (pendingTicketActivation?.mode === 'manual') {
+      if (!activationUserId) {
+        window.alert('Sessione non valida. Effettua di nuovo il login.');
+        setCurrentScreen('welcome');
+        return;
+      }
+
+      const activation = await activateTicketByDetails(
+        pendingTicketActivation.eventId,
+        pendingTicketActivation.ticketNumber,
+        activationUserId
+      );
+      if (!activation.ok) {
+        window.alert(activation.error);
+        return;
+      }
+
+      const resolvedEventId = activation.eventId ?? pendingTicketActivation.eventId;
+      const turnRecord = registerTurn(
+        resolvedEventId,
+        state.profile.roleId,
+        mapActivatedEvent(resolvedEventId, activation.event)
+      );
+      if (!turnRecord) {
+        window.alert('Ticket attivato, ma non e stato possibile registrare il turno.');
+        return;
+      }
+
+      setPendingTicketActivation(null);
+      setConfirmationEventOverride(null);
+      setScannedEventId(resolvedEventId);
+      handleTabChange('home');
+      return;
+    }
+
+    if (registerTurn(scannedEventId, state.profile.roleId, confirmationEventOverride ?? undefined)) {
+      setPendingTicketActivation(null);
+      setConfirmationEventOverride(null);
       handleTabChange('home');
     }
   };
-
   const handleUploadImage = async (file: File) => {
     if (!authUserId) return;
     const url = await uploadProfileImage(authUserId, file);
@@ -372,7 +444,7 @@ function AppShell() {
   };
 
   const renderScreen = () => {
-    const selectedEvent = events.find(e => e.id === scannedEventId);
+    const selectedEvent = confirmationEventOverride ?? events.find(e => e.id === scannedEventId);
     const selectedRole = roles.find(r => r.id === state.profile.roleId);
     const currentActivity = activities.find(a => a.id === selectedActivityId);
 
@@ -391,7 +463,19 @@ function AppShell() {
       case 'turns': return <ATCLTurns events={events} isEventFollowed={isEventFollowed} onToggleFollow={(id: string) => isEventFollowed(id) ? unfollowEvent(id) : followEvent(id)} onViewMap={() => openEventsMap(events.map(e => e.theatre))} onViewEvent={(id: string) => { setScannedEventId(id); setCurrentScreen('event-details'); }} onScanQR={() => setCurrentScreen('qr-scanner')} />;
       case 'leaderboard': return <Leaderboard />;
       case 'qr-scanner': return <QRScanner onClose={() => handleTabChange(activeTab === 'home' ? 'home' : 'turns')} onScan={handleQRScanAttempt} events={events} />;
-      case 'event-confirmation': return <EventConfirmation event={selectedEvent} role={selectedRole} onConfirm={handleEventConfirm} onCancel={() => setCurrentScreen('turns')} />;
+      case 'event-confirmation': return (
+        <EventConfirmation
+          event={selectedEvent}
+          role={selectedRole}
+          onConfirm={handleEventConfirm}
+          onCancel={() => {
+            setPendingTicketActivation(null);
+            setConfirmationEventOverride(null);
+            setScannedEventId('');
+            handleTabChange(activeTab === 'home' ? 'home' : 'turns');
+          }}
+        />
+      );
       case 'event-details': return <EventDetails event={selectedEvent} onBack={() => setCurrentScreen('home')} onNavigate={() => openInMaps(selectedEvent?.theatre ?? '')} />;
       case 'activities': return <Activities activities={activities} onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }} />;
       case 'activity-detail': return currentActivity && <ActivityDetail activity={currentActivity} onStart={() => { setActivityOutcome(null); setActivityCompletion(null); setCurrentScreen('activity-minigame'); }} onClose={() => setCurrentScreen('activities')} />;
@@ -477,3 +561,4 @@ export default function App() {
     </GameStateProvider>
   );
 }
+
