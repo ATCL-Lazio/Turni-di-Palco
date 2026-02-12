@@ -53,18 +53,18 @@ COLOR_TEXT_MUTED = "#aab4d3"
 COLOR_ACCENT = "#4c7dff"
 COLOR_ACCENT_HOVER = "#3a69e3"
 COLOR_SUCCESS = "#2ea97d"
-INPUT_FONT = ("Segoe UI", 10)
-TITLE_FONT = ("Segoe UI Semibold", 19)
-SUBTITLE_FONT = ("Segoe UI", 10)
-SECTION_TITLE_FONT = ("Segoe UI Semibold", 11)
+INPUT_FONT = ("TkDefaultFont", 10)
+TITLE_FONT = ("TkDefaultFont", 20, "bold")
+SUBTITLE_FONT = ("TkDefaultFont", 10)
+SECTION_TITLE_FONT = ("TkDefaultFont", 11, "bold")
 
 
 class TicketQrGeneratorUI:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("Turni di Palco - Generatore QR Biglietteria")
-        self.root.geometry("980x820")
-        self.root.minsize(920, 760)
+        self.root.geometry("1240x760")
+        self.root.minsize(980, 680)
 
         supabase_url = os.getenv("SUPABASE_URL", "").strip()
         service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
@@ -130,7 +130,7 @@ class TicketQrGeneratorUI:
             pass
 
         self.root.configure(bg=COLOR_APP_BG)
-        self.root.option_add("*Font", "Segoe UI 10")
+        self.root.option_add("*Font", "TkDefaultFont 10")
         self.root.option_add("*TCombobox*Listbox.background", COLOR_INPUT_BG)
         self.root.option_add("*TCombobox*Listbox.foreground", COLOR_TEXT)
         self.root.option_add("*TCombobox*Listbox.selectBackground", COLOR_ACCENT)
@@ -144,14 +144,14 @@ class TicketQrGeneratorUI:
             "HeaderKicker.TLabel",
             background=COLOR_APP_BG,
             foreground=COLOR_ACCENT,
-            font=("Segoe UI Semibold", 9),
+            font=("TkDefaultFont", 9, "bold"),
         )
         style.configure("HeaderTitle.TLabel", background=COLOR_APP_BG, foreground=COLOR_TEXT, font=TITLE_FONT)
         style.configure("HeaderSubtitle.TLabel", background=COLOR_APP_BG, foreground=COLOR_TEXT_MUTED, font=SUBTITLE_FONT)
         style.configure("CardTitle.TLabel", background=COLOR_CARD_BG, foreground=COLOR_TEXT, font=SECTION_TITLE_FONT)
         style.configure("CardHint.TLabel", background=COLOR_CARD_BG, foreground=COLOR_TEXT_MUTED, font=SUBTITLE_FONT)
         style.configure("FieldLabel.TLabel", background=COLOR_CARD_BG, foreground=COLOR_TEXT_MUTED, font=INPUT_FONT)
-        style.configure("Status.TLabel", background=COLOR_CARD_BG, foreground=COLOR_SUCCESS, font=("Segoe UI", 9))
+        style.configure("Status.TLabel", background=COLOR_CARD_BG, foreground=COLOR_SUCCESS, font=("TkDefaultFont", 9))
         style.configure("Preview.TLabel", background=COLOR_INPUT_BG, foreground=COLOR_TEXT_MUTED, font=SUBTITLE_FONT)
 
         style.configure(
@@ -161,7 +161,7 @@ class TicketQrGeneratorUI:
             borderwidth=0,
             relief="flat",
             padding=(16, 9),
-            font=("Segoe UI Semibold", 10),
+            font=("TkDefaultFont", 10, "bold"),
         )
         style.map(
             "Primary.TButton",
@@ -176,14 +176,19 @@ class TicketQrGeneratorUI:
             lightcolor=COLOR_BORDER,
             darkcolor=COLOR_BORDER,
             padding=(12, 8),
-            font=("Segoe UI", 9),
+            font=("TkDefaultFont", 9),
         )
         style.map(
             "Secondary.TButton",
             background=[("active", "#273252"), ("pressed", "#273252")],
             foreground=[("active", COLOR_TEXT), ("pressed", COLOR_TEXT)],
         )
-        style.configure("Card.TCheckbutton", background=COLOR_CARD_BG, foreground=COLOR_TEXT, font=("Segoe UI", 9))
+        style.configure("Card.TCheckbutton", background=COLOR_CARD_BG, foreground=COLOR_TEXT, font=("TkDefaultFont", 9))
+        style.map(
+            "Card.TCheckbutton",
+            background=[("active", COLOR_CARD_BG), ("focus", COLOR_CARD_BG)],
+            foreground=[("active", COLOR_TEXT), ("focus", COLOR_TEXT)],
+        )
 
         style.configure(
             "Value.TEntry",
@@ -218,21 +223,23 @@ class TicketQrGeneratorUI:
             selectforeground=[("readonly", COLOR_TEXT)],
         )
 
-    def _build_card(self, parent: ttk.Frame, title: str, hint: str | None = None) -> ttk.Frame:
+    def _build_card(self, parent: ttk.Frame, title: str, hint: str | None = None, *, expand: bool = False) -> ttk.Frame:
         card = ttk.Frame(parent, style="Card.TFrame", padding=16)
-        card.pack(fill="x", pady=(0, 12))
+        card.pack(fill="both" if expand else "x", expand=expand, pady=(0, 12))
         ttk.Label(card, text=title, style="CardTitle.TLabel").pack(anchor="w")
         if hint:
             ttk.Label(card, text=hint, style="CardHint.TLabel").pack(anchor="w", pady=(2, 10))
         content = ttk.Frame(card, style="Card.TFrame")
-        content.pack(fill="x")
+        content.pack(fill="both", expand=True)
         return content
 
-    def _build_field_row(self, parent: ttk.Frame, label: str) -> ttk.Frame:
+    def _build_field_row(self, parent: ttk.Frame, label: str) -> tuple[ttk.Frame, ttk.Frame]:
         row = ttk.Frame(parent, style="Card.TFrame")
         row.pack(fill="x", pady=4)
         ttk.Label(row, text=label, width=16, style="FieldLabel.TLabel").pack(side="left")
-        return row
+        field_container = ttk.Frame(row, style="Card.TFrame")
+        field_container.pack(side="left", fill="x", expand=True)
+        return row, field_container
 
     def _initial_circuit(self) -> str:
         configured = self._load_saved_circuit()
@@ -271,40 +278,52 @@ class TicketQrGeneratorUI:
             style="HeaderSubtitle.TLabel",
         ).pack(anchor="w", pady=(4, 0))
 
+        columns_container = ttk.Frame(frame, style="App.TFrame")
+        columns_container.pack(fill="both", expand=True)
+        columns_container.columnconfigure(0, weight=1, uniform="layout")
+        columns_container.columnconfigure(1, weight=1, uniform="layout")
+        columns_container.rowconfigure(0, weight=1)
+
+        left_column = ttk.Frame(columns_container, style="App.TFrame")
+        left_column.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+        right_column = ttk.Frame(columns_container, style="App.TFrame")
+        right_column.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
+
         setup_card = self._build_card(
-            frame,
+            left_column,
             "Dati ticket",
             "Il circuito e predefinito. Evento e dati principali arrivano dal calendario.",
+            expand=True,
         )
 
-        event_row = self._build_field_row(setup_card, "Evento")
+        event_row, event_field = self._build_field_row(setup_card, "Evento")
         self.calendar_combo = ttk.Combobox(
-            event_row,
+            event_field,
             textvariable=self.calendar_event_var,
             state="readonly",
             style="Value.TCombobox",
         )
-        self.calendar_combo.pack(side="left", fill="x", expand=True)
+        self.calendar_combo.pack(fill="x", expand=True, side="left")
         self.calendar_combo.bind("<<ComboboxSelected>>", self._on_calendar_selected)
         ttk.Button(
             event_row,
             text="Aggiorna calendario",
             command=self._load_calendar_events,
             style="Secondary.TButton",
-        ).pack(side="left", padx=8)
+        ).pack(side="left", padx=(8, 0))
 
         ttk.Label(setup_card, textvariable=self.calendar_status_var, style="Status.TLabel").pack(anchor="w", pady=(2, 8))
 
-        circuit_row = self._build_field_row(setup_card, "Circuito")
-        ttk.Entry(circuit_row, textvariable=self.circuit_var, state="readonly", style="Value.TEntry").pack(
-            side="left", fill="x", expand=True
+        circuit_row, circuit_field = self._build_field_row(setup_card, "Circuito")
+        ttk.Entry(circuit_field, textvariable=self.circuit_var, state="readonly", style="Value.TEntry").pack(
+            fill="x", expand=True, side="left"
         )
         ttk.Button(
             circuit_row,
             text="Impostazioni circuito",
             command=self._open_circuit_settings,
             style="Secondary.TButton",
-        ).pack(side="left", padx=8)
+        ).pack(side="left", padx=(8, 0))
 
         readonly_fields = [
             ("Nome evento", self.event_name_var),
@@ -312,15 +331,15 @@ class TicketQrGeneratorUI:
             ("Data (ISO)", self.date_var),
         ]
         for label, var in readonly_fields:
-            row = self._build_field_row(setup_card, label)
-            ttk.Entry(row, textvariable=var, state="readonly", style="Value.TEntry").pack(side="left", fill="x", expand=True)
+            _, row_field = self._build_field_row(setup_card, label)
+            ttk.Entry(row_field, textvariable=var, state="readonly", style="Value.TEntry").pack(fill="x", expand=True)
 
-        ticket_row = self._build_field_row(setup_card, "Numero biglietto")
-        ttk.Entry(ticket_row, textvariable=self.ticket_number_var, style="Value.TEntry").pack(side="left", fill="x", expand=True)
+        _, ticket_field = self._build_field_row(setup_card, "Numero biglietto")
+        ttk.Entry(ticket_field, textvariable=self.ticket_number_var, style="Value.TEntry").pack(fill="x", expand=True)
 
-        output_row = self._build_field_row(setup_card, "File output")
-        ttk.Entry(output_row, textvariable=self.output_var, style="Value.TEntry").pack(side="left", fill="x", expand=True)
-        ttk.Button(output_row, text="Sfoglia", command=self._pick_output, style="Secondary.TButton").pack(side="left", padx=8)
+        output_row, output_field = self._build_field_row(setup_card, "File output")
+        ttk.Entry(output_field, textvariable=self.output_var, style="Value.TEntry").pack(fill="x", expand=True, side="left")
+        ttk.Button(output_row, text="Sfoglia", command=self._pick_output, style="Secondary.TButton").pack(side="left", padx=(8, 0))
 
         ttk.Checkbutton(
             setup_card,
@@ -331,12 +350,13 @@ class TicketQrGeneratorUI:
 
         button_row = ttk.Frame(setup_card, style="Card.TFrame")
         button_row.pack(fill="x", pady=(0, 2))
-        ttk.Button(button_row, text="Genera e Prenota QR", command=self._generate, style="Primary.TButton").pack(side="left")
+        ttk.Button(button_row, text="Genera e Prenota QR", command=self._generate, style="Primary.TButton").pack(anchor="w")
 
         result_card = self._build_card(
-            frame,
+            right_column,
             "Output QR",
             "Controlla JSON, hash e anteprima prima di distribuire il biglietto.",
+            expand=True,
         )
         ttk.Label(result_card, text="JSON generato", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 4))
         self.json_box = tk.Text(
@@ -360,7 +380,7 @@ class TicketQrGeneratorUI:
 
         ttk.Label(result_card, text="Anteprima QR", style="FieldLabel.TLabel").pack(anchor="w", pady=(8, 4))
         preview_container = ttk.Frame(result_card, style="Preview.TFrame", padding=8)
-        preview_container.pack(anchor="w")
+        preview_container.pack(fill="x", pady=4)
         self.qr_preview_label = ttk.Label(
             preview_container,
             text="Nessun QR generato",
@@ -368,7 +388,7 @@ class TicketQrGeneratorUI:
             anchor="center",
             padding=2,
         )
-        self.qr_preview_label.pack()
+        self.qr_preview_label.pack(fill="both", expand=True)
 
     def _pick_output(self) -> None:
         selected = filedialog.asksaveasfilename(
@@ -558,7 +578,11 @@ class TicketQrGeneratorUI:
             self.json_box.insert(tk.END, pretty_payload_json(payload))
             self.hash_var.set(payload_hash)
 
-            image = Image.open(output_path).resize((240, 240))
+            # Resize QR code to fit container while maintaining aspect ratio
+            image = Image.open(output_path)
+            # Calculate appropriate size based on container width
+            max_size = 250  # Larger size for two-column layout
+            image.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
             self.preview_image = ImageTk.PhotoImage(image)
             self.qr_preview_label.configure(image=self.preview_image, text="")
 
