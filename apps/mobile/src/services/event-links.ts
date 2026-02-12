@@ -7,6 +7,73 @@ type ValidateQrResponse = {
   error?: string;
 };
 
+async function resolveFunctionErrorMessage(error: unknown, fallback: string): Promise<string> {
+  if (!error || typeof error !== 'object') {
+    return fallback;
+  }
+
+  const candidate = error as {
+    message?: unknown;
+    context?: {
+      status?: number;
+      json?: () => Promise<unknown>;
+      text?: () => Promise<string>;
+      clone?: () => unknown;
+    };
+  };
+
+  let message = typeof candidate.message === 'string' ? candidate.message.trim() : '';
+  const context = candidate.context;
+
+  if (context && typeof context === 'object') {
+    const cloneFn = typeof context.clone === 'function' ? context.clone.bind(context) : null;
+    const source = cloneFn ? (cloneFn() as typeof context) : context;
+
+    if (source && typeof source.json === 'function') {
+      try {
+        const body = await source.json();
+        if (body && typeof body === 'object') {
+          const payload = body as { error?: unknown; message?: unknown };
+          const bodyMessage =
+            (typeof payload.error === 'string' && payload.error.trim()) ||
+            (typeof payload.message === 'string' && payload.message.trim()) ||
+            '';
+          if (bodyMessage) {
+            return bodyMessage;
+          }
+        }
+      } catch {
+        // fall back to text/message below
+      }
+    }
+
+    const sourceForText = cloneFn ? (cloneFn() as typeof context) : context;
+    if (sourceForText && typeof sourceForText.text === 'function') {
+      try {
+        const text = (await sourceForText.text()).trim();
+        if (text) {
+          return text;
+        }
+      } catch {
+        // ignore and continue fallback
+      }
+    }
+
+    if (typeof context.status === 'number' && context.status > 0) {
+      if (message) {
+        return `HTTP ${context.status}: ${message}`;
+      }
+      return `HTTP ${context.status}: ${fallback}`;
+    }
+  }
+
+  if (!message || /non-2xx/i.test(message)) {
+    return fallback;
+  }
+
+  return message;
+}
+
 async function invokeEventLinks(payload: Record<string, unknown>) {
   if (!supabase || !isSupabaseConfigured) {
     return null;
@@ -17,7 +84,11 @@ async function invokeEventLinks(payload: Record<string, unknown>) {
   });
 
   if (error) {
-    throw new Error(error.message || 'Errore durante la chiamata backend.');
+    const errorMessage = await resolveFunctionErrorMessage(
+      error,
+      'Errore durante la chiamata backend.'
+    );
+    throw new Error(errorMessage);
   }
 
   return data as Record<string, unknown>;
