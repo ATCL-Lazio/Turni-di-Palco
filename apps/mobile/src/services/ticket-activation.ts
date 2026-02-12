@@ -534,7 +534,8 @@ export async function activateTicketHash(
 
 export async function activateTicketByNumber(
   ticketNumber: string,
-  userId: string
+  userId: string,
+  options?: { circuit?: string; eventID?: string }
 ): Promise<{ ok: true; eventId?: string; event?: ActivatedEventPayload } | { ok: false; error: string }> {
   const normalizedTicket = ticketNumber.trim();
   const normalizedUserId = userId.trim();
@@ -553,7 +554,11 @@ export async function activateTicketByNumber(
 
     const { data, error } = await invokeTicketActivation({
       action: 'activate_by_ticket_number',
-      payload: { ticketNumber: normalizedTicket },
+      payload: { 
+        ticketNumber: normalizedTicket,
+        circuit: options?.circuit,
+        eventID: options?.eventID
+      },
       userId: normalizedUserId,
     });
 

@@ -65,14 +65,21 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
         return;
       }
       
-      const shouldProceed = window.confirm(`Attivare manualmente il ticket n. "${scanInput}"?`);
+      const shouldProceed = window.confirm(
+          `Attivare manualmente il ticket n. "${scanInput}"?` +
+          (circuit ? `\nCircuito: ${circuit}` : '') +
+          (eventID ? `\nEvento: ${eventID}` : '')
+      );
       if (!shouldProceed) return;
 
       setBusy(true);
-      // Fallback: activation by number ONLY (since we removed eventID requirement)
+      // Fallback: activation by number with optional context
       try {
         const { activateTicketByNumber } = await import('../../services/ticket-activation');
-        const result = await activateTicketByNumber(scanInput, userId);
+        const result = await activateTicketByNumber(scanInput, userId, {
+             circuit: circuit || undefined,
+             eventID: eventID || undefined
+        });
         setScanMessage(
             result.ok 
             ? `Ticket n.${scanInput} attivato! (${result.event?.name || 'Evento sconosciuto'})` 
@@ -147,8 +154,22 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
           <Input
             value={scanInput}
             onChange={(event) => setScanInput(event.target.value)}
-            placeholder="Incolla hash o valore QR"
+            placeholder="Hash QR o numero ticket"
           />
+          
+          <div className="grid grid-cols-2 gap-3">
+             <Input 
+                value={circuit} 
+                onChange={(e) => setCircuit(e.target.value)} 
+                placeholder="Circuito (opzionale)" 
+             />
+             <Input 
+                value={eventID} 
+                onChange={(e) => setEventID(e.target.value)} 
+                placeholder="ID Evento (opzionale)" 
+             />
+          </div>
+
         <Button variant="secondary" onClick={handleActivate} disabled={busy}>
           Verifica e attiva
         </Button>
