@@ -180,13 +180,23 @@ serve(async (req: Request) => {
         }
         targetHash = ticket.hash;
       } else if (action === 'activate_by_ticket_number') {
-          // Search by ticket number only. Must be unique or we pick the first valid one? 
-          // Best to ensure specific ticket number is unique enough or handle duplicates.
-          // Here we assume we want to match a ticket that exists.
-          const { data: tickets, error: searchError } = await supabase
+          // Search by ticket number with optional filters for circuit and eventID
+          let query = supabase
             .from('ticket_activations')
             .select('hash, event_id, ticket_number')
             .eq('ticket_number', payload.ticketNumber);
+
+          if (payload.circuit) {
+            query = query.ilike('circuit', payload.circuit.trim());
+          }
+          if (payload.eventID) {
+             // Try to match event_id OR event_name if possible? 
+             // schema has event_id (uuid usually) and event_name.
+             // Let's assume the user passes the event_id as stored in the table.
+             query = query.eq('event_id', payload.eventID.trim());
+          }
+
+          const { data: tickets, error: searchError } = await query;
 
           if (searchError) throw searchError;
 
@@ -195,11 +205,7 @@ serve(async (req: Request) => {
           }
           
           if (tickets.length > 1) {
-               // duplicate ticket numbers across events?
-               // If so, we can't activate unique without event ID.
-               // However, if only one is NOT activated, maybe we pick that one?
-               // For now, return error if ambiguous.
-               return jsonResponse({ ok: false, error: 'Ticket number non univoco. Usa il QR code.' }, 200);
+               return jsonResponse({ ok: false, error: 'Ticket number non univoco. Specifica Circuito o Evento.' }, 200);
           }
 
           targetHash = tickets[0].hash;
