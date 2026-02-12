@@ -113,6 +113,48 @@ serve(async (req) => {
       return jsonResponse({ reserved: true }, 200);
     }
 
+    if (action === 'resolve_hash') {
+      if (!hash || typeof hash !== 'string') {
+        return jsonResponse({ error: 'Missing hash' }, 400);
+      }
+
+      const normalizedHash = hash.trim().toLowerCase();
+      if (!/^[0-9a-f]{64}$/.test(normalizedHash)) {
+        return jsonResponse({ ok: false, error: 'Hash non valido.' }, 200);
+      }
+
+      const { data: ticket, error: ticketError } = await supabase
+        .from('ticket_activations')
+        .select('event_id,event_name,activated_by')
+        .eq('hash', normalizedHash)
+        .maybeSingle();
+
+      if (ticketError) {
+        throw ticketError;
+      }
+
+      if (!ticket) {
+        return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
+      }
+
+      if (ticket.activated_by) {
+        return jsonResponse({
+          ok: false,
+          alreadyActivated: true,
+          activatedBy: ticket.activated_by,
+          error: 'Ticket gia attivato.',
+        }, 200);
+      }
+
+      const eventSnapshot = await loadEventSnapshot(supabase, ticket.event_id);
+      return jsonResponse({
+        ok: true,
+        eventId: ticket.event_id,
+        eventName: ticket.event_name,
+        event: eventSnapshot,
+      }, 200);
+    }
+
     if (action === 'activate_hash' || action === 'activate_by_details') {
       if (
         !resolvedUserId ||
