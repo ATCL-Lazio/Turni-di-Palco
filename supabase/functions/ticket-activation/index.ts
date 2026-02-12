@@ -55,28 +55,26 @@ serve(async (req: Request) => {
     let resolvedUserId = typeof requestedUserId === 'string' ? requestedUserId.trim() : '';
 
     if (needsAuthenticatedUser) {
-      if (!anonKey) {
-        return jsonResponse({ error: 'Missing SUPABASE_ANON_KEY' }, 500);
-      }
-
-      const authHeader = req.headers.get('Authorization') ?? '';
-      if (!authHeader.startsWith('Bearer ')) {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.warn('Missing or invalid Authorization header');
         return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
       }
 
-      const authClient = createClient(supabaseUrl, anonKey, {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      });
+      const token = authHeader.replace('Bearer ', '');
+      // Use serviceKey to verify the token, as anonKey might not have permissions to getUser for others.
+      const authClient = createClient(supabaseUrl, serviceKey);
 
-      const { data: authData, error: authError } = await authClient.auth.getUser();
-      if (authError || !authData.user) {
-        return jsonResponse({ error: 'Invalid JWT' }, 401);
+      const { data: { user }, error: authError } = await authClient.auth.getUser(token);
+      
+      if (authError || !user) {
+        console.error('Auth verification failed:', authError?.message || 'No user found');
+        return jsonResponse({ error: 'Invalid JWT or session expired', details: authError?.message }, 401);
       }
 
       // Do not trust userId sent by client payload if we have an authenticated user.
-      resolvedUserId = authData.user.id;
+      resolvedUserId = user.id;
+      console.log('Resolved user ID from auth:', resolvedUserId);
     }
 
     if (action === 'reserve_hash') {
