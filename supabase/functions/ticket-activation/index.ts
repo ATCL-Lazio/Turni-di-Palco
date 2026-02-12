@@ -160,7 +160,16 @@ serve(async (req: Request) => {
         (action === 'activate_by_details' && (!payload?.eventID || !payload?.ticketNumber)) ||
         (action === 'activate_by_ticket_number' && !payload?.ticketNumber)
       ) {
-        return jsonResponse({ error: 'Missing required parameters' }, 400);
+        return jsonResponse({ 
+          error: 'Missing required parameters',
+          received: { 
+            action, 
+            hasHash: !!hash, 
+            hasPayload: !!payload, 
+            hasTicketNumber: !!payload?.ticketNumber, 
+            hasUserId: !!resolvedUserId 
+          } 
+        }, 400);
       }
 
       // 1. Resolve hash if using details or ticket number
