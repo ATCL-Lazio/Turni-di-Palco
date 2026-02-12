@@ -7,6 +7,13 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
+function jsonResponse(payload: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
 serve(async (req) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
@@ -15,25 +22,50 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
 
   if (!supabaseUrl || !serviceKey) {
-    return new Response(JSON.stringify({ error: 'Missing environment variables' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Missing environment variables' }, 500);
   }
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
   try {
-    const { action, hash, payload, userId } = await req.json();
+    const { action, hash, payload, userId: requestedUserId } = await req.json();
+
+    const needsAuthenticatedUser = action === 'activate_hash' || action === 'activate_by_details';
+    let resolvedUserId = typeof requestedUserId === 'string' ? requestedUserId.trim() : '';
+
+    if (needsAuthenticatedUser) {
+      if (!anonKey) {
+        return jsonResponse({ error: 'Missing SUPABASE_ANON_KEY' }, 500);
+      }
+
+      const authHeader = req.headers.get('Authorization') ?? '';
+      if (!authHeader.startsWith('Bearer ')) {
+        return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
+      }
+
+      const authClient = createClient(supabaseUrl, anonKey, {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
+      });
+
+      const { data: authData, error: authError } = await authClient.auth.getUser();
+      if (authError || !authData.user) {
+        return jsonResponse({ error: 'Invalid JWT' }, 401);
+      }
+
+      // Do not trust userId sent by client payload.
+      resolvedUserId = authData.user.id;
+    }
 
     if (action === 'reserve_hash') {
       if (!hash || !payload) {
-        return new Response(JSON.stringify({ error: 'Missing hash or payload' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return jsonResponse({ error: 'Missing hash or payload' }, 400);
       }
 
       // Check if hash already exists
@@ -44,10 +76,7 @@ serve(async (req) => {
         .single();
 
       if (existing) {
-        return new Response(JSON.stringify({ reserved: false, error: 'Hash already exists' }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return jsonResponse({ reserved: false, error: 'Hash already exists' }, 200);
       }
 
       // Insert new ticket activation record (unassigned)
@@ -64,18 +93,16 @@ serve(async (req) => {
         throw insertError;
       }
 
-      return new Response(JSON.stringify({ reserved: true }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ reserved: true }, 200);
     }
 
     if (action === 'activate_hash' || action === 'activate_by_details') {
-      if (!userId || (action === 'activate_hash' && !hash) || (action === 'activate_by_details' && (!payload?.eventID || !payload?.ticketNumber))) {
-        return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      if (
+        !resolvedUserId ||
+        (action === 'activate_hash' && !hash) ||
+        (action === 'activate_by_details' && (!payload?.eventID || !payload?.ticketNumber))
+      ) {
+        return jsonResponse({ error: 'Missing required parameters' }, 400);
       }
 
       // 1. Resolve hash if using details
@@ -89,10 +116,7 @@ serve(async (req) => {
           .single();
         
         if (!ticket) {
-          return new Response(JSON.stringify({ ok: false, error: 'Ticket non trovato.' }), {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+          return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
         }
         targetHash = ticket.hash;
       }
@@ -101,7 +125,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from('ticket_activations')
         .update({
-          activated_by: userId,
+          activated_by: resolvedUserId,
           activated_at: new Date().toISOString(),
         })
         .eq('hash', targetHash)
@@ -112,14 +136,11 @@ serve(async (req) => {
 
       if (data && data.length > 0) {
         const record = data[0];
-        return new Response(JSON.stringify({ 
-          ok: true, 
+        return jsonResponse({
+          ok: true,
           eventId: record.event_id,
-          eventName: record.event_name
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+          eventName: record.event_name,
+        }, 200);
       }
 
       // 3. Check current status if update failed
@@ -130,34 +151,19 @@ serve(async (req) => {
         .single();
 
       if (!current) {
-        return new Response(JSON.stringify({ ok: false, error: 'Ticket non trovato.' }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
       }
 
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          alreadyActivated: true,
-          activatedBy: current.activated_by,
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      return jsonResponse({
+        ok: false,
+        alreadyActivated: true,
+        activatedBy: current.activated_by,
+      }, 200);
     }
 
-    return new Response(JSON.stringify({ error: 'Invalid action' }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Invalid action' }, 400);
   } catch (err) {
     console.error(err);
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: err instanceof Error ? err.message : 'Unknown error' }, 500);
   }
 });
