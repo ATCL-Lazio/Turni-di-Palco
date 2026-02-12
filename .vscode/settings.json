@@ -197,5 +197,10 @@
         "main",
         "render/preview"
     ],
-    "editor.defaultFormatter": "vscode.markdown-language-features"
+    "editor.defaultFormatter": "vscode.markdown-language-features",
+    "deno.enablePaths": [
+        "supabase/functions"
+    ],
+    "deno.unstable": true,
+    "deno.lint": true
 }
