@@ -40,6 +40,9 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
     isScanningRef.current = isScanning;
   }, [isScanning]);
 
+  const isAuthErrorMessage = (message: string) =>
+    /invalid jwt|sessione scaduta|login richiesto|unauthorized|401/i.test(message);
+
   const handleScanAttempt = async (code: string) => {
     const trimmed = code.trim();
     if (!trimmed) return;
@@ -57,8 +60,17 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
       }
 
       setScanError(result.error);
+      if (isAuthErrorMessage(result.error)) {
+        stopCamera();
+        shouldResume = false;
+      }
     } catch (error) {
-      setScanError(error instanceof Error ? error.message : 'QR non valido.');
+      const message = error instanceof Error ? error.message : 'QR non valido.';
+      setScanError(message);
+      if (isAuthErrorMessage(message)) {
+        stopCamera();
+        shouldResume = false;
+      }
     } finally {
       if (!shouldResume) {
         setIsHandlingScan(false);
