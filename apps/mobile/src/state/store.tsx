@@ -1,7 +1,12 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
-import { SUPABASE_SESSION_ID_KEY, SUPABASE_SESSION_KEY } from '../lib/auth-storage';
+import {
+  LEGACY_SUPABASE_SESSION_ID_KEY,
+  LEGACY_SUPABASE_SESSION_KEY,
+  SUPABASE_SESSION_ID_KEY,
+  SUPABASE_SESSION_KEY,
+} from '../lib/auth-storage';
 import { resolveDisplayName } from '../lib/profile-utils';
 import { formatErrorDetails, reportCriticalError } from '../services/error-handler';
 import { withMobileWatchdog } from '../services/mobile-watchdog';
@@ -278,11 +283,15 @@ type StoredSession = { access_token: string; refresh_token: string; user_id?: st
 function readStoredSession(): StoredSession | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.localStorage.getItem(SUPABASE_SESSION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as StoredSession;
-    if (!parsed.access_token || !parsed.refresh_token) return null;
-    return parsed;
+    const keys = [SUPABASE_SESSION_KEY, LEGACY_SUPABASE_SESSION_KEY];
+    for (const key of keys) {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw) as StoredSession;
+      if (!parsed.access_token || !parsed.refresh_token) continue;
+      return parsed;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -291,9 +300,12 @@ function readStoredSession(): StoredSession | null {
 function persistStoredSession(session: Session | null) {
   if (typeof window === 'undefined') return;
   try {
+    const sessionKeys = [SUPABASE_SESSION_KEY, LEGACY_SUPABASE_SESSION_KEY];
+    const sessionIdKeys = [SUPABASE_SESSION_ID_KEY, LEGACY_SUPABASE_SESSION_ID_KEY];
+
     if (!session) {
-      window.localStorage.removeItem(SUPABASE_SESSION_KEY);
-      window.localStorage.removeItem(SUPABASE_SESSION_ID_KEY);
+      sessionKeys.forEach((key) => window.localStorage.removeItem(key));
+      sessionIdKeys.forEach((key) => window.localStorage.removeItem(key));
       return;
     }
     const payload: StoredSession = {
@@ -303,6 +315,9 @@ function persistStoredSession(session: Session | null) {
     };
     window.localStorage.setItem(SUPABASE_SESSION_KEY, JSON.stringify(payload));
     window.localStorage.setItem(SUPABASE_SESSION_ID_KEY, session.user.id);
+    // Cleanup unscoped legacy keys to avoid cross-project token bleed.
+    window.localStorage.removeItem(LEGACY_SUPABASE_SESSION_KEY);
+    window.localStorage.removeItem(LEGACY_SUPABASE_SESSION_ID_KEY);
   } catch {
     // ignore storage errors
   }
@@ -795,17 +810,31 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         async () => {
           const stored = readStoredSession();
           if (stored) {
-            await supabase!.auth.setSession({
+            const { data: restoredData, error: restoreError } = await supabase!.auth.setSession({
               access_token: stored.access_token,
               refresh_token: stored.refresh_token,
             });
+            if (restoreError || !restoredData.session) {
+              persistStoredSession(null);
+              await supabase!.auth.signOut();
+            }
           }
 
           const { data } = await supabase!.auth.getSession();
           if (!isMounted) return;
 
-          persistStoredSession(data.session ?? null);
-          setAuthUserId(data.session?.user.id ?? null);
+          let stableSession = data.session ?? null;
+          if (stableSession?.access_token) {
+            const { error: userError } = await supabase!.auth.getUser(stableSession.access_token);
+            if (userError) {
+              stableSession = null;
+              persistStoredSession(null);
+              await supabase!.auth.signOut();
+            }
+          }
+
+          persistStoredSession(stableSession);
+          setAuthUserId(stableSession?.user.id ?? null);
           setAuthReady(true);
         },
         {
