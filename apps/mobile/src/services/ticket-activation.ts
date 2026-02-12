@@ -18,6 +18,7 @@ export type GeneratedTicket = {
 
 export type TicketActivationRecord = {
   hash: string;
+  eventId: string;
   ticketNumber: string;
   status: 'generated' | 'activated';
   activatedBy: string | null;
@@ -50,6 +51,7 @@ const LEGACY_PROTOCOL_PREFIX = 'turni://ticket/';
 const localActivationStore = new Map<string, TicketActivationRecord>();
 const localManualActivationStore = new Map<string, ManualTicketActivationRecord>();
 const SESSION_REQUIRED_MESSAGE = 'Sessione scaduta o non disponibile. Effettua di nuovo il login.';
+const MAX_HASH_GENERATION_ATTEMPTS = 8;
 
 function buildManualTicketKey(eventID: string, ticketNumber: string): string {
   return `${eventID.trim().toLowerCase()}::${ticketNumber.trim().toLowerCase()}`;
@@ -204,6 +206,20 @@ function stableStringify(value: TicketPayload): string {
   });
 }
 
+function buildHashSource(value: TicketPayload, nonce: number): string {
+  if (nonce <= 0) return stableStringify(value);
+  return JSON.stringify({
+    payload: {
+      circuit: value.circuit,
+      eventName: value.eventName,
+      eventID: value.eventID,
+      ticketNumber: value.ticketNumber,
+      date: value.date,
+    },
+    nonce,
+  });
+}
+
 async function sha256Hex(input: string): Promise<string> {
   const encoded = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest('SHA-256', encoded);
@@ -252,28 +268,38 @@ export async function generateTicketQr(params: {
   }
 
   const json = stableStringify(payload);
-  const hash = await sha256Hex(json);
+  let hash = '';
+  let persistedRemotely = false;
 
-  if (localActivationStore.has(hash)) {
-    throw new Error('Hash già presente in archivio locale: controlla i dati ticket.');
+  for (let attempt = 0; attempt < MAX_HASH_GENERATION_ATTEMPTS; attempt += 1) {
+    const candidateHash = await sha256Hex(buildHashSource(payload, attempt));
+    if (localActivationStore.has(candidateHash)) {
+      continue;
+    }
+
+    if (supabase && isSupabaseConfigured) {
+      try {
+        const reserved = await reserveHashRemotely(payload, candidateHash);
+        if (!reserved) {
+          continue;
+        }
+        persistedRemotely = true;
+      } catch (error) {
+        throw error instanceof Error ? error : new Error('Errore durante la registrazione hash su Supabase.');
+      }
+    }
+
+    hash = candidateHash;
+    break;
   }
 
-  let persistedRemotely = false;
-  try {
-    const reserved = await reserveHashRemotely(payload, hash);
-    persistedRemotely = reserved;
-    if (supabase && isSupabaseConfigured && !reserved) {
-      throw new Error('Hash già esistente su Supabase: modifica il ticket e rigenera.');
-    }
-  } catch (error) {
-    if (supabase && isSupabaseConfigured) {
-      throw error instanceof Error ? error : new Error('Errore durante la registrazione hash su Supabase.');
-    }
-    persistedRemotely = false;
+  if (!hash) {
+    throw new Error('Impossibile generare un hash univoco dopo diversi tentativi.');
   }
 
   localActivationStore.set(hash, {
     hash,
+    eventId: payload.eventID,
     ticketNumber: payload.ticketNumber,
     status: 'generated',
     activatedBy: null,
@@ -288,7 +314,6 @@ export async function generateTicketQr(params: {
     persistedRemotely,
   };
 }
-
 export function parseTicketQrValue(input: string): string | null {
   const trimmed = input.trim();
 
@@ -363,6 +388,8 @@ async function resolveRemotely(hash: string) {
 
   return data as {
     ok?: boolean;
+    alreadyActivated?: boolean;
+    activatedBy?: string;
     eventId?: string;
     eventName?: string;
     event?: ActivatedEventPayload;
@@ -378,12 +405,29 @@ export async function resolveTicketHashPreview(
     return { ok: false, error: 'Hash non valido.' };
   }
 
+  const localRecord = localActivationStore.get(normalizedHash);
+  if (localRecord?.status === 'activated') {
+    return { ok: false, error: 'Ticket già attivato.' };
+  }
+
   try {
     const remote = await resolveRemotely(normalizedHash);
-    if (!remote?.ok || !remote.eventId) {
-      return { ok: false, error: remote?.error ?? 'Ticket non trovato.' };
+    if (!remote) {
+      if (localRecord?.eventId) {
+        return { ok: true, eventId: localRecord.eventId };
+      }
+      return { ok: false, error: 'Ticket non trovato.' };
     }
-    return { ok: true, eventId: remote.eventId, event: remote.event };
+
+    if (remote.ok && remote.eventId) {
+      return { ok: true, eventId: remote.eventId, event: remote.event };
+    }
+
+    if (remote.alreadyActivated) {
+      return { ok: false, error: 'Ticket già attivato.' };
+    }
+
+    return { ok: false, error: remote.error ?? 'Ticket non trovato.' };
   } catch (error) {
     return {
       ok: false,
@@ -418,6 +462,7 @@ export async function activateTicketHash(
       const currentRecord = localActivationStore.get(normalizedHash);
       localActivationStore.set(normalizedHash, {
         hash: normalizedHash,
+        eventId: remote.eventId ?? currentRecord?.eventId ?? '',
         ticketNumber: currentRecord?.ticketNumber ?? 'N/A',
         status: 'activated',
         activatedBy: normalizedUserId,
@@ -523,3 +568,4 @@ export async function activateTicketByDetails(
 export function listLocalTicketRecords(): TicketActivationRecord[] {
   return Array.from(localActivationStore.values()).sort((a, b) => a.hash.localeCompare(b.hash));
 }
+
