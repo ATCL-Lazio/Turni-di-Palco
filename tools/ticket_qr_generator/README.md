@@ -33,11 +33,18 @@ python tools/ticket_qr_generator/ticket_qr_generator_ui.py
 ```
 
 Nella UI:
-1. Premi **Aggiorna calendario** e seleziona l'evento.
-2. Inserisci **solo** il numero biglietto.
-3. Scegli il file PNG di output.
-4. Premi **Genera QR**.
-5. Ottieni hash, JSON e anteprima QR.
+1. (Prima volta) Apri **Impostazioni circuito** e seleziona il circuito emittente predefinito.
+2. Premi **Aggiorna calendario** e seleziona l'evento.
+3. Inserisci **solo** il numero biglietto.
+4. Scegli il file PNG di output.
+5. Premi **Genera QR**.
+6. Ottieni hash, JSON e anteprima QR.
+
+Il circuito predefinito viene salvato localmente in `~/.turni_ticket_qr_ui.json`.
+Puoi cambiare path impostando `TICKET_QR_UI_SETTINGS_PATH`.
+
+La lista circuiti del menu e esterna in `tools/ticket_qr_generator/circuit_options.json`.
+Puoi sovrascrivere il file con `TICKET_QR_CIRCUITS_PATH` oppure passare una lista CSV diretta con `TICKET_QR_CIRCUITS` (es: `TicketOne,Vivaticket,Ciaotickets`).
 
 Per leggere il calendario eventi nella UI imposta:
 
