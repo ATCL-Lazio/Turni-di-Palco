@@ -553,7 +553,7 @@ type GameContextValue = {
   isEventFollowed: (eventId: string) => boolean;
   markBadgesSeen: () => void;
   updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage'>>) => void;
-  registerTurn: (eventId: string, roleId: RoleId) => TurnRecord | null;
+  registerTurn: (eventId: string, roleId: RoleId, eventOverride?: GameEvent) => TurnRecord | null;
   completeActivity: (activityId: string) => { activity: Activity; rewards: Rewards } | null;
   resetProgress: () => Promise<void>;
   changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
@@ -1391,8 +1391,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const registerTurn = useCallback(
-    (eventId: string, roleId: RoleId): TurnRecord | null => {
-      const event = catalog.events.find((item) => item.id === eventId) ?? catalog.events[0];
+    (eventId: string, roleId: RoleId, eventOverride?: GameEvent): TurnRecord | null => {
+      const event = eventOverride ?? catalog.events.find((item) => item.id === eventId);
       if (!event) return null;
       const rewards = computeTurnRewards(event, roleId);
       const turnId =

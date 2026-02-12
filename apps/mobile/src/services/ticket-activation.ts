@@ -24,6 +24,21 @@ export type TicketActivationRecord = {
   activatedAtIso: string | null;
 };
 
+export type ActivatedEventPayload = {
+  id?: string | null;
+  name?: string | null;
+  theatre?: string | null;
+  event_date?: string | null;
+  event_time?: string | null;
+  genre?: string | null;
+  base_rewards?: {
+    xp?: number | null;
+    reputation?: number | null;
+    cachet?: number | null;
+  } | null;
+  focus_role?: string | null;
+};
+
 const LEGACY_PROTOCOL_PREFIX = 'turni://ticket/';
 const localActivationStore = new Map<string, TicketActivationRecord>();
 const SESSION_REQUIRED_MESSAGE = 'Sessione scaduta o non disponibile. Effettua di nuovo il login.';
@@ -296,13 +311,21 @@ async function activateRemotely(hash: string, userId: string) {
     throw new Error(errorMessage);
   }
 
-  return data as { ok?: boolean; alreadyActivated?: boolean; activatedBy?: string; eventId?: string; eventName?: string; error?: string } | null;
+  return data as {
+    ok?: boolean;
+    alreadyActivated?: boolean;
+    activatedBy?: string;
+    eventId?: string;
+    eventName?: string;
+    event?: ActivatedEventPayload;
+    error?: string;
+  } | null;
 }
 
 export async function activateTicketHash(
   hash: string,
   userId: string
-): Promise<{ ok: true; eventId?: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; eventId?: string; event?: ActivatedEventPayload } | { ok: false; error: string }> {
   const normalizedHash = hash.trim().toLowerCase();
   const normalizedUserId = userId.trim();
 
@@ -326,7 +349,7 @@ export async function activateTicketHash(
         activatedBy: normalizedUserId,
         activatedAtIso: new Date().toISOString(),
       });
-      return { ok: true, eventId: remote.eventId };
+      return { ok: true, eventId: remote.eventId, event: remote.event };
     }
 
     if (remote?.alreadyActivated) {
@@ -369,7 +392,7 @@ export async function activateTicketByDetails(
   eventID: string,
   ticketNumber: string,
   userId: string
-): Promise<{ ok: true; eventId?: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; eventId?: string; event?: ActivatedEventPayload } | { ok: false; error: string }> {
   const normalizedEventId = eventID.trim();
   const normalizedTicket = ticketNumber.trim();
   const normalizedUserId = userId.trim();
@@ -394,9 +417,15 @@ export async function activateTicketByDetails(
       );
       throw new Error(errorMessage);
     }
-    const remote = data as { ok?: boolean; alreadyActivated?: boolean; error?: string; eventId?: string } | null;
+    const remote = data as {
+      ok?: boolean;
+      alreadyActivated?: boolean;
+      error?: string;
+      eventId?: string;
+      event?: ActivatedEventPayload;
+    } | null;
 
-    if (remote?.ok) return { ok: true, eventId: remote.eventId };
+    if (remote?.ok) return { ok: true, eventId: remote.eventId, event: remote.event };
     if (remote?.alreadyActivated) return { ok: false, error: 'Ticket già attivato.' };
     return { ok: false, error: remote?.error || 'Errore durante l\'attivazione manuale.' };
   } catch (error) {
