@@ -59,7 +59,29 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
   const handleActivate = async () => {
     const hash = parseTicketQrValue(scanInput);
     if (!hash) {
-      setScanMessage('Payload QR non valido. Formato atteso: hash SHA-256 (64 caratteri).');
+      // Potrebbe essere un inserimento manuale del numero biglietto
+      if (scanInput.length < 3) {
+        setScanMessage('Inserisci un hash valido o un numero biglietto.');
+        return;
+      }
+      
+      const shouldProceed = window.confirm(`Attivare manualmente il ticket n. "${scanInput}"?`);
+      if (!shouldProceed) return;
+
+      setBusy(true);
+      // Fallback: activation by number ONLY (since we removed eventID requirement)
+      try {
+        const { activateTicketByNumber } = await import('../../services/ticket-activation');
+        const result = await activateTicketByNumber(scanInput, userId);
+        setScanMessage(
+            result.ok 
+            ? `Ticket n.${scanInput} attivato! (${result.event?.name || 'Evento sconosciuto'})` 
+            : result.error
+        );
+      } catch (e) {
+          setScanMessage('Errore tecnico attivazione manuale.');
+      }
+      setBusy(false);
       return;
     }
 
