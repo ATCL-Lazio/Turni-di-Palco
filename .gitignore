@@ -57,3 +57,7 @@ apps/mobile/build/index.html
 apps/mobile/build/assets/index-*.js
 apps/mobile/build/assets/index-*.css
 maxwell-ai-credentials.json
+
+# Python cache
+tools/ticket_qr_generator/out/
+tools/ticket_qr_generator/__pycache__/
