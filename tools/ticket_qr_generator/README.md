@@ -42,6 +42,7 @@ Nella UI:
 
 Il circuito predefinito viene salvato localmente in `~/.turni_ticket_qr_ui.json`.
 Puoi cambiare path impostando `TICKET_QR_UI_SETTINGS_PATH`.
+Il contenuto del QR e il solo hash SHA-256 (64 caratteri), senza schema `turni://`.
 
 La lista circuiti del menu e esterna in `tools/ticket_qr_generator/circuit_options.json`.
 Puoi sovrascrivere il file con `TICKET_QR_CIRCUITS_PATH` oppure passare una lista CSV diretta con `TICKET_QR_CIRCUITS` (es: `TicketOne,Vivaticket,Ciaotickets`).
