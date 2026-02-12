@@ -24,12 +24,12 @@ import { TermsAndConditions } from './components/screens/TermsAndConditions';
 import { PrivacyPolicy } from './components/screens/PrivacyPolicy';
 import { EarnedTitles } from './components/screens/EarnedTitles';
 import { TicketQrActivationPrototype } from './components/screens/TicketQrActivationPrototype';
-import { Activity, GameStateProvider, Rewards, useGameState } from './state/store';
+import { Activity, GameEvent, GameStateProvider, Rewards, useGameState } from './state/store';
 import { isSupabaseConfigured } from './lib/supabase';
 import { hasStoredAuthState, PUBLIC_SCREENS } from './lib/auth-storage';
 import { openInMaps, openEventsMap } from './lib/navigation-utils';
 import { uploadProfileImage } from './services/storage';
-import { activateTicketHash, parseTicketQrValue } from './services/ticket-activation';
+import { activateTicketHash, parseTicketQrValue, type ActivatedEventPayload } from './services/ticket-activation';
 import { ScreenTransition } from './components/ui/ScreenTransition';
 import { ErrorOverlay } from './components/ui/ErrorOverlay';
 import { initErrorHandler, subscribeToCriticalErrors, getLastCriticalError, clearLastCriticalError } from './services/error-handler';
@@ -240,11 +240,50 @@ function AppShell() {
     if (!isAuthValid) { setCurrentScreen('welcome'); return { ok: false as const, error: 'Login richiesto.' }; }
 
     const activationUserId = (authUserId ?? state.profile.email ?? '').trim();
+    const confirmTurnActivation = (details: string) =>
+      window.confirm(
+        `Confermi l'attivazione del turno per questo ticket?\n\n${details}`
+      );
+    const toNumber = (value: unknown) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+    const mapActivatedEvent = (
+      eventId: string,
+      eventPayload?: ActivatedEventPayload
+    ): GameEvent | undefined => {
+      const existingEvent = events.find((event) => event.id === eventId);
+      if (existingEvent) return existingEvent;
+      if (!eventPayload) return undefined;
+
+      const theatre = String(eventPayload.theatre ?? '').trim();
+      const date = String(eventPayload.event_date ?? '').trim();
+      const time = String(eventPayload.event_time ?? '').trim();
+      if (!theatre || !date || !time) return undefined;
+
+      const baseRewards = eventPayload.base_rewards ?? {};
+      return {
+        id: eventId,
+        name: String(eventPayload.name ?? eventId).trim() || eventId,
+        theatre,
+        date,
+        time,
+        genre: String(eventPayload.genre ?? 'Evento').trim() || 'Evento',
+        baseRewards: {
+          xp: toNumber(baseRewards.xp),
+          reputation: toNumber(baseRewards.reputation),
+          cachet: toNumber(baseRewards.cachet),
+        },
+      };
+    };
 
     // 1. Manual Ticket Entry (e.g. from manual-ticket:EVENT_ID:TICKET_NUM)
     if (code.startsWith('manual-ticket:')) {
       const [, eventId, ticketNumber] = code.split(':');
       if (!eventId || !ticketNumber) return { ok: false as const, error: 'Dati manuali incompleti.' };
+      if (!confirmTurnActivation(`Evento: ${eventId}\nBiglietto: ${ticketNumber}`)) {
+        return { ok: false as const, error: 'Attivazione annullata.' };
+      }
 
       const { activateTicketByDetails } = await import('./services/ticket-activation');
       const activation = await activateTicketByDetails(eventId, ticketNumber, activationUserId);
@@ -252,8 +291,16 @@ function AppShell() {
 
       // Auto-register turn on success
       if (activation.eventId) {
-        registerTurn(activation.eventId, state.profile.roleId);
-        window.alert('Ticket attivato e turno registrato con successo.');
+        const turnRecord = registerTurn(
+          activation.eventId,
+          state.profile.roleId,
+          mapActivatedEvent(activation.eventId, activation.event)
+        );
+        if (turnRecord) {
+          window.alert('Ticket attivato e turno registrato con successo.');
+        } else {
+          window.alert('Ticket attivato, ma non è stato possibile aggiornare le statistiche turno.');
+        }
       } else {
         window.alert('Ticket attivato.');
       }
@@ -268,6 +315,9 @@ function AppShell() {
       if (!activationUserId) {
         return { ok: false as const, error: 'Utente non disponibile per l\'attivazione ticket.' };
       }
+      if (!confirmTurnActivation(`Hash ticket: ${ticketHash.slice(0, 12)}...`)) {
+        return { ok: false as const, error: 'Attivazione annullata.' };
+      }
 
       const activation = await activateTicketHash(ticketHash, activationUserId);
       if (!activation.ok) {
@@ -276,8 +326,16 @@ function AppShell() {
 
       // Auto-register turn on success
       if (activation.eventId) {
-        registerTurn(activation.eventId, state.profile.roleId);
-        window.alert('Ticket attivato e turno registrato correttamente.');
+        const turnRecord = registerTurn(
+          activation.eventId,
+          state.profile.roleId,
+          mapActivatedEvent(activation.eventId, activation.event)
+        );
+        if (turnRecord) {
+          window.alert('Ticket attivato e turno registrato correttamente.');
+        } else {
+          window.alert('Ticket attivato, ma non è stato possibile aggiornare le statistiche turno.');
+        }
       } else {
         window.alert('Ticket attivato correttamente.');
       }
