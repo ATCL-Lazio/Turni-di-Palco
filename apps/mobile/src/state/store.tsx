@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import {
@@ -205,6 +205,10 @@ export const activities: Activity[] = [
 
 const STORAGE_KEY = 'tdp-mobile-ui-state';
 const MAX_TURNS = 20;
+const REPUTATION_DECAY_GRACE_DAYS = 14;
+const REPUTATION_DECAY_POINTS_PER_DAY = 2;
+const REPUTATION_DECAY_DAY_MS = 1000 * 60 * 60 * 24;
+const REPUTATION_DECAY_CHECK_INTERVAL_MS = 1000 * 60 * 60;
 const MOBILE_WATCHDOG_TIMEOUTS = {
   refreshTurnStats: 10000,
   refreshTheatreReputation: 12000,
@@ -588,6 +592,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [badgesLoading, setBadgesLoading] = useState(false);
   const [followedEvents, setFollowedEvents] = useState<GameEvent[]>([]);
   const [followedEventsLoading, setFollowedEventsLoading] = useState(false);
+  const lastDecaySyncKeyRef = useRef<string | null>(null);
 
   const turnStats = useMemo(
     () => (isSupabaseConfigured && authUserId ? remoteTurnStats ?? localTurnStats : localTurnStats),
@@ -1163,6 +1168,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
           if (profileRow) {
             const user = userRes.data?.user;
+            const parsedLastActivityAt = profileRow.last_activity_at ? new Date(profileRow.last_activity_at).getTime() : NaN;
             setState((prev: GameState) => ({
               profile: {
                 ...prev.profile,
@@ -1182,7 +1188,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 reputation: profileRow.reputation ?? prev.profile.reputation,
                 cachet: profileRow.cachet ?? prev.profile.cachet,
                 profileImage: profileRow.profile_image ?? prev.profile.profileImage,
-                lastActivityAt: profileRow.last_activity_at ? new Date(profileRow.last_activity_at).getTime() : Date.now(),
+                lastActivityAt: Number.isFinite(parsedLastActivityAt)
+                  ? parsedLastActivityAt
+                  : prev.profile.lastActivityAt,
               },
               turns: remoteTurns,
             }));
@@ -1597,8 +1605,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           throw new Error('Email mancante');
         }
 
+        const redirectToFromEnv = import.meta.env.VITE_AUTH_REDIRECT_TO;
         const redirectTo =
-          typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : undefined;
+          typeof redirectToFromEnv === 'string' && redirectToFromEnv.trim()
+            ? redirectToFromEnv.trim()
+            : typeof window !== 'undefined'
+              ? `${window.location.origin}${window.location.pathname}`
+              : undefined;
 
         const { error } = await supabase.auth.resetPasswordForEmail(
           email,
@@ -1626,39 +1639,49 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
     const checkReputationDecay = () => {
       const now = Date.now();
-      const lastActivity = state.profile.lastActivityAt;
-      const daysInactive = Math.floor((now - lastActivity) / (1000 * 60 * 60 * 24));
+      setState((prev: GameState) => {
+        const currentRep = prev.profile.reputation;
+        if (currentRep <= 0) return prev;
 
-      // Se inattivo per più di 14 giorni, perde 2 punti di reputazione al giorno extra
-      if (daysInactive > 14) {
-        const decayDays = daysInactive - 14;
-        const totalDecay = decayDays * 2;
+        const daysInactive = Math.floor((now - prev.profile.lastActivityAt) / REPUTATION_DECAY_DAY_MS);
+        // Se inattivo per più di 14 giorni, perde 2 punti di reputazione al giorno extra.
+        if (daysInactive <= REPUTATION_DECAY_GRACE_DAYS) return prev;
 
-        if (totalDecay > 0) {
-          setState((prev: GameState) => {
-            const currentRep = prev.profile.reputation;
-            const newRep = Math.max(0, currentRep - totalDecay);
+        const decayDays = daysInactive - REPUTATION_DECAY_GRACE_DAYS;
+        const totalDecay = decayDays * REPUTATION_DECAY_POINTS_PER_DAY;
+        if (totalDecay <= 0) return prev;
 
-            if (newRep === currentRep) return prev; // Evita loop infiniti se non cambia nulla
+        const newRep = Math.max(0, currentRep - totalDecay);
+        if (newRep === currentRep) return prev;
 
-            return {
-              ...prev,
-              profile: {
-                ...prev.profile,
-                reputation: newRep,
-              }
-            };
+        // Move the inactivity anchor forward to avoid applying the same backlog repeatedly.
+        const decayedLastActivityAt = now - REPUTATION_DECAY_GRACE_DAYS * REPUTATION_DECAY_DAY_MS;
+        const updatedProfile: PlayerProfile = {
+          ...prev.profile,
+          reputation: newRep,
+          lastActivityAt: decayedLastActivityAt,
+        };
+        const decaySyncKey = `${updatedProfile.lastActivityAt}:${updatedProfile.reputation}`;
+        if (lastDecaySyncKeyRef.current !== decaySyncKey) {
+          lastDecaySyncKeyRef.current = decaySyncKey;
+          queueMicrotask(() => {
+            persistProfile(updatedProfile);
           });
         }
-      }
+
+        return {
+          ...prev,
+          profile: updatedProfile,
+        };
+      });
     };
 
     // Controllo ogni ora
-    const interval = setInterval(checkReputationDecay, 1000 * 60 * 60);
+    const interval = setInterval(checkReputationDecay, REPUTATION_DECAY_CHECK_INTERVAL_MS);
     checkReputationDecay();
 
     return () => clearInterval(interval);
-  }, [state.profile.lastActivityAt, state.profile.reputation]);
+  }, [state.profile.lastActivityAt, state.profile.reputation, persistProfile]);
 
   const value = useMemo<GameContextValue>(
     () => ({
