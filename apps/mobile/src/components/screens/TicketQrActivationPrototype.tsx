@@ -59,36 +59,7 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
   const handleActivate = async () => {
     const hash = parseTicketQrValue(scanInput);
     if (!hash) {
-      // Potrebbe essere un inserimento manuale del numero biglietto
-      if (scanInput.length < 3) {
-        setScanMessage('Inserisci un hash valido o un numero biglietto.');
-        return;
-      }
-      
-      const shouldProceed = window.confirm(
-          `Attivare manualmente il ticket n. "${scanInput}"?` +
-          (circuit ? `\nCircuito: ${circuit}` : '') +
-          (eventID ? `\nEvento: ${eventID}` : '')
-      );
-      if (!shouldProceed) return;
-
-      setBusy(true);
-      // Fallback: activation by number with optional context
-      try {
-        const { activateTicketByNumber } = await import('../../services/ticket-activation');
-        const result = await activateTicketByNumber(scanInput, userId, {
-             circuit: circuit || undefined,
-             eventID: eventID || undefined
-        });
-        setScanMessage(
-            result.ok 
-            ? `Ticket n.${scanInput} attivato! (${result.event?.name || 'Evento sconosciuto'})` 
-            : result.error
-        );
-      } catch (e) {
-          setScanMessage('Errore tecnico attivazione manuale.');
-      }
-      setBusy(false);
+      setScanMessage('Payload QR non valido. Formato atteso: hash SHA-256 (64 caratteri).');
       return;
     }
 
@@ -154,21 +125,8 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
           <Input
             value={scanInput}
             onChange={(event) => setScanInput(event.target.value)}
-            placeholder="Hash QR o numero ticket"
+            placeholder="Incolla hash o valore QR"
           />
-          
-          <div className="grid grid-cols-2 gap-3">
-             <Input 
-                value={circuit} 
-                onChange={(e) => setCircuit(e.target.value)} 
-                placeholder="Circuito (opzionale)" 
-             />
-             <Input 
-                value={eventID} 
-                onChange={(e) => setEventID(e.target.value)} 
-                placeholder="ID Evento (opzionale)" 
-             />
-          </div>
 
         <Button variant="secondary" onClick={handleActivate} disabled={busy}>
           Verifica e attiva
