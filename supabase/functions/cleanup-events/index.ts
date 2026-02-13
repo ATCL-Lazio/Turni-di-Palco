@@ -1,3 +1,4 @@
+/// <reference path="../@types/deno.d.ts" />
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -38,7 +39,13 @@ serve(async (req) => {
     
     if (error) throw error
     
-    const eventsToDelete = (events || []).filter(event => {
+    interface Event {
+      id: string;
+      name: string;
+      event_date: string;
+    }
+
+    const eventsToDelete = (events as Event[] || []).filter((event: Event) => {
       if (!event?.event_date) return false
       return event.event_date < cutoffDateStr
     })
@@ -77,7 +84,7 @@ serve(async (req) => {
       }
     )
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Errore durante la pulizia:', error.message)
     return new Response(
       JSON.stringify({ error: error.message }),
