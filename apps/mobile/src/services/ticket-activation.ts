@@ -51,6 +51,7 @@ const LEGACY_PROTOCOL_PREFIX = 'turni://ticket/';
 const localActivationStore = new Map<string, TicketActivationRecord>();
 const localManualActivationStore = new Map<string, ManualTicketActivationRecord>();
 const SESSION_REQUIRED_MESSAGE = 'Sessione scaduta o non disponibile. Effettua di nuovo il login.';
+const TOKEN_REFRESH_SKEW_SECONDS = 30;
 const MAX_HASH_GENERATION_ATTEMPTS = 8;
 const MAX_STORE_SIZE = 1000; // Prevent memory leaks
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -164,6 +165,20 @@ function getFunctionErrorStatus(error: unknown): number | null {
   return typeof context.status === 'number' ? context.status : null;
 }
 
+async function invalidateAuthSession() {
+  if (!supabase) return;
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    // ignore logout failures
+  }
+}
+
+function shouldLogActivationError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return !/sessione scaduta|invalid jwt|unauthorized|401/i.test(message);
+}
+
 async function getAccessTokenForFunctions(): Promise<string> {
   if (!supabase || !isSupabaseConfigured) {
     throw new Error(SESSION_REQUIRED_MESSAGE);
@@ -171,19 +186,30 @@ async function getAccessTokenForFunctions(): Promise<string> {
 
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) {
+    await invalidateAuthSession();
     throw new Error(SESSION_REQUIRED_MESSAGE);
   }
 
-  const sessionToken = sessionData.session?.access_token?.trim();
-  if (sessionToken) return sessionToken;
+  const session = sessionData.session;
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const sessionToken = session?.access_token?.trim();
+  const expiresAt = typeof session?.expires_at === 'number' ? session.expires_at : 0;
+  const shouldRefresh =
+    !sessionToken || !expiresAt || expiresAt <= nowSeconds + TOKEN_REFRESH_SKEW_SECONDS;
+
+  if (!shouldRefresh && sessionToken) {
+    return sessionToken;
+  }
 
   const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
   if (refreshError) {
+    await invalidateAuthSession();
     throw new Error(SESSION_REQUIRED_MESSAGE);
   }
 
   const refreshedToken = refreshed.session?.access_token?.trim();
   if (!refreshedToken) {
+    await invalidateAuthSession();
     throw new Error(SESSION_REQUIRED_MESSAGE);
   }
 
@@ -210,6 +236,9 @@ async function invokeTicketActivation(body: Record<string, unknown>) {
         headers: { Authorization: `Bearer ${refreshedToken}` },
         body,
       });
+    }
+    if (response.error && getFunctionErrorStatus(response.error) === 401) {
+      await invalidateAuthSession();
     }
   }
 
@@ -505,7 +534,9 @@ export async function activateTicketHash(
       return { ok: false, error: remote.error };
     }
   } catch (error) {
-    console.error('Remote activation failed:', error);
+    if (shouldLogActivationError(error)) {
+      console.error('Remote activation failed:', error);
+    }
     if (supabase && isSupabaseConfigured) {
       return { 
         ok: false, 
@@ -592,7 +623,9 @@ export async function activateTicketByDetails(
     if (remote?.alreadyActivated) return { ok: false, error: 'Ticket già attivato.' };
     return { ok: false, error: remote?.error || 'Errore durante l\'attivazione manuale.' };
   } catch (error) {
-    console.error('Manual activation failed:', error);
+    if (shouldLogActivationError(error)) {
+      console.error('Manual activation failed:', error);
+    }
     return { ok: false, error: error instanceof Error ? error.message : 'Errore tecnico.' };
   }
 }
