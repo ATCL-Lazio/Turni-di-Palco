@@ -1,3 +1,4 @@
+/// <reference path="../@types/deno.d.ts" />
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.0';
 
@@ -99,6 +100,7 @@ serve(async (req) => {
       return json({ valid: false, error: 'QR non valido: ID evento mancante.' }, 400);
     }
 
+    // @ts-ignore
     const { data, error } = await supabase
       .from('events')
       .select('id,name,theatre,event_date,event_time,genre,base_rewards,focus_role')
@@ -131,6 +133,7 @@ serve(async (req) => {
       return json({ error: 'eventId obbligatorio' }, 400);
     }
 
+    // @ts-ignore
     const { data, error } = await supabase
       .from('events')
       .select('id')
@@ -167,6 +170,7 @@ serve(async (req) => {
       return json({ error: 'event_id mancante' }, 400);
     }
 
+    // @ts-ignore
     const { data, error } = await supabase
       .from('events')
       .select('id,name,theatre,event_date,event_time,genre,base_rewards,focus_role')
