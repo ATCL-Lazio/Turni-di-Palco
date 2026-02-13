@@ -1,3 +1,4 @@
+/// <reference path="../@types/deno.d.ts" />
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.0';
 
@@ -64,7 +65,8 @@ serve(async (req: Request) => {
       // Use serviceKey to verify the token, as anonKey might not have permissions to getUser for others.
       const authClient = createClient(supabaseUrl, serviceKey);
 
-      const { data: { user }, error: authError } = await authClient.auth.getUser(token);
+      const { data, error: authError } = await authClient.auth.getUser(token);
+      const user = data?.user;
       
       if (authError || !user) {
         console.error('Auth verification failed');
