@@ -53,6 +53,7 @@ const localManualActivationStore = new Map<string, ManualTicketActivationRecord>
 const SESSION_REQUIRED_MESSAGE = 'Sessione scaduta o non disponibile. Effettua di nuovo il login.';
 const MAX_HASH_GENERATION_ATTEMPTS = 8;
 const MAX_STORE_SIZE = 1000; // Prevent memory leaks
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // Cleanup function to prevent memory leaks
 function cleanupOldRecords() {
@@ -471,8 +472,8 @@ export async function activateTicketHash(
     return { ok: false, error: 'Utente non disponibile per l\'attivazione.' };
   }
 
-  // Validate userId format - should be a valid UUID
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalizedUserId)) {
+  // Enforce UUID only when Supabase-backed auth is active.
+  if (isSupabaseConfigured && !UUID_PATTERN.test(normalizedUserId)) {
     return { ok: false, error: 'ID utente non valido.' };
   }
 
@@ -532,74 +533,6 @@ export async function activateTicketHash(
   return { ok: true };
 }
 
-export async function activateTicketByNumber(
-  ticketNumber: string,
-  userId: string,
-  options?: { circuit?: string; eventID?: string }
-): Promise<{ ok: true; eventId?: string; event?: ActivatedEventPayload } | { ok: false; error: string }> {
-  const normalizedTicket = ticketNumber.trim();
-  const normalizedUserId = userId.trim();
-
-  if (!normalizedTicket || !normalizedUserId) {
-    return { ok: false, error: 'Dati mancanti per l\'attivazione manuale.' };
-  }
-
-  // Validate userId format - should be a valid UUID
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalizedUserId)) {
-    return { ok: false, error: 'ID utente non valido.' };
-  }
-
-  try {
-    if (!supabase || !isSupabaseConfigured) return { ok: false, error: 'Supabase non configurata.' };
-
-    const { data, error } = await invokeTicketActivation({
-      action: 'activate_by_ticket_number',
-      payload: { 
-        ticketNumber: normalizedTicket,
-        circuit: options?.circuit,
-        eventID: options?.eventID
-      },
-      userId: normalizedUserId,
-    });
-
-    if (error) {
-      const errorMessage = await resolveFunctionErrorMessage(
-        error,
-        'Errore Supabase durante l\'attivazione manuale.'
-      );
-      throw new Error(errorMessage);
-    }
-    const remote = data as {
-      ok?: boolean;
-      alreadyActivated?: boolean;
-      error?: string;
-      eventId?: string;
-      event?: ActivatedEventPayload;
-    } | null;
-
-    if (remote?.ok) {
-      cleanupOldRecords();
-      // Use a mock key for manual store since we don't have eventID yet, or just log success.
-      // We can't store cleanly in localManualActivationStore without eventID, but we can try to use what we got back.
-      if (remote.eventId) {
-          const manualTicketKey = buildManualTicketKey(remote.eventId, normalizedTicket);
-          localManualActivationStore.set(manualTicketKey, {
-            eventId: remote.eventId,
-            ticketNumber: normalizedTicket,
-            activatedBy: normalizedUserId,
-            activatedAtIso: new Date().toISOString(),
-          });
-      }
-      return { ok: true, eventId: remote.eventId, event: remote.event };
-    }
-    if (remote?.alreadyActivated) return { ok: false, error: 'Ticket già attivato.' };
-    return { ok: false, error: remote?.error || 'Errore durante l\'attivazione manuale.' };
-  } catch (error) {
-    console.error('Manual activation by number failed:', error);
-    return { ok: false, error: error instanceof Error ? error.message : 'Errore tecnico.' };
-  }
-}
-
 export async function activateTicketByDetails(
   eventID: string,
   ticketNumber: string,
@@ -613,8 +546,8 @@ export async function activateTicketByDetails(
     return { ok: false, error: 'Dati mancanti per l\'attivazione manuale.' };
   }
 
-  // Validate userId format - should be a valid UUID
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalizedUserId)) {
+  // Enforce UUID only when Supabase-backed auth is active.
+  if (isSupabaseConfigured && !UUID_PATTERN.test(normalizedUserId)) {
     return { ok: false, error: 'ID utente non valido.' };
   }
   const manualTicketKey = buildManualTicketKey(normalizedEventId, normalizedTicket);
@@ -667,4 +600,3 @@ export async function activateTicketByDetails(
 export function listLocalTicketRecords(): TicketActivationRecord[] {
   return Array.from(localActivationStore.values()).sort((a, b) => a.hash.localeCompare(b.hash));
 }
-
