@@ -52,7 +52,6 @@ const localActivationStore = new Map<string, TicketActivationRecord>();
 const localManualActivationStore = new Map<string, ManualTicketActivationRecord>();
 const SESSION_REQUIRED_MESSAGE = 'Sessione scaduta o non disponibile. Effettua di nuovo il login.';
 const TOKEN_REFRESH_SKEW_SECONDS = 30;
-const MAX_HASH_GENERATION_ATTEMPTS = 8;
 const MAX_STORE_SIZE = 1000; // Prevent memory leaks
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -255,20 +254,6 @@ function stableStringify(value: TicketPayload): string {
   });
 }
 
-function buildHashSource(value: TicketPayload, nonce: number): string {
-  if (nonce <= 0) return stableStringify(value);
-  return JSON.stringify({
-    payload: {
-      circuit: value.circuit,
-      eventName: value.eventName,
-      eventID: value.eventID,
-      ticketNumber: value.ticketNumber,
-      date: value.date,
-    },
-    nonce,
-  });
-}
-
 async function sha256Hex(input: string): Promise<string> {
   const encoded = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest('SHA-256', encoded);
@@ -317,33 +302,25 @@ export async function generateTicketQr(params: {
   }
 
   const json = stableStringify(payload);
-  let hash = '';
+  const hash = await sha256Hex(json);
   let persistedRemotely = false;
 
-  for (let attempt = 0; attempt < MAX_HASH_GENERATION_ATTEMPTS; attempt += 1) {
-    const candidateHash = await sha256Hex(buildHashSource(payload, attempt));
-    if (localActivationStore.has(candidateHash)) {
-      continue;
-    }
-
-    if (supabase && isSupabaseConfigured) {
-      try {
-        const reserved = await reserveHashRemotely(payload, candidateHash);
-        if (!reserved) {
-          continue;
-        }
-        persistedRemotely = true;
-      } catch (error) {
-        throw error instanceof Error ? error : new Error('Errore durante la registrazione hash su Supabase.');
-      }
-    }
-
-    hash = candidateHash;
-    break;
+  if (localActivationStore.has(hash)) {
+    throw new Error('Ticket gia generato in questa sessione. Verifica eventID e ticketNumber.');
   }
 
-  if (!hash) {
-    throw new Error('Impossibile generare un hash univoco dopo diversi tentativi.');
+  if (supabase && isSupabaseConfigured) {
+    try {
+      const reserved = await reserveHashRemotely(payload, hash);
+      if (!reserved) {
+        throw new Error(
+          'Ticket gia presente su Supabase. Verifica eventID e ticketNumber (potrebbe essere un duplicato).'
+        );
+      }
+      persistedRemotely = true;
+    } catch (error) {
+      throw error instanceof Error ? error : new Error('Errore durante la registrazione hash su Supabase.');
+    }
   }
 
   cleanupOldRecords();
