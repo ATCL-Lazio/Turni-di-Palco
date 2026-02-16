@@ -8,12 +8,14 @@ import { GameEvent, Role, RoleId, computeTurnRewards } from '../../state/store';
 interface EventConfirmationProps {
   event?: GameEvent;
   role?: Role;
-  onConfirm: () => void;
+  onConfirm: () => Promise<{ ok: true } | { ok: false; error: string }> | { ok: true } | { ok: false; error: string };
+  onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function EventConfirmation({ event, role, onConfirm, onCancel }: EventConfirmationProps) {
+export function EventConfirmation({ event, role, onConfirm, onSuccess, onCancel }: EventConfirmationProps) {
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const roleId = (role?.id ?? 'attore') as RoleId;
 
   const resolvedRewards = useMemo(() => {
@@ -29,11 +31,27 @@ export function EventConfirmation({ event, role, onConfirm, onCancel }: EventCon
     genre: '',
   };
 
-  const handleConfirm = () => {
-    setIsSuccess(true);
-    setTimeout(() => {
-      onConfirm();
-    }, 1500);
+  const handleConfirm = async () => {
+    if (isSubmitting || isSuccess) return;
+    setIsSubmitting(true);
+
+    try {
+      const result = await onConfirm();
+      if (!result.ok) {
+        window.alert(result.error);
+        return;
+      }
+
+      setIsSuccess(true);
+      window.setTimeout(() => {
+        onSuccess();
+      }, 1500);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Errore durante la registrazione turno.';
+      window.alert(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSuccess) {
@@ -152,11 +170,11 @@ export function EventConfirmation({ event, role, onConfirm, onCancel }: EventCon
         </Card>
 
         <div className="space-y-3">
-          <Button variant="primary" size="lg" fullWidth onClick={handleConfirm}>
-            Conferma turno
+          <Button variant="primary" size="lg" fullWidth onClick={handleConfirm} disabled={isSubmitting}>
+            {isSubmitting ? 'Conferma in corso...' : 'Conferma turno'}
           </Button>
 
-          <Button variant="ghost" size="lg" fullWidth onClick={onCancel}>
+          <Button variant="ghost" size="lg" fullWidth onClick={onCancel} disabled={isSubmitting}>
             Annulla
           </Button>
         </div>

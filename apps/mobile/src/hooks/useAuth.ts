@@ -4,6 +4,17 @@ import { resolveDisplayName } from '../lib/profile-utils';
 import { PlayerProfile } from '../state/store';
 
 const getEmailPrefix = (value?: string) => value?.split('@')[0]?.trim() ?? '';
+const resolveAuthRedirectTo = () => {
+    const fromEnv = import.meta.env.VITE_AUTH_REDIRECT_TO;
+    if (typeof fromEnv === 'string' && fromEnv.trim()) {
+        return fromEnv.trim();
+    }
+    if (typeof window === 'undefined') return undefined;
+    const origin = window.location.origin?.trim();
+    if (!origin) return undefined;
+    const pathname = window.location.pathname || '/';
+    return `${origin}${pathname}`;
+};
 const shouldUpdateName = (currentName: string, email: string | undefined, nextName: string) => {
     const trimmedCurrent = currentName?.trim() ?? '';
     if (!trimmedCurrent) return true;
@@ -54,10 +65,14 @@ export function useAuth(
             return;
         }
 
+        const redirectTo = resolveAuthRedirectTo();
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
-            options: { data: { name } },
+            options: {
+                data: { name },
+                ...(redirectTo ? { emailRedirectTo: redirectTo } : {}),
+            },
         });
         if (error) {
             setAuthError(error.message);

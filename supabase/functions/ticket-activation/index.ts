@@ -1,3 +1,4 @@
+/// <reference path="../@types/deno.d.ts" />
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.0';
 
@@ -31,7 +32,7 @@ async function loadEventSnapshot(supabase: ReturnType<typeof createClient>, even
   return data ?? null;
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -39,7 +40,6 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
 
   if (!supabaseUrl || !serviceKey) {
     return jsonResponse({ error: 'Missing environment variables' }, 500);
@@ -50,34 +50,31 @@ serve(async (req) => {
   try {
     const { action, hash, payload, userId: requestedUserId } = await req.json();
 
-    const needsAuthenticatedUser = action === 'activate_hash' || action === 'activate_by_details';
+    const activationActions = ['activate_hash', 'activate_by_details'];
+    const needsAuthenticatedUser = activationActions.includes(action);
     let resolvedUserId = typeof requestedUserId === 'string' ? requestedUserId.trim() : '';
 
     if (needsAuthenticatedUser) {
-      if (!anonKey) {
-        return jsonResponse({ error: 'Missing SUPABASE_ANON_KEY' }, 500);
-      }
-
-      const authHeader = req.headers.get('Authorization') ?? '';
-      if (!authHeader.startsWith('Bearer ')) {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.warn('Missing or invalid Authorization header');
         return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
       }
 
-      const authClient = createClient(supabaseUrl, anonKey, {
-        global: {
-          headers: {
-            Authorization: authHeader,
-          },
-        },
-      });
+      const token = authHeader.replace('Bearer ', '');
+      // Use serviceKey to verify the token, as anonKey might not have permissions to getUser for others.
+      const authClient = createClient(supabaseUrl, serviceKey);
 
-      const { data: authData, error: authError } = await authClient.auth.getUser();
-      if (authError || !authData.user) {
-        return jsonResponse({ error: 'Invalid JWT' }, 401);
+      const { data, error: authError } = await authClient.auth.getUser(token);
+      const user = data?.user;
+      
+      if (authError || !user) {
+        console.error('Auth verification failed');
+        return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
       }
 
-      // Do not trust userId sent by client payload.
-      resolvedUserId = authData.user.id;
+      // Do not trust userId sent by client payload if we have an authenticated user.
+      resolvedUserId = user.id;
     }
 
     if (action === 'reserve_hash') {
@@ -85,32 +82,89 @@ serve(async (req) => {
         return jsonResponse({ error: 'Missing hash or payload' }, 400);
       }
 
-      // Check if hash already exists
-      const { data: existing } = await supabase
-        .from('ticket_activations')
-        .select('hash')
-        .eq('hash', hash)
-        .single();
+      const normalizedHash = typeof hash === 'string' ? hash.trim().toLowerCase() : '';
+      if (!/^[0-9a-f]{64}$/.test(normalizedHash)) {
+        return jsonResponse({ reserved: false, error: 'Hash non valido.' }, 200);
+      }
 
-      if (existing) {
-        return jsonResponse({ reserved: false, error: 'Hash already exists' }, 200);
+      const normalizedPayload = payload as {
+        circuit?: unknown;
+        eventName?: unknown;
+        eventID?: unknown;
+        ticketNumber?: unknown;
+        date?: unknown;
+      };
+
+      const circuit = String(normalizedPayload.circuit ?? '').trim();
+      const eventName = String(normalizedPayload.eventName ?? '').trim();
+      const eventId = String(normalizedPayload.eventID ?? '').trim();
+      const ticketNumber = String(normalizedPayload.ticketNumber ?? '').trim();
+      const date = String(normalizedPayload.date ?? '').trim();
+
+      if (!circuit || !eventName || !eventId || !ticketNumber || !date) {
+        return jsonResponse({ error: 'Missing hash or payload' }, 400);
       }
 
       // Insert new ticket activation record (unassigned)
       const { error: insertError } = await supabase.from('ticket_activations').insert({
-        hash,
-        circuit: payload.circuit,
-        event_name: payload.eventName,
-        event_id: payload.eventID,
-        ticket_number: payload.ticketNumber,
-        date: payload.date,
+        hash: normalizedHash,
+        circuit,
+        event_name: eventName,
+        event_id: eventId,
+        ticket_number: ticketNumber,
+        date,
       });
 
       if (insertError) {
+        // Primary key collision -> hash already reserved by another process.
+        if ((insertError as { code?: string }).code === '23505') {
+          return jsonResponse({ reserved: false, error: 'Hash already exists' }, 200);
+        }
         throw insertError;
       }
 
       return jsonResponse({ reserved: true }, 200);
+    }
+
+    if (action === 'resolve_hash') {
+      if (!hash || typeof hash !== 'string') {
+        return jsonResponse({ error: 'Missing hash' }, 400);
+      }
+
+      const normalizedHash = hash.trim().toLowerCase();
+      if (!/^[0-9a-f]{64}$/.test(normalizedHash)) {
+        return jsonResponse({ ok: false, error: 'Hash non valido.' }, 200);
+      }
+
+      const { data: ticket, error: ticketError } = await supabase
+        .from('ticket_activations')
+        .select('event_id,event_name,activated_by')
+        .eq('hash', normalizedHash)
+        .maybeSingle();
+
+      if (ticketError) {
+        throw ticketError;
+      }
+
+      if (!ticket) {
+        return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
+      }
+
+      if (ticket.activated_by) {
+        return jsonResponse({
+          ok: false,
+          alreadyActivated: true,
+          error: 'Ticket già attivato.',
+        }, 200);
+      }
+
+      const eventSnapshot = await loadEventSnapshot(supabase, ticket.event_id);
+      return jsonResponse({
+        ok: true,
+        eventId: ticket.event_id,
+        eventName: ticket.event_name,
+        event: eventSnapshot,
+      }, 200);
     }
 
     if (action === 'activate_hash' || action === 'activate_by_details') {
@@ -124,13 +178,14 @@ serve(async (req) => {
 
       // 1. Resolve hash if using details
       let targetHash = hash;
+      
       if (action === 'activate_by_details') {
         const { data: ticket } = await supabase
           .from('ticket_activations')
           .select('hash')
           .eq('event_id', payload.eventID)
           .eq('ticket_number', payload.ticketNumber)
-          .single();
+          .maybeSingle(); // Use maybeSingle to avoid 406 if multiple found (though they should be unique per event)
         
         if (!ticket) {
           return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
@@ -176,7 +231,6 @@ serve(async (req) => {
       return jsonResponse({
         ok: false,
         alreadyActivated: true,
-        activatedBy: current.activated_by,
       }, 200);
     }
 
