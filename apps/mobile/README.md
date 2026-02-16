@@ -29,6 +29,7 @@ Code bundle for the Turni di Palco mobile experience.
   - `IOS_DISTRIBUTION_CERT_PASSWORD` (password used for the `.p12`)
 - Trigger from GitHub: `Actions` → `iOS TestFlight` → `Run workflow`.
 - The workflow builds `apps/mobile`, archives `apps/mobile/ios/App/App.xcodeproj`, exports `.ipa`, uploads an artifact, then sends it to TestFlight.
+- Versioning in CI: `MARKETING_VERSION` is read from `apps/mobile/package.json`, and `CURRENT_PROJECT_VERSION` uses `GITHUB_RUN_NUMBER` so TestFlight build numbers always increase.
 
 ## Authentication and state persistence
 
