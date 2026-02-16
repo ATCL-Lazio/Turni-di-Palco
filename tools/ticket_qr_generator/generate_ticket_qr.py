@@ -235,15 +235,9 @@ def to_payload_dict(payload: TicketPayload) -> OrderedDict[str, str]:
     )
 
 
-def canonical_payload_json(payload: TicketPayload, *, nonce: int = 0) -> str:
+def canonical_payload_json(payload: TicketPayload) -> str:
     # Match browser JSON.stringify output exactly for cross-platform hash parity.
-    if nonce <= 0:
-        return json.dumps(to_payload_dict(payload), ensure_ascii=False, separators=(",", ":"))
-    return json.dumps(
-        {"payload": to_payload_dict(payload), "nonce": nonce},
-        ensure_ascii=False,
-        separators=(",", ":"),
-    )
+    return json.dumps(to_payload_dict(payload), ensure_ascii=False, separators=(",", ":"))
 
 
 def pretty_payload_json(payload: TicketPayload) -> str:
@@ -340,35 +334,26 @@ def main() -> int:
         print("All fields are required.", file=sys.stderr)
         return 1
 
-    payload_hash = ""
-    canonical_json = ""
-    hash_nonce = 0
-
     if not args.skip_supabase and (not supabase_url or not service_role_key):
         print("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required (or use --skip-supabase).", file=sys.stderr)
         return 1
 
+    canonical_json = canonical_payload_json(payload)
+    payload_hash = sha256_hex(canonical_json)
     reserved = False
-    max_attempts = 8
-    for attempt in range(max_attempts):
-        hash_nonce = attempt
-        canonical_json = canonical_payload_json(payload, nonce=attempt)
-        payload_hash = sha256_hex(canonical_json)
-
-        if args.skip_supabase:
-            break
-
+    if not args.skip_supabase:
         reserved = reserve_hash(
             supabase_url=supabase_url,
             service_role_key=service_role_key,
             payload=payload,
             payload_hash=payload_hash,
         )
-        if reserved:
-            break
-    else:
-        print("Unable to reserve a unique hash after multiple attempts.", file=sys.stderr)
-        return 2
+        if not reserved:
+            print(
+                "Hash gia presente su Supabase. Verifica eventID/ticketNumber: i duplicati non sono consentiti.",
+                file=sys.stderr,
+            )
+            return 2
 
     qr_value = payload_hash
     output_path = pathlib.Path(args.output).resolve()
@@ -381,7 +366,6 @@ def main() -> int:
                 "qr_value": qr_value,
                 "json_payload": pretty_payload_json(payload),
                 "canonical_json": canonical_json,
-                "hash_nonce": hash_nonce,
                 "output": str(output_path),
                 "supabase_reserved": reserved,
             },
