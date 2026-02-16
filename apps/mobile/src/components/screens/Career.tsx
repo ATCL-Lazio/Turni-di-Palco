@@ -50,7 +50,7 @@ const ROLE_STAT_LABELS: Record<keyof Role['stats'], string> = {
   presence: 'Presenza scenica',
   precision: 'Precisione',
   leadership: 'Leadership',
-  creativity: 'Creatività',
+  creativity: 'CreativitÃ ',
 };
 
 const BADGE_ICONS: Record<string, LucideIcon> = { Award, MapPin, Theater, Calendar };
@@ -112,7 +112,7 @@ export function Career({
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
+          className="flex items-center justify-center size-[44px] text-[#0a84ff]"
           aria-label="Indietro"
         >
           <ArrowLeft size={24} />
@@ -120,26 +120,26 @@ export function Career({
 
         <div className="mt-4">
           <h2 className="text-white mb-2">Carriera completa</h2>
-          <p className="text-[#b8b2b3]">Il tuo percorso professionale a teatro</p>
+          <p className="text-[#aeaeb2]">Il tuo percorso professionale a teatro</p>
         </div>
 
         <div className="mt-6 space-y-5">
-          <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+          <Card className="bg-gradient-to-br from-[#1c1c1e] to-[#2c2c2e]">
             <div className="flex items-center gap-4 mb-6">
-              <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl flex items-center justify-center">
-                <RoleIcon className="text-[#f4bf4f]" size={32} />
+              <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-[#0a84ff] to-[#004ea8] rounded-2xl flex items-center justify-center">
+                <RoleIcon className="text-[#0a84ff]" size={32} />
               </div>
               <div className="flex-1">
                 <h3 className="text-white mb-1">{userRole}</h3>
                 <div className="flex items-center gap-2">
                   <Badge variant="gold" size="md">Livello {level}</Badge>
-                  <span className="text-[#b8b2b3]">{xp} XP</span>
+                  <span className="text-[#aeaeb2]">{xp} XP</span>
                 </div>
               </div>
             </div>
 
             <div>
-              <div className="flex justify-between text-sm text-[#b8b2b3] mb-2">
+              <div className="flex justify-between text-sm text-[#aeaeb2] mb-2">
                 <span>Progressione livello</span>
                 <span>{xpToNextLevel - xp} XP al prossimo</span>
               </div>
@@ -156,7 +156,7 @@ export function Career({
                 return (
                   <div key={key}>
                     <div className="flex justify-between mb-2">
-                      <span className="text-[#b8b2b3]">{ROLE_STAT_LABELS[key]}</span>
+                      <span className="text-[#aeaeb2]">{ROLE_STAT_LABELS[key]}</span>
                       <span className="text-white">{value}/100</span>
                     </div>
                     <ProgressBar value={value} max={100} color="burgundy" size="sm" />
@@ -170,40 +170,40 @@ export function Career({
             <h4 className="text-white mb-4">Esperienza accumulata</h4>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-[#241f20] rounded-lg">
+              <div className="flex items-center justify-between p-4 bg-[#2c2c2e] rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-[#e6a23c] to-[#f4bf4f] rounded-lg flex items-center justify-center">
-                    <TrendingUp className="text-[#0f0d0e]" size={20} />
+                  <div className="w-10 h-10 bg-gradient-to-br from-[#0066d6] to-[#0a84ff] rounded-lg flex items-center justify-center">
+                    <TrendingUp className="text-[#000000]" size={20} />
                   </div>
                   <div>
                     <p className="text-white">XP totale</p>
-                    <p className="text-xs text-[#b8b2b3]">Tutte le fonti</p>
+                    <p className="text-xs text-[#aeaeb2]">Tutte le fonti</p>
                   </div>
                 </div>
                 <p className="text-2xl text-white">{xpTotal}</p>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-[#241f20] rounded-lg">
+              <div className="flex items-center justify-between p-4 bg-[#2c2c2e] rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-lg flex items-center justify-center">
-                    <Theater className="text-[#f4bf4f]" size={20} />
+                  <div className="w-10 h-10 bg-gradient-to-br from-[#0a84ff] to-[#004ea8] rounded-lg flex items-center justify-center">
+                    <Theater className="text-[#0a84ff]" size={20} />
                   </div>
                   <div>
                     <p className="text-white">XP sul campo</p>
-                    <p className="text-xs text-[#b8b2b3]">Eventi ATCL reali</p>
+                    <p className="text-xs text-[#aeaeb2]">Eventi ATCL reali</p>
                   </div>
                 </div>
-                <p className="text-2xl text-[#f4bf4f]">{xpSulCampo}</p>
+                <p className="text-2xl text-[#0a84ff]">{xpSulCampo}</p>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-[#241f20] rounded-lg">
+              <div className="flex items-center justify-between p-4 bg-[#2c2c2e] rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#241f20] border-2 border-[#7a7577] rounded-lg flex items-center justify-center">
-                    <TrendingUp className="text-[#7a7577]" size={20} />
+                  <div className="w-10 h-10 bg-[#2c2c2e] border-2 border-[#8e8e93] rounded-lg flex items-center justify-center">
+                    <TrendingUp className="text-[#8e8e93]" size={20} />
                   </div>
                   <div>
-                    <p className="text-white">XP da attività</p>
-                    <p className="text-xs text-[#b8b2b3]">Simulazioni</p>
+                    <p className="text-white">XP da attivitÃ </p>
+                    <p className="text-xs text-[#aeaeb2]">Simulazioni</p>
                   </div>
                 </div>
                 <p className="text-2xl text-white">{xpTotal - xpSulCampo}</p>
@@ -214,19 +214,19 @@ export function Career({
           <Card>
             <h4 className="text-white mb-4">Reputazione</h4>
 
-            <div className="flex items-center justify-between p-4 bg-gradient-to-br from-[#241f20] to-[#1a1617] rounded-lg mb-4">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-br from-[#2c2c2e] to-[#1c1c1e] rounded-lg mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
-                  <Award className="text-[#f4bf4f]" size={24} />
+                <div className="w-12 h-12 bg-gradient-to-br from-[#0a84ff] to-[#004ea8] rounded-xl flex items-center justify-center">
+                  <Award className="text-[#0a84ff]" size={24} />
                 </div>
                 <div>
                   <p className="text-white">Reputazione ATCL</p>
-                  <p className="text-xs text-[#b8b2b3]">Globale</p>
+                  <p className="text-xs text-[#aeaeb2]">Globale</p>
                 </div>
               </div>
               <div className="text-right">
                 <p className="text-3xl text-white">{reputationGlobal}</p>
-                <p className="text-xs text-[#b8b2b3]">/ 100</p>
+                <p className="text-xs text-[#aeaeb2]">/ 100</p>
               </div>
             </div>
 
@@ -245,19 +245,19 @@ export function Career({
                     <div
                       key={milestone.id}
                       className={`flex items-center gap-3 p-3 rounded-lg ${unlocked
-                          ? 'bg-[#52c41a]/10 border border-[#52c41a]/30'
-                          : 'bg-[#241f20] border border-[#2d2728] opacity-60'
+                          ? 'bg-[#30d158]/10 border border-[#30d158]/30'
+                          : 'bg-[#2c2c2e] border border-[#3a3a3c] opacity-60'
                         }`}
                     >
                       <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${unlocked ? 'bg-[#52c41a]' : 'bg-[#7a7577]'
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${unlocked ? 'bg-[#30d158]' : 'bg-[#8e8e93]'
                           }`}
                       >
                         <Icon className="text-white" size={16} />
                       </div>
                       <div className="flex-1">
                         <p className="text-white text-sm">{milestone.title}</p>
-                        <p className="text-xs text-[#b8b2b3]">
+                        <p className="text-xs text-[#aeaeb2]">
                           {getBadgeProgressText(milestone, turnStats)}
                         </p>
                       </div>
@@ -265,7 +265,7 @@ export function Career({
                   );
                 })
               ) : (
-                <p className="text-sm text-[#b8b2b3]">Nessun traguardo disponibile</p>
+                <p className="text-sm text-[#aeaeb2]">Nessun traguardo disponibile</p>
               )}
             </div>
           </Card>
@@ -276,18 +276,18 @@ export function Career({
               <div className="space-y-3">
                 {sortedTurns.map((turno) => (
                   <div key={turno.id} className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-12 h-12 bg-[#241f20] rounded-lg flex items-center justify-center">
-                      <Theater className="text-[#f4bf4f]" size={24} />
+                    <div className="flex-shrink-0 w-12 h-12 bg-[#2c2c2e] rounded-lg flex items-center justify-center">
+                      <Theater className="text-[#0a84ff]" size={24} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="text-white mb-1">{turno.eventName}</h4>
-                      <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mb-2">
+                      <div className="flex items-center gap-2 text-sm text-[#aeaeb2] mb-2">
                         <MapPin size={14} />
                         <span>{turno.theatre}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mb-3">
+                      <div className="flex items-center gap-2 text-sm text-[#aeaeb2] mb-3">
                         <Calendar size={14} />
-                        <span>{turno.date} · {turno.time}</span>
+                        <span>{turno.date} Â· {turno.time}</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Badge variant="outline" size="sm">
@@ -305,7 +305,7 @@ export function Career({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-[#b8b2b3]">Nessun turno registrato</p>
+              <p className="text-sm text-[#aeaeb2]">Nessun turno registrato</p>
             )}
           </Card>
         </div>
@@ -313,3 +313,4 @@ export function Career({
     </Screen>
   );
 }
+

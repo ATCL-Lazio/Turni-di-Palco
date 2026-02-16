@@ -61,12 +61,13 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const httpsOption = resolveHttps();
   const allowedHosts = resolveAllowedHosts(env);
+  const isCapacitorBuild = mode === 'capacitor';
   const aiSupportPort = Number(
     env.AI_SUPPORT_PORT || env.VITE_AI_SUPPORT_PORT || process.env.AI_SUPPORT_PORT
   ) || 8787;
 
   return {
-    base: '/mobile/',
+    base: isCapacitorBuild ? './' : '/mobile/',
     plugins: [react(), tailwindcss()],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],

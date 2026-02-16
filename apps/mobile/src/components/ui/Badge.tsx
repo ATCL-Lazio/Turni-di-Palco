@@ -21,10 +21,10 @@ export function Badge({ children, variant = 'default', size = 'sm', animate = fa
   }, [animate]);
 
   const variants = {
-    default: 'bg-[#241f20] text-[#b8b2b3]',
-    success: 'bg-[#52c41a]/20 text-[#52c41a]',
-    gold: 'bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f] text-[#0f0d0e]',
-    outline: 'border border-[#a82847] text-[#f4bf4f] bg-transparent'
+    default: 'bg-[#2c2c2e] text-[#aeaeb2]',
+    success: 'bg-[#30d158]/20 text-[#30d158]',
+    gold: 'bg-gradient-to-b from-[#0066d6] to-[#0a84ff] text-[#000000]',
+    outline: 'border border-[#0a84ff] text-[#0a84ff] bg-transparent'
   };
   
   const sizes = {
@@ -41,3 +41,4 @@ export function Badge({ children, variant = 'default', size = 'sm', animate = fa
     </span>
   );
 }
+

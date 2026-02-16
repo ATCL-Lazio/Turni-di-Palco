@@ -51,6 +51,7 @@ import { useNotifications } from './hooks/useNotifications';
 import { useQrLanding } from './hooks/useQrLanding';
 import { PENDING_EVENT_KEY, readPendingEventFromUrl, stripEventLinkParams } from './lib/event-linking';
 import { validateQrPayload } from './services/event-links';
+import { isNativeIOSApp } from './lib/native-platform';
 
 function AppShell() {
   const {
@@ -82,6 +83,7 @@ function AppShell() {
     | { mode: 'manual'; eventId: string; ticketNumber: string };
   const [pendingTicketActivation, setPendingTicketActivation] = useState<PendingTicketActivation | null>(null);
   const [confirmationEventOverride, setConfirmationEventOverride] = useState<GameEvent | null>(null);
+  const iosNativeUI = useMemo(() => isNativeIOSApp(), []);
 
   // Auth Hook
   const {
@@ -144,6 +146,24 @@ function AppShell() {
       setCriticalError((prev) => prev ?? payload);
     });
   }, []);
+
+  useEffect(() => {
+    const classNames = ['platform-ios-native', 'ios26-ui'];
+    const root = document.documentElement;
+    const body = document.body;
+
+    classNames.forEach((className) => {
+      root.classList.toggle(className, iosNativeUI);
+      body.classList.toggle(className, iosNativeUI);
+    });
+
+    return () => {
+      classNames.forEach((className) => {
+        root.classList.remove(className);
+        body.classList.remove(className);
+      });
+    };
+  }, [iosNativeUI]);
 
   useEffect(() => {
     if (!criticalError) return;
@@ -531,7 +551,7 @@ function AppShell() {
   }, [criticalError]);
 
   return (
-    <div className="min-h-screen app-gradient app-shell">
+    <div className={`min-h-screen app-gradient app-shell ${iosNativeUI ? 'ios26-root' : ''}`}>
       <ScreenTransition animationClass={screenAnimation} animationKey={screenAnimationKey}>
         <div className="app-frame">{renderScreen()}</div>
       </ScreenTransition>

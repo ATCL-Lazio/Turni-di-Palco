@@ -26,20 +26,20 @@ export function Leaderboard() {
             <h2 className="text-2xl text-white font-semibold leading-tight">Classifica</h2>
             <button
               onClick={() => refreshLeaderboard()}
-              className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
+              className="text-sm text-[#0a84ff] hover:text-[#0066d6] px-3 py-[12px] rounded-lg"
               disabled={leaderboardLoading}
             >
               Aggiorna
             </button>
           </div>
-          <p className="text-sm text-[#b8b2b3]">Top giocatori per XP</p>
+          <p className="text-sm text-[#aeaeb2]">Top giocatori per XP</p>
         </header>
 
         {leaderboardLoading ? (
-          <p className="text-[#b8b2b3]">Caricamento...</p>
+          <p className="text-[#aeaeb2]">Caricamento...</p>
         ) : sorted.length === 0 ? (
           <Card>
-            <p className="text-[#b8b2b3]">Nessun dato disponibile.</p>
+            <p className="text-[#aeaeb2]">Nessun dato disponibile.</p>
           </Card>
         ) : (
           <div className="space-y-3">
@@ -51,9 +51,9 @@ export function Leaderboard() {
               return (
                 <Card key={entry.id}>
                   <div className="flex items-center gap-3">
-                    <div className="w-8 text-center text-[#b8b2b3]">{index + 1}</div>
+                    <div className="w-8 text-center text-[#aeaeb2]">{index + 1}</div>
 
-                    <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#241f20] overflow-hidden">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#2c2c2e] overflow-hidden">
                       {entry.profileImage ? (
                         <img src={entry.profileImage} alt={entry.name} className="w-full h-full object-cover" />
                       ) : (
@@ -63,7 +63,7 @@ export function Leaderboard() {
 
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-semibold truncate" style={{ marginBottom: 0 }}>{entry.name}</p>
-                      <p className="text-xs text-[#b8b2b3] truncate">{roleName}</p>
+                      <p className="text-xs text-[#aeaeb2] truncate">{roleName}</p>
                     </div>
 
                     {isMe ? (
@@ -72,7 +72,7 @@ export function Leaderboard() {
                       </div>
                     ) : null}
 
-                    <div className="flex items-center gap-2 text-[#f4bf4f]">
+                    <div className="flex items-center gap-2 text-[#0a84ff]">
                       <Trophy size={18} />
                       <span className="text-white font-semibold">{entry.xpTotal}</span>
                     </div>
@@ -86,3 +86,4 @@ export function Leaderboard() {
     </div>
   );
 }
+

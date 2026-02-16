@@ -12,9 +12,9 @@ interface TagProps {
 
 export function Tag({ children, variant = 'default', className = '', size = 'md' }: TagProps) {
   const variants: Record<TagVariant, string> = {
-    default: 'bg-[#241f20] text-[#f4bf4f]',
-    outline: 'border border-[#f4bf4f]/40 text-[#f4bf4f]',
-    info: 'bg-[#f4bf4f]/10 text-[#f4bf4f]',
+    default: 'bg-[#2c2c2e] text-[#0a84ff]',
+    outline: 'border border-[#0a84ff]/40 text-[#0a84ff]',
+    info: 'bg-[#0a84ff]/10 text-[#0a84ff]',
   };
 
   const sizes = {
@@ -35,3 +35,4 @@ export function Tag({ children, variant = 'default', className = '', size = 'md'
     </span>
   );
 }
+

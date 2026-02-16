@@ -40,44 +40,44 @@ export function EventConfirmation({ event, role, onConfirm, onCancel }: EventCon
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="app-content w-full text-center animate-fade-in">
-          <div className="w-24 h-24 bg-gradient-to-br from-[#52c41a] to-[#389e0d] rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+          <div className="w-24 h-24 bg-gradient-to-br from-[#30d158] to-[#389e0d] rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
             <CheckCircle2 className="text-white" size={48} />
           </div>
 
           <h2 className="text-white mb-3">Turno registrato!</h2>
-          <p className="text-[#b8b2b3] mb-8">Complimenti! Il tuo turno è stato registrato con successo.</p>
+          <p className="text-[#aeaeb2] mb-8">Complimenti! Il tuo turno Ã¨ stato registrato con successo.</p>
 
-          <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20] mb-6">
-            <h4 className="text-[#f4bf4f] mb-4">Ricompense guadagnate</h4>
+          <Card className="bg-gradient-to-br from-[#1c1c1e] to-[#2c2c2e] mb-6">
+            <h4 className="text-[#0a84ff] mb-4">Ricompense guadagnate</h4>
 
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
-                <div className="w-12 h-12 bg-gradient-to-br from-[#e6a23c] to-[#f4bf4f] rounded-lg flex items-center justify-center mx-auto mb-2">
-                  <TrendingUp className="text-[#0f0d0e]" size={24} />
+                <div className="w-12 h-12 bg-gradient-to-br from-[#0066d6] to-[#0a84ff] rounded-lg flex items-center justify-center mx-auto mb-2">
+                  <TrendingUp className="text-[#000000]" size={24} />
                 </div>
                 <p className="text-2xl text-white mb-1">+{resolvedRewards.xp}</p>
-                <p className="text-xs text-[#b8b2b3]">XP</p>
+                <p className="text-xs text-[#aeaeb2]">XP</p>
               </div>
 
               <div className="text-center">
-                <div className="w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-lg flex items-center justify-center mx-auto mb-2">
-                  <Award className="text-[#f4bf4f]" size={24} />
+                <div className="w-12 h-12 bg-gradient-to-br from-[#0a84ff] to-[#004ea8] rounded-lg flex items-center justify-center mx-auto mb-2">
+                  <Award className="text-[#0a84ff]" size={24} />
                 </div>
                 <p className="text-2xl text-white mb-1">+{resolvedRewards.reputation}</p>
-                <p className="text-xs text-[#b8b2b3]">Reputazione</p>
+                <p className="text-xs text-[#aeaeb2]">Reputazione</p>
               </div>
 
               <div className="text-center">
-                <div className="w-12 h-12 bg-[#241f20] rounded-lg flex items-center justify-center mx-auto mb-2">
-                  <Coins className="text-[#f4bf4f]" size={24} />
+                <div className="w-12 h-12 bg-[#2c2c2e] rounded-lg flex items-center justify-center mx-auto mb-2">
+                  <Coins className="text-[#0a84ff]" size={24} />
                 </div>
                 <p className="text-2xl text-white mb-1">+{resolvedRewards.cachet}</p>
-                <p className="text-xs text-[#b8b2b3]">Cachet</p>
+                <p className="text-xs text-[#aeaeb2]">Cachet</p>
               </div>
             </div>
           </Card>
 
-          <p className="text-sm text-[#b8b2b3]">Reindirizzamento alla home...</p>
+          <p className="text-sm text-[#aeaeb2]">Reindirizzamento alla home...</p>
         </div>
       </div>
     );
@@ -88,7 +88,7 @@ export function EventConfirmation({ event, role, onConfirm, onCancel }: EventCon
       <div className="app-content px-6 space-y-6 pt-6">
         <div>
           <h2 className="text-white mb-2">Conferma turno</h2>
-          <p className="text-[#b8b2b3]">Verifica i dettagli dell'evento</p>
+          <p className="text-[#aeaeb2]">Verifica i dettagli dell'evento</p>
         </div>
 
         <Card>
@@ -98,28 +98,28 @@ export function EventConfirmation({ event, role, onConfirm, onCancel }: EventCon
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center gap-3 text-[#b8b2b3]">
-              <MapPin size={18} className="text-[#f4bf4f]" />
+            <div className="flex items-center gap-3 text-[#aeaeb2]">
+              <MapPin size={18} className="text-[#0a84ff]" />
               <span>{resolvedEvent.theatre}</span>
             </div>
 
-            <div className="flex items-center gap-3 text-[#b8b2b3]">
-              <Calendar size={18} className="text-[#f4bf4f]" />
+            <div className="flex items-center gap-3 text-[#aeaeb2]">
+              <Calendar size={18} className="text-[#0a84ff]" />
               <span>{resolvedEvent.date}</span>
             </div>
 
-            <div className="flex items-center gap-3 text-[#b8b2b3]">
-              <Clock size={18} className="text-[#f4bf4f]" />
+            <div className="flex items-center gap-3 text-[#aeaeb2]">
+              <Clock size={18} className="text-[#0a84ff]" />
               <span>{resolvedEvent.time}</span>
             </div>
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+        <Card className="bg-gradient-to-br from-[#1c1c1e] to-[#2c2c2e]">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h4 className="text-white mb-1">Ruolo registrato</h4>
-              <p className="text-sm text-[#b8b2b3]">{role?.focus ?? 'Selezionato in fase di registrazione'}</p>
+              <p className="text-sm text-[#aeaeb2]">{role?.focus ?? 'Selezionato in fase di registrazione'}</p>
             </div>
             <Badge variant="outline" size="md">
               {role?.name ?? 'Ruolo'}
@@ -127,26 +127,26 @@ export function EventConfirmation({ event, role, onConfirm, onCancel }: EventCon
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
-          <h4 className="text-[#f4bf4f] mb-4">Ricompense previste</h4>
+        <Card className="bg-gradient-to-br from-[#1c1c1e] to-[#2c2c2e]">
+          <h4 className="text-[#0a84ff] mb-4">Ricompense previste</h4>
 
           <div className="flex items-center justify-around">
             <div className="text-center">
-              <TrendingUp className="text-[#f4bf4f] mx-auto mb-2" size={24} />
+              <TrendingUp className="text-[#0a84ff] mx-auto mb-2" size={24} />
               <p className="text-white mb-1">+{resolvedRewards.xp}</p>
-              <p className="text-xs text-[#b8b2b3]">XP</p>
+              <p className="text-xs text-[#aeaeb2]">XP</p>
             </div>
 
             <div className="text-center">
-              <Award className="text-[#f4bf4f] mx-auto mb-2" size={24} />
+              <Award className="text-[#0a84ff] mx-auto mb-2" size={24} />
               <p className="text-white mb-1">+{resolvedRewards.reputation}</p>
-              <p className="text-xs text-[#b8b2b3]">Reputazione</p>
+              <p className="text-xs text-[#aeaeb2]">Reputazione</p>
             </div>
 
             <div className="text-center">
-              <Coins className="text-[#f4bf4f] mx-auto mb-2" size={24} />
+              <Coins className="text-[#0a84ff] mx-auto mb-2" size={24} />
               <p className="text-white mb-1">+{resolvedRewards.cachet}</p>
-              <p className="text-xs text-[#b8b2b3]">Cachet</p>
+              <p className="text-xs text-[#aeaeb2]">Cachet</p>
             </div>
           </div>
         </Card>
@@ -164,3 +164,4 @@ export function EventConfirmation({ event, role, onConfirm, onCancel }: EventCon
     </div>
   );
 }
+

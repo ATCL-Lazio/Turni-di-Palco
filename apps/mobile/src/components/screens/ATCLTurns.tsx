@@ -40,7 +40,7 @@ export function ATCLTurns({
         return dateA.getTime() - dateB.getTime();
       }
       
-      // Eventi passati dopo, in ordine decrescente (più recenti prima)
+      // Eventi passati dopo, in ordine decrescente (piÃ¹ recenti prima)
       if (dateA < now && dateB < now) {
         return dateB.getTime() - dateA.getTime();
       }
@@ -58,7 +58,7 @@ export function ATCLTurns({
       <div className="w-full app-content px-6 space-y-6 pt-6 pb-8">
         <div>
           <h2 className="text-white mb-2">Eventi ATCL</h2>
-          <p className="text-[#b8b2b3]">Tutti gli eventi disponibili</p>
+          <p className="text-[#aeaeb2]">Tutti gli eventi disponibili</p>
         </div>
 
         <ScanQRCard onScanQR={onScanQR} />
@@ -67,25 +67,25 @@ export function ATCLTurns({
           <h4 className="text-white mb-4">Statistiche totali</h4>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="w-10 h-10 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-lg flex items-center justify-center mx-auto mb-2">
-                <Theater className="text-[#f4bf4f]" size={20} />
+              <div className="w-10 h-10 bg-gradient-to-br from-[#0a84ff] to-[#004ea8] rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Theater className="text-[#0a84ff]" size={20} />
               </div>
               <p className="text-2xl text-white mb-1">{stats.totalTurns}</p>
-              <p className="text-xs text-[#b8b2b3]">Eventi totali</p>
+              <p className="text-xs text-[#aeaeb2]">Eventi totali</p>
             </div>
             <div>
-              <div className="w-10 h-10 bg-gradient-to-br from-[#e6a23c] to-[#f4bf4f] rounded-lg flex items-center justify-center mx-auto mb-2">
-                <TrendingUp className="text-[#0f0d0e]" size={20} />
+              <div className="w-10 h-10 bg-gradient-to-br from-[#0066d6] to-[#0a84ff] rounded-lg flex items-center justify-center mx-auto mb-2">
+                <TrendingUp className="text-[#000000]" size={20} />
               </div>
-              <p className="text-2xl text-[#f4bf4f] mb-1">{stats.totalXp}</p>
-              <p className="text-xs text-[#b8b2b3]">XP potenziali</p>
+              <p className="text-2xl text-[#0a84ff] mb-1">{stats.totalXp}</p>
+              <p className="text-xs text-[#aeaeb2]">XP potenziali</p>
             </div>
             <div>
-              <div className="w-10 h-10 bg-[#241f20] rounded-lg flex items-center justify-center mx-auto mb-2">
-                <MapPin className="text-[#f4bf4f]" size={20} />
+              <div className="w-10 h-10 bg-[#2c2c2e] rounded-lg flex items-center justify-center mx-auto mb-2">
+                <MapPin className="text-[#0a84ff]" size={20} />
               </div>
               <p className="text-2xl text-white mb-1">{stats.theatreCount}</p>
-              <p className="text-xs text-[#b8b2b3]">Teatri</p>
+              <p className="text-xs text-[#aeaeb2]">Teatri</p>
             </div>
           </div>
         </Card>
@@ -95,7 +95,7 @@ export function ATCLTurns({
           <button
             type="button"
             onClick={onViewMap}
-            className="flex shrink-0 items-center gap-2 text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
+            className="flex shrink-0 items-center gap-2 text-sm text-[#0a84ff] hover:text-[#0066d6] px-3 py-[12px] rounded-lg"
             aria-label="Vedi mappa eventi"
           >
             <Map size={16} />
@@ -110,17 +110,17 @@ export function ATCLTurns({
                 key={evento.id}
                 hoverable
                 onClick={() => onViewEvent(evento.id)}
-                className="border border-white/5 bg-gradient-to-br from-[#1a1617] via-[#1d1819] to-[#231e1f]"
+                className="border border-white/5 bg-gradient-to-br from-[#1c1c1e] via-[#1d1819] to-[#231e1f]"
               >
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-br from-[#a82847] to-[#6b1529] flex items-center justify-center shadow-[0_8px_20px_rgba(168,40,71,0.25)]">
-                    <Theater className="text-[#f4bf4f]" size={24} />
+                  <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-br from-[#0a84ff] to-[#004ea8] flex items-center justify-center shadow-[0_8px_20px_rgba(168,40,71,0.25)]">
+                    <Theater className="text-[#0a84ff]" size={24} />
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Evento ATCL</p>
+                        <p className="text-xs uppercase tracking-wide text-[#aeaeb2]">Evento ATCL</p>
                         <h4 className="text-white text-lg leading-tight">{evento.name}</h4>
                       </div>
                       <button
@@ -131,36 +131,36 @@ export function ATCLTurns({
                           onToggleFollow(evento.id);
                         }}
                         className={`flex items-center justify-center size-10 rounded-xl border transition-colors ${isEventFollowed(evento.id)
-                            ? 'border-[#f4bf4f] text-[#f4bf4f] bg-[#f4bf4f]/10'
-                            : 'border-[#2d2728] text-[#7a7577] hover:text-[#f4bf4f]'
+                            ? 'border-[#0a84ff] text-[#0a84ff] bg-[#0a84ff]/10'
+                            : 'border-[#3a3a3c] text-[#8e8e93] hover:text-[#0a84ff]'
                           }`}
                       >
                         <Bookmark size={16} />
                       </button>
                     </div>
 
-                    <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mt-3">
+                    <div className="flex items-center gap-2 text-sm text-[#aeaeb2] mt-3">
                       <MapPin size={14} />
                       <span>{evento.theatre}</span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mt-2">
+                    <div className="flex items-center gap-2 text-sm text-[#aeaeb2] mt-2">
                       <Calendar size={14} />
-                      <span>{evento.date} · {evento.time}</span>
+                      <span>{evento.date} Â· {evento.time}</span>
                     </div>
 
                     <div className="flex flex-wrap gap-2 mt-4">
                       {evento.genre ? (
-                        <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-[#f4bf4f] backdrop-blur">
+                        <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-[#0a84ff] backdrop-blur">
                           {evento.genre}
                         </span>
                       ) : null}
                       <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/90 backdrop-blur">
-                        <TrendingUp size={12} className="text-[#f4bf4f]" />
+                        <TrendingUp size={12} className="text-[#0a84ff]" />
                         +{evento.baseRewards.xp} XP
                       </span>
                       <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/90 backdrop-blur">
-                        <Award size={12} className="text-[#f4bf4f]" />
+                        <Award size={12} className="text-[#0a84ff]" />
                         +{evento.baseRewards.reputation} Rep
                       </span>
                     </div>
@@ -171,11 +171,11 @@ export function ATCLTurns({
           </div>
         ) : (
           <Card className="text-center py-12">
-            <div className="w-16 h-16 bg-[#241f20] rounded-full flex items-center justify-center mx-auto mb-4">
-              <QrCode className="text-[#7a7577]" size={32} />
+            <div className="w-16 h-16 bg-[#2c2c2e] rounded-full flex items-center justify-center mx-auto mb-4">
+              <QrCode className="text-[#8e8e93]" size={32} />
             </div>
             <h4 className="text-white mb-2">Nessun evento disponibile</h4>
-            <p className="text-[#b8b2b3] mb-6 max-w-xs mx-auto">
+            <p className="text-[#aeaeb2] mb-6 max-w-xs mx-auto">
               Torna piu tardi o aggiorna la lista eventi.
             </p>
             <Button variant="primary" onClick={onScanQR}>
@@ -188,3 +188,4 @@ export function ATCLTurns({
     </div>
   );
 }
+

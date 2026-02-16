@@ -38,22 +38,22 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
+          className="flex items-center justify-center size-[44px] text-[#0a84ff]"
           aria-label="Indietro"
         >
           <ArrowLeft size={24} />
         </button>
 
         <div className="flex flex-col items-start gap-1">
-          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[#f5f5f5]">
+          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[#f2f2f7]">
             Privacy Policy
           </p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3]">Informativa sul trattamento dati</p>
+          <p className="text-[16px] leading-[25.6px] text-[#aeaeb2]">Informativa sul trattamento dati</p>
         </div>
 
-        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 flex flex-col gap-4">
-          <p className="text-[14px] leading-[20px] text-[#b8b2b3] !m-0">
-            L’informativa completa sulla privacy è pubblicata e mantenuta tramite Iubenda.
+        <div className="bg-[#1c1c1e] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 flex flex-col gap-4">
+          <p className="text-[14px] leading-[20px] text-[#aeaeb2] !m-0">
+            Lâ€™informativa completa sulla privacy Ã¨ pubblicata e mantenuta tramite Iubenda.
           </p>
 
           <div className="legal-embed">
@@ -62,12 +62,13 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
             </a>
           </div>
 
-          <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">
-            Nota: è necessaria una connessione internet per caricare il documento.
+          <p className="text-[12px] leading-[18px] text-[#aeaeb2] !m-0">
+            Nota: Ã¨ necessaria una connessione internet per caricare il documento.
           </p>
         </div>
       </div>
     </Screen>
   );
 }
+
 

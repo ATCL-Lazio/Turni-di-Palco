@@ -1,4 +1,4 @@
-﻿import React, { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Award, BarChart3, Camera, ChevronRight, LogOut, Settings, Theater, User } from 'lucide-react';
 import { ProgressBar } from '../ui/ProgressBar';
 
@@ -91,7 +91,7 @@ export function Profile({
       <div className="w-full app-content pt-[36px] pb-0 flex flex-col gap-[20px]">
         <div className="flex items-center px-[25px]">
           <div className="relative">
-            <div className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-full shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] size-[96px] flex items-center justify-center overflow-hidden">
+            <div className="bg-gradient-to-b from-[#0a84ff] to-[#004ea8] rounded-full shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] size-[96px] flex items-center justify-center overflow-hidden">
               {profileImage ? (
                 <img
                   src={profileImage}
@@ -99,16 +99,16 @@ export function Profile({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <User className="text-[#f4bf4f]" size={48} />
+                <User className="text-[#0a84ff]" size={48} />
               )}
             </div>
             <button
               type="button"
               onClick={handleImageSelect}
               disabled={isUploading}
-              className="absolute bottom-0 right-0 bg-[#f4bf4f] rounded-full p-2 shadow-lg disabled:opacity-50"
+              className="absolute bottom-0 right-0 bg-[#0a84ff] rounded-full p-2 shadow-lg disabled:opacity-50"
             >
-              <Camera className="text-[#0f0d0e]" size={16} />
+              <Camera className="text-[#000000]" size={16} />
             </button>
             <input
               ref={fileInputRef}
@@ -122,7 +122,7 @@ export function Profile({
             <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-white text-center">
               {userName || 'Utente'}
             </p>
-            <p className="text-[16px] leading-[25.6px] text-[#f4bf4f] text-center">
+            <p className="text-[16px] leading-[25.6px] text-[#0a84ff] text-center">
               {roleLabel}
             </p>
           </div>
@@ -132,10 +132,10 @@ export function Profile({
           <button
             type="button"
             onClick={onViewCarriera}
-            className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] flex items-center h-[48px] overflow-hidden"
+            className="bg-[#1c1c1e] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] flex items-center h-[48px] overflow-hidden"
           >
-            <div className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-[16.4px] size-[48px] flex items-center justify-center">
-              <BarChart3 className="text-[#f4bf4f]" size={24} />
+            <div className="bg-gradient-to-b from-[#0a84ff] to-[#004ea8] rounded-[16.4px] size-[48px] flex items-center justify-center">
+              <BarChart3 className="text-[#0a84ff]" size={24} />
             </div>
             <div className="flex-1 relative h-full">
               <p className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[16px] leading-[25.6px] text-white !m-0">
@@ -146,30 +146,30 @@ export function Profile({
         </div>
 
         <div className="flex flex-col gap-[20px] px-[25px]">
-          <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[5px] py-[2px] flex flex-col gap-[8px]">
+          <div className="bg-[#1c1c1e] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[5px] py-[2px] flex flex-col gap-[8px]">
             <p className="text-[18px] leading-[25.2px] font-semibold text-white">
               Statistiche generali
             </p>
-            <div className="flex items-center justify-between px-[5px] text-[14px] leading-[20px] text-[#b8b2b3]">
+            <div className="flex items-center justify-between px-[5px] text-[14px] leading-[20px] text-[#aeaeb2]">
               <span>Livello</span>
               <span className="text-white">{level}</span>
             </div>
-            <div className="flex items-center justify-between px-[5px] text-[14px] leading-[20px] text-[#b8b2b3]">
+            <div className="flex items-center justify-between px-[5px] text-[14px] leading-[20px] text-[#aeaeb2]">
               <span>XP totale</span>
               <span className="text-white">{xpTotal}</span>
             </div>
             <div className="flex flex-col gap-[4px] px-[5px]">
-              <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
+              <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#aeaeb2]">
                 <span className="flex items-center gap-[8px]">
                   <Theater size={14} />
                   XP sul campo (eventi ATCL)
                 </span>
-                <span className="text-[#f4bf4f]">{xpSulCampo}</span>
+                <span className="text-[#0a84ff]">{xpSulCampo}</span>
               </div>
               <ProgressBar value={xpSulCampo} max={safeXpTotal} color="gold" size="md" />
             </div>
             <div className="flex flex-col gap-[4px] px-[5px]">
-              <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
+              <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#aeaeb2]">
                 <span>Reputazione ATCL globale</span>
                 <span className="text-white">{reputationGlobal}/100</span>
               </div>
@@ -177,19 +177,19 @@ export function Profile({
             </div>
           </div>
 
-          <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[5px] py-[2px] flex flex-col gap-[8px]">
+          <div className="bg-[#1c1c1e] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[5px] py-[2px] flex flex-col gap-[8px]">
             <p className="text-[18px] leading-[25.2px] font-semibold text-white">
               Reputazione per teatro
             </p>
             {theatreReputationLoading ? (
-              <p className="px-[5px] text-[14px] leading-[20px] text-[#b8b2b3]">
+              <p className="px-[5px] text-[14px] leading-[20px] text-[#aeaeb2]">
                 Caricamento...
               </p>
             ) : null}
             <div className="flex flex-col gap-[10px]">
               {theatreReputation.map((theatre) => (
                 <div key={theatre.name} className="flex flex-col gap-[4px]">
-                  <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
+                  <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#aeaeb2]">
                     <span>{theatre.name}</span>
                     <span className="text-white">{theatre.reputation}/100</span>
                   </div>
@@ -202,54 +202,54 @@ export function Profile({
           <button
             type="button"
             onClick={onViewTitoli}
-            className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex items-center justify-between"
+            className="bg-[#1c1c1e] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex items-center justify-between"
           >
             <div className="flex items-center gap-[12px]">
-              <div className="bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f] rounded-[12px] size-[44px] flex items-center justify-center">
-                <Award className="text-[#0f0d0e]" size={22} />
+              <div className="bg-gradient-to-b from-[#0066d6] to-[#0a84ff] rounded-[12px] size-[44px] flex items-center justify-center">
+                <Award className="text-[#000000]" size={22} />
               </div>
               <div className="flex flex-col items-start">
                 <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                   Titoli ottenuti
                 </p>
-                <p className="text-[14px] leading-[20px] text-[#b8b2b3] !m-0">
+                <p className="text-[14px] leading-[20px] text-[#aeaeb2] !m-0">
                   {badgesUnlockedCount} badge sbloccati
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-[8px]">
               {newBadgesCount > 0 ? (
-                <span className="bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f] rounded-full size-[20px] flex items-center justify-center text-[12px] leading-[16px] text-[#0f0d0e]">
+                <span className="bg-gradient-to-b from-[#0066d6] to-[#0a84ff] rounded-full size-[20px] flex items-center justify-center text-[12px] leading-[16px] text-[#000000]">
                   {newBadgesCount}
                 </span>
               ) : null}
-              <ChevronRight className="text-[#7a7577]" size={20} />
+              <ChevronRight className="text-[#8e8e93]" size={20} />
             </div>
           </button>
 
           <button
             type="button"
             onClick={onSettings}
-            className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] h-[51px] flex items-center justify-between px-[12px]"
+            className="bg-[#1c1c1e] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] h-[51px] flex items-center justify-between px-[12px]"
           >
             <div className="flex items-center gap-[12px]">
-              <Settings className="text-[#f4bf4f]" size={24} />
+              <Settings className="text-[#0a84ff]" size={24} />
               <div className="flex flex-col items-start text-left">
                 <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                   Gestisci account
                 </p>
-                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                <p className="text-[16px] leading-[25.6px] text-[#aeaeb2] !m-0">
                   Impostazioni e privacy
                 </p>
               </div>
             </div>
-            <ChevronRight className="text-[#7a7577]" size={20} />
+            <ChevronRight className="text-[#8e8e93]" size={20} />
           </button>
 
           <button
             type="button"
             onClick={onLogout}
-            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[18px] leading-[28px] text-[#ff4d4f]"
+            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[18px] leading-[28px] text-[#ff453a]"
           >
             <LogOut size={20} />
             Esci
@@ -259,3 +259,4 @@ export function Profile({
     </div>
   );
 }
+

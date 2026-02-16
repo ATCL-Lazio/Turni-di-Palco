@@ -24,19 +24,19 @@ export function ProgressBar({
   };
   
   const colors = {
-    burgundy: 'bg-gradient-to-b from-[#8c1c38] to-[#a82847]',
-    gold: 'bg-gradient-to-b from-[#e6a23c] to-[#f4bf4f]'
+    burgundy: 'bg-gradient-to-b from-[#0066d6] to-[#0a84ff]',
+    gold: 'bg-gradient-to-b from-[#0066d6] to-[#0a84ff]'
   };
   
   return (
     <div className="w-full">
       {showLabel && (
-        <div className="flex justify-between text-sm text-[#b8b2b3] mb-1">
+        <div className="flex justify-between text-sm text-[#aeaeb2] mb-1">
           <span>{value}</span>
           <span>{max}</span>
         </div>
       )}
-      <div className={`w-full bg-[#241f20] rounded-full overflow-hidden ${heights[size]}`}>
+      <div className={`w-full bg-[#2c2c2e] rounded-full overflow-hidden ${heights[size]}`}>
         <div 
           className={`${heights[size]} ${colors[color]} transition-all duration-300 rounded-full`}
           style={{ width: `${percentage}%` }}
@@ -45,3 +45,4 @@ export function ProgressBar({
     </div>
   );
 }
+

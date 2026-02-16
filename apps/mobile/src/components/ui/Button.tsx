@@ -15,18 +15,19 @@ export function Button({
   children,
   ...props 
 }: ButtonProps) {
-  const baseStyles = 'inline-flex items-center justify-center gap-2 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseStyles =
+    'ios26-button inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[14px] font-semibold tracking-[-0.01em] transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a84ff]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black';
   
   const variants = {
-    primary: 'bg-gradient-to-b from-[#8c1c38] to-[#a82847] text-white shadow-md hover:shadow-lg hover:from-[#6b1529] hover:to-[#8c1c38] active:scale-95',
-    secondary: 'border-2 border-[#a82847] text-[#f4bf4f] bg-transparent hover:bg-[#a82847]/10 active:scale-95',
-    ghost: 'text-[#f4bf4f] hover:bg-[#241f20] active:scale-95'
+    primary: 'bg-[#0a84ff] text-white shadow-[0_12px_24px_-16px_rgba(10,132,255,0.9)] hover:bg-[#3d9cff] active:bg-[#0066d6] active:scale-[0.99]',
+    secondary: 'border border-white/12 bg-[#2c2c2e]/88 text-[#f2f2f7] hover:bg-[#3a3a3c]/95 active:scale-[0.99]',
+    ghost: 'bg-transparent text-[#0a84ff] hover:bg-[#0a84ff]/12 active:bg-[#0a84ff]/18 active:scale-[0.99]'
   };
   
   const sizes = {
-    sm: 'px-4 py-2 text-sm',
-    md: 'px-6 py-3 text-base',
-    lg: 'px-8 py-4 text-lg'
+    sm: 'px-3 py-2 text-sm',
+    md: 'px-5 py-3 text-[15px]',
+    lg: 'px-6 py-3.5 text-[17px]'
   };
   
   const widthClass = fullWidth ? 'w-full' : '';
@@ -40,3 +41,4 @@ export function Button({
     </button>
   );
 }
+

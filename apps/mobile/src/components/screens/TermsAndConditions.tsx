@@ -17,34 +17,34 @@ export function TermsAndConditions({ onBack }: TermsAndConditionsProps) {
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
+          className="flex items-center justify-center size-[44px] text-[#0a84ff]"
           aria-label="Indietro"
         >
           <ArrowLeft size={24} />
         </button>
 
         <div className="flex flex-col items-start gap-1">
-          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[#f5f5f5]">
+          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[#f2f2f7]">
             Termini e Condizioni
           </p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3]">Condizioni d’uso</p>
+          <p className="text-[16px] leading-[25.6px] text-[#aeaeb2]">Condizioni dâ€™uso</p>
         </div>
 
-        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 flex flex-col gap-4">
-          <p className="text-[14px] leading-[20px] text-[#b8b2b3] !m-0">
+        <div className="bg-[#1c1c1e] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 flex flex-col gap-4">
+          <p className="text-[14px] leading-[20px] text-[#aeaeb2] !m-0">
             Ultimo aggiornamento: 31 Dic 2025
           </p>
 
-          <div className="flex flex-col gap-3 text-[14px] leading-[20px] text-[#b8b2b3]">
+          <div className="flex flex-col gap-3 text-[14px] leading-[20px] text-[#aeaeb2]">
             <p className="!m-0">
-              Questo documento descrive le regole di utilizzo di Turni di Palco. Il testo è una base
-              iniziale e potrà essere aggiornato.
+              Questo documento descrive le regole di utilizzo di Turni di Palco. Il testo Ã¨ una base
+              iniziale e potrÃ  essere aggiornato.
             </p>
 
             <div>
               <p className="text-white font-semibold !m-0">1. Account</p>
               <p className="!m-0">
-                L’accesso può richiedere registrazione e autenticazione. Sei responsabile della
+                Lâ€™accesso puÃ² richiedere registrazione e autenticazione. Sei responsabile della
                 riservatezza delle credenziali.
               </p>
             </div>
@@ -52,7 +52,7 @@ export function TermsAndConditions({ onBack }: TermsAndConditionsProps) {
             <div>
               <p className="text-white font-semibold !m-0">2. Uso del servizio</p>
               <p className="!m-0">
-                È vietato utilizzare il servizio per attività illecite, tentativi di abuso o
+                Ãˆ vietato utilizzare il servizio per attivitÃ  illecite, tentativi di abuso o
                 manipolazione del sistema di ricompense.
               </p>
             </div>
@@ -61,15 +61,15 @@ export function TermsAndConditions({ onBack }: TermsAndConditionsProps) {
               <p className="text-white font-semibold !m-0">3. Codici e QR</p>
               <p className="!m-0">
                 I codici (es. biglietti) possono essere verificati e attivati una sola volta. In caso di
-                uso anomalo o duplicazioni, potremmo sospendere l’abilitazione dei codici.
+                uso anomalo o duplicazioni, potremmo sospendere lâ€™abilitazione dei codici.
               </p>
             </div>
 
             <div>
               <p className="text-white font-semibold !m-0">4. Modifiche</p>
               <p className="!m-0">
-                Possiamo aggiornare funzionalità e contenuti. Le modifiche sostanziali verranno
-                comunicate tramite l’app quando possibile.
+                Possiamo aggiornare funzionalitÃ  e contenuti. Le modifiche sostanziali verranno
+                comunicate tramite lâ€™app quando possibile.
               </p>
             </div>
 
@@ -86,4 +86,5 @@ export function TermsAndConditions({ onBack }: TermsAndConditionsProps) {
     </Screen>
   );
 }
+
 

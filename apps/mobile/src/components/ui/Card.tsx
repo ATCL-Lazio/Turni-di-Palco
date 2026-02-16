@@ -22,17 +22,25 @@ export function Card({
   const animationClass = animateOnMount ? 'mobile-hero-reveal' : '';
   
   const defaultStyles: React.CSSProperties = {
-    backgroundColor: 'rgb(26, 22, 23)',
-    borderRadius: '16.4px',
-    boxShadow: 'rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.1) 0px 2px 4px -2px',
-    transitionDuration: '0.2s',
-    transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    backgroundColor: 'var(--ios-card-bg)',
+    borderRadius: '22px',
+    border: '1px solid var(--ios-card-border)',
+    boxShadow: 'var(--ios-elevated-shadow)',
+    transitionDuration: '0.16s',
+    transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+    backdropFilter: 'blur(18px) saturate(140%)',
+    WebkitBackdropFilter: 'blur(18px) saturate(140%)',
     ...style,
   };
 
   return (
     <div
-      className={cn('relative transition-all duration-200 p-4', hoverClass, animationClass, className)}
+      className={cn(
+        'ios26-card relative p-4 transition-all duration-200',
+        hoverClass,
+        animationClass,
+        className
+      )}
       onClick={onClick}
       style={defaultStyles}
     >

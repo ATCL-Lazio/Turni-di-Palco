@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Timer, SlidersHorizontal, Target } from 'lucide-react';
 import { Activity } from '../../state/store';
 import {
@@ -54,10 +54,10 @@ function MinigameShell({
           <button
             type="button"
             onClick={onCancel}
-            className="flex items-center justify-center size-[44px] hover:bg-[#241f20] rounded-lg transition-colors"
+            className="flex items-center justify-center size-[44px] hover:bg-[#2c2c2e] rounded-lg transition-colors"
             aria-label="Chiudi"
           >
-            <X className="text-[#f4bf4f]" size={22} />
+            <X className="text-[#0a84ff]" size={22} />
           </button>
           <Tag size="sm" variant="info">
             {roundLabel}
@@ -65,12 +65,12 @@ function MinigameShell({
         </header>
 
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
+          <div className="w-12 h-12 bg-gradient-to-br from-[#0a84ff] to-[#004ea8] rounded-xl flex items-center justify-center">
             {icon}
           </div>
           <div>
             <h2 className="text-white">{title}</h2>
-            <p className="text-sm text-[#b8b2b3]">{subtitle}</p>
+            <p className="text-sm text-[#aeaeb2]">{subtitle}</p>
           </div>
         </div>
 
@@ -204,11 +204,11 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
       subtitle={config.subtitle}
       activityTitle={activityTitle}
       roundLabel={roundLabel}
-      icon={<Timer className="text-[#f4bf4f]" size={24} />}
+      icon={<Timer className="text-[#0a84ff]" size={24} />}
       onCancel={onCancel}
     >
       <Card
-        className={`bg-gradient-to-br from-[#1a1617] to-[#241f20] ${isPlaying ? 'touch-none select-none' : ''}`}
+        className={`bg-gradient-to-br from-[#1c1c1e] to-[#2c2c2e] ${isPlaying ? 'touch-none select-none' : ''}`}
         onPointerDown={isPlaying ? handleStop : undefined}
         role={isPlaying ? 'button' : undefined}
         aria-label={isPlaying ? 'Blocca il cue' : undefined}
@@ -217,31 +217,31 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-white font-semibold">{round.label}</p>
-            <p className="text-xs text-[#7a7577]">Blocca il cursore sul target</p>
+            <p className="text-xs text-[#8e8e93]">Blocca il cursore sul target</p>
           </div>
           <Tag size="sm" variant="outline">
             Target {round.target}%
           </Tag>
         </div>
 
-        <div className="relative h-6 rounded-full bg-[#241f20] overflow-hidden">
+        <div className="relative h-6 rounded-full bg-[#2c2c2e] overflow-hidden">
           <div
-            className="absolute top-0 bottom-0 w-2 bg-[#f4bf4f]/40"
+            className="absolute top-0 bottom-0 w-2 bg-[#0a84ff]/40"
             style={{ left: `${round.target}%`, transform: 'translateX(-50%)' }}
           />
           <div
-            className="absolute top-0 bottom-0 w-3 bg-[#f4bf4f] rounded-full shadow-[0_0_8px_rgba(244,191,79,0.6)]"
+            className="absolute top-0 bottom-0 w-3 bg-[#0a84ff] rounded-full shadow-[0_0_8px_rgba(244,191,79,0.6)]"
             style={{ left: `${progress}%`, transform: 'translateX(-50%)' }}
           />
         </div>
 
-        <div className="flex items-center justify-between mt-2 text-xs text-[#7a7577]">
+        <div className="flex items-center justify-between mt-2 text-xs text-[#8e8e93]">
           <span>0</span>
           <span>100</span>
         </div>
 
         {isPlaying ? (
-          <p className="mt-3 text-xs text-center text-[#7a7577]">
+          <p className="mt-3 text-xs text-center text-[#8e8e93]">
             Tocca ovunque sul pannello per bloccare subito
           </p>
         ) : null}
@@ -260,14 +260,14 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
             >
               {feedback.label}
             </Badge>
-            <span className="text-xs text-[#b8b2b3]">Scarto {Math.round(feedback.delta)}%</span>
+            <span className="text-xs text-[#aeaeb2]">Scarto {Math.round(feedback.delta)}%</span>
           </div>
         ) : null}
       </Card>
 
       {phase === 'intro' ? (
-        <Card className="border border-[#f4bf4f]/20">
-          <p className="text-sm text-[#b8b2b3]">
+        <Card className="border border-[#0a84ff]/20">
+          <p className="text-sm text-[#aeaeb2]">
             Segui il cursore e premi "Blocca" (o tocca il pannello) quando raggiunge il target.
           </p>
         </Card>
@@ -369,14 +369,14 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
       subtitle={config.subtitle}
       activityTitle={activityTitle}
       roundLabel={roundLabel}
-      icon={<SlidersHorizontal className="text-[#f4bf4f]" size={22} />}
+      icon={<SlidersHorizontal className="text-[#0a84ff]" size={22} />}
       onCancel={onCancel}
     >
-      <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+      <Card className="bg-gradient-to-br from-[#1c1c1e] to-[#2c2c2e]">
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-white font-semibold">{round.label}</p>
-            <p className="text-xs text-[#7a7577]">Regola il livello richiesto</p>
+            <p className="text-xs text-[#8e8e93]">Regola il livello richiesto</p>
           </div>
           <Tag size="sm" variant="outline">
             Target {round.target}%
@@ -391,11 +391,11 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
             step={1}
             onValueChange={setLevel}
             disabled={phase !== 'adjust'}
-            trackClassName="bg-[#241f20] data-[orientation=horizontal]:h-5"
-            rangeClassName="bg-[#f4bf4f]"
-            thumbClassName="size-6 border-[#f4bf4f] bg-[#f4bf4f] shadow-[0_0_10px_rgba(244,191,79,0.6)]"
+            trackClassName="bg-[#2c2c2e] data-[orientation=horizontal]:h-5"
+            rangeClassName="bg-[#0a84ff]"
+            thumbClassName="size-6 border-[#0a84ff] bg-[#0a84ff] shadow-[0_0_10px_rgba(244,191,79,0.6)]"
           />
-          <div className="flex items-center justify-between text-xs text-[#7a7577]">
+          <div className="flex items-center justify-between text-xs text-[#8e8e93]">
             <span>0</span>
             <span>100</span>
           </div>
@@ -404,13 +404,13 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
               type="button"
               onClick={() => bumpLevel(-step)}
               disabled={phase !== 'adjust'}
-              className="min-w-[72px] h-[48px] rounded-xl border border-[#2d2728] text-[#f4bf4f] text-sm font-semibold disabled:opacity-50"
+              className="min-w-[72px] h-[48px] rounded-xl border border-[#3a3a3c] text-[#0a84ff] text-sm font-semibold disabled:opacity-50"
               aria-label={`Riduci di ${step}`}
             >
               -{step}
             </button>
             <div className="text-center">
-              <div className="inline-flex items-center gap-2 text-[#f4bf4f]">
+              <div className="inline-flex items-center gap-2 text-[#0a84ff]">
                 <Target size={16} />
                 <span className="text-xs">Livello attuale</span>
               </div>
@@ -420,7 +420,7 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
               type="button"
               onClick={() => bumpLevel(step)}
               disabled={phase !== 'adjust'}
-              className="min-w-[72px] h-[48px] rounded-xl border border-[#2d2728] text-[#f4bf4f] text-sm font-semibold disabled:opacity-50"
+              className="min-w-[72px] h-[48px] rounded-xl border border-[#3a3a3c] text-[#0a84ff] text-sm font-semibold disabled:opacity-50"
               aria-label={`Aumenta di ${step}`}
             >
               +{step}
@@ -442,14 +442,14 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
             >
               {feedback.label}
             </Badge>
-            <span className="text-xs text-[#b8b2b3]">Scarto {Math.round(feedback.delta)}%</span>
+            <span className="text-xs text-[#aeaeb2]">Scarto {Math.round(feedback.delta)}%</span>
           </div>
         ) : null}
       </Card>
 
       {phase === 'intro' ? (
-        <Card className="border border-[#f4bf4f]/20">
-          <p className="text-sm text-[#b8b2b3]">
+        <Card className="border border-[#0a84ff]/20">
+          <p className="text-sm text-[#aeaeb2]">
             Usa lo slider o i pulsanti +/- per allineare il livello al target indicato.
           </p>
         </Card>
@@ -483,3 +483,4 @@ export function ActivityMinigame({ activity, onComplete, onCancel }: ActivityMin
 
   return <TimingMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
 }
+

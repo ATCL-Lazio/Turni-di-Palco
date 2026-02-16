@@ -18,7 +18,7 @@ export function EventDetails({ event, onBack, onNavigate }: EventDetailsProps) {
         <div className="app-content px-6 space-y-6 pt-6">
           <div>
             <h2 className="text-white mb-2">Dettagli evento</h2>
-            <p className="text-[#b8b2b3]">Nessun evento disponibile.</p>
+            <p className="text-[#aeaeb2]">Nessun evento disponibile.</p>
           </div>
           <Button variant="ghost" size="lg" fullWidth onClick={onBack}>
             Torna indietro
@@ -66,7 +66,7 @@ export function EventDetails({ event, onBack, onNavigate }: EventDetailsProps) {
       <div className="app-content px-6 space-y-6 pt-6">
         <div>
           <h2 className="text-white mb-2">Dettagli evento</h2>
-          <p className="text-[#b8b2b3]">Informazioni sull'evento selezionato</p>
+          <p className="text-[#aeaeb2]">Informazioni sull'evento selezionato</p>
         </div>
 
         <Card>
@@ -75,35 +75,35 @@ export function EventDetails({ event, onBack, onNavigate }: EventDetailsProps) {
               <h3 className="text-white text-lg leading-tight">{event.name}</h3>
               {event.genre ? <Badge variant="default" size="sm">{event.genre}</Badge> : null}
             </div>
-            <div className="flex items-center gap-3 text-[#b8b2b3]">
-              <MapPin size={18} className="text-[#f4bf4f]" />
+            <div className="flex items-center gap-3 text-[#aeaeb2]">
+              <MapPin size={18} className="text-[#0a84ff]" />
               <span>{event.theatre}</span>
             </div>
-            <div className="flex items-center gap-3 text-[#b8b2b3]">
-              <Calendar size={18} className="text-[#f4bf4f]" />
+            <div className="flex items-center gap-3 text-[#aeaeb2]">
+              <Calendar size={18} className="text-[#0a84ff]" />
               <span>{event.date}</span>
             </div>
-            <div className="flex items-center gap-3 text-[#b8b2b3]">
-              <Clock size={18} className="text-[#f4bf4f]" />
+            <div className="flex items-center gap-3 text-[#aeaeb2]">
+              <Clock size={18} className="text-[#0a84ff]" />
               <span>{event.time}</span>
             </div>
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
-          <h4 className="text-[#f4bf4f] mb-4">Ricompense base</h4>
+        <Card className="bg-gradient-to-br from-[#1c1c1e] to-[#2c2c2e]">
+          <h4 className="text-[#0a84ff] mb-4">Ricompense base</h4>
           <div className="grid grid-cols-3 gap-3 text-center">
             <div>
               <p className="text-white text-lg">+{event.baseRewards.xp}</p>
-              <p className="text-xs text-[#b8b2b3]">XP</p>
+              <p className="text-xs text-[#aeaeb2]">XP</p>
             </div>
             <div>
               <p className="text-white text-lg">+{event.baseRewards.reputation}</p>
-              <p className="text-xs text-[#b8b2b3]">Reputazione</p>
+              <p className="text-xs text-[#aeaeb2]">Reputazione</p>
             </div>
             <div>
               <p className="text-white text-lg">+{event.baseRewards.cachet}</p>
-              <p className="text-xs text-[#b8b2b3]">Cachet</p>
+              <p className="text-xs text-[#aeaeb2]">Cachet</p>
             </div>
           </div>
         </Card>
@@ -233,3 +233,4 @@ const MONTHS: Record<string, number> = {
   dic: 11,
   dicembre: 11,
 };
+

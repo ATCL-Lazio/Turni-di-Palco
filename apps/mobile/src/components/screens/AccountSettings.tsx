@@ -287,7 +287,7 @@ export function AccountSettings({
   const handleReset = () => {
     if (typeof window === 'undefined') return;
     const ok = window.confirm(
-      'Vuoi davvero resettare i progressi? Questa modifica è irreversibile: cancelleremo turni, badge e statistiche e ti riporteremo alla scelta del ruolo.'
+      'Vuoi davvero resettare i progressi? Questa modifica Ã¨ irreversibile: cancelleremo turni, badge e statistiche e ti riporteremo alla scelta del ruolo.'
     );
     if (!ok) return;
     onResetProgress();
@@ -317,7 +317,7 @@ export function AccountSettings({
     updatePermissionMessage('camera', null);
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
       updatePermissionStatus('camera', 'unsupported');
-      updatePermissionMessage('camera', 'La fotocamera non è supportata.');
+      updatePermissionMessage('camera', 'La fotocamera non Ã¨ supportata.');
       return;
     }
 
@@ -338,7 +338,7 @@ export function AccountSettings({
     updatePermissionMessage('geolocation', null);
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       updatePermissionStatus('geolocation', 'unsupported');
-      updatePermissionMessage('geolocation', 'La geolocalizzazione non è supportata.');
+      updatePermissionMessage('geolocation', 'La geolocalizzazione non Ã¨ supportata.');
       return;
     }
 
@@ -376,54 +376,54 @@ export function AccountSettings({
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
+          className="flex items-center justify-center size-[44px] text-[#0a84ff]"
           aria-label="Indietro"
         >
           <ArrowLeft size={24} />
         </button>
 
         <div className="flex flex-col items-start gap-1">
-          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[#f5f5f5]">
+          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[#f2f2f7]">
             Gestisci account
           </p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3]">Impostazioni e privacy</p>
+          <p className="text-[16px] leading-[25.6px] text-[#aeaeb2]">Impostazioni e privacy</p>
         </div>
 
-        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[10px]">
-          <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
+        <div className="bg-[#1c1c1e] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[10px]">
+          <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#aeaeb2]">
             <span>Nome</span>
             <span className="text-white">{userName || 'Utente'}</span>
           </div>
-          <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
+          <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#aeaeb2]">
             <span>Email</span>
-            <span className="text-white">{email || '—'}</span>
+            <span className="text-white">{email || 'â€”'}</span>
           </div>
         </div>
 
-        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[12px]">
+        <div className="bg-[#1c1c1e] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[12px]">
           <div className="flex items-center gap-[12px]">
-            <History className="text-[#f4bf4f]" size={24} />
+            <History className="text-[#0a84ff]" size={24} />
             <div className="text-left">
               <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                 Versione app
               </p>
-              <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+              <p className="text-[16px] leading-[25.6px] text-[#aeaeb2] !m-0">
                 {appInfo?.version ? `v${appInfo.version}` : 'vdev'}
               </p>
             </div>
           </div>
-          <div className="border-t border-[#2d2728] pt-[10px] flex flex-col gap-[8px]">
+          <div className="border-t border-[#3a3a3c] pt-[10px] flex flex-col gap-[8px]">
             <div className="flex items-center justify-between">
               <p className="text-[16px] leading-[25.6px] text-white !m-0">Changelog</p>
               {appInfo?.repo ? (
-                <span className="text-[12px] leading-[16px] text-[#7a7577]">{appInfo.repo}</span>
+                <span className="text-[12px] leading-[16px] text-[#8e8e93]">{appInfo.repo}</span>
               ) : null}
             </div>
             {appInfoStatus === 'loading' ? (
-              <p className="text-[14px] leading-[20px] text-[#b8b2b3]">Caricamento...</p>
+              <p className="text-[14px] leading-[20px] text-[#aeaeb2]">Caricamento...</p>
             ) : null}
             {appInfoStatus === 'error' ? (
-              <p className="text-[14px] leading-[20px] text-[#ff4d4f]">
+              <p className="text-[14px] leading-[20px] text-[#ff453a]">
                 {appInfoError ?? 'Impossibile caricare il changelog'}
               </p>
             ) : null}
@@ -434,7 +434,7 @@ export function AccountSettings({
                     <p className="text-[14px] leading-[20px] text-white !m-0">
                       {entry.message}
                     </p>
-                    <p className="text-[12px] leading-[16px] text-[#7a7577] !m-0">
+                    <p className="text-[12px] leading-[16px] text-[#8e8e93] !m-0">
                       {entry.sha}
                       {entry.date ? ` - ${formatChangelogDate(entry.date)}` : ''}
                       {entry.author ? ` - ${entry.author}` : ''}
@@ -444,36 +444,36 @@ export function AccountSettings({
               </div>
             ) : null}
             {appInfoStatus === 'idle' && !appInfo?.changelog?.length ? (
-              <p className="text-[14px] leading-[20px] text-[#7a7577]">
+              <p className="text-[14px] leading-[20px] text-[#8e8e93]">
                 Nessun aggiornamento disponibile.
               </p>
             ) : null}
           </div>
         </div>
 
-        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[12px]">
+        <div className="bg-[#1c1c1e] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[12px]">
           <div className="flex items-center gap-[12px]">
-            <ShieldCheck className="text-[#f4bf4f]" size={24} />
+            <ShieldCheck className="text-[#0a84ff]" size={24} />
             <div className="text-left">
               <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                 Permessi app
               </p>
-              <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+              <p className="text-[16px] leading-[25.6px] text-[#aeaeb2] !m-0">
                 Gestisci accessi e autorizzazioni
               </p>
             </div>
           </div>
-          <div className="border-t border-[#2d2728] pt-[10px] flex flex-col gap-[12px]">
+          <div className="border-t border-[#3a3a3c] pt-[10px] flex flex-col gap-[12px]">
             <div className="flex items-start justify-between gap-[12px]">
               <div className="flex items-start gap-[10px]">
-                <Bell className="text-[#f4bf4f]" size={20} />
+                <Bell className="text-[#0a84ff]" size={20} />
                 <div>
                   <p className="text-[16px] leading-[25.6px] text-white !m-0">Notifiche</p>
-                  <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">
+                  <p className="text-[12px] leading-[18px] text-[#aeaeb2] !m-0">
                     Stato: {formatPermissionStatus(permissionStatuses.notifications)}
                   </p>
                   {permissionMessages.notifications ? (
-                    <p className="text-[12px] leading-[18px] text-[#7a7577] !m-0">
+                    <p className="text-[12px] leading-[18px] text-[#8e8e93] !m-0">
                       {permissionMessages.notifications}
                     </p>
                   ) : null}
@@ -483,7 +483,7 @@ export function AccountSettings({
                 type="button"
                 onClick={handleNotificationPermission}
                 disabled={!canRequestNotifications}
-                className="text-[12px] leading-[18px] px-[10px] py-[6px] rounded-[10px] border border-[#2d2728] text-white disabled:opacity-50"
+                className="text-[12px] leading-[18px] px-[10px] py-[6px] rounded-[10px] border border-[#3a3a3c] text-white disabled:opacity-50"
               >
                 Richiedi
               </button>
@@ -491,14 +491,14 @@ export function AccountSettings({
 
             <div className="flex items-start justify-between gap-[12px]">
               <div className="flex items-start gap-[10px]">
-                <Camera className="text-[#f4bf4f]" size={20} />
+                <Camera className="text-[#0a84ff]" size={20} />
                 <div>
                   <p className="text-[16px] leading-[25.6px] text-white !m-0">Fotocamera</p>
-                  <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">
+                  <p className="text-[12px] leading-[18px] text-[#aeaeb2] !m-0">
                     Stato: {formatPermissionStatus(permissionStatuses.camera)}
                   </p>
                   {permissionMessages.camera ? (
-                    <p className="text-[12px] leading-[18px] text-[#7a7577] !m-0">
+                    <p className="text-[12px] leading-[18px] text-[#8e8e93] !m-0">
                       {permissionMessages.camera}
                     </p>
                   ) : null}
@@ -508,7 +508,7 @@ export function AccountSettings({
                 type="button"
                 onClick={handleCameraPermission}
                 disabled={!canRequestCamera}
-                className="text-[12px] leading-[18px] px-[10px] py-[6px] rounded-[10px] border border-[#2d2728] text-white disabled:opacity-50"
+                className="text-[12px] leading-[18px] px-[10px] py-[6px] rounded-[10px] border border-[#3a3a3c] text-white disabled:opacity-50"
               >
                 Richiedi
               </button>
@@ -516,16 +516,16 @@ export function AccountSettings({
 
             <div className="flex items-start justify-between gap-[12px]">
               <div className="flex items-start gap-[10px]">
-                <MapPin className="text-[#f4bf4f]" size={20} />
+                <MapPin className="text-[#0a84ff]" size={20} />
                 <div>
                   <p className="text-[16px] leading-[25.6px] text-white !m-0">
                     Geolocalizzazione
                   </p>
-                  <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">
+                  <p className="text-[12px] leading-[18px] text-[#aeaeb2] !m-0">
                     Stato: {formatPermissionStatus(permissionStatuses.geolocation)}
                   </p>
                   {permissionMessages.geolocation ? (
-                    <p className="text-[12px] leading-[18px] text-[#7a7577] !m-0">
+                    <p className="text-[12px] leading-[18px] text-[#8e8e93] !m-0">
                       {permissionMessages.geolocation}
                     </p>
                   ) : null}
@@ -535,7 +535,7 @@ export function AccountSettings({
                 type="button"
                 onClick={handleGeolocationPermission}
                 disabled={!canRequestGeolocation}
-                className="text-[12px] leading-[18px] px-[10px] py-[6px] rounded-[10px] border border-[#2d2728] text-white disabled:opacity-50"
+                className="text-[12px] leading-[18px] px-[10px] py-[6px] rounded-[10px] border border-[#3a3a3c] text-white disabled:opacity-50"
               >
                 Richiedi
               </button>
@@ -543,15 +543,15 @@ export function AccountSettings({
           </div>
         </div>
 
-        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
+        <div className="bg-[#1c1c1e] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-[12px]">
-              <Bell className="text-[#f4bf4f]" size={24} />
+              <Bell className="text-[#0a84ff]" size={24} />
               <div className="text-left">
                 <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                   Notifiche di sistema
                 </p>
-                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                <p className="text-[16px] leading-[25.6px] text-[#aeaeb2] !m-0">
                   Aggiornamenti su badge ed eventi
                 </p>
               </div>
@@ -562,17 +562,17 @@ export function AccountSettings({
               disabled={notificationPermission === 'unsupported'}
             />
           </div>
-          <p className="text-[14px] leading-[20px] text-[#b8b2b3]">
+          <p className="text-[14px] leading-[20px] text-[#aeaeb2]">
             Stato: {notificationStatusLabel}
           </p>
           {notificationPermission === 'unsupported' ? (
-            <p className="text-[14px] leading-[20px] text-[#ff4d4f]">
+            <p className="text-[14px] leading-[20px] text-[#ff453a]">
               Le notifiche di sistema non sono disponibili su questo dispositivo.
             </p>
           ) : null}
         </div>
 
-        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
+        <div className="bg-[#1c1c1e] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
           <button
             type="button"
             onClick={onViewSupport}
@@ -580,25 +580,25 @@ export function AccountSettings({
             className="h-[51px] flex items-center justify-between disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <div className="flex items-center gap-[12px]">
-              <MessageCircle className="text-[#f4bf4f]" size={24} />
+              <MessageCircle className="text-[#0a84ff]" size={24} />
               <div className="text-left">
                 <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                   Supporto
                 </p>
-                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                <p className="text-[16px] leading-[25.6px] text-[#aeaeb2] !m-0">
                   Chat con Maxwell
                 </p>
               </div>
             </div>
-            <ChevronRight className="text-[#7a7577]" size={20} />
+            <ChevronRight className="text-[#8e8e93]" size={20} />
           </button>
           {supportUnavailable ? (
-            <p className="text-[14px] leading-[20px] text-[#ff4d4f]">
+            <p className="text-[14px] leading-[20px] text-[#ff453a]">
               Supporto AI attualmente non disponibile.
             </p>
           ) : null}
           {supportUnknown ? (
-            <p className="text-[14px] leading-[20px] text-[#f4bf4f]">
+            <p className="text-[14px] leading-[20px] text-[#0a84ff]">
               Stato del supporto non verificabile. Puoi comunque provare ad aprire la chat.
             </p>
           ) : null}
@@ -610,17 +610,17 @@ export function AccountSettings({
             className="h-[51px] flex items-center justify-between"
           >
             <div className="flex items-center gap-[12px]">
-              <QrCode className="text-[#f4bf4f]" size={24} />
+              <QrCode className="text-[#0a84ff]" size={24} />
               <div className="text-left">
                 <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                   Prototipo ticket QR
                 </p>
-                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                <p className="text-[16px] leading-[25.6px] text-[#aeaeb2] !m-0">
                   Generazione hash e attivazione one-shot
                 </p>
               </div>
             </div>
-            <ChevronRight className="text-[#7a7577]" size={20} />
+            <ChevronRight className="text-[#8e8e93]" size={20} />
           </button>
 
           <button
@@ -629,17 +629,17 @@ export function AccountSettings({
             className="h-[51px] flex items-center justify-between"
           >
             <div className="flex items-center gap-[12px]">
-              <FileText className="text-[#f4bf4f]" size={24} />
+              <FileText className="text-[#0a84ff]" size={24} />
               <div className="text-left">
                 <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                   Termini e Condizioni
                 </p>
-                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
-                  Condizioni d’uso del servizio
+                <p className="text-[16px] leading-[25.6px] text-[#aeaeb2] !m-0">
+                  Condizioni dâ€™uso del servizio
                 </p>
               </div>
             </div>
-            <ChevronRight className="text-[#7a7577]" size={20} />
+            <ChevronRight className="text-[#8e8e93]" size={20} />
           </button>
 
           <button
@@ -648,59 +648,59 @@ export function AccountSettings({
             className="h-[51px] flex items-center justify-between"
           >
             <div className="flex items-center gap-[12px]">
-              <Shield className="text-[#f4bf4f]" size={24} />
+              <Shield className="text-[#0a84ff]" size={24} />
               <div className="text-left">
                 <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                   Privacy Policy
                 </p>
-                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                <p className="text-[16px] leading-[25.6px] text-[#aeaeb2] !m-0">
                   Come trattiamo i tuoi dati
                 </p>
               </div>
             </div>
-            <ChevronRight className="text-[#7a7577]" size={20} />
+            <ChevronRight className="text-[#8e8e93]" size={20} />
           </button>
         </div>
 
-        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
+        <div className="bg-[#1c1c1e] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
           <button
             type="button"
             onClick={onChangePassword}
             className="h-[51px] flex items-center justify-between"
           >
             <div className="flex items-center gap-[12px]">
-              <KeyRound className="text-[#f4bf4f]" size={24} />
+              <KeyRound className="text-[#0a84ff]" size={24} />
               <div className="text-left">
                 <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                   Cambia password
                 </p>
-                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                <p className="text-[16px] leading-[25.6px] text-[#aeaeb2] !m-0">
                   Aggiorna le credenziali di accesso
                 </p>
               </div>
             </div>
-            <ChevronRight className="text-[#7a7577]" size={20} />
+            <ChevronRight className="text-[#8e8e93]" size={20} />
           </button>
         </div>
 
-        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
+        <div className="bg-[#1c1c1e] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
           <button
             type="button"
             onClick={handleReset}
             className="h-[51px] flex items-center justify-between"
           >
             <div className="flex items-center gap-[12px]">
-              <Trash2 className="text-[#ff4d4f]" size={24} />
+              <Trash2 className="text-[#ff453a]" size={24} />
               <div className="text-left">
                 <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
                   Resetta progressi
                 </p>
-                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                <p className="text-[16px] leading-[25.6px] text-[#aeaeb2] !m-0">
                   Azzeramento irreversibile della carriera
                 </p>
               </div>
             </div>
-            <ChevronRight className="text-[#7a7577]" size={20} />
+            <ChevronRight className="text-[#8e8e93]" size={20} />
           </button>
         </div>
 
@@ -708,7 +708,7 @@ export function AccountSettings({
           <button
             type="button"
             onClick={onLogout}
-            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[18px] leading-[28px] text-[#ff4d4f] w-full"
+            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[18px] leading-[28px] text-[#ff453a] w-full"
           >
             <LogOut size={20} />
             Esci
@@ -718,3 +718,4 @@ export function AccountSettings({
     </Screen>
   );
 }
+
