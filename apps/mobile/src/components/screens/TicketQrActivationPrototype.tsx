@@ -127,6 +127,7 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
             onChange={(event) => setScanInput(event.target.value)}
             placeholder="Incolla hash o valore QR"
           />
+
         <Button variant="secondary" onClick={handleActivate} disabled={busy}>
           Verifica e attiva
         </Button>

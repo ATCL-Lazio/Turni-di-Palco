@@ -334,13 +334,12 @@ def main() -> int:
         print("All fields are required.", file=sys.stderr)
         return 1
 
-    canonical_json = canonical_payload_json(payload)
-    payload_hash = sha256_hex(canonical_json)
-
     if not args.skip_supabase and (not supabase_url or not service_role_key):
         print("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required (or use --skip-supabase).", file=sys.stderr)
         return 1
 
+    canonical_json = canonical_payload_json(payload)
+    payload_hash = sha256_hex(canonical_json)
     reserved = False
     if not args.skip_supabase:
         reserved = reserve_hash(
@@ -350,7 +349,10 @@ def main() -> int:
             payload_hash=payload_hash,
         )
         if not reserved:
-            print("Hash already exists on Supabase. Please verify ticket details.", file=sys.stderr)
+            print(
+                "Hash gia presente su Supabase. Verifica eventID/ticketNumber: i duplicati non sono consentiti.",
+                file=sys.stderr,
+            )
             return 2
 
     qr_value = payload_hash
