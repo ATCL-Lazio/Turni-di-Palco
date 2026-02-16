@@ -269,20 +269,20 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
       return;
     }
     // Proviamo a costruire un payload finto o chiamiamo direttamente onScan 
-    // col formato speciale che App.tsx capirà
+    // col formato speciale che App.tsx capirÃ 
     await handleScanAttempt(`manual-ticket:${manualEventId}:${manualTicket}`);
   };
 
   return (
     <div className="fixed inset-0 app-gradient z-50 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-[#1a1617]">      
+      <div className="flex items-center justify-between p-4 bg-[#1c1c1e]">      
         <h3 className="text-white">Scansiona QR</h3>
         <button
           onClick={onClose}
-          className="flex items-center justify-center size-[44px] hover:bg-[#241f20] rounded-lg transition-colors"
+          className="flex items-center justify-center size-[44px] hover:bg-[#2c2c2e] rounded-lg transition-colors"
         >
-          <X className="text-[#f4bf4f]" size={24} />
+          <X className="text-[#0a84ff]" size={24} />
         </button>
       </div>
       
@@ -300,52 +300,52 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
                 muted
               />
               <canvas ref={canvasRef} className="hidden" />
-              <div className="absolute inset-0 bg-gradient-to-b from-[#1a1617]/60 to-[#0f0d0e]/80"></div>
+              <div className="absolute inset-0 bg-gradient-to-b from-[#1c1c1e]/60 to-[#000000]/80"></div>
 
               <div className="absolute inset-0 flex items-center justify-center">
                 {/* Scanning Frame */}
                 <div className="relative w-64 h-64">
                 {/* Corner Brackets */}
-                <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-[#f4bf4f] rounded-tl-lg"></div>
-                <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-[#f4bf4f] rounded-tr-lg"></div>
-                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-[#f4bf4f] rounded-bl-lg"></div>
-                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-[#f4bf4f] rounded-br-lg"></div>
+                <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-[#0a84ff] rounded-tl-lg"></div>
+                <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-[#0a84ff] rounded-tr-lg"></div>
+                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-[#0a84ff] rounded-bl-lg"></div>
+                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-[#0a84ff] rounded-br-lg"></div>
                 
                 {/* Scanning Line Animation */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-full h-1 bg-[#f4bf4f] animate-pulse"></div>
+                  <div className="w-full h-1 bg-[#0a84ff] animate-pulse"></div>
                 </div>
                 
                 </div>
               </div>
 
               {isStartingCamera && (
-                <div className="absolute inset-0 flex items-center justify-center bg-[#0f0d0e]/60">
-                  <p className="text-sm text-[#b8b2b3]">Avvio fotocamera...</p>
+                <div className="absolute inset-0 flex items-center justify-center bg-[#000000]/60">
+                  <p className="text-sm text-[#aeaeb2]">Avvio fotocamera...</p>
                 </div>
               )}
 
               {isHandlingScan && (
-                <div className="absolute inset-0 flex items-center justify-center bg-[#0f0d0e]/60">
-                  <p className="text-sm text-[#b8b2b3]">Verifica QR...</p>
+                <div className="absolute inset-0 flex items-center justify-center bg-[#000000]/60">
+                  <p className="text-sm text-[#aeaeb2]">Verifica QR...</p>
                 </div>
               )}
             </div>
 
             {/* Instructions */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0f0d0e] to-transparent p-6">
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#000000] to-transparent p-6">
               <div className="app-content text-center">
                 {scanError ? (
                   <>
                     <p className="text-white mb-2">QR non valido</p>
-                    <p className="text-sm text-[#b8b2b3] mb-6">{scanError}</p>
+                    <p className="text-sm text-[#aeaeb2] mb-6">{scanError}</p>
                   </>
                 ) : null}
 
                 {cameraError ? (
                   <>
                     <p className="text-white mb-2">Impossibile avviare la fotocamera</p>
-                    <p className="text-sm text-[#b8b2b3] mb-6">{cameraError}</p>
+                    <p className="text-sm text-[#aeaeb2] mb-6">{cameraError}</p>
 
                     <div className="flex flex-col items-center gap-3">
                       <Button
@@ -358,7 +358,7 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
 
                       <button
                         onClick={() => setIsScanning(false)}
-                        className="inline-flex items-center justify-center rounded-md px-2 py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+                        className="inline-flex items-center justify-center rounded-md px-2 py-[10px] text-[#0a84ff] hover:text-[#0066d6] transition-colors"
                       >
                         Inserisci codice manualmente
                       </button>
@@ -367,13 +367,13 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
                 ) : (
                   <>
                     <p className="text-white mb-2">Inquadra il QR sul tuo biglietto ATCL</p>
-                    <p className="text-sm text-[#b8b2b3] mb-6">
+                    <p className="text-sm text-[#aeaeb2] mb-6">
                       Posiziona il codice al centro del riquadro
                     </p>
 
                     <button
                       onClick={() => setIsScanning(false)}
-                      className="inline-flex items-center justify-center rounded-md px-2 py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+                      className="inline-flex items-center justify-center rounded-md px-2 py-[10px] text-[#0a84ff] hover:text-[#0066d6] transition-colors"
                     >
                       Inserisci codice manualmente
                     </button>
@@ -386,18 +386,18 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
           // Manual Input
           <div className="p-6 app-content h-full overflow-y-auto pb-20">
             <div className="mb-6 text-center">
-              <div className="w-16 h-16 bg-[#241f20] rounded-full flex items-center justify-center mx-auto mb-4">
-                <QrCode className="text-[#f4bf4f]" size={32} />
+              <div className="w-16 h-16 bg-[#2c2c2e] rounded-full flex items-center justify-center mx-auto mb-4">
+                <QrCode className="text-[#0a84ff]" size={32} />
               </div>
               <h3 className="text-white mb-2">Inserimento Manuale</h3>
-              <p className="text-sm text-[#b8b2b3]">
-                Inserisci i dati se il QR non è leggibile
+              <p className="text-sm text-[#aeaeb2]">
+                Inserisci i dati se il QR non Ã¨ leggibile
               </p>
             </div>
 
             {/* Manual Activation Header */}
             <div className="mb-6 text-center">
-               <div className="inline-block px-3 py-1 bg-[#241f20] rounded-full text-[10px] text-[#f4bf4f] font-bold uppercase tracking-wider">
+               <div className="inline-block px-3 py-1 bg-[#2c2c2e] rounded-full text-[10px] text-[#0a84ff] font-bold uppercase tracking-wider">
                  Attivazione Biglietto
                </div>
             </div>
@@ -416,7 +416,7 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
                       <select
                         value={manualEventId}
                         onChange={(e) => setManualEventId(e.target.value)}
-                        className="w-full bg-[#1a1617] border border-[#2d2728] rounded-xl px-4 py-3 text-sm text-white appearance-none focus:outline-none focus:border-[#f4bf4f] transition-colors"
+                        className="w-full bg-[#1c1c1e] border border-[#3a3a3c] rounded-xl px-4 py-3 text-sm text-white appearance-none focus:outline-none focus:border-[#0a84ff] transition-colors"
                       >
                         <option value="" disabled>Scegli l'evento...</option>
                         {events.map(event => (
@@ -425,7 +425,7 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
                           </option>
                         ))}
                       </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#f4bf4f]">
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#0a84ff]">
                         <X size={14} className="rotate-45" />
                       </div>
                     </div>
@@ -453,7 +453,7 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
                 <button
                   type="button"
                   onClick={() => setIsScanning(true)}
-                  className="w-full rounded-md py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+                  className="w-full rounded-md py-[10px] text-[#0a84ff] hover:text-[#0066d6] transition-colors"
                 >
                   Torna alla scansione QR
                 </button>
@@ -465,3 +465,4 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
     </div>
   );
 }
+

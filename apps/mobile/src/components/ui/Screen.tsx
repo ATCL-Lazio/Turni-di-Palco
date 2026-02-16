@@ -23,7 +23,7 @@ export function Screen({
 }: ScreenProps) {
   return (
     <div
-      className={cn('min-h-screen min-h-[100dvh] flex flex-col items-center justify-center', className)}
+      className={cn('ios26-content-layer min-h-screen min-h-[100dvh] flex flex-col items-center justify-center', className)}
       style={style}
     >
       {header}
@@ -48,8 +48,9 @@ interface ScreenHeaderProps {
 
 export function ScreenHeader({ children, gradient = false, className }: ScreenHeaderProps) {
   return (
-    <div className={cn(gradient && 'bg-gradient-to-b from-[#2d0a0f] to-[#0f0d0e]', className)}>
+    <div className={cn(gradient && 'bg-gradient-to-b from-[#0a0a0b] to-[#000000]', className)}>
       <div className="w-full app-content px-5 pt-5 pb-6 space-y-5">{children}</div>
     </div>
   );
 }
+

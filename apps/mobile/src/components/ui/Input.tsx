@@ -10,22 +10,25 @@ export function Input({ label, error, helperText, className = '', ...props }: In
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-[#b8b2b3] mb-2">
+        <label className="mb-2 block text-[15px] font-medium text-[#aeaeb2]">
           {label}
         </label>
       )}
       <input
-        className={`w-full bg-[#241f20] border-2 ${
-          error ? 'border-[#ff4d4f]' : 'border-[#2d2728]'
-        } rounded-lg px-4 py-3 text-white placeholder:text-[#7a7577] focus:border-[#f4bf4f] focus:outline-none transition-colors ${className}`}
+        className={`ios26-input h-[48px] w-full rounded-[14px] border px-4 text-[16px] text-[#f2f2f7] placeholder:text-[#8e8e93] transition-[background-color,border-color,box-shadow] focus:outline-none ${
+          error
+            ? 'border-[#ff453a]/85 bg-[#2c2c2e]'
+            : 'border-white/12 bg-[#2c2c2e]/88 focus:border-[#0a84ff] focus:bg-[#2c2c2e]'
+        } focus:ring-4 focus:ring-[#0a84ff]/20 ${className}`}
         {...props}
       />
       {error && (
-        <p className="text-[#ff4d4f] mt-1 text-sm">{error}</p>
+        <p className="text-[#ff453a] mt-1 text-sm">{error}</p>
       )}
       {helperText && !error && (
-        <p className="text-[#7a7577] mt-1 text-sm">{helperText}</p>
+        <p className="text-[#8e8e93] mt-1 text-sm">{helperText}</p>
       )}
     </div>
   );
 }
+

@@ -94,25 +94,25 @@ export function Home({
           <div className="absolute top-0 right-0">
             <Popover>
               <PopoverTrigger asChild>
-                <button className="flex items-center justify-center size-[44px] rounded-lg hover:bg-[#241f20] transition mobile-card-hover">
-                  <Bell size={20} className="text-[#f4bf4f]" />
+                <button className="flex items-center justify-center size-[44px] rounded-lg hover:bg-[#2c2c2e] transition mobile-card-hover">
+                  <Bell size={20} className="text-[#0a84ff]" />
                   {hasNewBadges && (
                     <span
-                      className={`absolute -top-1 -right-1 w-3 h-3 bg-[#f4bf4f] rounded-full ${
+                      className={`absolute -top-1 -right-1 w-3 h-3 bg-[#0a84ff] rounded-full ${
                         animateBadges ? 'mobile-badge-pop' : ''
                       }`}
                     />
                   )}
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-80 bg-[#1a1617] border-[#3d3a3b] p-3">
+              <PopoverContent align="end" className="w-80 bg-[#1c1c1e] border-[#3d3a3b] p-3">
                 {showBadge && hasNewBadges ? (
                   <div className={`flex items-start gap-3 ${animateBadges ? 'mobile-badge-pop' : ''}`}>
-                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#f4bf4f] to-[#e6a23c] rounded-lg flex items-center justify-center mobile-pulse-once">
-                      <Award className="text-[#0f0d0e]" size={20} />
+                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#0a84ff] to-[#0066d6] rounded-lg flex items-center justify-center mobile-pulse-once">
+                      <Award className="text-[#000000]" size={20} />
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs text-[#f4bf4f] mb-1 font-semibold">Nuovo titolo ottenuto</p>
+                      <p className="text-xs text-[#0a84ff] mb-1 font-semibold">Nuovo titolo ottenuto</p>
                       <p className="text-white text-sm">{newBadgeTitle ?? 'Hai sbloccato un nuovo badge'}</p>
                     </div>
                     <button
@@ -120,19 +120,19 @@ export function Home({
                         setShowBadge(false);
                         onDismissBadgeNotification?.();
                       }}
-                      className="text-[#7a7577] p-1 hover:text-white flex-shrink-0 transition-colors"
+                      className="text-[#8e8e93] p-1 hover:text-white flex-shrink-0 transition-colors"
                     >
                       <X size={16} />
                     </button>
                   </div>
                 ) : (
-                  <p className="text-[#b8b2b3] text-sm text-center py-4">Nessuna notifica</p>
+                  <p className="text-[#aeaeb2] text-sm text-center py-4">Nessuna notifica</p>
                 )}
               </PopoverContent>
             </Popover>
           </div>
           <div style={{ marginBottom: '10px' }}>
-            <p className="text-sm text-[#b8b2b3]">Benvenuto,</p>
+            <p className="text-sm text-[#aeaeb2]">Benvenuto,</p>
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-2xl text-white font-semibold leading-tight">{userName || 'Profilo'}</h2>
@@ -167,7 +167,7 @@ export function Home({
             {eventState === 'ready' ? (
               <button
                 onClick={onViewEventDetails}
-                className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
+                className="text-sm text-[#0a84ff] hover:text-[#0066d6] px-3 py-[12px] rounded-lg"
                 style={{ margin: '20px 0 5px' }}
               >
                 Dettagli
@@ -189,7 +189,7 @@ export function Home({
             ) : eventState === 'error' ? (
               <div className="space-y-2">
                 <p className="text-white">Errore nel caricamento</p>
-                <p className="text-sm text-[#b8b2b3]">Controlla la connessione e riprova.</p>
+                <p className="text-sm text-[#aeaeb2]">Controlla la connessione e riprova.</p>
                 <Button variant="secondary" size="sm" onClick={onViewTurni}>
                   Riprova
                 </Button>
@@ -197,7 +197,7 @@ export function Home({
             ) : eventState === 'empty' ? (
               <div className="space-y-3">
                 <p className="text-white">Nessun evento in programma</p>
-                <p className="text-sm text-[#b8b2b3]">Aggiungi un evento o registra un turno dal QR.</p>
+                <p className="text-sm text-[#aeaeb2]">Aggiungi un evento o registra un turno dal QR.</p>
                 <div className="flex gap-2">
                   <Button variant="secondary" size="sm" onClick={onScanQR}>
                     Scansiona QR
@@ -210,14 +210,14 @@ export function Home({
             ) : (
               <div className="space-y-2">
                 <div className="flex items-start gap-3" style={{ marginBottom: '20px' }}>
-                  <div className="flex-shrink-0 bg-[#241f20] rounded-lg flex flex-col items-center justify-center w-[70px] h-[70px] gap-1">
-                    <Calendar className="text-[#f4bf4f] block" size={50} />
-                    <p className="text-xs leading-none text-[#f4bf4f] !m-0">{upcomingEvent?.date?.slice(0, 6)}</p>
+                  <div className="flex-shrink-0 bg-[#2c2c2e] rounded-lg flex flex-col items-center justify-center w-[70px] h-[70px] gap-1">
+                    <Calendar className="text-[#0a84ff] block" size={50} />
+                    <p className="text-xs leading-none text-[#0a84ff] !m-0">{upcomingEvent?.date?.slice(0, 6)}</p>
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-white text-lg leading-tight line-clamp-2">{upcomingEvent?.name}</h4>
-                    <p className="text-sm text-[#b8b2b3]">
-                      {upcomingEvent?.theatre} · {upcomingEvent?.time}
+                    <p className="text-sm text-[#aeaeb2]">
+                      {upcomingEvent?.theatre} Â· {upcomingEvent?.time}
                     </p>
                     <div className="flex flex-wrap items-center gap-2 mt-2">
                       <Tag size="sm" variant="outline" className="p-1">
@@ -249,7 +249,7 @@ export function Home({
             <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>Turni ATCL</h3>
             <button
               onClick={onViewTurni}
-              className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
+              className="text-sm text-[#0a84ff] hover:text-[#0066d6] px-3 py-[12px] rounded-lg"
               style={{ marginTop: '20px' }}
             >
               Vedi tutti
@@ -273,17 +273,17 @@ export function Home({
         </section>
 
         <section className="space-y-3">
-          <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>Attività simulate</h3>
+          <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>AttivitÃ  simulate</h3>
           <Card hoverable onClick={onViewActivities} className="mb-5">
             <div className="flex items-center gap-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
-                <Play className="text-[#f4bf4f]" size={24} />
+              <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#0a84ff] to-[#004ea8] rounded-xl flex items-center justify-center">
+                <Play className="text-[#0a84ff]" size={24} />
               </div>
               <div className="flex-1">
-                <h4 className="text-white mb-1">{activitiesCount} attività disponibili</h4>
-                <p className="text-sm text-[#b8b2b3]">Guadagna XP e migliora le tue skill</p>
+                <h4 className="text-white mb-1">{activitiesCount} attivitÃ  disponibili</h4>
+                <p className="text-sm text-[#aeaeb2]">Guadagna XP e migliora le tue skill</p>
               </div>
-              <ChevronRight className="text-[#7a7577]" size={20} />
+              <ChevronRight className="text-[#8e8e93]" size={20} />
             </div>
           </Card>
 
@@ -292,3 +292,4 @@ export function Home({
     </div>
   );
 }
+

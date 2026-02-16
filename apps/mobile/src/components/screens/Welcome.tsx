@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Screen } from '../ui/Screen';
 import welcomeLogo from '../../assets/figma/welcome-logo.svg';
 
@@ -17,7 +17,7 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
     >
       <div className="relative flex h-full flex-col items-center text-center">
         <div className="flex flex-col items-center gap-[20px] pt-[12px]">
-          <div className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-[24px] shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] size-[128px]">
+          <div className="bg-gradient-to-b from-[#0a84ff] to-[#004ea8] rounded-[24px] shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] size-[128px]">
             <div className="flex items-center justify-center w-full h-full">
               <img alt="" className="size-[64px]" src={welcomeLogo} />
             </div>
@@ -34,13 +34,13 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
             Turni di Palco
           </p>
 
-          <p className="text-[16px] leading-[25.6px] text-center text-[#b8b2b3]">
+          <p className="text-[16px] leading-[25.6px] text-center text-[#aeaeb2]">
             Costruisci la tua carriera a teatro
           </p>
         </div>
 
-        <div className="mt-[18px] mb-5 w-full max-w-[300px] bg-[#1a1617] border border-[#2d2728] rounded-[16px] px-4 py-3">
-          <p className="!m-0 text-[16px] leading-[25.6px] text-center text-[#b8b2b3]">
+        <div className="mt-[18px] mb-5 w-full max-w-[300px] bg-[#1c1c1e] border border-[#3a3a3c] rounded-[16px] px-4 py-3">
+          <p className="!m-0 text-[16px] leading-[25.6px] text-center text-[#aeaeb2]">
             Simula la carriera di un professionista del teatro e registra la tua
             partecipazione agli eventi reali ATCL scansionando il QR sul biglietto.
           </p>
@@ -50,7 +50,7 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
           <button
             type="button"
             onClick={onStart}
-            className="bg-gradient-to-b from-[#8c1c38] to-[#a82847] h-[44px] w-full max-w-[300px] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)]"
+            className="bg-gradient-to-b from-[#0066d6] to-[#0a84ff] h-[44px] w-full max-w-[300px] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)]"
           >
             <span className="block text-[18px] leading-[28px] text-center text-white">
               Inizia
@@ -59,9 +59,9 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
           <button
             type="button"
             onClick={onLogin}
-            className="border-2 border-[#a82847] h-[44px] w-full max-w-[300px] rounded-[16.4px]"
+            className="border-2 border-[#0a84ff] h-[44px] w-full max-w-[300px] rounded-[16.4px]"
           >
-            <span className="block text-[18px] leading-[28px] text-center text-[#f4bf4f]">
+            <span className="block text-[18px] leading-[28px] text-center text-[#0a84ff]">
               Accedi
             </span>
           </button>
@@ -70,4 +70,5 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
     </Screen>
   );
 }
+
 

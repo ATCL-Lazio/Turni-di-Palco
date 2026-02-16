@@ -30,35 +30,35 @@ export function Activities({ activities, onStartActivity }: ActivitiesProps) {
     >
       <div className="w-full app-content px-6 pt-6 pb-8 space-y-6">
         <header className="space-y-2">
-          <h2 className="text-white">Attività simulate</h2>
-          <p className="text-[#b8b2b3]">
+          <h2 className="text-white">AttivitÃ  simulate</h2>
+          <p className="text-[#aeaeb2]">
             Migliora le tue skill e guadagna ricompense
           </p>
         </header>
 
-        <Card className="border border-[#f4bf4f]/30 bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+        <Card className="border border-[#0a84ff]/30 bg-gradient-to-br from-[#1c1c1e] to-[#2c2c2e]">
           <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
-              <TrendingUp className="text-[#f4bf4f]" size={22} />
+            <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#0a84ff] to-[#004ea8] rounded-xl flex items-center justify-center">
+              <TrendingUp className="text-[#0a84ff]" size={22} />
             </div>
             <div className="space-y-1">
               <h3 className="text-white">Allenati ogni giorno</h3>
-              <p className="text-sm text-[#b8b2b3]">
-                Completa le attività per migliorare le tue competenze e prepararti per gli eventi reali
+              <p className="text-sm text-[#aeaeb2]">
+                Completa le attivitÃ  per migliorare le tue competenze e prepararti per gli eventi reali
               </p>
             </div>
           </div>
         </Card>
 
-        <Card className="border border-[#2d2728] bg-[#1a1617]">
+        <Card className="border border-[#3a3a3c] bg-[#1c1c1e]">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Missioni giornaliere</p>
+              <p className="text-xs uppercase tracking-wide text-[#aeaeb2]">Missioni giornaliere</p>
               <h3 className="text-white text-lg font-semibold">0/{dailyGoal} completate oggi</h3>
-              <p className="text-sm text-[#b8b2b3]">Completa le missioni per mantenere la streak attiva.</p>
+              <p className="text-sm text-[#aeaeb2]">Completa le missioni per mantenere la streak attiva.</p>
             </div>
-            <div className="w-12 h-12 rounded-full bg-[#241f20] flex items-center justify-center">
-              <Flag className="text-[#f4bf4f]" size={22} />
+            <div className="w-12 h-12 rounded-full bg-[#2c2c2e] flex items-center justify-center">
+              <Flag className="text-[#0a84ff]" size={22} />
             </div>
           </div>
           <div className="mt-4">
@@ -68,7 +68,7 @@ export function Activities({ activities, onStartActivity }: ActivitiesProps) {
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-white">Attività disponibili</h3>
+            <h3 className="text-white">AttivitÃ  disponibili</h3>
             <Tag size="sm" variant="info">
               {totalActivities} disponibili
             </Tag>
@@ -82,26 +82,26 @@ export function Activities({ activities, onStartActivity }: ActivitiesProps) {
                   key={activity.id}
                   hoverable
                   onClick={() => onStartActivity(activity.id)}
-                  className="border border-white/5 bg-gradient-to-br from-[#1a1617] via-[#1d1819] to-[#221d1e]"
+                  className="border border-white/5 bg-gradient-to-br from-[#1c1c1e] via-[#1d1819] to-[#221d1e]"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl flex items-center justify-center">
-                      <Play className="text-[#f4bf4f]" size={22} />
+                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#0a84ff] to-[#004ea8] rounded-2xl flex items-center justify-center">
+                      <Play className="text-[#0a84ff]" size={22} />
                     </div>
                     <div className="flex-1 space-y-3">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Missione {index + 1}</p>
+                          <p className="text-xs uppercase tracking-wide text-[#aeaeb2]">Missione {index + 1}</p>
                           <h4 className="text-white text-lg">{activity.title}</h4>
                         </div>
-                        <div className="flex items-center gap-2 text-[#f4bf4f]">
+                        <div className="flex items-center gap-2 text-[#0a84ff]">
                           <Play size={18} />
                         </div>
                       </div>
-                      <p className="text-sm text-[#b8b2b3]">
+                      <p className="text-sm text-[#aeaeb2]">
                         {activity.description}
                       </p>
-                      <div className="flex flex-wrap items-center gap-2 text-sm text-[#b8b2b3]">
+                      <div className="flex flex-wrap items-center gap-2 text-sm text-[#aeaeb2]">
                         <span className="inline-flex items-center gap-2">
                           <Clock size={14} />
                           {activity.duration}
@@ -112,11 +112,11 @@ export function Activities({ activities, onStartActivity }: ActivitiesProps) {
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/90 backdrop-blur">
-                          <TrendingUp size={12} className="text-[#f4bf4f]" />
+                          <TrendingUp size={12} className="text-[#0a84ff]" />
                           +{activity.xpReward} XP
                         </span>
                         <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/90 backdrop-blur">
-                          <Coins size={12} className="text-[#f4bf4f]" />
+                          <Coins size={12} className="text-[#0a84ff]" />
                           +{activity.cachetReward}
                         </span>
                       </div>
@@ -130,9 +130,9 @@ export function Activities({ activities, onStartActivity }: ActivitiesProps) {
 
         {totalActivities === 0 ? (
           <Card className="text-center">
-            <p className="text-sm text-[#7a7577]">Nuove attività in arrivo</p>
-            <p className="text-sm text-[#b8b2b3]">
-              Stiamo preparando nuove sfide e attività
+            <p className="text-sm text-[#8e8e93]">Nuove attivitÃ  in arrivo</p>
+            <p className="text-sm text-[#aeaeb2]">
+              Stiamo preparando nuove sfide e attivitÃ 
             </p>
           </Card>
         ) : null}
@@ -140,3 +140,4 @@ export function Activities({ activities, onStartActivity }: ActivitiesProps) {
     </div>
   );
 }
+

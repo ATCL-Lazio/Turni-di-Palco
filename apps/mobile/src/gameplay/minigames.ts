@@ -1,4 +1,4 @@
-﻿export type MinigameType = 'timing' | 'audio';
+export type MinigameType = 'timing' | 'audio';
 
 export type MinigameRound = {
   target: number;

@@ -27,7 +27,7 @@ export function EarnedTitles({ badges, onBack, onViewed }: EarnedTitlesProps) {
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
+          className="flex items-center justify-center size-[44px] text-[#0a84ff]"
           aria-label="Indietro"
         >
           <ArrowLeft size={24} />
@@ -35,7 +35,7 @@ export function EarnedTitles({ badges, onBack, onViewed }: EarnedTitlesProps) {
 
         <div className="mt-4">
           <h2 className="text-white mb-2">Titoli ottenuti</h2>
-          <p className="text-[#b8b2b3]">Tutti i badge sbloccati finora</p>
+          <p className="text-[#aeaeb2]">Tutti i badge sbloccati finora</p>
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-4">
@@ -43,10 +43,10 @@ export function EarnedTitles({ badges, onBack, onViewed }: EarnedTitlesProps) {
             const Icon = BADGE_ICONS[badge.icon] ?? Award;
             return (
               <Card key={badge.id} className="flex flex-col items-center text-center gap-3">
-                <div className="w-14 h-14 bg-[#f4bf4f] rounded-2xl flex items-center justify-center">
-                  <Icon className="text-[#0f0d0e]" size={24} />
+                <div className="w-14 h-14 bg-[#0a84ff] rounded-2xl flex items-center justify-center">
+                  <Icon className="text-[#000000]" size={24} />
                 </div>
-                <p className="text-xs leading-snug text-[#b8b2b3]">{badge.title}</p>
+                <p className="text-xs leading-snug text-[#aeaeb2]">{badge.title}</p>
               </Card>
             );
           })}
@@ -55,3 +55,4 @@ export function EarnedTitles({ badges, onBack, onViewed }: EarnedTitlesProps) {
     </Screen>
   );
 }
+

@@ -32,11 +32,11 @@ export function RoleSelection({ roles, onComplete }: RoleSelectionProps) {
       <Screen withBottomNavPadding={false}>
         <ScreenHeader gradient={false}>
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-full mb-4">
-              <Star className="text-[#f4bf4f]" size={32} />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#0a84ff] to-[#004ea8] rounded-full mb-4">
+              <Star className="text-[#0a84ff]" size={32} />
             </div>
             <h2 className="mb-2">Scegli il tuo ruolo</h2>
-            <p className="text-[#b8b2b3]">Quale professione teatrale vuoi intraprendere?</p>
+            <p className="text-[#aeaeb2]">Quale professione teatrale vuoi intraprendere?</p>
           </div>
         </ScreenHeader>
 
@@ -45,16 +45,16 @@ export function RoleSelection({ roles, onComplete }: RoleSelectionProps) {
             const Icon = roleIcons[role.id] ?? Users;
             return (
               <Card key={role.id} hoverable onClick={() => handleRoleSelect(role)} className="flex items-center gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
-                  <Icon className="text-[#f4bf4f]" size={24} />
+                <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#0a84ff] to-[#004ea8] rounded-xl flex items-center justify-center">
+                  <Icon className="text-[#0a84ff]" size={24} />
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <h4 className="mb-1 text-white">{role.name}</h4>
-                  <p className="text-xs text-[#7a7577]">{role.focus}</p>
+                  <p className="text-xs text-[#8e8e93]">{role.focus}</p>
                 </div>
 
-                <ChevronRight className="text-[#7a7577] flex-shrink-0" size={20} />
+                <ChevronRight className="text-[#8e8e93] flex-shrink-0" size={20} />
               </Card>
             );
           })}
@@ -76,35 +76,35 @@ export function RoleSelection({ roles, onComplete }: RoleSelectionProps) {
           <button
             type="button"
             onClick={() => setStep(1)}
-            className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
+            className="flex items-center justify-center size-[44px] text-[#0a84ff]"
             aria-label="Indietro"
           >
             <ArrowLeft size={24} />
           </button>
 
           <div className="mt-4 text-center mb-4">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl mb-4 shadow-lg">
-              <Icon className="text-[#f4bf4f]" size={40} />
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#0a84ff] to-[#004ea8] rounded-2xl mb-4 shadow-lg">
+              <Icon className="text-[#0a84ff]" size={40} />
             </div>
             <h2 className="mb-3">{selectedRole.name}</h2>
-            <p className="text-[#b8b2b3] px-4">{selectedRole.focus}</p>
+            <p className="text-[#aeaeb2] px-4">{selectedRole.focus}</p>
           </div>
 
           <Card className="mb-4">
-            <h4 className="mb-4 text-[#f4bf4f]">Caratteristiche principali</h4>
+            <h4 className="mb-4 text-[#0a84ff]">Caratteristiche principali</h4>
 
             <div className="space-y-4">
               {Object.entries(selectedRole.stats).map(([key, value]) => (
                 <div key={key}>
                   <div className="flex justify-between mb-2">
-                    <span className="text-[#b8b2b3] capitalize">
-                      {key === 'presence' ? 'Presenza scenica' : key === 'precision' ? 'Precisione' : key === 'leadership' ? 'Leadership' : 'Creatività'}
+                    <span className="text-[#aeaeb2] capitalize">
+                      {key === 'presence' ? 'Presenza scenica' : key === 'precision' ? 'Precisione' : key === 'leadership' ? 'Leadership' : 'CreativitÃ '}
                     </span>
                     <span className="text-white">{value}/100</span>
                   </div>
-                  <div className="h-2 bg-[#241f20] rounded-full overflow-hidden">
+                  <div className="h-2 bg-[#2c2c2e] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-[#e6a23c] to-[#f4bf4f] rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-[#0066d6] to-[#0a84ff] rounded-full transition-all duration-500"
                       style={{ width: `${value}%` }}
                     />
                   </div>
@@ -123,3 +123,4 @@ export function RoleSelection({ roles, onComplete }: RoleSelectionProps) {
 
   return null;
 }
+

@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @source "../../apps/mobile/src/**/*.{ts,tsx,js,jsx,html}";
 @source "../../apps/mobile/index.html";
 @source "../../apps/pwa/src/**/*.{ts,tsx,js,jsx,html}";
@@ -8,25 +8,34 @@
 @import "../../apps/pwa/src/style.css";
 
 :root {
-  --color-burgundy-950: #2d0a0f;
-  --color-burgundy-900: #4a0e1a;
-  --color-burgundy-800: #6b1529;
-  --color-burgundy-700: #8c1c38;
-  --color-burgundy-600: #a82847;
-  --color-burgundy-500: #c23456;
-  --color-gold-400: #f4bf4f;
-  --color-gold-500: #e6a23c;
-  --color-gold-600: #d48806;
-  --color-bg-primary: #0f0d0e;
-  --color-bg-surface: #1a1617;
-  --color-bg-surface-elevated: #241f20;
-  --color-bg-surface-hover: #2d2728;
-  --color-text-primary: #f5f5f5;
-  --color-text-secondary: #b8b2b3;
-  --color-text-tertiary: #7a7577;
-  --color-success: #52c41a;
-  --color-error: #ff4d4f;
-  --color-warning: #faad14;
+  --color-burgundy-950: #0a0a0b;
+  --color-burgundy-900: #141416;
+  --color-burgundy-800: #004ea8;
+  --color-burgundy-700: #0066d6;
+  --color-burgundy-600: #0a84ff;
+  --color-burgundy-500: #409cff;
+  --color-gold-400: #0a84ff;
+  --color-gold-500: #0066d6;
+  --color-gold-600: #0066d6;
+  --color-bg-primary: #000000;
+  --color-bg-surface: #1c1c1e;
+  --color-bg-surface-elevated: #2c2c2e;
+  --color-bg-surface-hover: #3a3a3c;
+  --color-text-primary: #f2f2f7;
+  --color-text-secondary: #aeaeb2;
+  --color-text-tertiary: #8e8e93;
+  --color-success: #30d158;
+  --color-error: #ff453a;
+  --color-warning: #ff9f0a;
+  --ios-accent: #0a84ff;
+  --ios-accent-strong: #0066d6;
+  --ios-accent-soft: #5ac8fa;
+  --ios-card-bg: rgba(44, 44, 46, 0.78);
+  --ios-card-border: rgba(255, 255, 255, 0.12);
+  --ios-nav-bg: rgba(28, 28, 30, 0.78);
+  --ios-nav-border: rgba(255, 255, 255, 0.14);
+  --ios-elevated-shadow: 0 18px 36px -24px rgba(0, 0, 0, 0.72),
+    0 8px 18px -14px rgba(0, 0, 0, 0.5);
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
   --space-md: 1rem;
@@ -67,6 +76,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
   }
 
   html {
@@ -102,12 +112,18 @@
     position: fixed;
     inset: 0;
     background-color: var(--color-bg-primary);
-    background-image: linear-gradient(
-      180deg,
-      rgba(15, 13, 14, 1) 0%,
-      rgba(26, 22, 23, 1) 52%,
-      rgba(45, 10, 15, 1) 100%
-    );
+    background-image:
+      radial-gradient(
+        120% 90% at 50% -10%,
+        rgba(10, 132, 255, 0.22) 0%,
+        rgba(10, 132, 255, 0) 55%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(19, 19, 21, 1) 56%,
+        rgba(28, 28, 30, 1) 100%
+      );
     background-repeat: no-repeat;
     background-size: cover;
     pointer-events: none;
@@ -228,12 +244,18 @@
 
   .app-gradient {
     background-color: var(--color-bg-primary);
-    background-image: linear-gradient(
-      180deg,
-      rgba(15, 13, 14, 1) 0%,
-      rgba(26, 22, 23, 1) 52%,
-      rgba(45, 10, 15, 1) 100%
-    );
+    background-image:
+      radial-gradient(
+        120% 90% at 50% -10%,
+        rgba(10, 132, 255, 0.22) 0%,
+        rgba(10, 132, 255, 0) 55%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(19, 19, 21, 1) 56%,
+        rgba(28, 28, 30, 1) 100%
+      );
     background-repeat: no-repeat;
     background-size: cover;
   }
@@ -252,6 +274,7 @@
     display: flex;
     justify-content: center;
     align-items: stretch;
+    color-scheme: dark;
   }
 
   .app-frame {
@@ -270,7 +293,7 @@
 
   .app-nav {
     width: 100%;
-    padding-bottom: var(--safe-area-inset-bottom);
+    padding-bottom: calc(var(--safe-area-inset-bottom) + 8px);
   }
 
   @media (min-width: 768px) {
@@ -341,16 +364,18 @@
 
 /* Enhanced Card Hover Effects */
 .mobile-card-hover {
-  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 160ms ease-out, box-shadow 160ms ease-out,
+    border-color 160ms ease-out;
 }
 
 .mobile-card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 28px -24px rgba(0, 0, 0, 0.72),
+    0 8px 14px -12px rgba(0, 0, 0, 0.5);
 }
 
 .mobile-card-hover:active {
-  transform: translateY(0) scale(0.98);
+  transform: translateY(0) scale(0.99);
 }
 
 /* Accessibility: Respect Reduced Motion */
@@ -450,15 +475,15 @@
 
 /* Tab button animations */
 .tab-button-active {
-  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 140ms ease-out, background-color 140ms ease-out;
 }
 
 .tab-button-active:hover {
-  transform: translateY(-2px);
+  transform: translateY(-0.5px);
 }
 
 .tab-button-active:active {
-  transform: translateY(0) scale(0.95);
+  transform: translateY(0) scale(0.985);
 }
 
 /* Tab icon pulse when active */
@@ -486,3 +511,4 @@
     transform: none;
   }
 }
+
