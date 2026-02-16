@@ -377,20 +377,18 @@ function AppShell() {
     return { ok: true as const };
   };
 
-  const handleEventConfirm = async () => {
+  const handleEventConfirm = async (): Promise<{ ok: true } | { ok: false; error: string }> => {
     const activationUserId = (authUserId ?? state.profile.email ?? '').trim();
 
     if (pendingTicketActivation?.mode === 'hash') {
       if (!activationUserId) {
-        window.alert('Sessione non valida. Effettua di nuovo il login.');
         setCurrentScreen('welcome');
-        return;
+        return { ok: false, error: 'Sessione non valida. Effettua di nuovo il login.' };
       }
 
       const activation = await activateTicketHash(pendingTicketActivation.hash, activationUserId);
       if (!activation.ok) {
-        window.alert(activation.error);
-        return;
+        return { ok: false, error: activation.error };
       }
 
       const resolvedEventId = activation.eventId ?? pendingTicketActivation.eventId;
@@ -400,22 +398,19 @@ function AppShell() {
         mapActivatedEvent(resolvedEventId, activation.event ?? pendingTicketActivation.event)
       );
       if (!turnRecord) {
-        window.alert('Ticket attivato, ma non e stato possibile registrare il turno.');
-        return;
+        return { ok: false, error: 'Ticket attivato, ma non e stato possibile registrare il turno.' };
       }
 
       setPendingTicketActivation(null);
       setConfirmationEventOverride(null);
       setScannedEventId(resolvedEventId);
-      handleTabChange('home');
-      return;
+      return { ok: true };
     }
 
     if (pendingTicketActivation?.mode === 'manual') {
       if (!activationUserId) {
-        window.alert('Sessione non valida. Effettua di nuovo il login.');
         setCurrentScreen('welcome');
-        return;
+        return { ok: false, error: 'Sessione non valida. Effettua di nuovo il login.' };
       }
 
       const activation = await activateTicketByDetails(
@@ -424,8 +419,7 @@ function AppShell() {
         activationUserId
       );
       if (!activation.ok) {
-        window.alert(activation.error);
-        return;
+        return { ok: false, error: activation.error };
       }
 
       const resolvedEventId = activation.eventId ?? pendingTicketActivation.eventId;
@@ -435,22 +429,22 @@ function AppShell() {
         mapActivatedEvent(resolvedEventId, activation.event)
       );
       if (!turnRecord) {
-        window.alert('Ticket attivato, ma non e stato possibile registrare il turno.');
-        return;
+        return { ok: false, error: 'Ticket attivato, ma non e stato possibile registrare il turno.' };
       }
 
       setPendingTicketActivation(null);
       setConfirmationEventOverride(null);
       setScannedEventId(resolvedEventId);
-      handleTabChange('home');
-      return;
+      return { ok: true };
     }
 
     if (registerTurn(scannedEventId, state.profile.roleId, confirmationEventOverride ?? undefined)) {
       setPendingTicketActivation(null);
       setConfirmationEventOverride(null);
-      handleTabChange('home');
+      return { ok: true };
     }
+
+    return { ok: false, error: 'Non e stato possibile registrare il turno.' };
   };
   const handleUploadImage = async (file: File) => {
     if (!authUserId) return;
@@ -488,6 +482,7 @@ function AppShell() {
           event={selectedEvent}
           role={selectedRole}
           onConfirm={handleEventConfirm}
+          onSuccess={() => handleTabChange('home')}
           onCancel={() => {
             setPendingTicketActivation(null);
             setConfirmationEventOverride(null);
