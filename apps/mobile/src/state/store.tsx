@@ -213,6 +213,11 @@ const OFFLINE_SYNC_QUEUE_KEY = 'tdp-mobile-offline-sync-v1';
 const OFFLINE_SYNC_RETRY_INTERVAL_MS = 15000;
 const OFFLINE_SYNC_MAX_ITEMS = 300;
 const OFFLINE_SYNC_MAX_ATTEMPTS = 12;
+const OFFLINE_SYNC_SERVER_LOG_QUEUE_KEY = 'tdp-mobile-offline-sync-server-logs-v1';
+const OFFLINE_SYNC_SERVER_LOG_BATCH_SIZE = 60;
+const OFFLINE_SYNC_SERVER_LOG_MAX_ITEMS = 2500;
+const OFFLINE_SYNC_SERVER_LOG_RETRY_INTERVAL_MS = 8000;
+const OFFLINE_SYNC_SERVER_LOG_FUNCTION = 'mobile-logs';
 const OFFLINE_SYNC_LOG_PREFIX = '[TDP Offline Sync]';
 const MOBILE_WATCHDOG_TIMEOUTS = {
   refreshTurnStats: 10000,
@@ -316,31 +321,127 @@ type QueuedSupabaseMutationInput = Omit<
   'id' | 'createdAt' | 'attempts' | 'lastError'
 >;
 
+type MirroredClientLogEntry = {
+  id: string;
+  sequence: number;
+  createdAt: number;
+  level: OfflineSyncLogLevel;
+  message: string;
+  details?: unknown;
+};
+
 type OfflineSyncLogLevel = 'info' | 'warn' | 'error';
+let mirroredLogSequence = 0;
+
+function normalizeMirroredLogLevel(value: unknown): OfflineSyncLogLevel {
+  if (value === 'warn' || value === 'error' || value === 'info') return value;
+  return 'info';
+}
+
+function serializeMirroredLogDetails(details: unknown): unknown {
+  if (details == null) return undefined;
+  if (typeof details === 'string' || typeof details === 'number' || typeof details === 'boolean') {
+    return details;
+  }
+  if (details instanceof Error) {
+    return {
+      name: details.name,
+      message: details.message,
+      stack: details.stack ?? null,
+    };
+  }
+  try {
+    return JSON.parse(JSON.stringify(details));
+  } catch {
+    return String(details);
+  }
+}
+
+function readMirroredClientLogs(): MirroredClientLogEntry[] {
+  if (typeof window === 'undefined' || !isSupabaseConfigured) return [];
+  try {
+    const raw = window.localStorage.getItem(OFFLINE_SYNC_SERVER_LOG_QUEUE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+      .map((entry, index) => {
+        const id = typeof entry.id === 'string' && entry.id.trim()
+          ? entry.id.trim()
+          : createOfflineMutationId();
+        const message = typeof entry.message === 'string'
+          ? entry.message.trim()
+          : '';
+        const createdAt = typeof entry.createdAt === 'number' && Number.isFinite(entry.createdAt)
+          ? entry.createdAt
+          : Date.now();
+        const sequence = typeof entry.sequence === 'number' && Number.isFinite(entry.sequence)
+          ? entry.sequence
+          : index + 1;
+        return {
+          id,
+          message,
+          createdAt,
+          sequence,
+          level: normalizeMirroredLogLevel(entry.level),
+          details: entry.details,
+        };
+      })
+      .filter((entry) => entry.message)
+      .sort((a, b) => a.createdAt - b.createdAt)
+      .slice(-OFFLINE_SYNC_SERVER_LOG_MAX_ITEMS);
+  } catch {
+    return [];
+  }
+}
+
+function writeMirroredClientLogs(queue: MirroredClientLogEntry[]) {
+  if (typeof window === 'undefined' || !isSupabaseConfigured) return;
+  try {
+    if (!queue.length) {
+      window.localStorage.removeItem(OFFLINE_SYNC_SERVER_LOG_QUEUE_KEY);
+      return;
+    }
+    window.localStorage.setItem(
+      OFFLINE_SYNC_SERVER_LOG_QUEUE_KEY,
+      JSON.stringify(queue.slice(-OFFLINE_SYNC_SERVER_LOG_MAX_ITEMS))
+    );
+  } catch {
+    // keep best effort and avoid log recursion
+  }
+}
+
+function enqueueMirroredClientLog(message: string, level: OfflineSyncLogLevel, details?: unknown) {
+  if (typeof window === 'undefined' || !isSupabaseConfigured) return;
+  const trimmedMessage = message.trim();
+  if (!trimmedMessage) return;
+  const queue = readMirroredClientLogs();
+  mirroredLogSequence += 1;
+  queue.push({
+    id: createOfflineMutationId(),
+    sequence: mirroredLogSequence,
+    createdAt: Date.now(),
+    level,
+    message: trimmedMessage,
+    details: serializeMirroredLogDetails(details),
+  });
+  writeMirroredClientLogs(queue);
+}
 
 function logOfflineSync(message: string, details?: unknown, level: OfflineSyncLogLevel = 'info') {
   const formattedMessage = `${OFFLINE_SYNC_LOG_PREFIX} ${new Date().toISOString()} ${message}`;
-  if (details === undefined) {
-    if (level === 'warn') {
-      console.warn(formattedMessage);
-      return;
-    }
-    if (level === 'error') {
-      console.error(formattedMessage);
-      return;
-    }
-    console.info(formattedMessage);
-    return;
-  }
   if (level === 'warn') {
-    console.warn(formattedMessage, details);
-    return;
+    if (details === undefined) console.warn(formattedMessage);
+    else console.warn(formattedMessage, details);
+  } else if (level === 'error') {
+    if (details === undefined) console.error(formattedMessage);
+    else console.error(formattedMessage, details);
+  } else {
+    if (details === undefined) console.info(formattedMessage);
+    else console.info(formattedMessage, details);
   }
-  if (level === 'error') {
-    console.error(formattedMessage, details);
-    return;
-  }
-  console.info(formattedMessage, details);
+  enqueueMirroredClientLog(message, level, details);
 }
 
 function decodeUnicodeEscapes(value: string) {
@@ -1025,6 +1126,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [followedEventsLoading, setFollowedEventsLoading] = useState(false);
   const lastDecaySyncKeyRef = useRef<string | null>(null);
   const offlineSyncInFlightRef = useRef(false);
+  const offlineServerLogSyncInFlightRef = useRef(false);
 
   const turnStats = useMemo(
     () => (isSupabaseConfigured && authUserId ? remoteTurnStats ?? localTurnStats : localTurnStats),
@@ -1217,6 +1319,59 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       }
     );
   }, []);
+
+  const flushMirroredClientLogsToServer = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) return;
+    if (offlineServerLogSyncInFlightRef.current) return;
+    if (isNavigatorOffline()) return;
+
+    const queue = readMirroredClientLogs();
+    if (!queue.length) return;
+
+    const batch = queue.slice(0, OFFLINE_SYNC_SERVER_LOG_BATCH_SIZE);
+    offlineServerLogSyncInFlightRef.current = true;
+    console.info(`${OFFLINE_SYNC_LOG_PREFIX} Mirroring log batch to server`, {
+      batchSize: batch.length,
+      queueSize: queue.length,
+      duplicatePolicy: 'include',
+    });
+
+    try {
+      const { data, error } = await supabase.functions.invoke(OFFLINE_SYNC_SERVER_LOG_FUNCTION, {
+        body: {
+          action: 'ingest_logs',
+          source: 'mobile-offline-sync',
+          duplicatePolicy: 'include',
+          clientUserId: authUserId ?? null,
+          logs: batch,
+        },
+      });
+
+      if (error) {
+        console.warn(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror failed`, {
+          message: error.message,
+          batchSize: batch.length,
+        });
+        return;
+      }
+
+      const acknowledgedIds = Array.isArray((data as { acceptedLogIds?: unknown })?.acceptedLogIds)
+        ? ((data as { acceptedLogIds?: unknown[] }).acceptedLogIds ?? [])
+          .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+        : batch.map((entry) => entry.id);
+      const acknowledgedSet = new Set(acknowledgedIds);
+      const remaining = readMirroredClientLogs().filter((entry) => !acknowledgedSet.has(entry.id));
+      writeMirroredClientLogs(remaining);
+      console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror ack`, {
+        acknowledged: acknowledgedSet.size,
+        remaining: remaining.length,
+      });
+    } catch (error) {
+      console.warn(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror exception`, error);
+    } finally {
+      offlineServerLogSyncInFlightRef.current = false;
+    }
+  }, [authUserId]);
 
   type QueueExecutionResult = { status: 'applied' | 'retry' | 'discard'; error?: unknown };
 
@@ -1633,6 +1788,37 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       logOfflineSync('Online/offline sync listeners stopped', { authUserId });
     };
   }, [authUserId, flushQueuedSupabaseMutations]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    void flushMirroredClientLogsToServer();
+  }, [authUserId, authReady, flushMirroredClientLogsToServer]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    if (typeof window === 'undefined') return;
+    console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror listeners started`, {
+      retryIntervalMs: OFFLINE_SYNC_SERVER_LOG_RETRY_INTERVAL_MS,
+      batchSize: OFFLINE_SYNC_SERVER_LOG_BATCH_SIZE,
+    });
+
+    const handleOnline = () => {
+      console.info(`${OFFLINE_SYNC_LOG_PREFIX} Browser online: retrying server log mirror`);
+      void flushMirroredClientLogsToServer();
+    };
+
+    window.addEventListener('online', handleOnline);
+    const intervalId = window.setInterval(
+      () => void flushMirroredClientLogsToServer(),
+      OFFLINE_SYNC_SERVER_LOG_RETRY_INTERVAL_MS
+    );
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.clearInterval(intervalId);
+      console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror listeners stopped`);
+    };
+  }, [flushMirroredClientLogsToServer]);
 
   const refreshFollowedEvents = useCallback(
     async (catalogEvents: GameEvent[]) => {
