@@ -18,6 +18,7 @@ export type GeneratedTicket = {
 
 export type TicketActivationRecord = {
   hash: string;
+  eventId: string;
   ticketNumber: string;
   status: 'generated' | 'activated';
   activatedBy: string | null;
@@ -50,6 +51,27 @@ const LEGACY_PROTOCOL_PREFIX = 'turni://ticket/';
 const localActivationStore = new Map<string, TicketActivationRecord>();
 const localManualActivationStore = new Map<string, ManualTicketActivationRecord>();
 const SESSION_REQUIRED_MESSAGE = 'Sessione scaduta o non disponibile. Effettua di nuovo il login.';
+const TOKEN_REFRESH_SKEW_SECONDS = 30;
+const MAX_STORE_SIZE = 1000; // Prevent memory leaks
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+// Cleanup function to prevent memory leaks
+function cleanupOldRecords() {
+  if (localActivationStore.size > MAX_STORE_SIZE) {
+    const entries = Array.from(localActivationStore.entries());
+    // Keep only the most recent half
+    const toKeep = entries.slice(-Math.floor(MAX_STORE_SIZE / 2));
+    localActivationStore.clear();
+    toKeep.forEach(([key, value]) => localActivationStore.set(key, value));
+  }
+
+  if (localManualActivationStore.size > MAX_STORE_SIZE) {
+    const entries = Array.from(localManualActivationStore.entries());
+    const toKeep = entries.slice(-Math.floor(MAX_STORE_SIZE / 2));
+    localManualActivationStore.clear();
+    toKeep.forEach(([key, value]) => localManualActivationStore.set(key, value));
+  }
+}
 
 function buildManualTicketKey(eventID: string, ticketNumber: string): string {
   return `${eventID.trim().toLowerCase()}::${ticketNumber.trim().toLowerCase()}`;
@@ -142,6 +164,20 @@ function getFunctionErrorStatus(error: unknown): number | null {
   return typeof context.status === 'number' ? context.status : null;
 }
 
+async function invalidateAuthSession() {
+  if (!supabase) return;
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    // ignore logout failures
+  }
+}
+
+function shouldLogActivationError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return !/sessione scaduta|invalid jwt|unauthorized|401/i.test(message);
+}
+
 async function getAccessTokenForFunctions(): Promise<string> {
   if (!supabase || !isSupabaseConfigured) {
     throw new Error(SESSION_REQUIRED_MESSAGE);
@@ -149,19 +185,30 @@ async function getAccessTokenForFunctions(): Promise<string> {
 
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) {
+    await invalidateAuthSession();
     throw new Error(SESSION_REQUIRED_MESSAGE);
   }
 
-  const sessionToken = sessionData.session?.access_token?.trim();
-  if (sessionToken) return sessionToken;
+  const session = sessionData.session;
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const sessionToken = session?.access_token?.trim();
+  const expiresAt = typeof session?.expires_at === 'number' ? session.expires_at : 0;
+  const shouldRefresh =
+    !sessionToken || !expiresAt || expiresAt <= nowSeconds + TOKEN_REFRESH_SKEW_SECONDS;
+
+  if (!shouldRefresh && sessionToken) {
+    return sessionToken;
+  }
 
   const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
   if (refreshError) {
+    await invalidateAuthSession();
     throw new Error(SESSION_REQUIRED_MESSAGE);
   }
 
   const refreshedToken = refreshed.session?.access_token?.trim();
   if (!refreshedToken) {
+    await invalidateAuthSession();
     throw new Error(SESSION_REQUIRED_MESSAGE);
   }
 
@@ -188,6 +235,9 @@ async function invokeTicketActivation(body: Record<string, unknown>) {
         headers: { Authorization: `Bearer ${refreshedToken}` },
         body,
       });
+    }
+    if (response.error && getFunctionErrorStatus(response.error) === 401) {
+      await invalidateAuthSession();
     }
   }
 
@@ -253,27 +303,30 @@ export async function generateTicketQr(params: {
 
   const json = stableStringify(payload);
   const hash = await sha256Hex(json);
+  let persistedRemotely = false;
 
   if (localActivationStore.has(hash)) {
-    throw new Error('Hash già presente in archivio locale: controlla i dati ticket.');
+    throw new Error('Ticket gia generato in questa sessione. Verifica eventID e ticketNumber.');
   }
 
-  let persistedRemotely = false;
-  try {
-    const reserved = await reserveHashRemotely(payload, hash);
-    persistedRemotely = reserved;
-    if (supabase && isSupabaseConfigured && !reserved) {
-      throw new Error('Hash già esistente su Supabase: modifica il ticket e rigenera.');
-    }
-  } catch (error) {
-    if (supabase && isSupabaseConfigured) {
+  if (supabase && isSupabaseConfigured) {
+    try {
+      const reserved = await reserveHashRemotely(payload, hash);
+      if (!reserved) {
+        throw new Error(
+          'Ticket gia presente su Supabase. Verifica eventID e ticketNumber (potrebbe essere un duplicato).'
+        );
+      }
+      persistedRemotely = true;
+    } catch (error) {
       throw error instanceof Error ? error : new Error('Errore durante la registrazione hash su Supabase.');
     }
-    persistedRemotely = false;
   }
 
+  cleanupOldRecords();
   localActivationStore.set(hash, {
     hash,
+    eventId: payload.eventID,
     ticketNumber: payload.ticketNumber,
     status: 'generated',
     activatedBy: null,
@@ -288,7 +341,6 @@ export async function generateTicketQr(params: {
     persistedRemotely,
   };
 }
-
 export function parseTicketQrValue(input: string): string | null {
   const trimmed = input.trim();
 
@@ -363,6 +415,8 @@ async function resolveRemotely(hash: string) {
 
   return data as {
     ok?: boolean;
+    alreadyActivated?: boolean;
+    activatedBy?: string;
     eventId?: string;
     eventName?: string;
     event?: ActivatedEventPayload;
@@ -378,12 +432,29 @@ export async function resolveTicketHashPreview(
     return { ok: false, error: 'Hash non valido.' };
   }
 
+  const localRecord = localActivationStore.get(normalizedHash);
+  if (localRecord?.status === 'activated') {
+    return { ok: false, error: 'Ticket già attivato.' };
+  }
+
   try {
     const remote = await resolveRemotely(normalizedHash);
-    if (!remote?.ok || !remote.eventId) {
-      return { ok: false, error: remote?.error ?? 'Ticket non trovato.' };
+    if (!remote) {
+      if (localRecord?.eventId) {
+        return { ok: true, eventId: localRecord.eventId };
+      }
+      return { ok: false, error: 'Ticket non trovato.' };
     }
-    return { ok: true, eventId: remote.eventId, event: remote.event };
+
+    if (remote.ok && remote.eventId) {
+      return { ok: true, eventId: remote.eventId, event: remote.event };
+    }
+
+    if (remote.alreadyActivated) {
+      return { ok: false, error: 'Ticket già attivato.' };
+    }
+
+    return { ok: false, error: remote.error ?? 'Ticket non trovato.' };
   } catch (error) {
     return {
       ok: false,
@@ -407,6 +478,11 @@ export async function activateTicketHash(
     return { ok: false, error: 'Utente non disponibile per l\'attivazione.' };
   }
 
+  // Enforce UUID only when Supabase-backed auth is active.
+  if (isSupabaseConfigured && !UUID_PATTERN.test(normalizedUserId)) {
+    return { ok: false, error: 'ID utente non valido.' };
+  }
+
   if (isTicketHashActivatedInSession(normalizedHash)) {
     return { ok: false, error: 'Ticket già attivato in questa sessione.' };
   }
@@ -418,6 +494,7 @@ export async function activateTicketHash(
       const currentRecord = localActivationStore.get(normalizedHash);
       localActivationStore.set(normalizedHash, {
         hash: normalizedHash,
+        eventId: remote.eventId ?? currentRecord?.eventId ?? '',
         ticketNumber: currentRecord?.ticketNumber ?? 'N/A',
         status: 'activated',
         activatedBy: normalizedUserId,
@@ -434,7 +511,9 @@ export async function activateTicketHash(
       return { ok: false, error: remote.error };
     }
   } catch (error) {
-    console.error('Remote activation failed:', error);
+    if (shouldLogActivationError(error)) {
+      console.error('Remote activation failed:', error);
+    }
     if (supabase && isSupabaseConfigured) {
       return { 
         ok: false, 
@@ -474,6 +553,11 @@ export async function activateTicketByDetails(
   if (!normalizedEventId || !normalizedTicket || !normalizedUserId) {
     return { ok: false, error: 'Dati mancanti per l\'attivazione manuale.' };
   }
+
+  // Enforce UUID only when Supabase-backed auth is active.
+  if (isSupabaseConfigured && !UUID_PATTERN.test(normalizedUserId)) {
+    return { ok: false, error: 'ID utente non valido.' };
+  }
   const manualTicketKey = buildManualTicketKey(normalizedEventId, normalizedTicket);
   if (localManualActivationStore.has(manualTicketKey)) {
     return { ok: false, error: 'Ticket già attivato in questa sessione.' };
@@ -504,6 +588,7 @@ export async function activateTicketByDetails(
     } | null;
 
     if (remote?.ok) {
+      cleanupOldRecords();
       localManualActivationStore.set(manualTicketKey, {
         eventId: normalizedEventId,
         ticketNumber: normalizedTicket,
@@ -515,7 +600,9 @@ export async function activateTicketByDetails(
     if (remote?.alreadyActivated) return { ok: false, error: 'Ticket già attivato.' };
     return { ok: false, error: remote?.error || 'Errore durante l\'attivazione manuale.' };
   } catch (error) {
-    console.error('Manual activation failed:', error);
+    if (shouldLogActivationError(error)) {
+      console.error('Manual activation failed:', error);
+    }
     return { ok: false, error: error instanceof Error ? error.message : 'Errore tecnico.' };
   }
 }
