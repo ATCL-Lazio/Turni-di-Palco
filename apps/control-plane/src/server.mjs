@@ -109,48 +109,6 @@ const COMMAND_CATALOG = Object.freeze({
     description: "Mutazioni Supabase con guardrail.",
     label: "Supabase mutate",
   },
-  "legacy.render.deploy": {
-    minRole: "dev_operator",
-    riskLevel: "high",
-    requiresConfirmText: DEFAULT_CONFIRM_TEXT,
-    description: "Trigger deploy Render",
-  },
-  "legacy.render.restart": {
-    minRole: "dev_operator",
-    riskLevel: "high",
-    requiresConfirmText: DEFAULT_CONFIRM_TEXT,
-    description: "Restart servizio Render tramite deploy",
-  },
-  "legacy.render.scale": {
-    minRole: "dev_admin",
-    riskLevel: "high",
-    requiresConfirmText: DEFAULT_CONFIRM_TEXT,
-    description: "Richiesta scaling manuale",
-  },
-  "legacy.db.migrate": {
-    minRole: "dev_admin",
-    riskLevel: "high",
-    requiresConfirmText: DEFAULT_CONFIRM_TEXT,
-    description: "Registrazione migrazione DB",
-  },
-  "legacy.db.backup": {
-    minRole: "dev_admin",
-    riskLevel: "medium",
-    requiresConfirmText: DEFAULT_CONFIRM_TEXT,
-    description: "Registrazione backup DB",
-  },
-  "legacy.db.vacuum": {
-    minRole: "dev_admin",
-    riskLevel: "medium",
-    requiresConfirmText: DEFAULT_CONFIRM_TEXT,
-    description: "Registrazione vacuum DB",
-  },
-  "legacy.cache.invalidate": {
-    minRole: "dev_operator",
-    riskLevel: "medium",
-    requiresConfirmText: DEFAULT_CONFIRM_TEXT,
-    description: "Invalidazione cache",
-  },
 });
 const COMMAND_ALLOWLIST = new Set(Object.keys(COMMAND_CATALOG));
 
@@ -921,7 +879,6 @@ async function sessionValidateHandler(req, res) {
 function commandsCatalogHandler(_req, res) {
   const auth = getAuth(res);
   const commands = Object.entries(COMMAND_CATALOG)
-    .filter(([id]) => !id.startsWith("legacy."))
     .map(([command, data]) => ({
       id: command,
       command,
@@ -1337,9 +1294,7 @@ async function executeAllowlistedCommand(entry, auth, effectiveDryRun) {
       };
     }
 
-    case "render.deployments.trigger":
-    case "legacy.render.deploy":
-    case "legacy.render.restart": {
+    case "render.deployments.trigger": {
       const serviceId = resolveRenderServiceId(entry.target, entry.payload);
       if (!serviceId) {
         return {
@@ -1352,7 +1307,7 @@ async function executeAllowlistedCommand(entry, auth, effectiveDryRun) {
       const deployment = await renderApiRequest(`/services/${encodeURIComponent(serviceId)}/deploys`, {
         method: "POST",
         body: {
-          clearCache: parseBoolean(entry.payload.clearCache, entry.command === "legacy.render.restart"),
+          clearCache: parseBoolean(entry.payload.clearCache, false),
         },
       });
 
@@ -1525,35 +1480,6 @@ async function executeAllowlistedCommand(entry, auth, effectiveDryRun) {
         },
       };
     }
-
-    case "legacy.render.scale":
-      return {
-        status: "succeeded",
-        message: "render.scale registrato: applicazione scaling esterna non configurata.",
-        payload: {
-          queued: true,
-        },
-      };
-
-    case "legacy.db.migrate":
-    case "legacy.db.backup":
-    case "legacy.db.vacuum":
-      return {
-        status: "succeeded",
-        message: `Comando ${entry.command} registrato nel control-plane.`,
-        payload: {
-          queued: true,
-        },
-      };
-
-    case "legacy.cache.invalidate":
-      return {
-        status: "succeeded",
-        message: "cache.invalidate completato.",
-        payload: {
-          scope: entry.payload.scope || entry.target,
-        },
-      };
 
     default:
       return {
