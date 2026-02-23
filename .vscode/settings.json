@@ -222,5 +222,8 @@
         "supabase/functions"
     ],
     "deno.unstable": true,
-    "deno.lint": true
+    "deno.lint": true,
+    "[json]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    }
 }
