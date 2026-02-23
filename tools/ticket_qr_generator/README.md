@@ -45,7 +45,7 @@ Puoi cambiare path impostando `TICKET_QR_UI_SETTINGS_PATH`.
 Il contenuto del QR e il solo hash SHA-256 (64 caratteri), senza schema `turni://`.
 
 La lista circuiti del menu e esterna in `tools/ticket_qr_generator/circuit_options.json`.
-Puoi sovrascrivere il file con `TICKET_QR_CIRCUITS_PATH` oppure passare una lista CSV diretta con `TICKET_QR_CIRCUITS` (es: `TicketOne,Vivaticket,Ciaotickets`).
+Puoi sovrascrivere il file con `TICKET_QR_CIRCUITS_PATH` oppure passare una lista CSV diretta con `TICKET_QR_CIRCUITS` (es: `TICKETONE,TICKETTANDO/18 MONTHS,CIAO TICKETS`).
 
 Per leggere il calendario eventi nella UI imposta:
 
