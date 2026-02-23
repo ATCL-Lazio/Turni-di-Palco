@@ -19,6 +19,8 @@ services:
   startCommand: npm --workspace apps/pwa run preview:https -- --host 0.0.0.0 --port
     $PORT --strictPort --clearScreen false
   autoDeployTrigger: commit
+  previews:
+    generation: manual
 - type: web
   name: Maxwell-AI-Support
   runtime: node
