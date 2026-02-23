@@ -5,8 +5,8 @@
 [![Update Server Repository](https://github.com/Heartran/Turni-di-Palco/actions/workflows/update-server-repository.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/update-server-repository.yml)
 [![Sync Deploy Branches](https://github.com/Heartran/Turni-di-Palco/actions/workflows/sync-deploy-branches.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/sync-deploy-branches.yml)
 [![Security Checks](https://github.com/Heartran/Turni-di-Palco/actions/workflows/security.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/security.yml)
-[![Last Commit](https://img.shields.io/github/last-commit/Heartran/Turni-di-Palco?label=Last%20commit)](https://github.com/Heartran/Turni-di-Palco/commits/main)
-[![Open Issues](https://img.shields.io/github/issues/Heartran/Turni-di-Palco?label=Open%20issues)](https://github.com/Heartran/Turni-di-Palco/issues)
+[![Last Commit](https://turni-di-palco-badges.onrender.com/github/last-commit/Heartran/Turni-di-Palco?label=Last%20commit&logo=github)](https://github.com/Heartran/Turni-di-Palco/commits/main)
+[![Open Issues](https://turni-di-palco-badges.onrender.com/github/issues/Heartran/Turni-di-Palco?label=Open%20issues&logo=github)](https://github.com/Heartran/Turni-di-Palco/issues)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18%20%7C%2022.14.0-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![PWA Stack](https://img.shields.io/badge/PWA-Vite%207-646CFF?logo=vite&logoColor=white)](apps/pwa/package.json)
 [![Tests](https://img.shields.io/badge/tests-Vitest-6E9F18?logo=vitest&logoColor=white)](apps/pwa/package.json)
@@ -106,6 +106,9 @@ Variabili principali:
 Deploy Render:
 
 - `render.yaml` include il servizio `Turni-di-Palco-Control-Plane` con `buildCommand`/`startCommand` dedicati.
+- `render.yaml` include anche `Turni-di-Palco-Badges` (Shields self-hosted) per badge su repository privata.
+- Imposta `GH_TOKEN` sul servizio badges con permessi di lettura del repository (classic PAT: `repo`; fine-grained: metadata + contents + issues in read).
+- Se Render assegna un dominio diverso da `turni-di-palco-badges.onrender.com`, aggiorna i due badge in testa al README.
 
 ## Contributi
 

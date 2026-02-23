@@ -73,3 +73,15 @@ services:
   buildCommand: npm ci
   startCommand: npm run start:control-plane
   autoDeployTrigger: commit
+- type: web
+  name: Turni-di-Palco-Badges
+  runtime: docker
+  repo: https://github.com/Heartran/Turni-di-Palco
+  branch: render/preview
+  plan: free
+  envVars:
+  - key: GH_TOKEN
+    sync: false
+  region: frankfurt
+  dockerfilePath: tools/shields/Dockerfile
+  autoDeployTrigger: commit
