@@ -1,0 +1,47 @@
+import React from 'react';
+import { Radio } from 'lucide-react';
+import type { AtclNewsTickerItem } from '../services/atcl-promotions';
+import { Card } from './ui/Card';
+
+type AtclNewsTickerProps = {
+  items: AtclNewsTickerItem[];
+};
+
+export function AtclNewsTicker({ items }: AtclNewsTickerProps) {
+  if (!items.length) return null;
+
+  const tickerItems = [...items, ...items];
+
+  return (
+    <Card className="overflow-hidden border border-[#f4bf4f]/15 bg-gradient-to-r from-[#1a1617] via-[#221b1d] to-[#1a1617] p-0">
+      <div className="flex items-center gap-2 border-b border-[#f4bf4f]/10 px-3 py-2">
+        <div className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#f4bf4f]/15 text-[#f4bf4f]">
+          <Radio size={13} />
+        </div>
+        <p className="text-[11px] uppercase tracking-wide text-[#f4bf4f]">News ATCL Live</p>
+      </div>
+
+      <div className="atcl-news-ticker-mask">
+        <div className="atcl-news-ticker-track">
+          {tickerItems.map((item, index) => (
+            <React.Fragment key={`${item.id}-${index}`}>
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="atcl-news-ticker-item"
+                title={`${item.sourceLabel}: ${item.title}`}
+              >
+                <span className="text-[#f4bf4f]/85">{item.sourceLabel}</span>
+                <span className="text-[#f5f5f5]">{item.title}</span>
+              </a>
+              <span className="atcl-news-ticker-separator" aria-hidden>
+                •
+              </span>
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+}
