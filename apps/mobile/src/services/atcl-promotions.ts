@@ -26,6 +26,11 @@ const ATCL_REST_PROMO_URL =
 const ROSSELLINI_REST_PROMO_URL =
   import.meta.env.VITE_ROSSELLINI_PROMO_REST_URL ??
   'https://www.spaziorossellini.it/wp-json/wp/v2/posts?categories=21&per_page=6&_fields=title,link,date,excerpt';
+const ATCL_PROMO_CORS_PROXY_TEMPLATE =
+  import.meta.env.VITE_ATCL_PROMO_CORS_PROXY_TEMPLATE ??
+  'https://api.allorigins.win/raw?url={url}';
+const ATCL_PROMO_ALLOW_DIRECT_FETCH =
+  parseOptionalBooleanEnv(import.meta.env.VITE_ATCL_PROMO_ALLOW_DIRECT_FETCH) ?? false;
 
 let remoteCacheExpiresAt = 0;
 let remoteCacheData: PromotionBySlot | null = null;
@@ -58,7 +63,12 @@ async function loadRemotePromotionsSafe(): Promise<PromotionBySlot> {
       remoteCacheExpiresAt = Date.now() + REMOTE_CACHE_TTL_MS;
       return data;
     })
-    .catch(() => remoteCacheData ?? {})
+    .catch(() => {
+      const fallback = remoteCacheData ?? {};
+      remoteCacheData = fallback;
+      remoteCacheExpiresAt = Date.now() + REMOTE_CACHE_TTL_MS;
+      return fallback;
+    })
     .finally(() => {
       inflightLoad = null;
     });
@@ -111,77 +121,113 @@ async function fetchRosselliniItems(): Promise<RssItem[]> {
 async function fetchRssItems(url: string): Promise<RssItem[]> {
   if (typeof window === 'undefined' || typeof DOMParser === 'undefined') return [];
 
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        accept: RSS_ACCEPT_HEADER,
-      },
-    });
-    if (!response.ok) return [];
+  for (const candidateUrl of buildRemoteFetchCandidates(url)) {
+    try {
+      const response = await fetch(candidateUrl, {
+        method: 'GET',
+        headers: {
+          accept: RSS_ACCEPT_HEADER,
+        },
+      });
+      if (!response.ok) continue;
 
-    const xmlText = await response.text();
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(xmlText, 'application/xml');
-    if (xml.querySelector('parsererror')) return [];
+      const xmlText = await response.text();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(xmlText, 'application/xml');
+      if (xml.querySelector('parsererror')) continue;
 
-    return Array.from(xml.querySelectorAll('channel > item'))
-      .map((item) => {
-        const title = collapseWhitespace(item.querySelector('title')?.textContent ?? '');
-        const link = collapseWhitespace(item.querySelector('link')?.textContent ?? '');
-        const pubDate = collapseWhitespace(item.querySelector('pubDate')?.textContent ?? '');
-        const description = sanitizeText(item.querySelector('description')?.textContent ?? '');
-        const categories = Array.from(item.querySelectorAll('category'))
-          .map((category) => collapseWhitespace(category.textContent ?? ''))
-          .filter(Boolean);
+      const items = Array.from(xml.querySelectorAll('channel > item'))
+        .map((item) => {
+          const title = collapseWhitespace(item.querySelector('title')?.textContent ?? '');
+          const link = collapseWhitespace(item.querySelector('link')?.textContent ?? '');
+          const pubDate = collapseWhitespace(item.querySelector('pubDate')?.textContent ?? '');
+          const description = sanitizeText(item.querySelector('description')?.textContent ?? '');
+          const categories = Array.from(item.querySelectorAll('category'))
+            .map((category) => collapseWhitespace(category.textContent ?? ''))
+            .filter(Boolean);
 
-        return { title, link, pubDate, description, categories };
-      })
-      .filter((item) => Boolean(item.title || item.link));
-  } catch {
-    return [];
+          return { title, link, pubDate, description, categories };
+        })
+        .filter((item) => Boolean(item.title || item.link));
+
+      if (items.length > 0) return items;
+    } catch {
+      // best effort: try next candidate URL
+    }
   }
+
+  return [];
 }
 
 async function fetchWordpressPosts(url: string): Promise<RssItem[]> {
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        accept: 'application/json',
-      },
-    });
-    if (!response.ok) return [];
+  for (const candidateUrl of buildRemoteFetchCandidates(url)) {
+    try {
+      const response = await fetch(candidateUrl, {
+        method: 'GET',
+        headers: {
+          accept: 'application/json',
+        },
+      });
+      if (!response.ok) continue;
 
-    const payload = (await response.json()) as unknown;
-    if (!Array.isArray(payload)) return [];
+      const payload = (await response.json()) as unknown;
+      if (!Array.isArray(payload)) continue;
 
-    return payload
-      .map((entry) => {
-        const item = entry as {
-          link?: unknown;
-          date?: unknown;
-          title?: { rendered?: unknown };
-          excerpt?: { rendered?: unknown };
-        };
+      const items = payload
+        .map((entry) => {
+          const item = entry as {
+            link?: unknown;
+            date?: unknown;
+            title?: { rendered?: unknown };
+            excerpt?: { rendered?: unknown };
+          };
 
-        const title = sanitizeText(asString(item.title?.rendered));
-        const description = sanitizeText(asString(item.excerpt?.rendered));
-        const link = collapseWhitespace(asString(item.link));
-        const pubDate = collapseWhitespace(asString(item.date));
+          const title = sanitizeText(asString(item.title?.rendered));
+          const description = sanitizeText(asString(item.excerpt?.rendered));
+          const link = collapseWhitespace(asString(item.link));
+          const pubDate = collapseWhitespace(asString(item.date));
 
-        return {
-          title,
-          description,
-          link,
-          pubDate,
-          categories: [],
-        };
-      })
-      .filter((item) => Boolean(item.title || item.link));
-  } catch {
-    return [];
+          return {
+            title,
+            description,
+            link,
+            pubDate,
+            categories: [],
+          };
+        })
+        .filter((item) => Boolean(item.title || item.link));
+
+      if (items.length > 0) return items;
+    } catch {
+      // best effort: try next candidate URL
+    }
   }
+
+  return [];
+}
+
+function buildRemoteFetchCandidates(url: string): string[] {
+  const proxyUrl = buildProxyUrl(url);
+  const candidates = ATCL_PROMO_ALLOW_DIRECT_FETCH
+    ? [url, proxyUrl]
+    : [proxyUrl];
+
+  const unique: string[] = [];
+  for (const candidate of candidates) {
+    const trimmed = candidate.trim();
+    if (!trimmed || unique.includes(trimmed)) continue;
+    unique.push(trimmed);
+  }
+  return unique;
+}
+
+function buildProxyUrl(url: string): string {
+  const encodedTarget = encodeURIComponent(url);
+  if (ATCL_PROMO_CORS_PROXY_TEMPLATE.includes('{url}')) {
+    return ATCL_PROMO_CORS_PROXY_TEMPLATE.replace('{url}', encodedTarget);
+  }
+  const separator = ATCL_PROMO_CORS_PROXY_TEMPLATE.includes('?') ? '&' : '?';
+  return `${ATCL_PROMO_CORS_PROXY_TEMPLATE}${separator}url=${encodedTarget}`;
 }
 
 function mapItemToPromotion(
@@ -238,4 +284,12 @@ function truncate(value: string, maxLength: number): string {
 
 function asString(value: unknown): string {
   return typeof value === 'string' ? value : '';
+}
+
+function parseOptionalBooleanEnv(value: unknown): boolean | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return null;
 }
