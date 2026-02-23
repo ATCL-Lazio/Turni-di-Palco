@@ -55,6 +55,7 @@ export function ATCLTurns({
   }, [events]);
   const turnsPromotion = useAtclPromotion('turns');
   const turnsTickerItems = useAtclNewsTicker(18);
+  const showTurnsTicker = turnsTickerItems.length > 1;
 
   return (
     <div
@@ -68,8 +69,11 @@ export function ATCLTurns({
         </div>
 
         <ScanQRCard onScanQR={onScanQR} />
-        {turnsPromotion ? <AtclPromoBanner promotion={turnsPromotion} /> : null}
-        <AtclNewsTicker items={turnsTickerItems} />
+        {showTurnsTicker ? (
+          <AtclNewsTicker items={turnsTickerItems} />
+        ) : turnsPromotion ? (
+          <AtclPromoBanner promotion={turnsPromotion} />
+        ) : null}
 
         <Card>
           <h4 className="text-white mb-4">Statistiche totali</h4>
