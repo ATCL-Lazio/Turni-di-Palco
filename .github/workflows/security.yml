@@ -1,0 +1,62 @@
+name: Security Checks
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-audit:
+    name: Dependency Audit (${{ matrix.path }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: root
+            path: .
+            lockfile: package-lock.json
+          - name: mobile
+            path: apps/mobile
+            lockfile: apps/mobile/package-lock.json
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+          cache-dependency-path: ${{ matrix.lockfile }}
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ matrix.path }}
+
+      - name: Generate npm audit report
+        run: npm audit --json > audit-report.json
+        continue-on-error: true
+        working-directory: ${{ matrix.path }}
+
+      - name: Upload npm audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report-${{ matrix.name }}
+          path: ${{ matrix.path }}/audit-report.json
+          if-no-files-found: error
+
+      - name: Enforce strict audit policy
+        run: |
+          node -e "const fs=require('fs');const r=JSON.parse(fs.readFileSync('audit-report.json','utf8'));const v=(r.metadata&&r.metadata.vulnerabilities)||{};const low=Number(v.low||0);const moderate=Number(v.moderate||0);const high=Number(v.high||0);const critical=Number(v.critical||0);const total=low+moderate+high+critical;const message='npm audit vulnerabilities => low='+low+', moderate='+moderate+', high='+high+', critical='+critical;if(total>0){console.error(message);process.exit(1);}console.log(message);"
+        working-directory: ${{ matrix.path }}
