@@ -11,6 +11,8 @@ type RssItem = {
   categories: string[];
 };
 
+type PromoSourceKey = 'atcl-rss' | 'rossellini-rss' | 'atcl-rest' | 'rossellini-rest';
+
 const REMOTE_CACHE_TTL_MS = 15 * 60 * 1000;
 const RSS_ACCEPT_HEADER = 'application/rss+xml, application/xml;q=0.9, text/xml;q=0.8';
 
@@ -26,6 +28,12 @@ const ATCL_REST_PROMO_URL =
 const ROSSELLINI_REST_PROMO_URL =
   import.meta.env.VITE_ROSSELLINI_PROMO_REST_URL ??
   'https://www.spaziorossellini.it/wp-json/wp/v2/posts?categories=21&per_page=6&_fields=title,link,date,excerpt';
+const ATCL_PROMO_PROXY_PATH =
+  import.meta.env.VITE_ATCL_PROMO_PROXY_PATH ?? '/api/promotions/proxy';
+const ATCL_PROMO_USE_LOCAL_PROXY =
+  parseOptionalBooleanEnv(import.meta.env.VITE_ATCL_PROMO_USE_LOCAL_PROXY) ?? true;
+const ATCL_PROMO_ALLOW_EXTERNAL_FALLBACK =
+  parseOptionalBooleanEnv(import.meta.env.VITE_ATCL_PROMO_ALLOW_EXTERNAL_FALLBACK) ?? false;
 const ATCL_PROMO_CORS_PROXY_TEMPLATE =
   import.meta.env.VITE_ATCL_PROMO_CORS_PROXY_TEMPLATE ??
   'https://api.allorigins.win/raw?url={url}';
@@ -107,21 +115,21 @@ async function loadRemotePromotions(): Promise<PromotionBySlot> {
 }
 
 async function fetchAtclItems(): Promise<RssItem[]> {
-  const fromRss = await fetchRssItems(ATCL_FEED_URL);
+  const fromRss = await fetchRssItems(ATCL_FEED_URL, 'atcl-rss');
   if (fromRss.length > 0) return fromRss;
-  return fetchWordpressPosts(ATCL_REST_PROMO_URL);
+  return fetchWordpressPosts(ATCL_REST_PROMO_URL, 'atcl-rest');
 }
 
 async function fetchRosselliniItems(): Promise<RssItem[]> {
-  const fromRss = await fetchRssItems(ROSSELLINI_FEED_URL);
+  const fromRss = await fetchRssItems(ROSSELLINI_FEED_URL, 'rossellini-rss');
   if (fromRss.length > 0) return fromRss;
-  return fetchWordpressPosts(ROSSELLINI_REST_PROMO_URL);
+  return fetchWordpressPosts(ROSSELLINI_REST_PROMO_URL, 'rossellini-rest');
 }
 
-async function fetchRssItems(url: string): Promise<RssItem[]> {
+async function fetchRssItems(url: string, sourceKey: PromoSourceKey): Promise<RssItem[]> {
   if (typeof window === 'undefined' || typeof DOMParser === 'undefined') return [];
 
-  for (const candidateUrl of buildRemoteFetchCandidates(url)) {
+  for (const candidateUrl of buildRemoteFetchCandidates(url, sourceKey)) {
     try {
       const response = await fetch(candidateUrl, {
         method: 'GET',
@@ -159,8 +167,8 @@ async function fetchRssItems(url: string): Promise<RssItem[]> {
   return [];
 }
 
-async function fetchWordpressPosts(url: string): Promise<RssItem[]> {
-  for (const candidateUrl of buildRemoteFetchCandidates(url)) {
+async function fetchWordpressPosts(url: string, sourceKey: PromoSourceKey): Promise<RssItem[]> {
+  for (const candidateUrl of buildRemoteFetchCandidates(url, sourceKey)) {
     try {
       const response = await fetch(candidateUrl, {
         method: 'GET',
@@ -206,11 +214,16 @@ async function fetchWordpressPosts(url: string): Promise<RssItem[]> {
   return [];
 }
 
-function buildRemoteFetchCandidates(url: string): string[] {
-  const proxyUrl = buildProxyUrl(url);
-  const candidates = ATCL_PROMO_ALLOW_DIRECT_FETCH
-    ? [url, proxyUrl]
-    : [proxyUrl];
+function buildRemoteFetchCandidates(url: string, sourceKey: PromoSourceKey): string[] {
+  const localProxyUrl = buildLocalProxyUrl(sourceKey);
+  const externalProxyUrl = buildExternalProxyUrl(url);
+  const directUrlCandidates = ATCL_PROMO_ALLOW_DIRECT_FETCH ? [url] : [];
+  const externalCandidates = ATCL_PROMO_ALLOW_EXTERNAL_FALLBACK
+    ? [externalProxyUrl, ...directUrlCandidates]
+    : directUrlCandidates;
+  const candidates = ATCL_PROMO_USE_LOCAL_PROXY
+    ? [localProxyUrl, ...externalCandidates]
+    : externalCandidates;
 
   const unique: string[] = [];
   for (const candidate of candidates) {
@@ -221,7 +234,12 @@ function buildRemoteFetchCandidates(url: string): string[] {
   return unique;
 }
 
-function buildProxyUrl(url: string): string {
+function buildLocalProxyUrl(sourceKey: PromoSourceKey): string {
+  const separator = ATCL_PROMO_PROXY_PATH.includes('?') ? '&' : '?';
+  return `${ATCL_PROMO_PROXY_PATH}${separator}source=${encodeURIComponent(sourceKey)}`;
+}
+
+function buildExternalProxyUrl(url: string): string {
   const encodedTarget = encodeURIComponent(url);
   if (ATCL_PROMO_CORS_PROXY_TEMPLATE.includes('{url}')) {
     return ATCL_PROMO_CORS_PROXY_TEMPLATE.replace('{url}', encodedTarget);
