@@ -478,11 +478,13 @@ function corsMiddleware(req, res, next) {
 }
 
 function extractClientIp(req) {
-  const xff = req.headers["x-forwarded-for"];
-  if (typeof xff === "string" && xff.trim()) {
-    return xff.split(",")[0].trim();
-  }
-  return req.ip || req.socket?.remoteAddress || "unknown";
+  const directIp = asString(req.socket?.remoteAddress);
+  if (directIp) return directIp;
+
+  const resolvedIp = asString(req.ip);
+  if (resolvedIp) return resolvedIp;
+
+  return "unknown";
 }
 
 function rateLimitMiddleware(req, res, next) {
@@ -760,6 +762,12 @@ function removePending(commandId) {
   return found;
 }
 
+function restorePending(entry) {
+  if (!entry?.commandId || !entry?.tokenHash) return;
+  pendingByCommandId.set(entry.commandId, entry);
+  pendingByTokenHash.set(entry.tokenHash, entry.commandId);
+}
+
 async function markPendingExpired(entry) {
   if (!supabaseDbClient || !entry?.confirmationRowId || !CONFIRM_TABLE) return;
 
@@ -1013,6 +1021,14 @@ async function commandsPrepareHandler(req, res) {
   };
 
   pendingEntry.confirmationRowId = await createConfirmationRow(pendingEntry);
+  if (supabaseDbClient && CONFIRM_TABLE && !pendingEntry.confirmationRowId) {
+    return sendJson(res, 503, {
+      ok: false,
+      error: "Impossibile creare la conferma su database.",
+      requestId: res.locals.requestId || null,
+    });
+  }
+
   pendingByCommandId.set(commandId, pendingEntry);
   pendingByTokenHash.set(tokenHash, commandId);
 
@@ -1097,9 +1113,9 @@ function resolvePending({ commandId, confirmationToken }) {
 }
 
 async function markConfirmationApproved(entry, approverUserId) {
-  if (!supabaseDbClient || !CONFIRM_TABLE || !entry?.confirmationRowId) return;
+  if (!supabaseDbClient || !CONFIRM_TABLE || !entry?.confirmationRowId) return true;
 
-  await supabaseDbClient
+  const { data, error } = await supabaseDbClient
     .from(CONFIRM_TABLE)
     .update({
       status: "approved",
@@ -1108,13 +1124,25 @@ async function markConfirmationApproved(entry, approverUserId) {
       approval_note: "approved via commands/execute",
     })
     .eq("id", entry.confirmationRowId)
-    .eq("status", "pending");
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    console.warn(
+      "[control-plane] confirmation approve failed",
+      sanitizeForOutput({ id: entry.confirmationRowId, error: error.message })
+    );
+    return false;
+  }
+
+  return Boolean(data?.id);
 }
 
 async function markConfirmationRejected(entry, rejectorUserId, note) {
-  if (!supabaseDbClient || !CONFIRM_TABLE || !entry?.confirmationRowId) return;
+  if (!supabaseDbClient || !CONFIRM_TABLE || !entry?.confirmationRowId) return true;
 
-  await supabaseDbClient
+  const { error } = await supabaseDbClient
     .from(CONFIRM_TABLE)
     .update({
       status: "rejected",
@@ -1124,6 +1152,16 @@ async function markConfirmationRejected(entry, rejectorUserId, note) {
     })
     .eq("id", entry.confirmationRowId)
     .eq("status", "pending");
+
+  if (error) {
+    console.warn(
+      "[control-plane] confirmation reject failed",
+      sanitizeForOutput({ id: entry.confirmationRowId, error: error.message })
+    );
+    return false;
+  }
+
+  return true;
 }
 
 async function createExecutionLog({ entry, auth, effectiveDryRun }) {
@@ -1178,24 +1216,30 @@ async function updateExecutionLog(executionId, patch) {
   return data;
 }
 
+function findRenderServiceInRegistry(value) {
+  const normalizedValue = asString(value);
+  if (!normalizedValue || RENDER_SERVICE_REGISTRY.length === 0) return null;
+
+  return (
+    RENDER_SERVICE_REGISTRY.find(
+      (entry) =>
+        entry.id.toLowerCase() === normalizedValue.toLowerCase() ||
+        entry.name.toLowerCase() === normalizedValue.toLowerCase()
+    ) || null
+  );
+}
+
 function resolveRenderServiceId(target, payload) {
   const explicit = asString(payload?.serviceId);
-  if (explicit) return explicit;
-
   const normalizedTarget = asString(target);
-  if (!normalizedTarget) return "";
+  const targetValue = normalizedTarget.startsWith("service:")
+    ? normalizedTarget.slice("service:".length).trim()
+    : normalizedTarget;
+  const candidate = explicit || targetValue;
+  if (!candidate) return "";
 
-  if (normalizedTarget.startsWith("service:")) {
-    return normalizedTarget.slice("service:".length).trim();
-  }
-
-  const match = RENDER_SERVICE_REGISTRY.find(
-    (entry) =>
-      entry.id.toLowerCase() === normalizedTarget.toLowerCase() ||
-      entry.name.toLowerCase() === normalizedTarget.toLowerCase()
-  );
-
-  return match ? match.id : normalizedTarget;
+  const match = findRenderServiceInRegistry(candidate);
+  return match ? match.id : "";
 }
 
 async function renderApiRequest(path, { method = "GET", body } = {}) {
@@ -1276,7 +1320,7 @@ async function executeAllowlistedCommand(entry, auth, effectiveDryRun) {
       if (!serviceId) {
         return {
           status: "failed",
-          message: "Service Render non risolto da target/payload.",
+          message: "Service Render non allowlistato o non risolto da target/payload.",
           payload: {},
         };
       }
@@ -1296,10 +1340,10 @@ async function executeAllowlistedCommand(entry, auth, effectiveDryRun) {
 
     case "render.deployments.trigger": {
       const serviceId = resolveRenderServiceId(entry.target, entry.payload);
-      if (!serviceId || typeof serviceId !== 'string' || serviceId.trim() === '') {
+      if (!serviceId || typeof serviceId !== "string" || serviceId.trim() === "") {
         return {
           status: "failed",
-          message: "Service Render non risolto da target/payload.",
+          message: "Service Render non allowlistato o non risolto da target/payload.",
           payload: {},
         };
       }
@@ -1504,10 +1548,10 @@ async function commandsExecuteHandler(req, res) {
   const confirmationToken = asString(body.confirmationToken);
   const confirmText = asString(body.confirmText);
 
-  if (!commandId && !confirmationToken) {
+  if (!commandId || !confirmationToken) {
     return sendJson(res, 400, {
       ok: false,
-      error: "commandId o confirmationToken obbligatorio.",
+      error: "commandId e confirmationToken obbligatori.",
       requestId: res.locals.requestId || null,
     });
   }
@@ -1542,7 +1586,16 @@ async function commandsExecuteHandler(req, res) {
   }
 
   if (confirmText !== entry.requiresConfirmText) {
-    await markConfirmationRejected(entry, auth.userId, "invalid_confirm_text");
+    const consumedForReject = removePending(entry.commandId);
+    if (!consumedForReject) {
+      return sendJson(res, 409, {
+        ok: false,
+        error: "Conferma gia consumata da un'altra richiesta.",
+        requestId: res.locals.requestId || null,
+      });
+    }
+
+    await markConfirmationRejected(consumedForReject, auth.userId, "invalid_confirm_text");
     return sendJson(res, 400, {
       ok: false,
       error: `confirmText non valido. Atteso: ${entry.requiresConfirmText}`,
@@ -1550,15 +1603,46 @@ async function commandsExecuteHandler(req, res) {
     });
   }
 
-  removePending(entry.commandId);
-  await markConfirmationApproved(entry, auth.userId);
+  const consumedEntry = removePending(entry.commandId);
+  if (!consumedEntry) {
+    return sendJson(res, 409, {
+      ok: false,
+      error: "Conferma gia consumata da un'altra richiesta.",
+      requestId: res.locals.requestId || null,
+    });
+  }
 
-  const effectiveDryRun = GLOBAL_DRY_RUN || entry.dryRun || parseBoolean(body.dryRun, false);
-  const execution = await createExecutionLog({ entry, auth, effectiveDryRun });
+  const effectiveDryRun = GLOBAL_DRY_RUN || consumedEntry.dryRun || parseBoolean(body.dryRun, false);
+  let execution;
+  try {
+    execution = await createExecutionLog({ entry: consumedEntry, auth, effectiveDryRun });
+  } catch (error) {
+    restorePending(consumedEntry);
+    return sendJson(res, 503, {
+      ok: false,
+      error: error?.message || "Execution log non disponibile.",
+      requestId: res.locals.requestId || null,
+    });
+  }
+
+  const approved = await markConfirmationApproved(consumedEntry, auth.userId);
+  if (!approved) {
+    restorePending(consumedEntry);
+    await updateExecutionLog(execution.id, {
+      status: "failed",
+      finished_at: new Date().toISOString(),
+      error_message: "Conferma non approvata: ripetere la procedura.",
+    });
+    return sendJson(res, 503, {
+      ok: false,
+      error: "Conferma non approvata: ripetere la procedura.",
+      requestId: res.locals.requestId || null,
+    });
+  }
 
   let commandResult;
   try {
-    commandResult = await executeAllowlistedCommand(entry, auth, effectiveDryRun);
+    commandResult = await executeAllowlistedCommand(consumedEntry, auth, effectiveDryRun);
   } catch (error) {
     commandResult = {
       status: "failed",
@@ -1579,11 +1663,11 @@ async function commandsExecuteHandler(req, res) {
     actorUserId: auth.userId,
     action: "command.execute",
     resourceType: "command",
-    resourceId: entry.commandId,
+    resourceId: consumedEntry.commandId,
     requestId: res.locals.requestId,
     metadata: {
-      command: entry.command,
-      target: entry.target,
+      command: consumedEntry.command,
+      target: consumedEntry.target,
       dryRun: effectiveDryRun,
       executionId: execution.id,
       result: finalStatus === "succeeded" ? "ok" : "error",
@@ -1593,7 +1677,7 @@ async function commandsExecuteHandler(req, res) {
 
   return sendJson(res, 200, {
     ok: true,
-    commandId: entry.commandId,
+    commandId: consumedEntry.commandId,
     executionId: execution.id,
     status: mapExecutionToClientStatus(finalStatus),
     message: commandResult.message,
@@ -1768,9 +1852,12 @@ async function renderServicesHealthHandler(req, res) {
 function resolveDeploymentServiceId(req) {
   const bodyServiceId = asString(req.body?.serviceId);
   const queryServiceId = asString(req.query?.serviceId);
+  const requestedServiceId = bodyServiceId || queryServiceId;
 
-  if (bodyServiceId) return bodyServiceId;
-  if (queryServiceId) return queryServiceId;
+  if (requestedServiceId) {
+    const match = findRenderServiceInRegistry(requestedServiceId);
+    return match ? match.id : "";
+  }
   if (RENDER_SERVICE_REGISTRY.length > 0) return RENDER_SERVICE_REGISTRY[0].id;
   return "";
 }
@@ -1782,7 +1869,7 @@ async function renderDeploymentsGetHandler(req, res) {
   if (!serviceId) {
     return sendJson(res, 400, {
       ok: false,
-      error: "serviceId mancante e nessun servizio configurato.",
+      error: "serviceId mancante/non allowlistato oppure nessun servizio configurato.",
       requestId: res.locals.requestId || null,
     });
   }
@@ -1827,7 +1914,7 @@ async function renderDeploymentsPostHandler(req, res) {
   if (!serviceId) {
     return sendJson(res, 400, {
       ok: false,
-      error: "serviceId obbligatorio.",
+      error: "serviceId obbligatorio e deve essere in allowlist.",
       requestId: res.locals.requestId || null,
     });
   }
