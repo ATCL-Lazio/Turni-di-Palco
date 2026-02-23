@@ -73,7 +73,7 @@ jobs:
         with:
           token: '${{ github.token }}'
           ref: render/preview
-          environment-url: https://turni-di-palco.onrender.com
+          environment-url: https://turni-di-palco-fq85.onrender.com
           environment: render/preview - Turni-di-Palco
           description: 'Deploy Turni-di-Palco to Render preview'
 
@@ -84,7 +84,7 @@ jobs:
           token: '${{ github.token }}'
           deployment-id: ${{ steps.deployment-turni.outputs.deployment_id }}
           state: 'in_progress'
-          environment-url: https://turni-di-palco.onrender.com
+          environment-url: https://turni-di-palco-fq85.onrender.com
 
       - name: Wait for Turni-di-Palco auto-deploy
         id: wait-turni
@@ -103,7 +103,7 @@ jobs:
           token: '${{ github.token }}'
           deployment-id: ${{ steps.deployment-turni.outputs.deployment_id }}
           state: 'success'
-          environment-url: https://turni-di-palco.onrender.com
+          environment-url: https://turni-di-palco-fq85.onrender.com
 
       - name: Update deployment status (failure) - Turni-di-Palco
         if: always() && steps.wait-turni.outputs.deploy_status != 'success' && steps.deployment-turni.outputs.deployment_id != ''
@@ -112,7 +112,7 @@ jobs:
           token: '${{ github.token }}'
           deployment-id: ${{ steps.deployment-turni.outputs.deployment_id }}
           state: 'failure'
-          environment-url: https://turni-di-palco.onrender.com
+          environment-url: https://turni-di-palco-fq85.onrender.com
 
       - name: Fail job if Turni-di-Palco deploy failed
         if: always() && steps.wait-turni.outputs.deploy_status != 'success'
@@ -178,4 +178,128 @@ jobs:
 
       - name: Fail job if Maxwell-AI-Support deploy failed
         if: always() && steps.wait-maxwell.outputs.deploy_status != 'success'
+        run: exit 1
+
+  deploy-control-plane:
+    runs-on: ubuntu-latest
+    needs: sync-render-preview
+    permissions:
+      contents: read
+      actions: write
+      deployments: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Deployment - Turni-di-Palco-Control-Plane
+        uses: chrnorm/deployment-action@v2
+        id: deployment-control-plane
+        with:
+          token: '${{ github.token }}'
+          ref: render/preview
+          environment-url: https://turni-di-palco-control-plane.onrender.com
+          environment: render/preview - Turni-di-Palco-Control-Plane
+          description: 'Deploy Turni-di-Palco-Control-Plane to Render preview'
+
+      - name: Mark deployment in progress - Turni-di-Palco-Control-Plane
+        if: always() && steps.deployment-control-plane.outputs.deployment_id != ''
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-control-plane.outputs.deployment_id }}
+          state: 'in_progress'
+          environment-url: https://turni-di-palco-control-plane.onrender.com
+
+      - name: Wait for Turni-di-Palco-Control-Plane auto-deploy
+        id: wait-control-plane
+        uses: ./.github/actions/wait-render-deploy
+        with:
+          deploy_sha: ${{ needs.sync-render-preview.outputs.deploy_sha }}
+          sync_epoch: ${{ needs.sync-render-preview.outputs.sync_epoch }}
+          render_api_key: ${{ secrets.RENDER_API_KEY }}
+          render_service_id: ${{ secrets.RENDER_SERVICE_ID_CONTROL_PLANE }}
+          label: Turni-di-Palco-Control-Plane
+
+      - name: Update deployment status (success) - Turni-di-Palco-Control-Plane
+        if: always() && steps.wait-control-plane.outputs.deploy_status == 'success' && steps.deployment-control-plane.outputs.deployment_id != ''
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-control-plane.outputs.deployment_id }}
+          state: 'success'
+          environment-url: https://turni-di-palco-control-plane.onrender.com
+
+      - name: Update deployment status (failure) - Turni-di-Palco-Control-Plane
+        if: always() && steps.wait-control-plane.outputs.deploy_status != 'success' && steps.deployment-control-plane.outputs.deployment_id != ''
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-control-plane.outputs.deployment_id }}
+          state: 'failure'
+          environment-url: https://turni-di-palco-control-plane.onrender.com
+
+      - name: Fail job if Turni-di-Palco-Control-Plane deploy failed
+        if: always() && steps.wait-control-plane.outputs.deploy_status != 'success'
+        run: exit 1
+
+  deploy-badges:
+    runs-on: ubuntu-latest
+    needs: sync-render-preview
+    permissions:
+      contents: read
+      actions: write
+      deployments: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Deployment - Turni-di-Palco-Badges
+        uses: chrnorm/deployment-action@v2
+        id: deployment-badges
+        with:
+          token: '${{ github.token }}'
+          ref: render/preview
+          environment-url: https://turni-di-palco-badges.onrender.com
+          environment: render/preview - Turni-di-Palco-Badges
+          description: 'Deploy Turni-di-Palco-Badges to Render preview'
+
+      - name: Mark deployment in progress - Turni-di-Palco-Badges
+        if: always() && steps.deployment-badges.outputs.deployment_id != ''
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-badges.outputs.deployment_id }}
+          state: 'in_progress'
+          environment-url: https://turni-di-palco-badges.onrender.com
+
+      - name: Wait for Turni-di-Palco-Badges auto-deploy
+        id: wait-badges
+        uses: ./.github/actions/wait-render-deploy
+        with:
+          deploy_sha: ${{ needs.sync-render-preview.outputs.deploy_sha }}
+          sync_epoch: ${{ needs.sync-render-preview.outputs.sync_epoch }}
+          render_api_key: ${{ secrets.RENDER_API_KEY }}
+          render_service_id: ${{ secrets.RENDER_SERVICE_ID_BADGES }}
+          label: Turni-di-Palco-Badges
+
+      - name: Update deployment status (success) - Turni-di-Palco-Badges
+        if: always() && steps.wait-badges.outputs.deploy_status == 'success' && steps.deployment-badges.outputs.deployment_id != ''
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-badges.outputs.deployment_id }}
+          state: 'success'
+          environment-url: https://turni-di-palco-badges.onrender.com
+
+      - name: Update deployment status (failure) - Turni-di-Palco-Badges
+        if: always() && steps.wait-badges.outputs.deploy_status != 'success' && steps.deployment-badges.outputs.deployment_id != ''
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-badges.outputs.deployment_id }}
+          state: 'failure'
+          environment-url: https://turni-di-palco-badges.onrender.com
+
+      - name: Fail job if Turni-di-Palco-Badges deploy failed
+        if: always() && steps.wait-badges.outputs.deploy_status != 'success'
         run: exit 1
