@@ -89,6 +89,7 @@ export function Home({
   const eventState: EventState = eventError ? 'error' : eventLoading ? 'loading' : !upcomingEvent ? 'empty' : 'ready';
   const homePromotion = useAtclPromotion('home');
   const homeTickerItems = useAtclNewsTicker(18);
+  const showHomeTicker = homeTickerItems.length > 1;
 
   return (
     <div
@@ -166,8 +167,11 @@ export function Home({
         </header>
 
         <ScanQRCard onScanQR={onScanQR} className="mt-5" />
-        {homePromotion ? <AtclPromoBanner promotion={homePromotion} /> : null}
-        <AtclNewsTicker items={homeTickerItems} />
+        {showHomeTicker ? (
+          <AtclNewsTicker items={homeTickerItems} />
+        ) : homePromotion ? (
+          <AtclPromoBanner promotion={homePromotion} />
+        ) : null}
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
