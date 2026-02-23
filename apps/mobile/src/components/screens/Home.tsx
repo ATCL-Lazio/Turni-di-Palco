@@ -9,6 +9,8 @@ import { Play, Calendar, TrendingUp, Award, ChevronRight, Navigation, CalendarPl
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { GameEvent } from '../../state/store';
 import { ScanQRCard } from '../ScanQRCard';
+import { AtclPromoBanner } from '../AtclPromoBanner';
+import { getAtclPromotionBySlot } from '../../data/atcl_promotions';
 
 type EventState = 'loading' | 'error' | 'empty' | 'ready';
 
@@ -83,6 +85,7 @@ export function Home({
   }, [hasNewBadges, newBadgesCount]);
 
   const eventState: EventState = eventError ? 'error' : eventLoading ? 'loading' : !upcomingEvent ? 'empty' : 'ready';
+  const homePromotion = getAtclPromotionBySlot('home');
 
   return (
     <div
@@ -160,6 +163,7 @@ export function Home({
         </header>
 
         <ScanQRCard onScanQR={onScanQR} className="mt-5" />
+        {homePromotion ? <AtclPromoBanner promotion={homePromotion} /> : null}
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">

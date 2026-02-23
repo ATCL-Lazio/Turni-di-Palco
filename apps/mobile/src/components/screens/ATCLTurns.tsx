@@ -4,6 +4,8 @@ import { Button } from '../ui/Button';
 import { ScanQRCard } from '../ScanQRCard';
 import { QrCode, MapPin, Calendar, TrendingUp, Theater, Bookmark, Map, Award } from 'lucide-react';
 import { GameEvent } from '../../state/store';
+import { AtclPromoBanner } from '../AtclPromoBanner';
+import { getAtclPromotionBySlot } from '../../data/atcl_promotions';
 
 interface ATCLTurnsProps {
   events: GameEvent[];
@@ -49,6 +51,7 @@ export function ATCLTurns({
       return dateA >= now ? -1 : 1;
     });
   }, [events]);
+  const turnsPromotion = getAtclPromotionBySlot('turns');
 
   return (
     <div
@@ -62,6 +65,7 @@ export function ATCLTurns({
         </div>
 
         <ScanQRCard onScanQR={onScanQR} />
+        {turnsPromotion ? <AtclPromoBanner promotion={turnsPromotion} /> : null}
 
         <Card>
           <h4 className="text-white mb-4">Statistiche totali</h4>
