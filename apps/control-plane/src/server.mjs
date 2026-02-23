@@ -1296,7 +1296,7 @@ async function executeAllowlistedCommand(entry, auth, effectiveDryRun) {
 
     case "render.deployments.trigger": {
       const serviceId = resolveRenderServiceId(entry.target, entry.payload);
-      if (!serviceId) {
+      if (!serviceId || typeof serviceId !== 'string' || serviceId.trim() === '') {
         return {
           status: "failed",
           message: "Service Render non risolto da target/payload.",
@@ -1307,7 +1307,7 @@ async function executeAllowlistedCommand(entry, auth, effectiveDryRun) {
       const deployment = await renderApiRequest(`/services/${encodeURIComponent(serviceId)}/deploys`, {
         method: "POST",
         body: {
-          clearCache: parseBoolean(entry.payload.clearCache, false),
+          clearCache: parseBoolean(entry.payload.clearCache, true),
         },
       });
 
