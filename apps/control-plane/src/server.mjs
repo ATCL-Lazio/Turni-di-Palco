@@ -20,6 +20,12 @@ const GLOBAL_DRY_RUN = parseBoolean(process.env.DRY_RUN, false);
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").trim();
 const SUPABASE_ANON_KEY = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "").trim();
 const SUPABASE_SERVICE_ROLE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+const MOBILE_APP_VERSION_FALLBACK = (process.env.APP_VERSION || "0.0.5").trim() || "0.0.5";
+const MOBILE_APP_VERSION_BADGE_LABEL = (process.env.APP_VERSION_BADGE_LABEL || "App version").trim() || "App version";
+const MOBILE_APP_VERSION_BADGE_COLOR = (process.env.APP_VERSION_BADGE_COLOR || "2ea44f").trim() || "2ea44f";
+const APP_VERSION_FUNCTION_ENDPOINT = SUPABASE_URL
+  ? `${SUPABASE_URL.replace(/\/+$/, "")}/functions/v1/app-version`
+  : "";
 
 const RENDER_API_KEY = (process.env.RENDER_API_KEY || "").trim();
 const RENDER_API_BASE = "https://api.render.com/v1";
@@ -154,6 +160,9 @@ app.use(cleanupPendingMiddleware);
 const router = express.Router();
 
 router.get("/health", healthHandler);
+for (const path of ["/api/badges/mobile-version", "/badges/mobile-version"]) {
+  router.get(path, asyncRoute(mobileVersionBadgeHandler));
+}
 
 for (const path of ["/api/auth/session/validate", "/session/validate"]) {
   router.get(path, asyncRoute(sessionValidateHandler));
@@ -830,6 +839,76 @@ function healthHandler(_req, res) {
       confirmTokenTtlMs: CONFIRM_TOKEN_TTL_MS,
       globalDryRun: GLOBAL_DRY_RUN,
     },
+  });
+}
+
+async function fetchMobileAppVersion() {
+  if (!APP_VERSION_FUNCTION_ENDPOINT) {
+    return {
+      version: MOBILE_APP_VERSION_FALLBACK,
+      source: "fallback_no_supabase_url",
+    };
+  }
+
+  const authKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+  const headers = {
+    "content-type": "application/json",
+    "x-control-plane-source": "mobile-version-badge",
+  };
+
+  if (authKey) {
+    headers.apikey = authKey;
+    headers.authorization = `Bearer ${authKey}`;
+  }
+
+  const abortController = new AbortController();
+  const timeout = setTimeout(() => abortController.abort(), 5000);
+  timeout.unref?.();
+
+  try {
+    const response = await fetch(APP_VERSION_FUNCTION_ENDPOINT, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ limit: 1, changelog: false }),
+      signal: abortController.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`app-version endpoint HTTP ${response.status}`);
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    const version = asString(payload?.version, MOBILE_APP_VERSION_FALLBACK);
+    return {
+      version: version || MOBILE_APP_VERSION_FALLBACK,
+      source: "supabase_function",
+    };
+  } catch (error) {
+    console.warn(
+      "[control-plane] mobile version badge fallback",
+      sanitizeForOutput({ error: error?.message || String(error) })
+    );
+    return {
+      version: MOBILE_APP_VERSION_FALLBACK,
+      source: "fallback_on_error",
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function mobileVersionBadgeHandler(_req, res) {
+  const { version, source } = await fetchMobileAppVersion();
+  const normalizedVersion = asString(version, MOBILE_APP_VERSION_FALLBACK) || MOBILE_APP_VERSION_FALLBACK;
+  const message = normalizedVersion.startsWith("v") ? normalizedVersion : `v${normalizedVersion}`;
+  const color = source === "supabase_function" ? MOBILE_APP_VERSION_BADGE_COLOR : "f0ad4e";
+
+  return sendJson(res, 200, {
+    schemaVersion: 1,
+    label: MOBILE_APP_VERSION_BADGE_LABEL,
+    message,
+    color,
+    cacheSeconds: 300,
   });
 }
 
