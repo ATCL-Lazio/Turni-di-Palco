@@ -27,9 +27,9 @@ services:
   plan: free
   envVars:
   - key: VITE_SUPABASE_ANON_KEY
-    value: ${VITE_SUPABASE_ANON_KEY}
+    sync: false
   - key: VITE_SUPABASE_URL
-    value: ${VITE_SUPABASE_URL}
+    sync: false
   - key: AI_SUPPORT_ALLOWED_ORIGINS
     value: https://turni-di-palco-fq85.onrender.com,https://turni-di-palco-fq85.onrender.com/mobile
   region: frankfurt
@@ -44,9 +44,9 @@ services:
   plan: free
   envVars:
   - key: SUPABASE_URL
-    value: ${VITE_SUPABASE_URL}
+    sync: false
   - key: SUPABASE_ANON_KEY
-    value: ${VITE_SUPABASE_ANON_KEY}
+    sync: false
   - key: SUPABASE_SERVICE_ROLE_KEY
     sync: false
   - key: RENDER_API_KEY
