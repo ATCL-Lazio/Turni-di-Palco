@@ -45,7 +45,7 @@ function parseTimestamp(value?: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function isActivePromotion(promotion: AtclPromotion, now: Date): boolean {
+export function isAtclPromotionActive(promotion: AtclPromotion, now: Date = new Date()): boolean {
   const nowMs = now.getTime();
   const startsAt = parseTimestamp(promotion.startsAt);
   const endsAt = parseTimestamp(promotion.endsAt);
@@ -55,9 +55,16 @@ function isActivePromotion(promotion: AtclPromotion, now: Date): boolean {
   return true;
 }
 
+export function getLocalAtclPromotionBySlot(
+  slot: AtclPromotionSlot,
+  now: Date = new Date()
+): AtclPromotion | null {
+  return PROMOTIONS.find((promotion) => promotion.slot === slot && isAtclPromotionActive(promotion, now)) ?? null;
+}
+
 export function getAtclPromotionBySlot(
   slot: AtclPromotionSlot,
   now: Date = new Date()
 ): AtclPromotion | null {
-  return PROMOTIONS.find((promotion) => promotion.slot === slot && isActivePromotion(promotion, now)) ?? null;
+  return getLocalAtclPromotionBySlot(slot, now);
 }
