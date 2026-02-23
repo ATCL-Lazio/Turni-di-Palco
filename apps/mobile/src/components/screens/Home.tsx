@@ -10,7 +10,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { GameEvent } from '../../state/store';
 import { ScanQRCard } from '../ScanQRCard';
 import { AtclPromoBanner } from '../AtclPromoBanner';
-import { getAtclPromotionBySlot } from '../../data/atcl_promotions';
+import { useAtclPromotion } from '../../hooks/useAtclPromotion';
 
 type EventState = 'loading' | 'error' | 'empty' | 'ready';
 
@@ -85,7 +85,7 @@ export function Home({
   }, [hasNewBadges, newBadgesCount]);
 
   const eventState: EventState = eventError ? 'error' : eventLoading ? 'loading' : !upcomingEvent ? 'empty' : 'ready';
-  const homePromotion = getAtclPromotionBySlot('home');
+  const homePromotion = useAtclPromotion('home');
 
   return (
     <div

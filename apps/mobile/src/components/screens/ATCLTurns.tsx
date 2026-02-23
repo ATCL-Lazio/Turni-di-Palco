@@ -5,7 +5,7 @@ import { ScanQRCard } from '../ScanQRCard';
 import { QrCode, MapPin, Calendar, TrendingUp, Theater, Bookmark, Map, Award } from 'lucide-react';
 import { GameEvent } from '../../state/store';
 import { AtclPromoBanner } from '../AtclPromoBanner';
-import { getAtclPromotionBySlot } from '../../data/atcl_promotions';
+import { useAtclPromotion } from '../../hooks/useAtclPromotion';
 
 interface ATCLTurnsProps {
   events: GameEvent[];
@@ -51,7 +51,7 @@ export function ATCLTurns({
       return dateA >= now ? -1 : 1;
     });
   }, [events]);
-  const turnsPromotion = getAtclPromotionBySlot('turns');
+  const turnsPromotion = useAtclPromotion('turns');
 
   return (
     <div
