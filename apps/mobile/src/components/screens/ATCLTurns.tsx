@@ -6,6 +6,8 @@ import { QrCode, MapPin, Calendar, TrendingUp, Theater, Bookmark, Map, Award } f
 import { GameEvent } from '../../state/store';
 import { AtclPromoBanner } from '../AtclPromoBanner';
 import { useAtclPromotion } from '../../hooks/useAtclPromotion';
+import { AtclNewsTicker } from '../AtclNewsTicker';
+import { useAtclNewsTicker } from '../../hooks/useAtclNewsTicker';
 
 interface ATCLTurnsProps {
   events: GameEvent[];
@@ -52,6 +54,7 @@ export function ATCLTurns({
     });
   }, [events]);
   const turnsPromotion = useAtclPromotion('turns');
+  const turnsTickerItems = useAtclNewsTicker(18);
 
   return (
     <div
@@ -66,6 +69,7 @@ export function ATCLTurns({
 
         <ScanQRCard onScanQR={onScanQR} />
         {turnsPromotion ? <AtclPromoBanner promotion={turnsPromotion} /> : null}
+        <AtclNewsTicker items={turnsTickerItems} />
 
         <Card>
           <h4 className="text-white mb-4">Statistiche totali</h4>
