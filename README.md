@@ -107,8 +107,16 @@ Deploy Render:
 
 - `render.yaml` include il servizio `Turni-di-Palco-Control-Plane` con `buildCommand`/`startCommand` dedicati.
 - `render.yaml` include anche `Turni-di-Palco-Badges` (Shields self-hosted) per badge su repository privata.
+- Per evitare valori letterali `${...}` nel Blueprint, configura come variabili reali in Render:
+  `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` su `Maxwell-AI-Support`;
+  `SUPABASE_URL` e `SUPABASE_ANON_KEY` su `Turni-di-Palco-Control-Plane`.
 - Imposta `GH_TOKEN` sul servizio badges con permessi di lettura del repository (classic PAT: `repo`; fine-grained: metadata + contents + issues in read).
 - Se Render assegna un dominio diverso da `turni-di-palco-badges.onrender.com`, aggiorna i due badge in testa al README.
+
+Deploy GitHub (`sync-deploy-branches.yml`):
+
+- Il workflow traccia i deployment per tutti i servizi Render attivi: `Turni-di-Palco`, `Maxwell-AI-Support`, `Turni-di-Palco-Control-Plane`, `Turni-di-Palco-Badges`.
+- Secrets richiesti: `RENDER_API_KEY`, `RENDER_SERVICE_ID_TURNI`, `RENDER_SERVICE_ID_MAXWELL`, `RENDER_SERVICE_ID_CONTROL_PLANE`, `RENDER_SERVICE_ID_BADGES`.
 
 ## Contributi
 
