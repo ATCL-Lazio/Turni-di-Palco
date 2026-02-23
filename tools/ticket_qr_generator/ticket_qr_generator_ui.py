@@ -33,9 +33,12 @@ SETTINGS_PATH = pathlib.Path(os.getenv("TICKET_QR_UI_SETTINGS_PATH", "~/.turni_t
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
 DEFAULT_CIRCUIT_OPTIONS = [
     "TicketOne",
-    "Vivaticket",
-    "Ciaotickets",
-    "DIY ticketing",
+    "TICKETTANDO/18 MONTHS",
+    "ciaotickets",
+    "Liveticket",
+    "archeoares (Tarquinia)",
+    "easy Soft (Gaeta)",
+    "ROCMA IT ADVISOR SRL. (Formia)"
 ]
 CIRCUIT_OPTIONS_PATH = pathlib.Path(
     os.getenv("TICKET_QR_CIRCUITS_PATH", str(SCRIPT_DIR / "circuit_options.json"))
