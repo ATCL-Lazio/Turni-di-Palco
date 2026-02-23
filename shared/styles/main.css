@@ -348,10 +348,56 @@
   animation: pulse-gentle 600ms ease-in-out;
 }
 
+.atcl-news-headline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.atcl-news-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(244, 191, 79, 0.45);
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #f4bf4f;
+  background: rgba(244, 191, 79, 0.08);
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.atcl-news-toggle:hover {
+  background: rgba(244, 191, 79, 0.18);
+  border-color: rgba(244, 191, 79, 0.7);
+}
+
+.atcl-news-toggle:active {
+  transform: scale(0.98);
+}
+
+.atcl-news-source-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #f4bf4f;
+  border: 1px solid rgba(244, 191, 79, 0.42);
+  background: rgba(244, 191, 79, 0.08);
+  flex-shrink: 0;
+}
+
 .atcl-news-ticker-mask {
   position: relative;
   overflow: hidden;
-  padding: 10px 0;
+  border: 1px solid rgba(244, 191, 79, 0.18);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(30, 25, 26, 0.95) 0%, rgba(22, 18, 19, 0.95) 100%);
 }
 
 .atcl-news-ticker-mask::before,
@@ -367,24 +413,25 @@
 
 .atcl-news-ticker-mask::before {
   left: 0;
-  background: linear-gradient(90deg, rgba(26, 22, 23, 1), rgba(26, 22, 23, 0));
+  background: linear-gradient(90deg, rgba(28, 23, 24, 1), rgba(28, 23, 24, 0));
 }
 
 .atcl-news-ticker-mask::after {
   right: 0;
-  background: linear-gradient(270deg, rgba(26, 22, 23, 1), rgba(26, 22, 23, 0));
+  background: linear-gradient(270deg, rgba(28, 23, 24, 1), rgba(28, 23, 24, 0));
 }
 
 .atcl-news-ticker-track {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  width: max-content;
-  animation: atcl-news-ticker-scroll 40s linear infinite;
+  gap: 0.8rem;
+  min-width: max-content;
+  padding: 0.68rem 0.8rem;
+  animation: atcl-news-ticker-scroll var(--atcl-news-duration, 70s) linear infinite;
   will-change: transform;
 }
 
-.atcl-news-ticker-mask:hover .atcl-news-ticker-track,
-.atcl-news-ticker-mask:focus-within .atcl-news-ticker-track {
+.atcl-news-ticker-mask.is-paused .atcl-news-ticker-track {
   animation-play-state: paused;
 }
 
@@ -392,23 +439,25 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  white-space: nowrap;
   text-decoration: none;
-  font-size: 0.875rem;
-  line-height: 1.4;
-  padding: 0 0.125rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 0.4rem 0.55rem;
+  background: rgba(0, 0, 0, 0.16);
+  max-width: min(85vw, 620px);
+  flex-shrink: 0;
 }
 
-.atcl-news-ticker-item:hover {
-  text-decoration: underline;
-  text-decoration-color: rgba(244, 191, 79, 0.6);
+.atcl-news-ticker-title {
+  font-size: 0.9rem;
+  color: #f5f5f5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.atcl-news-ticker-separator {
-  color: rgba(244, 191, 79, 0.6);
-  font-size: 0.875rem;
-  line-height: 1;
-  margin: 0 0.625rem;
+.atcl-news-ticker-item:hover .atcl-news-ticker-title {
+  color: #f4bf4f;
 }
 
 /* Enhanced Card Hover Effects */
