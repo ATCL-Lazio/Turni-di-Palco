@@ -1,6 +1,8 @@
 /**
  * Helper function for sync badge animations with accessibility support
  */
+const syncBadgeTimeouts = new WeakMap<HTMLElement, number>();
+
 export function showSyncBadge(
   syncBadge: HTMLElement | null,
   message = "Stato aggiornato",
@@ -17,18 +19,20 @@ export function showSyncBadge(
   void syncBadge.offsetWidth;
   syncBadge.classList.add("is-live");
   
-  // Clear existing timeout
-  let syncBadgeTimeout: number | undefined;
-  if (syncBadgeTimeout) {
-    window.clearTimeout(syncBadgeTimeout);
+  // Clear existing timeout for this badge instance
+  const existingTimeout = syncBadgeTimeouts.get(syncBadge);
+  if (existingTimeout !== undefined) {
+    window.clearTimeout(existingTimeout);
   }
   
   // Hide after duration
-  syncBadgeTimeout = window.setTimeout(() => {
+  const timeoutId = window.setTimeout(() => {
     if (syncBadge) {
       syncBadge.classList.remove("is-live");
       syncBadge.style.display = "none";
       syncBadge.removeAttribute("aria-live");
+      syncBadgeTimeouts.delete(syncBadge);
     }
   }, duration);
+  syncBadgeTimeouts.set(syncBadge, timeoutId);
 }
