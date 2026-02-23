@@ -157,6 +157,7 @@ jobs:
           render_api_key: ${{ secrets.RENDER_API_KEY }}
           render_service_id: ${{ secrets.RENDER_SERVICE_ID_MAXWELL }}
           label: Maxwell-AI-Support
+          max_attempts: "150"
 
       - name: Update deployment status (success) - Maxwell-AI-Support
         if: always() && steps.wait-maxwell.outputs.deploy_status == 'success' && steps.deployment-maxwell.outputs.deployment_id != ''
