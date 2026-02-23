@@ -210,7 +210,8 @@
         "Vivaticket"
     ],
     "github-actions.workflows.pinned.workflows": [
-        ".github/workflows/sync-deploy-branches.yml"
+        ".github/workflows/sync-deploy-branches.yml",
+        ".github/workflows/security.yml"
     ],
     "files.autoSave": "off",
     "editor.aiStats.enabled": true,
@@ -229,5 +230,8 @@
     "deno.lint": true,
     "[json]": {
         "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "[markdown]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
     }
 }
