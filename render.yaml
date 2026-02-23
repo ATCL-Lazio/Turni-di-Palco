@@ -38,6 +38,8 @@ services:
   buildCommand: npm ci && npm install -g @openai/codex && npm install -g gh
   startCommand: npm run ai:support
   autoDeployTrigger: commit
+  previews:
+    generation: manual
 - type: web
   name: Turni-di-Palco-Control-Plane
   runtime: node
@@ -67,6 +69,8 @@ services:
   buildCommand: npm ci
   startCommand: npm run start:control-plane
   autoDeployTrigger: commit
+  previews:
+    generation: manual
 - type: web
   name: Turni-di-Palco-Badges
   runtime: docker
@@ -79,3 +83,5 @@ services:
   region: frankfurt
   dockerfilePath: tools/shields/Dockerfile
   autoDeployTrigger: commit
+  previews:
+    generation: manual
