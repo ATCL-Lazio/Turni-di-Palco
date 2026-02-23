@@ -4,6 +4,7 @@
 [![CI](https://github.com/Heartran/Turni-di-Palco/actions/workflows/ci.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/ci.yml)
 [![Update Server Repository](https://github.com/Heartran/Turni-di-Palco/actions/workflows/update-server-repository.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/update-server-repository.yml)
 [![Sync Deploy Branches](https://github.com/Heartran/Turni-di-Palco/actions/workflows/sync-deploy-branches.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/sync-deploy-branches.yml)
+[![Security Checks](https://github.com/Heartran/Turni-di-Palco/actions/workflows/security.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/security.yml)
 
 Turni di Palco è un progetto che unisce spettacolo dal vivo e gioco digitale.
 L’obiettivo è semplice: vivere il teatro in modo più attivo, scoprendo non solo la scena ma anche tutto il lavoro dietro le quinte.
