@@ -3,6 +3,14 @@ import { getLocalAtclPromotionBySlot, isAtclPromotionActive } from '../data/atcl
 
 type PromotionBySlot = Partial<Record<AtclPromotionSlot, AtclPromotion>>;
 
+export type AtclNewsTickerItem = {
+  id: string;
+  title: string;
+  url: string;
+  sourceLabel: string;
+  publishedAt?: string;
+};
+
 type RssItem = {
   title: string;
   link: string;
@@ -15,6 +23,7 @@ type PromoSourceKey = 'atcl-rss' | 'rossellini-rss' | 'atcl-rest' | 'rossellini-
 
 const REMOTE_CACHE_TTL_MS = 15 * 60 * 1000;
 const RSS_ACCEPT_HEADER = 'application/rss+xml, application/xml;q=0.9, text/xml;q=0.8';
+const NEWS_TICKER_DEFAULT_LIMIT = 20;
 
 const ATCL_FEED_URL =
   import.meta.env.VITE_ATCL_PROMO_FEED_URL ?? 'https://www.atcllazio.it/feed/';
@@ -43,6 +52,37 @@ const ATCL_PROMO_ALLOW_DIRECT_FETCH =
 let remoteCacheExpiresAt = 0;
 let remoteCacheData: PromotionBySlot | null = null;
 let inflightLoad: Promise<PromotionBySlot> | null = null;
+let remoteFeedCacheExpiresAt = 0;
+let remoteFeedCacheData: { atclItems: RssItem[]; rosselliniItems: RssItem[] } | null = null;
+let inflightFeedLoad: Promise<{ atclItems: RssItem[]; rosselliniItems: RssItem[] }> | null = null;
+
+export function getLocalAtclNewsTickerItems(now: Date = new Date()): AtclNewsTickerItem[] {
+  const homePromotion = getLocalAtclPromotionBySlot('home', now);
+  const turnsPromotion = getLocalAtclPromotionBySlot('turns', now);
+  const localPromotions = [homePromotion, turnsPromotion].filter(
+    (promotion): promotion is AtclPromotion => Boolean(promotion)
+  );
+
+  return localPromotions.map((promotion, index) => ({
+    id: `local-${promotion.id}-${index}`,
+    title: collapseWhitespace(promotion.title),
+    url: promotion.ctaUrl ?? 'https://www.atcllazio.it/',
+    sourceLabel: promotion.badgeLabel || 'ATCL',
+    publishedAt: promotion.startsAt,
+  }));
+}
+
+export async function getAtclNewsTickerItemsSmart(
+  limit = NEWS_TICKER_DEFAULT_LIMIT,
+  now: Date = new Date()
+): Promise<AtclNewsTickerItem[]> {
+  const normalizedLimit = Number.isFinite(limit) ? Math.max(1, Math.floor(limit)) : NEWS_TICKER_DEFAULT_LIMIT;
+  const remoteItems = await loadRemoteNewsTickerItemsSafe();
+  if (remoteItems.length > 0) {
+    return remoteItems.slice(0, normalizedLimit);
+  }
+  return getLocalAtclNewsTickerItems(now).slice(0, normalizedLimit);
+}
 
 export async function getAtclPromotionBySlotSmart(
   slot: AtclPromotionSlot,
@@ -84,11 +124,43 @@ async function loadRemotePromotionsSafe(): Promise<PromotionBySlot> {
   return inflightLoad;
 }
 
+async function loadRemoteNewsTickerItemsSafe(): Promise<AtclNewsTickerItem[]> {
+  const feedBundle = await loadRemoteFeedBundleSafe();
+  return mapFeedBundleToNewsTickerItems(feedBundle.atclItems, feedBundle.rosselliniItems);
+}
+
+async function loadRemoteFeedBundleSafe(): Promise<{ atclItems: RssItem[]; rosselliniItems: RssItem[] }> {
+  const now = Date.now();
+  if (remoteFeedCacheData && remoteFeedCacheExpiresAt > now) {
+    return remoteFeedCacheData;
+  }
+
+  if (inflightFeedLoad) {
+    return inflightFeedLoad;
+  }
+
+  inflightFeedLoad = Promise.all([fetchAtclItems(), fetchRosselliniItems()])
+    .then(([atclItems, rosselliniItems]) => {
+      const bundle = { atclItems, rosselliniItems };
+      remoteFeedCacheData = bundle;
+      remoteFeedCacheExpiresAt = Date.now() + REMOTE_CACHE_TTL_MS;
+      return bundle;
+    })
+    .catch(() => {
+      const fallback = remoteFeedCacheData ?? { atclItems: [], rosselliniItems: [] };
+      remoteFeedCacheData = fallback;
+      remoteFeedCacheExpiresAt = Date.now() + REMOTE_CACHE_TTL_MS;
+      return fallback;
+    })
+    .finally(() => {
+      inflightFeedLoad = null;
+    });
+
+  return inflightFeedLoad;
+}
+
 async function loadRemotePromotions(): Promise<PromotionBySlot> {
-  const [atclItems, rosselliniItems] = await Promise.all([
-    fetchAtclItems(),
-    fetchRosselliniItems(),
-  ]);
+  const { atclItems, rosselliniItems } = await loadRemoteFeedBundleSafe();
 
   const atclTop =
     atclItems.find((item) =>
@@ -112,6 +184,27 @@ async function loadRemotePromotions(): Promise<PromotionBySlot> {
     });
   }
   return promotions;
+}
+
+function mapFeedBundleToNewsTickerItems(atclItems: RssItem[], rosselliniItems: RssItem[]): AtclNewsTickerItem[] {
+  const merged = [
+    ...atclItems.map((item) => mapRssItemToTickerItem(item, 'ATCL')),
+    ...rosselliniItems.map((item) => mapRssItemToTickerItem(item, 'Spazio Rossellini')),
+  ].filter((item): item is AtclNewsTickerItem => Boolean(item));
+
+  const dedupedByUrl = new Map<string, AtclNewsTickerItem>();
+  for (const item of merged) {
+    const key = collapseWhitespace(item.url).toLowerCase();
+    if (!key) continue;
+    if (dedupedByUrl.has(key)) continue;
+    dedupedByUrl.set(key, item);
+  }
+
+  return Array.from(dedupedByUrl.values()).sort((left, right) => {
+    const rightTs = toTimestamp(right.publishedAt);
+    const leftTs = toTimestamp(left.publishedAt);
+    return rightTs - leftTs;
+  });
 }
 
 async function fetchAtclItems(): Promise<RssItem[]> {
@@ -248,6 +341,23 @@ function buildExternalProxyUrl(url: string): string {
   return `${ATCL_PROMO_CORS_PROXY_TEMPLATE}${separator}url=${encodedTarget}`;
 }
 
+function mapRssItemToTickerItem(item: RssItem, sourceLabel: string): AtclNewsTickerItem | null {
+  const title = truncate(collapseWhitespace(item.title), 160);
+  const url = collapseWhitespace(item.link);
+  if (!title || !url) return null;
+
+  const publishedAt = toIsoDate(item.pubDate);
+  const idSeed = `${sourceLabel}-${url}`.toLowerCase();
+  const id = idSeed.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 72) || `ticker-${Date.now()}`;
+  return {
+    id,
+    title,
+    url,
+    sourceLabel,
+    publishedAt,
+  };
+}
+
 function mapItemToPromotion(
   item: RssItem,
   config: { slot: AtclPromotionSlot; badgeLabel: string; ctaLabel: string }
@@ -275,6 +385,12 @@ function toIsoDate(value: string): string | undefined {
   const parsed = Date.parse(value);
   if (!Number.isFinite(parsed)) return undefined;
   return new Date(parsed).toISOString();
+}
+
+function toTimestamp(value?: string): number {
+  if (!value) return 0;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function sanitizeText(value: string): string {

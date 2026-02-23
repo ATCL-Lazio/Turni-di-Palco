@@ -11,6 +11,8 @@ import { GameEvent } from '../../state/store';
 import { ScanQRCard } from '../ScanQRCard';
 import { AtclPromoBanner } from '../AtclPromoBanner';
 import { useAtclPromotion } from '../../hooks/useAtclPromotion';
+import { useAtclNewsTicker } from '../../hooks/useAtclNewsTicker';
+import { AtclNewsTicker } from '../AtclNewsTicker';
 
 type EventState = 'loading' | 'error' | 'empty' | 'ready';
 
@@ -86,6 +88,7 @@ export function Home({
 
   const eventState: EventState = eventError ? 'error' : eventLoading ? 'loading' : !upcomingEvent ? 'empty' : 'ready';
   const homePromotion = useAtclPromotion('home');
+  const homeTickerItems = useAtclNewsTicker(18);
 
   return (
     <div
@@ -164,6 +167,7 @@ export function Home({
 
         <ScanQRCard onScanQR={onScanQR} className="mt-5" />
         {homePromotion ? <AtclPromoBanner promotion={homePromotion} /> : null}
+        <AtclNewsTicker items={homeTickerItems} />
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
