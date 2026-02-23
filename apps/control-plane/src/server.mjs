@@ -1,7 +1,10 @@
 ﻿
 import "dotenv/config";
 import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 import express from "express";
 import { decodeJwt } from "jose";
 import { createClient } from "@supabase/supabase-js";
@@ -26,6 +29,12 @@ const MOBILE_APP_VERSION_BADGE_COLOR = (process.env.APP_VERSION_BADGE_COLOR || "
 const APP_VERSION_FUNCTION_ENDPOINT = SUPABASE_URL
   ? `${SUPABASE_URL.replace(/\/+$/, "")}/functions/v1/app-version`
   : "";
+const CONTROL_PLANE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+const MOBILE_APP_VERSION_LOGO_PATH = path.join(
+  CONTROL_PLANE_ROOT,
+  "apps/mobile/src/assets/figma/welcome-logo.svg"
+);
+const MOBILE_APP_VERSION_LOGO_SVG = loadBadgeLogoSvg(MOBILE_APP_VERSION_LOGO_PATH);
 
 const RENDER_API_KEY = (process.env.RENDER_API_KEY || "").trim();
 const RENDER_API_BASE = "https://api.render.com/v1";
@@ -908,8 +917,35 @@ async function mobileVersionBadgeHandler(_req, res) {
     label: MOBILE_APP_VERSION_BADGE_LABEL,
     message,
     color,
+    logoSvg: MOBILE_APP_VERSION_LOGO_SVG || undefined,
     cacheSeconds: 300,
   });
+}
+
+function loadBadgeLogoSvg(filePath) {
+  try {
+    const rawSvg = fs.readFileSync(filePath, "utf8");
+    return normalizeBadgeLogoSvg(rawSvg);
+  } catch (error) {
+    console.warn(
+      "[control-plane] badge logo fallback",
+      sanitizeForOutput({
+        filePath,
+        error: error?.message || String(error),
+      })
+    );
+    return "";
+  }
+}
+
+function normalizeBadgeLogoSvg(rawSvg) {
+  const compact = String(rawSvg || "")
+    .replace(/\r?\n/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return compact
+    .replaceAll("var(--stroke-0, #F4BF4F)", "#F4BF4F")
+    .replaceAll("var(--stroke-0,#F4BF4F)", "#F4BF4F");
 }
 
 async function sessionValidateHandler(req, res) {
