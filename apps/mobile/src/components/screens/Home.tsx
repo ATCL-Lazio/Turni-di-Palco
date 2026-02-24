@@ -5,7 +5,19 @@ import { Tag } from '../ui/Tag';
 import { MetricTile } from '../ui/MetricTile';
 import { Skeleton } from '../ui/skeleton';
 import { Button } from '../ui/Button';
-import { Play, Calendar, TrendingUp, Award, ChevronRight, Navigation, CalendarPlus, X, Bell } from 'lucide-react';
+import {
+  Play,
+  Calendar,
+  TrendingUp,
+  Award,
+  ChevronRight,
+  Navigation,
+  CalendarPlus,
+  X,
+  Bell,
+  Coins,
+  Zap,
+} from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { GameEvent, TurnSyncFeedback } from '../../state/store';
 import { ScanQRCard } from '../ScanQRCard';
@@ -23,6 +35,7 @@ interface HomeProps {
   xp: number;
   xpToNextLevel: number;
   reputation: number;
+  cachet: number;
   tokenAtcl: number;
   pendingBoostRequests?: number;
   turnSyncFeedback?: TurnSyncFeedback | null;
@@ -52,6 +65,7 @@ export function Home({
   xp,
   xpToNextLevel,
   reputation,
+  cachet,
   tokenAtcl,
   pendingBoostRequests = 0,
   turnSyncFeedback = null,
@@ -152,10 +166,7 @@ export function Home({
               <div>
                 <h2 className="text-2xl text-white font-semibold leading-tight">{userName || 'Profilo'}</h2>
               </div>
-              <div className="flex items-center gap-2">
-                <Tag size="sm">{userRole}</Tag>
-                <Tag size="sm">Token {tokenAtcl}</Tag>
-              </div>
+              <Tag size="sm">{userRole}</Tag>
             </div>
           </div>
 
@@ -175,6 +186,31 @@ export function Home({
               progress={{ value: reputation, max: 100, color: 'burgundy' }}
             />
           </div>
+
+          <Card className="bg-[#1a1617] border border-[#2d2728] mt-3">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h4 className="text-white text-sm font-semibold">Economia</h4>
+              <p className="text-xs text-[#7a7577]">Cachet + Token ATCL</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-[#241f20] border border-[#3d3a3b] p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-[#b8b2b3]">Cachet</p>
+                  <Coins size={14} className="text-[#f4bf4f]" />
+                </div>
+                <p className="text-white text-lg font-semibold mt-1">{cachet}</p>
+                <p className="text-[11px] text-[#7a7577] mt-1">Valuta base attivita e turni</p>
+              </div>
+              <div className="rounded-xl bg-[#241f20] border border-[#3d3a3b] p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-[#b8b2b3]">Token ATCL</p>
+                  <Zap size={14} className="text-[#f4bf4f]" />
+                </div>
+                <p className="text-[#f4bf4f] text-lg font-semibold mt-1">{tokenAtcl}</p>
+                <p className="text-[11px] text-[#7a7577] mt-1">Boost e futuri riscatti reali</p>
+              </div>
+            </div>
+          </Card>
 
           {pendingBoostRequests > 0 ? (
             <Card className="bg-[#2a1f14] border border-[#f4bf4f]/30 mt-3">
