@@ -4,6 +4,10 @@ import { Button } from '../ui/Button';
 import { ScanQRCard } from '../ScanQRCard';
 import { QrCode, MapPin, Calendar, TrendingUp, Theater, Bookmark, Map, Award } from 'lucide-react';
 import { GameEvent } from '../../state/store';
+import { AtclPromoBanner } from '../AtclPromoBanner';
+import { useAtclPromotion } from '../../hooks/useAtclPromotion';
+import { AtclNewsTicker } from '../AtclNewsTicker';
+import { useAtclNewsTicker } from '../../hooks/useAtclNewsTicker';
 
 interface ATCLTurnsProps {
   events: GameEvent[];
@@ -49,6 +53,9 @@ export function ATCLTurns({
       return dateA >= now ? -1 : 1;
     });
   }, [events]);
+  const turnsPromotion = useAtclPromotion('turns');
+  const turnsTickerItems = useAtclNewsTicker(18);
+  const showTurnsTicker = turnsTickerItems.length > 1;
 
   return (
     <div
@@ -62,6 +69,11 @@ export function ATCLTurns({
         </div>
 
         <ScanQRCard onScanQR={onScanQR} />
+        {showTurnsTicker ? (
+          <AtclNewsTicker items={turnsTickerItems} />
+        ) : turnsPromotion ? (
+          <AtclPromoBanner promotion={turnsPromotion} />
+        ) : null}
 
         <Card>
           <h4 className="text-white mb-4">Statistiche totali</h4>

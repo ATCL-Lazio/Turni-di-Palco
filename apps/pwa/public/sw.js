@@ -33,7 +33,7 @@ const CORE_ASSETS = [
 const NON_PUBLIC_PATHS = new Set(CORE_ASSETS_BY_ENV.dev);
 const OFFLINE_URL = "/index.html";
 
-const CORE_CACHE_VERSION = "v0d140fe";
+const CORE_CACHE_VERSION = "v5382c364";
 const CACHE_VERSION_TAG = "v5";
 const CORE_CACHE_NAME = `turni-di-palco-core-${CORE_CACHE_VERSION}-${CACHE_VERSION_TAG}`;
 const TILE_CACHE_NAME = `turni-di-palco-tiles-${CORE_CACHE_VERSION}-${CACHE_VERSION_TAG}`;
