@@ -67,11 +67,9 @@ export function Activities({
               <h3 className="text-white text-lg font-semibold">
                 {completedToday}/{dailyGoal} completate oggi
               </h3>
-              <p className="text-sm text-[#b8b2b3]">
-                {slotsLoading
-                  ? 'Verifica slot in corso...'
-                  : `Slot residui oggi: ${remainingSlots}`}
-              </p>
+              {slotsLoading ? (
+                <p className="text-sm text-[#b8b2b3]">Verifica slot in corso...</p>
+              ) : null}
             </div>
             <div className="w-12 h-12 rounded-full bg-[#241f20] flex items-center justify-center">
               <Flag className="text-[#f4bf4f]" size={22} />

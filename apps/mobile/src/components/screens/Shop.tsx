@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { AlertCircle, Coins, ShoppingBag, Sparkles } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -20,9 +20,9 @@ interface ShopProps {
 }
 
 function formatCategory(category: ShopCatalogItem['category']) {
-  if (category === 'slot') return 'Slot attività';
   if (category === 'rep_atcl') return 'Reputazione ATCL';
-  return 'Reputazione Teatro';
+  if (category === 'rep_theatre') return 'Reputazione Teatro';
+  return null;
 }
 
 export function Shop({
@@ -76,7 +76,7 @@ export function Shop({
             : result.rejectionReason === 'max_purchase_reached'
               ? 'Hai raggiunto il limite massimo per questo elemento.'
               : result.rejectionReason === 'theatre_not_eligible'
-                ? 'Puoi acquistare questo pack solo su teatri già giocati.'
+                ? 'Puoi acquistare questo pack solo su teatri giÃ  giocati.'
                 : result.error,
       });
     } finally {
@@ -100,7 +100,6 @@ export function Shop({
             <div>
               <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Saldo disponibile</p>
               <p className="text-2xl text-white font-semibold mt-1">{cachet} Cachet</p>
-              <p className="text-sm text-[#7a7577] mt-2">Slot attività totali: {3 + extraActivitySlots}</p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-[#241f20] border border-[#3d3a3b] flex items-center justify-center">
               <ShoppingBag className="text-[#f4bf4f]" size={22} />
@@ -127,6 +126,7 @@ export function Shop({
         ) : null}
 
         {items.map((item) => {
+          const categoryLabel = formatCategory(item.category);
           const maxReached =
             item.category === 'slot' &&
             item.maxPurchasesPerUser != null &&
@@ -148,9 +148,11 @@ export function Shop({
                     <h3 className="text-white text-lg">{item.title}</h3>
                     <p className="text-sm text-[#b8b2b3] mt-1">{item.description}</p>
                   </div>
-                  <Badge variant="outline" size="sm">
-                    {formatCategory(item.category)}
-                  </Badge>
+                  {categoryLabel ? (
+                    <Badge variant="outline" size="sm">
+                      {categoryLabel}
+                    </Badge>
+                  ) : null}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -228,4 +230,5 @@ export function Shop({
     </div>
   );
 }
+
 
