@@ -4,10 +4,13 @@ import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Tag } from '../ui/Tag';
 import { ProgressBar } from '../ui/ProgressBar';
-import { Activity } from '../../state/store';
+import { Activity, ActivitySlotsStatus } from '../../state/store';
 
 interface ActivitiesProps {
   activities: Activity[];
+  slotsStatus: ActivitySlotsStatus;
+  slotsLoading?: boolean;
+  isOnline?: boolean;
   onStartActivity: (activityId: string) => void;
 }
 
@@ -17,10 +20,17 @@ const difficultyLabels: Record<Activity['difficulty'], string> = {
   Difficile: 'Avanzato',
 };
 
-export function Activities({ activities, onStartActivity }: ActivitiesProps) {
+export function Activities({
+  activities,
+  slotsStatus,
+  slotsLoading = false,
+  isOnline = true,
+  onStartActivity,
+}: ActivitiesProps) {
   const totalActivities = activities.length;
-  const dailyGoal = 3;
-  const completedToday = 0;
+  const dailyGoal = slotsStatus.totalSlots;
+  const completedToday = slotsStatus.usedToday;
+  const remainingSlots = slotsStatus.remainingSlots;
   const dailyProgress = dailyGoal > 0 ? Math.min((completedToday / dailyGoal) * 100, 100) : 0;
 
   return (
@@ -54,8 +64,14 @@ export function Activities({ activities, onStartActivity }: ActivitiesProps) {
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
               <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Missioni giornaliere</p>
-              <h3 className="text-white text-lg font-semibold">0/{dailyGoal} completate oggi</h3>
-              <p className="text-sm text-[#b8b2b3]">Completa le missioni per mantenere la streak attiva.</p>
+              <h3 className="text-white text-lg font-semibold">
+                {completedToday}/{dailyGoal} completate oggi
+              </h3>
+              <p className="text-sm text-[#b8b2b3]">
+                {slotsLoading
+                  ? 'Verifica slot in corso...'
+                  : `Slot residui oggi: ${remainingSlots}`}
+              </p>
             </div>
             <div className="w-12 h-12 rounded-full bg-[#241f20] flex items-center justify-center">
               <Flag className="text-[#f4bf4f]" size={22} />
@@ -77,11 +93,12 @@ export function Activities({ activities, onStartActivity }: ActivitiesProps) {
           <div className="space-y-3">
             {activities.map((activity, index) => {
               const difficultyLabel = difficultyLabels[activity.difficulty] ?? activity.difficulty;
+              const canStart = isOnline && remainingSlots > 0;
               return (
                 <Card
                   key={activity.id}
-                  hoverable
-                  onClick={() => onStartActivity(activity.id)}
+                  hoverable={canStart}
+                  onClick={canStart ? () => onStartActivity(activity.id) : undefined}
                   className="border border-white/5 bg-gradient-to-br from-[#1a1617] via-[#1d1819] to-[#221d1e]"
                 >
                   <div className="flex items-start gap-4">
@@ -120,6 +137,13 @@ export function Activities({ activities, onStartActivity }: ActivitiesProps) {
                           +{activity.cachetReward}
                         </span>
                       </div>
+                      {!canStart ? (
+                        <p className="text-xs text-[#ff9aac]">
+                          {!isOnline
+                            ? 'Per completare attività serve connessione online.'
+                            : 'Limite slot giornalieri raggiunto.'}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </Card>

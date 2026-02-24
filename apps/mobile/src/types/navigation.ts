@@ -11,6 +11,7 @@ export type Screen =
     | 'event-confirmation'
     | 'event-details'
     | 'activities'
+    | 'shop'
     | 'activity-detail'
     | 'activity-minigame'
     | 'activity-result'
@@ -24,7 +25,7 @@ export type Screen =
     | 'earned-titles'
     | 'ticket-qr-prototype';
 
-export type Tab = 'home' | 'turns' | 'leaderboard' | 'activities' | 'profile';
+export type Tab = 'home' | 'turns' | 'leaderboard' | 'activities' | 'shop' | 'profile';
 
 export type LegalReturnScreen = Exclude<Screen, 'terms' | 'privacy'>;
 

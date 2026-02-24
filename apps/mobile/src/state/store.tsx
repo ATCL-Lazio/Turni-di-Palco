@@ -43,6 +43,62 @@ export type Activity = {
   difficulty: 'Facile' | 'Medio' | 'Difficile';
 };
 
+export type ShopCategory = 'slot' | 'rep_atcl' | 'rep_theatre';
+
+export type ShopCatalogItem = {
+  code: string;
+  title: string;
+  description: string;
+  category: ShopCategory;
+  costCachet: number;
+  effectValue: number;
+  maxPurchasesPerUser: number | null;
+  active: boolean;
+  metadata?: Record<string, unknown>;
+};
+
+export type ActivitySlotsStatus = {
+  usedToday: number;
+  totalSlots: number;
+  remainingSlots: number;
+};
+
+export type CompleteActivityResult =
+  | {
+    ok: true;
+    activity: Activity;
+    rewards: Rewards;
+    slotsUsedToday: number;
+    slotsTotal: number;
+    cachetBalanceAfter: number;
+    reputationAfter: number;
+  }
+  | {
+    ok: false;
+    error: string;
+    rejectionReason?: string | null;
+    slotsUsedToday?: number;
+    slotsTotal?: number;
+  };
+
+export type ShopPurchaseResult =
+  | {
+    ok: true;
+    status: 'applied' | 'duplicate';
+    cachetBalanceAfter: number;
+    reputationAfter: number;
+    extraSlotsAfter: number;
+    theatre?: string | null;
+    theatreReputationAfter?: number | null;
+    effect: Record<string, unknown>;
+  }
+  | {
+    ok: false;
+    status: 'rejected' | 'error';
+    error: string;
+    rejectionReason?: string | null;
+  };
+
 export type TurnRecord = {
   id: string;
   eventId: string;
@@ -71,6 +127,7 @@ export type PlayerProfile = {
   reputation: number;
   cachet: number;
   tokenAtcl: number;
+  extraActivitySlots: number;
   profileImage?: string;
   lastActivityAt: number;
 };
@@ -241,12 +298,41 @@ export const activities: Activity[] = [
   },
 ];
 
+const DEFAULT_SHOP_CATALOG: ShopCatalogItem[] = [
+  {
+    code: 'extra_slot_permanent',
+    title: 'Slot attività extra (permanente)',
+    description: 'Aumenta il numero massimo di attività giornaliere.',
+    category: 'slot',
+    costCachet: 4000,
+    effectValue: 1,
+    maxPurchasesPerUser: 2,
+    active: true,
+  },
+  {
+    code: 'rep_pack_atcl',
+    title: 'Pack reputazione ATCL',
+    description: 'Aumenta la reputazione ATCL globale.',
+    category: 'rep_atcl',
+    costCachet: 1200,
+    effectValue: 10,
+    maxPurchasesPerUser: null,
+    active: true,
+  },
+  {
+    code: 'rep_pack_theatre',
+    title: 'Pack reputazione Teatro',
+    description: 'Aumenta la reputazione in un teatro già giocato.',
+    category: 'rep_theatre',
+    costCachet: 1800,
+    effectValue: 15,
+    maxPurchasesPerUser: null,
+    active: true,
+  },
+];
+
 const STORAGE_KEY = 'tdp-mobile-ui-state';
 const MAX_TURNS = 20;
-const REPUTATION_DECAY_GRACE_DAYS = 14;
-const REPUTATION_DECAY_POINTS_PER_DAY = 2;
-const REPUTATION_DECAY_DAY_MS = 1000 * 60 * 60 * 24;
-const REPUTATION_DECAY_CHECK_INTERVAL_MS = 1000 * 60 * 60;
 const OFFLINE_SYNC_QUEUE_KEY = 'tdp-mobile-offline-sync-v1';
 const OFFLINE_SYNC_RETRY_INTERVAL_MS = 15000;
 const OFFLINE_SYNC_MAX_ITEMS = 300;
@@ -274,7 +360,10 @@ const MOBILE_WATCHDOG_TIMEOUTS = {
   loadRemoteState: 20000,
   persistProfile: 12000,
   registerTurnInsert: 12000,
-  completeActivityInsert: 12000,
+  completeActivityRpc: 12000,
+  shopPurchase: 12000,
+  loadShopCatalog: 12000,
+  loadActivitySlots: 10000,
   resetProgress: 20000,
   changePassword: 20000,
   sendPasswordResetEmail: 12000,
@@ -306,15 +395,7 @@ type ProfileUpsertPayload = {
   name: string;
   email: string;
   role_id: RoleId;
-  level: number;
-  xp: number;
-  xp_to_next_level: number;
-  xp_total: number;
-  xp_field: number;
-  reputation: number;
-  cachet: number;
   profile_image?: string | null;
-  last_activity_at: string;
 };
 
 type TurnInsertPayload = {
@@ -643,7 +724,6 @@ function summarizeQueuedMutation(
         ...base,
         profileId: mutation.payload.id,
         roleId: mutation.payload.role_id,
-        level: mutation.payload.level,
       };
     case 'turn_insert':
       return {
@@ -930,15 +1010,7 @@ function buildProfileUpsertPayload(userId: string, profile: PlayerProfile): Prof
     name: profile.name,
     email: profile.email,
     role_id: profile.roleId,
-    level: profile.level,
-    xp: profile.xp,
-    xp_to_next_level: profile.xpToNextLevel,
-    xp_total: profile.xpTotal,
-    xp_field: profile.xpField,
-    reputation: profile.reputation,
-    cachet: profile.cachet,
     profile_image: profile.profileImage ?? null,
-    last_activity_at: new Date(profile.lastActivityAt).toISOString(),
   };
 }
 
@@ -975,6 +1047,109 @@ function parseTurnRegistrationRpcRow(data: unknown): TurnRegistrationRpcRow | nu
     rewards_applied: normalizeRewardsPayload(row.rewards_applied),
     token_balance_after: Number.isFinite(tokenBalanceRaw) ? tokenBalanceRaw : null,
   };
+}
+
+type ActivityCompletionRpcRow = {
+  activity_registered: boolean;
+  status: string;
+  rejection_reason: string | null;
+  rewards_applied: Rewards;
+  slots_used_today: number;
+  slots_total: number;
+  cachet_balance_after: number;
+  reputation_after: number;
+};
+
+function parseActivityCompletionRpcRow(data: unknown): ActivityCompletionRpcRow | null {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!isRecord(row)) return null;
+  return {
+    activity_registered: Boolean(row.activity_registered),
+    status: typeof row.status === 'string' ? row.status : 'rejected',
+    rejection_reason:
+      typeof row.rejection_reason === 'string' && row.rejection_reason.trim()
+        ? row.rejection_reason.trim()
+        : null,
+    rewards_applied: normalizeRewardsPayload(row.rewards_applied),
+    slots_used_today: Number(row.slots_used_today ?? 0),
+    slots_total: Number(row.slots_total ?? 3),
+    cachet_balance_after: Number(row.cachet_balance_after ?? 0),
+    reputation_after: Number(row.reputation_after ?? 0),
+  };
+}
+
+type ActivitySlotsRpcRow = {
+  used_today: number;
+  total_slots: number;
+  remaining_slots: number;
+};
+
+function parseActivitySlotsRpcRow(data: unknown): ActivitySlotsRpcRow | null {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!isRecord(row)) return null;
+  return {
+    used_today: Number(row.used_today ?? 0),
+    total_slots: Number(row.total_slots ?? 3),
+    remaining_slots: Number(row.remaining_slots ?? 3),
+  };
+}
+
+type ShopPurchaseRpcRow = {
+  purchase_applied: boolean;
+  status: string;
+  rejection_reason: string | null;
+  cachet_balance_after: number;
+  profile_reputation_after: number;
+  extra_slots_after: number;
+  theatre: string | null;
+  theatre_reputation_after: number | null;
+  effect: Record<string, unknown>;
+};
+
+function parseShopPurchaseRpcRow(data: unknown): ShopPurchaseRpcRow | null {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!isRecord(row)) return null;
+  const theatreReputationRaw = Number(row.theatre_reputation_after ?? 0);
+  return {
+    purchase_applied: Boolean(row.purchase_applied),
+    status: typeof row.status === 'string' ? row.status : 'rejected',
+    rejection_reason:
+      typeof row.rejection_reason === 'string' && row.rejection_reason.trim()
+        ? row.rejection_reason.trim()
+        : null,
+    cachet_balance_after: Number(row.cachet_balance_after ?? 0),
+    profile_reputation_after: Number(row.profile_reputation_after ?? 0),
+    extra_slots_after: Number(row.extra_slots_after ?? 0),
+    theatre: typeof row.theatre === 'string' && row.theatre.trim() ? row.theatre.trim() : null,
+    theatre_reputation_after: Number.isFinite(theatreReputationRaw) ? theatreReputationRaw : null,
+    effect: isRecord(row.effect) ? row.effect : {},
+  };
+}
+
+function parseShopCatalogRows(data: unknown): ShopCatalogItem[] {
+  if (!Array.isArray(data)) return DEFAULT_SHOP_CATALOG;
+  const parsed = data
+    .filter((entry) => isRecord(entry))
+    .map((entry) => {
+      const category = typeof entry.category === 'string' ? entry.category : 'slot';
+      if (category !== 'slot' && category !== 'rep_atcl' && category !== 'rep_theatre') return null;
+      return {
+        code: typeof entry.code === 'string' ? entry.code : '',
+        title: typeof entry.title === 'string' ? entry.title : '',
+        description: typeof entry.description === 'string' ? entry.description : '',
+        category,
+        costCachet: Number(entry.cost_cachet ?? 0),
+        effectValue: Number(entry.effect_value ?? 0),
+        maxPurchasesPerUser:
+          entry.max_purchases_per_user == null ? null : Number(entry.max_purchases_per_user),
+        active: Boolean(entry.active),
+        metadata: isRecord(entry.metadata) ? entry.metadata : {},
+      } satisfies ShopCatalogItem;
+    })
+    .filter((entry): entry is ShopCatalogItem => Boolean(entry) && entry.code.trim().length > 0);
+
+  if (!parsed.length) return DEFAULT_SHOP_CATALOG;
+  return parsed;
 }
 
 function buildTurnRecordFromPayload(
@@ -1026,6 +1201,7 @@ function createInitialState(): GameState {
       reputation: 0,
       cachet: 0,
       tokenAtcl: 0,
+      extraActivitySlots: 0,
       profileImage: undefined,
       lastActivityAt: Date.now(),
     },
@@ -1047,6 +1223,7 @@ function createDemoState(): GameState {
       reputation: 75,
       cachet: 250,
       tokenAtcl: 3,
+      extraActivitySlots: 1,
       profileImage: undefined,
       lastActivityAt: Date.now(),
     },
@@ -1239,6 +1416,13 @@ type GameContextValue = {
   badgesLoading: boolean;
   followedEvents: GameEvent[];
   followedEventsLoading: boolean;
+  shopCatalog: ShopCatalogItem[];
+  shopCatalogLoading: boolean;
+  refreshShopCatalog: () => Promise<void>;
+  purchaseShopItem: (itemCode: string, targetTheatre?: string | null) => Promise<ShopPurchaseResult>;
+  activitySlotsStatus: ActivitySlotsStatus;
+  activitySlotsLoading: boolean;
+  refreshActivitySlotsStatus: () => Promise<void>;
   followEvent: (eventId: string) => Promise<void>;
   unfollowEvent: (eventId: string) => Promise<void>;
   isEventFollowed: (eventId: string) => boolean;
@@ -1248,7 +1432,7 @@ type GameContextValue = {
   pendingBoostRequests: number;
   turnSyncFeedback: TurnSyncFeedback | null;
   clearTurnSyncFeedback: () => void;
-  completeActivity: (activityId: string) => { activity: Activity; rewards: Rewards } | null;
+  completeActivity: (activityId: string) => Promise<CompleteActivityResult>;
   resetProgress: () => Promise<void>;
   changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
@@ -1282,9 +1466,16 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [badgesLoading, setBadgesLoading] = useState(false);
   const [followedEvents, setFollowedEvents] = useState<GameEvent[]>([]);
   const [followedEventsLoading, setFollowedEventsLoading] = useState(false);
+  const [shopCatalog, setShopCatalog] = useState<ShopCatalogItem[]>(DEFAULT_SHOP_CATALOG);
+  const [shopCatalogLoading, setShopCatalogLoading] = useState(false);
+  const [activitySlotsStatus, setActivitySlotsStatus] = useState<ActivitySlotsStatus>({
+    usedToday: 0,
+    totalSlots: 3 + state.profile.extraActivitySlots,
+    remainingSlots: Math.max(0, 3 + state.profile.extraActivitySlots),
+  });
+  const [activitySlotsLoading, setActivitySlotsLoading] = useState(false);
   const [pendingBoostRequests, setPendingBoostRequests] = useState(0);
   const [turnSyncFeedback, setTurnSyncFeedback] = useState<TurnSyncFeedback | null>(null);
-  const lastDecaySyncKeyRef = useRef<string | null>(null);
   const offlineSyncInFlightRef = useRef(false);
   const offlineServerLogSyncInFlightRef = useRef(false);
 
@@ -1646,11 +1837,20 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (mutation.kind === 'activity_insert') {
-          const { error } = await supabase.from('activity_completions').insert(mutation.payload);
-          if (!error || isDuplicateSyncError(error)) return { status: 'applied' };
-          return shouldRetrySyncError(error)
-            ? { status: 'retry', error }
-            : { status: 'discard', error };
+          const { data, error } = await supabase.rpc('complete_activity_with_slots', {
+            p_activity_id: mutation.payload.activity_id,
+            p_client_action_id: mutation.payload.id,
+          });
+          if (error) {
+            return shouldRetrySyncError(error)
+              ? { status: 'retry', error }
+              : { status: 'discard', error };
+          }
+          const rpcRow = parseActivityCompletionRpcRow(data);
+          if (!rpcRow) {
+            return { status: 'retry', error: new Error('Risposta complete_activity_with_slots non valida') };
+          }
+          return { status: 'applied' };
         }
 
         if (mutation.kind === 'follow_event_insert') {
@@ -2128,6 +2328,85 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     [authUserId]
   );
 
+  const refreshShopCatalog = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase || !authUserId) {
+      setShopCatalog(DEFAULT_SHOP_CATALOG);
+      return;
+    }
+
+    await withMobileWatchdog(
+      async () => {
+        setShopCatalogLoading(true);
+        try {
+          const { data, error } = await supabase
+            .from('shop_catalog')
+            .select('code,title,description,category,cost_cachet,effect_value,max_purchases_per_user,active,metadata')
+            .eq('active', true)
+            .order('cost_cachet', { ascending: true });
+          if (error) {
+            console.warn('Supabase shop catalog fetch failed', error);
+            setShopCatalog(DEFAULT_SHOP_CATALOG);
+            return;
+          }
+          setShopCatalog(parseShopCatalogRows(data));
+        } finally {
+          setShopCatalogLoading(false);
+        }
+      },
+      {
+        operation: 'loadShopCatalog',
+        timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.loadShopCatalog,
+        title: 'Shop lento',
+        message: 'Il caricamento del catalogo shop sta impiegando troppo tempo.',
+      }
+    );
+  }, [authUserId]);
+
+  const refreshActivitySlotsStatus = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase || !authUserId) {
+      const totalSlots = 3 + state.profile.extraActivitySlots;
+      setActivitySlotsStatus({
+        usedToday: 0,
+        totalSlots,
+        remainingSlots: totalSlots,
+      });
+      return;
+    }
+
+    await withMobileWatchdog(
+      async () => {
+        setActivitySlotsLoading(true);
+        try {
+          const { data, error } = await supabase.rpc('get_activity_slots_status');
+          if (error) {
+            console.warn('Supabase activity slots status fetch failed', error);
+            return;
+          }
+          const row = parseActivitySlotsRpcRow(data);
+          if (!row) return;
+          const totalSlots = Number.isFinite(row.total_slots) ? row.total_slots : 3;
+          const usedToday = Number.isFinite(row.used_today) ? row.used_today : 0;
+          const remainingSlots = Number.isFinite(row.remaining_slots)
+            ? row.remaining_slots
+            : Math.max(0, totalSlots - usedToday);
+          setActivitySlotsStatus({
+            usedToday,
+            totalSlots,
+            remainingSlots: Math.max(0, remainingSlots),
+          });
+        } finally {
+          setActivitySlotsLoading(false);
+        }
+      },
+      {
+        operation: 'loadActivitySlots',
+        timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.loadActivitySlots,
+        title: 'Slot attività lenti',
+        message: 'Il controllo slot attività sta impiegando troppo tempo.',
+      }
+    );
+  }, [authUserId, state.profile.extraActivitySlots]);
+
   const followEvent = useCallback(
     async (eventId: string) => {
       const event = catalog.events.find((item) => item.id === eventId);
@@ -2458,6 +2737,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 reputation: profileRow.reputation ?? prev.profile.reputation,
                 cachet: profileRow.cachet ?? prev.profile.cachet,
                 tokenAtcl: profileRow.token_atcl ?? prev.profile.tokenAtcl,
+                extraActivitySlots:
+                  profileRow.extra_activity_slots ?? prev.profile.extraActivitySlots,
                 profileImage: profileRow.profile_image ?? prev.profile.profileImage,
                 lastActivityAt: Number.isFinite(parsedLastActivityAt)
                   ? parsedLastActivityAt
@@ -2486,6 +2767,33 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       isMounted = false;
     };
   }, [authUserId]);
+
+  useEffect(() => {
+    if (!authUserId) {
+      setShopCatalog(DEFAULT_SHOP_CATALOG);
+      return;
+    }
+    void refreshShopCatalog();
+  }, [authUserId, refreshShopCatalog]);
+
+  useEffect(() => {
+    if (!authUserId) {
+      const totalSlots = 3 + state.profile.extraActivitySlots;
+      setActivitySlotsStatus({
+        usedToday: 0,
+        totalSlots,
+        remainingSlots: totalSlots,
+      });
+      return;
+    }
+    if (!hasHydratedRemote) return;
+    void refreshActivitySlotsStatus();
+  }, [
+    authUserId,
+    hasHydratedRemote,
+    refreshActivitySlotsStatus,
+    state.profile.extraActivitySlots,
+  ]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !authUserId) return;
@@ -2533,6 +2841,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               reputation: profile.reputation ?? prev.profile.reputation,
               cachet: profile.cachet ?? prev.profile.cachet,
               tokenAtcl: profile.token_atcl ?? prev.profile.tokenAtcl,
+              extraActivitySlots:
+                profile.extra_activity_slots ?? prev.profile.extraActivitySlots,
               profileImage: profile.profile_image ?? prev.profile.profileImage,
               lastActivityAt: profile.last_activity_at ? new Date(profile.last_activity_at).getTime() : prev.profile.lastActivityAt,
             },
@@ -2593,6 +2903,20 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           refreshFollowedEvents(catalog.events);
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'activity_completions', filter: `user_id=eq.${authUserId}` },
+        () => {
+          refreshActivitySlotsStatus();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'shop_catalog' },
+        () => {
+          refreshShopCatalog();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -2602,7 +2926,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     authUserId,
     catalog.events,
     refreshBadges,
+    refreshActivitySlotsStatus,
     refreshFollowedEvents,
+    refreshShopCatalog,
     refreshTheatreReputation,
     refreshTurnStats,
   ]);
@@ -2936,94 +3262,192 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     ]
   );
 
+  const purchaseShopItem = useCallback(
+    async (itemCode: string, targetTheatre?: string | null): Promise<ShopPurchaseResult> => {
+      if (!isSupabaseConfigured || !supabase || !authUserId) {
+        return {
+          ok: false,
+          status: 'error',
+          error: 'Shop disponibile solo online.',
+        };
+      }
+      if (isNavigatorOffline()) {
+        return {
+          ok: false,
+          status: 'error',
+          error: 'Connessione assente: impossibile acquistare offline.',
+        };
+      }
+
+      const actionId = globalThis.crypto?.randomUUID
+        ? globalThis.crypto.randomUUID()
+        : `shop-${Date.now()}`;
+
+      try {
+        const rpcResponse = await withMobileWatchdog(
+          async () => {
+            const { data, error } = await supabase.rpc('purchase_shop_item', {
+              p_item_code: itemCode,
+              p_client_action_id: actionId,
+              p_target_theatre: targetTheatre ?? null,
+            });
+            if (error) throw error;
+            const row = parseShopPurchaseRpcRow(data);
+            if (!row) throw new Error('Risposta acquisto shop non valida');
+            return row;
+          },
+          {
+            operation: 'shopPurchase',
+            timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.shopPurchase,
+            title: 'Acquisto shop lento',
+            message: 'La conferma acquisto sta impiegando troppo tempo.',
+          }
+        );
+
+        if (!rpcResponse.purchase_applied) {
+          return {
+            ok: false,
+            status: 'rejected',
+            error: 'Acquisto non applicato.',
+            rejectionReason: rpcResponse.rejection_reason,
+          };
+        }
+
+        setState((prev: GameState) => ({
+          ...prev,
+          profile: {
+            ...prev.profile,
+            cachet: rpcResponse.cachet_balance_after,
+            reputation: rpcResponse.profile_reputation_after,
+            extraActivitySlots: rpcResponse.extra_slots_after,
+          },
+        }));
+
+        void refreshActivitySlotsStatus();
+        if (rpcResponse.theatre) {
+          void refreshTheatreReputation();
+        }
+
+        return {
+          ok: true,
+          status: rpcResponse.status === 'duplicate' ? 'duplicate' : 'applied',
+          cachetBalanceAfter: rpcResponse.cachet_balance_after,
+          reputationAfter: rpcResponse.profile_reputation_after,
+          extraSlotsAfter: rpcResponse.extra_slots_after,
+          theatre: rpcResponse.theatre,
+          theatreReputationAfter: rpcResponse.theatre_reputation_after,
+          effect: rpcResponse.effect,
+        };
+      } catch (error) {
+        const errorMessage = formatSyncError(error);
+        return {
+          ok: false,
+          status: 'error',
+          error: errorMessage || 'Errore durante l acquisto shop.',
+        };
+      }
+    },
+    [authUserId, refreshActivitySlotsStatus, refreshTheatreReputation]
+  );
+
   const completeActivity = useCallback(
-    (activityId: string) => {
+    async (activityId: string): Promise<CompleteActivityResult> => {
       const activity = catalog.activities.find((item) => item.id === activityId);
       if (!activity) {
         logOfflineSync('completeActivity aborted: activity not found', { activityId }, 'warn');
-        return null;
+        return { ok: false, error: 'Attività non trovata.' };
       }
+
+      if (!isSupabaseConfigured || !supabase || !authUserId) {
+        return { ok: false, error: 'Attività disponibile solo online.' };
+      }
+
+      if (isNavigatorOffline()) {
+        return { ok: false, error: 'Connessione assente: sincronizzazione attività non disponibile.' };
+      }
+
       logOfflineSync('Action completeActivity', { activityId });
-      const rewards: Rewards = { xp: activity.xpReward, cachet: activity.cachetReward, reputation: 5 };
+      const completionId = globalThis.crypto?.randomUUID
+        ? globalThis.crypto.randomUUID()
+        : `activity-${Date.now()}`;
 
-      let nextProfile: PlayerProfile | null = null;
-      const completionId =
-        supabase && authUserId && globalThis.crypto?.randomUUID
-          ? globalThis.crypto.randomUUID()
-          : `activity-${Date.now()}`;
-      setState((prev: GameState) => {
-        nextProfile = applyRewards(prev.profile, rewards, 'activity');
-        return {
-          ...prev,
-          profile: nextProfile,
-        };
-      });
-
-      if (nextProfile) {
-        persistProfile(nextProfile);
-      }
-
-      if (supabase && authUserId) {
-        const activityInsertPayload: ActivityInsertPayload = {
-          id: completionId,
-          user_id: authUserId,
-          activity_id: activity.id,
-          rewards,
-        };
-        const queuedMutation: QueuedSupabaseMutationInput = {
-          kind: 'activity_insert',
-          userId: authUserId,
-          payload: activityInsertPayload,
-        };
-        if (isNavigatorOffline()) {
-          logOfflineSync('completeActivity queued because browser is offline', {
-            completionId,
-            activityId: activity.id,
-          });
-          enqueueSupabaseMutation(queuedMutation);
-          return { activity, rewards };
-        }
-
-        void withMobileWatchdog(
+      try {
+        const rpcResponse = await withMobileWatchdog(
           async () => {
-            const { error } = await supabase
-              .from('activity_completions')
-              .insert(activityInsertPayload);
-            if (error && !isDuplicateSyncError(error)) {
-              console.warn('Supabase activity insert failed', error);
-              logOfflineSync('completeActivity immediate sync failed, falling back to queue', {
-                completionId,
-                activityId: activity.id,
-                error: formatSyncError(error),
-              }, 'warn');
-              enqueueSupabaseMutation(queuedMutation);
-              return;
-            }
-            logOfflineSync('completeActivity synced immediately', {
-              completionId,
-              activityId: activity.id,
+            const { data, error } = await supabase.rpc('complete_activity_with_slots', {
+              p_activity_id: activity.id,
+              p_client_action_id: completionId,
             });
+            if (error) throw error;
+            const row = parseActivityCompletionRpcRow(data);
+            if (!row) throw new Error('Risposta activity RPC non valida');
+            return row;
           },
           {
-            operation: 'completeActivityInsert',
-            timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.completeActivityInsert,
-            title: 'Salvataggio activity lento',
-            message: 'La registrazione dell activity completata sta impiegando troppo tempo.',
+            operation: 'completeActivityRpc',
+            timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.completeActivityRpc,
+            title: 'Registrazione attività lenta',
+            message: 'La registrazione attività sta impiegando troppo tempo.',
           }
-        ).catch((error) => {
-          console.warn('Supabase activity insert failed', error);
-          logOfflineSync('completeActivity threw, falling back to queue', {
-            completionId,
-            activityId: activity.id,
-            error: formatSyncError(error),
-          }, 'warn');
-          enqueueSupabaseMutation(queuedMutation);
-        });
-      }
+        );
 
-      return { activity, rewards };
+        const slotsUsedToday = Number.isFinite(rpcResponse.slots_used_today)
+          ? rpcResponse.slots_used_today
+          : 0;
+        const slotsTotal = Number.isFinite(rpcResponse.slots_total)
+          ? rpcResponse.slots_total
+          : 3;
+
+        setActivitySlotsStatus({
+          usedToday: slotsUsedToday,
+          totalSlots: slotsTotal,
+          remainingSlots: Math.max(0, slotsTotal - slotsUsedToday),
+        });
+
+        if (!rpcResponse.activity_registered) {
+          return {
+            ok: false,
+            error: 'Limite giornaliero attività raggiunto.',
+            rejectionReason: rpcResponse.rejection_reason,
+            slotsUsedToday,
+            slotsTotal,
+          };
+        }
+
+        const rewards = rpcResponse.rewards_applied;
+        setState((prev: GameState) => {
+          const profileAfterRewards =
+            rpcResponse.status === 'duplicate'
+              ? prev.profile
+              : applyRewards(prev.profile, rewards, 'activity');
+          return {
+            ...prev,
+            profile: {
+              ...profileAfterRewards,
+              cachet: rpcResponse.cachet_balance_after,
+              reputation: rpcResponse.reputation_after,
+            },
+          };
+        });
+
+        return {
+          ok: true,
+          activity,
+          rewards,
+          slotsUsedToday,
+          slotsTotal,
+          cachetBalanceAfter: rpcResponse.cachet_balance_after,
+          reputationAfter: rpcResponse.reputation_after,
+        };
+      } catch (error) {
+        const errorMessage = formatSyncError(error);
+        return {
+          ok: false,
+          error: errorMessage || 'Errore durante la registrazione attività.',
+        };
+      }
     },
-    [catalog.activities, authUserId, enqueueSupabaseMutation, persistProfile]
+    [authUserId, catalog.activities]
   );
 
   const resetProgress = useCallback(async () => {
@@ -3073,6 +3497,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             reputation: 0,
             cachet: 0,
             tokenAtcl: 0,
+            extraActivitySlots: 0,
           },
           turns: [],
         }));
@@ -3080,6 +3505,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         setRemoteTurnStats(null);
         setRemoteTheatreReputation([]);
         setRemoteBadges([]);
+        setActivitySlotsStatus({
+          usedToday: 0,
+          totalSlots: 3,
+          remainingSlots: 3,
+        });
 
         if (isSupabaseConfigured && supabase && authUserId && !shouldQueueReset) {
           await Promise.all([refreshTurnStats(), refreshTheatreReputation(), refreshBadges()]);
@@ -3183,57 +3613,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     setState(next);
     setPendingBoostRequests(0);
     setTurnSyncFeedback(null);
+    const totalSlots = 3 + next.profile.extraActivitySlots;
+    setActivitySlotsStatus({
+      usedToday: 0,
+      totalSlots,
+      remainingSlots: totalSlots,
+    });
   }, []);
 
-  // Gestione decadimento reputazione per inattività
-  useEffect(() => {
-    if (!state.profile || state.profile.reputation <= 0) return;
-
-    const checkReputationDecay = () => {
-      const now = Date.now();
-      setState((prev: GameState) => {
-        const currentRep = prev.profile.reputation;
-        if (currentRep <= 0) return prev;
-
-        const daysInactive = Math.floor((now - prev.profile.lastActivityAt) / REPUTATION_DECAY_DAY_MS);
-        // Se inattivo per più di 14 giorni, perde 2 punti di reputazione al giorno extra.
-        if (daysInactive <= REPUTATION_DECAY_GRACE_DAYS) return prev;
-
-        const decayDays = daysInactive - REPUTATION_DECAY_GRACE_DAYS;
-        const totalDecay = decayDays * REPUTATION_DECAY_POINTS_PER_DAY;
-        if (totalDecay <= 0) return prev;
-
-        const newRep = Math.max(0, currentRep - totalDecay);
-        if (newRep === currentRep) return prev;
-
-        // Move the inactivity anchor forward to avoid applying the same backlog repeatedly.
-        const decayedLastActivityAt = now - REPUTATION_DECAY_GRACE_DAYS * REPUTATION_DECAY_DAY_MS;
-        const updatedProfile: PlayerProfile = {
-          ...prev.profile,
-          reputation: newRep,
-          lastActivityAt: decayedLastActivityAt,
-        };
-        const decaySyncKey = `${updatedProfile.lastActivityAt}:${updatedProfile.reputation}`;
-        if (lastDecaySyncKeyRef.current !== decaySyncKey) {
-          lastDecaySyncKeyRef.current = decaySyncKey;
-          queueMicrotask(() => {
-            persistProfile(updatedProfile);
-          });
-        }
-
-        return {
-          ...prev,
-          profile: updatedProfile,
-        };
-      });
-    };
-
-    // Controllo ogni ora
-    const interval = setInterval(checkReputationDecay, REPUTATION_DECAY_CHECK_INTERVAL_MS);
-    checkReputationDecay();
-
-    return () => clearInterval(interval);
-  }, [state.profile.lastActivityAt, state.profile.reputation, persistProfile]);
 
   const value = useMemo<GameContextValue>(
     () => ({
@@ -3255,6 +3642,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       badgesLoading,
       followedEvents,
       followedEventsLoading,
+      shopCatalog,
+      shopCatalogLoading,
+      refreshShopCatalog,
+      purchaseShopItem,
+      activitySlotsStatus,
+      activitySlotsLoading,
+      refreshActivitySlotsStatus,
       followEvent,
       unfollowEvent,
       isEventFollowed,
@@ -3287,6 +3681,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       badgesLoading,
       followedEvents,
       followedEventsLoading,
+      shopCatalog,
+      shopCatalogLoading,
+      refreshShopCatalog,
+      purchaseShopItem,
+      activitySlotsStatus,
+      activitySlotsLoading,
+      refreshActivitySlotsStatus,
       followEvent,
       unfollowEvent,
       isEventFollowed,
