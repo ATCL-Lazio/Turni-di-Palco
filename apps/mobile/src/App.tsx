@@ -13,6 +13,7 @@ import { Activities } from './components/screens/Activities';
 import { ActivityDetail } from './components/screens/ActivityDetail';
 import { ActivityMinigame } from './components/screens/ActivityMinigame';
 import { ActivityResult } from './components/screens/ActivityResult';
+import { Shop } from './components/screens/Shop';
 import { Leaderboard } from './components/screens/Leaderboard';
 import { Profile } from './components/screens/Profile';
 import { AccountSettings } from './components/screens/AccountSettings';
@@ -57,6 +58,8 @@ function AppShell() {
     authUserId, authReady, hasHydratedRemote, state, roles, events,
     activities, turnStats, statsLoading, theatreReputation,
     theatreReputationLoading, badges, followedEvents, followedEventsLoading,
+    shopCatalog, shopCatalogLoading, purchaseShopItem,
+    activitySlotsStatus, activitySlotsLoading,
     followEvent, unfollowEvent, isEventFollowed, markBadgesSeen,
     updateProfile, registerTurn, pendingBoostRequests, turnSyncFeedback, clearTurnSyncFeedback,
     completeActivity, resetProgress, resetState,
@@ -519,7 +522,28 @@ function AppShell() {
         />
       );
       case 'event-details': return <EventDetails event={selectedEvent} onBack={() => setCurrentScreen('home')} onNavigate={() => openInMaps(selectedEvent?.theatre ?? '')} />;
-      case 'activities': return <Activities activities={activities} onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }} />;
+      case 'activities': return (
+        <Activities
+          activities={activities}
+          slotsStatus={activitySlotsStatus}
+          slotsLoading={activitySlotsLoading}
+          isOnline={typeof navigator === 'undefined' ? true : navigator.onLine}
+          onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }}
+        />
+      );
+      case 'shop': return (
+        <Shop
+          cachet={state.profile.cachet}
+          extraActivitySlots={state.profile.extraActivitySlots}
+          items={shopCatalog}
+          theatreOptions={theatreReputation.map((item) => ({
+            theatre: item.theatre,
+            reputation: item.reputation,
+          }))}
+          loading={shopCatalogLoading}
+          onPurchase={purchaseShopItem}
+        />
+      );
       case 'activity-detail': return currentActivity && <ActivityDetail activity={currentActivity} onStart={() => { setActivityOutcome(null); setActivityCompletion(null); setCurrentScreen('activity-minigame'); }} onClose={() => setCurrentScreen('activities')} />;
       case 'activity-minigame':
         return currentActivity && (
@@ -527,14 +551,20 @@ function AppShell() {
             activity={currentActivity}
             onCancel={() => setCurrentScreen('activity-detail')}
             onComplete={(outcome) => {
-              const completion = completeActivity(selectedActivityId);
-              if (!completion) {
-                handleTabChange('activities');
-                return;
-              }
-              setActivityOutcome(outcome);
-              setActivityCompletion(completion);
-              setCurrentScreen('activity-result');
+              void (async () => {
+                const completion = await completeActivity(selectedActivityId);
+                if (!completion.ok) {
+                  window.alert(completion.error);
+                  handleTabChange('activities');
+                  return;
+                }
+                setActivityOutcome(outcome);
+                setActivityCompletion({
+                  activity: completion.activity,
+                  rewards: completion.rewards,
+                });
+                setCurrentScreen('activity-result');
+              })();
             }}
           />
         );
@@ -547,7 +577,13 @@ function AppShell() {
             onDone={() => handleTabChange('activities')}
           />
         ) : (
-          <Activities activities={activities} onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }} />
+          <Activities
+            activities={activities}
+            slotsStatus={activitySlotsStatus}
+            slotsLoading={activitySlotsLoading}
+            isOnline={typeof navigator === 'undefined' ? true : navigator.onLine}
+            onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }}
+          />
         );
       case 'profile': return <Profile userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} cachet={state.profile.cachet} tokenAtcl={state.profile.tokenAtcl} theatreReputation={theatreReputation.map(tr => ({ name: tr.theatre, reputation: tr.reputation }))} theatreReputationLoading={theatreReputationLoading} badgesUnlockedCount={unlockedBadges.length} newBadgesCount={newBadges.length} profileImage={state.profile.profileImage} onViewCarriera={() => setCurrentScreen('career')} onViewTitoli={() => setCurrentScreen('earned-titles')} onSettings={() => setCurrentScreen('account-settings')} onLogout={handleLogout} onUploadProfileImage={handleUploadImage} />;
       case 'account-settings': return <AccountSettings userName={state.profile.name} email={state.profile.email} onBack={() => setCurrentScreen('profile')} onViewTerms={() => openLegal('terms', 'account-settings')} onViewPrivacy={() => openLegal('privacy', 'account-settings')} onViewSupport={() => setCurrentScreen('support')} onViewTicketPrototype={() => setCurrentScreen('ticket-qr-prototype')} onChangePassword={() => { setIsPasswordRecovery(false); setCurrentScreen('change-password'); }} onResetProgress={async () => { await resetProgress(); handleTabChange('home'); setCurrentScreen('role-selection'); }} onLogout={handleLogout} />;
@@ -562,7 +598,7 @@ function AppShell() {
     }
   };
 
-  const showBottomNav = ['home', 'turns', 'leaderboard', 'activities', 'profile', 'career', 'earned-titles'].includes(currentScreen);
+  const showBottomNav = ['home', 'turns', 'leaderboard', 'activities', 'shop', 'profile', 'career', 'earned-titles'].includes(currentScreen);
   const normalizedError = useMemo(() => {
     if (!criticalError) return null;
     return {

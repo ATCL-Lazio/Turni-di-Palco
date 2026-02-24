@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Home, ListChecks, Ticket, Trophy, User } from 'lucide-react';
+import { Home, ListChecks, ShoppingBag, Ticket, Trophy, User } from 'lucide-react';
 import { Tab } from '../types/navigation';
 
 interface BottomNavProps {
@@ -13,6 +13,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
     { id: 'turns' as const, icon: Ticket, label: 'Turni ATCL' },
     { id: 'leaderboard' as const, icon: Trophy, label: 'Classifica' },
     { id: 'activities' as const, icon: ListChecks, label: 'Attività' },
+    { id: 'shop' as const, icon: ShoppingBag, label: 'Shop' },
     { id: 'profile' as const, icon: User, label: 'Profilo' }
   ];
 
