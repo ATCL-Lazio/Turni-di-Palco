@@ -3,6 +3,96 @@ const http = require('http');
 const https = require('https');
 const os = require('os');
 const path = require('path');
+const { URL } = require('url');
+
+const PROMO_PROXY_SOURCES = Object.freeze({
+  'atcl-rss': {
+    url: 'https://www.atcllazio.it/feed/',
+    defaultContentType: 'application/rss+xml; charset=utf-8',
+  },
+  'rossellini-rss': {
+    url: 'https://www.spaziorossellini.it/category/slide-evidenza/feed/',
+    defaultContentType: 'application/rss+xml; charset=utf-8',
+  },
+  'atcl-rest': {
+    url: 'https://www.atcllazio.it/wp-json/wp/v2/posts?categories=421&per_page=6&_fields=title,link,date,excerpt',
+    defaultContentType: 'application/json; charset=utf-8',
+  },
+  'rossellini-rest': {
+    url: 'https://www.spaziorossellini.it/wp-json/wp/v2/posts?categories=21&per_page=6&_fields=title,link,date,excerpt',
+    defaultContentType: 'application/json; charset=utf-8',
+  },
+});
+const PROMO_PROXY_MAX_AGE_SECONDS = 300;
+
+function safeJsonResponse(res, statusCode, payload) {
+  res.statusCode = statusCode;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.end(JSON.stringify(payload));
+}
+
+async function handlePromoProxyRequest(req, res) {
+  const method = (req.method || 'GET').toUpperCase();
+  if (method !== 'GET') {
+    safeJsonResponse(res, 405, { ok: false, error: 'Method Not Allowed' });
+    return;
+  }
+
+  const url = new URL(req.url || '/', 'http://localhost');
+  const source = (url.searchParams.get('source') || '').trim();
+  const sourceConfig = PROMO_PROXY_SOURCES[source];
+  if (!sourceConfig) {
+    safeJsonResponse(res, 400, {
+      ok: false,
+      error: 'Invalid promo source',
+      allowedSources: Object.keys(PROMO_PROXY_SOURCES),
+    });
+    return;
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const upstream = await fetch(sourceConfig.url, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: controller.signal,
+      headers: {
+        'user-agent': 'Turni-di-Palco/1.0 (+https://turni-di-palco.onrender.com)',
+        accept: '*/*',
+      },
+    });
+
+    if (!upstream.ok) {
+      safeJsonResponse(res, 502, {
+        ok: false,
+        error: 'Upstream request failed',
+        source,
+        upstreamStatus: upstream.status,
+      });
+      return;
+    }
+
+    const payload = await upstream.arrayBuffer();
+    const contentType = upstream.headers.get('content-type') || sourceConfig.defaultContentType;
+
+    res.statusCode = 200;
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', `public, max-age=${PROMO_PROXY_MAX_AGE_SECONDS}`);
+    res.setHeader('X-TDP-Promo-Source', source);
+    res.end(Buffer.from(payload));
+  } catch (error) {
+    safeJsonResponse(res, 502, {
+      ok: false,
+      error: 'Promo proxy unavailable',
+      source,
+      detail: error instanceof Error ? error.message : 'Unknown error',
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 function resolveHttpsOptions() {
   const httpsEnv = process.env.HTTPS;
@@ -157,6 +247,20 @@ function resolveCacheControl(distDir, filePath) {
 
 function createHandler(distDir) {
   return (req, res) => {
+    const requestUrl = req.url || '/';
+    const parsedPath = (() => {
+      try {
+        return new URL(requestUrl, 'http://localhost').pathname;
+      } catch {
+        return '/';
+      }
+    })();
+
+    if (parsedPath === '/api/promotions/proxy' || parsedPath === '/mobile/api/promotions/proxy') {
+      void handlePromoProxyRequest(req, res);
+      return;
+    }
+
     // Health check endpoint per keep-alive incrociato
     if (req.url === '/health' && req.method === 'GET') {
       res.statusCode = 200;
