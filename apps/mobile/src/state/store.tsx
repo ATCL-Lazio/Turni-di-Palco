@@ -13,6 +13,7 @@ import { withMobileWatchdog } from '../services/mobile-watchdog';
 
 export type RoleId = 'attore' | 'luci' | 'fonico' | 'attrezzista' | 'palco';
 export type Rewards = { xp: number; reputation: number; cachet: number };
+export type TurnSyncStatus = 'pending' | 'synced' | 'failed_boost_fallback';
 
 export type Role = {
   id: RoleId;
@@ -52,6 +53,10 @@ export type TurnRecord = {
   roleId: RoleId;
   rewards: Rewards;
   createdAt: number;
+  syncStatus?: TurnSyncStatus;
+  boostRequested?: boolean;
+  boostApplied?: boolean;
+  boostRejectionReason?: string | null;
 };
 
 export type PlayerProfile = {
@@ -65,8 +70,41 @@ export type PlayerProfile = {
   xpField: number;
   reputation: number;
   cachet: number;
+  tokenAtcl: number;
   profileImage?: string;
   lastActivityAt: number;
+};
+
+export type RegisterTurnInput = {
+  eventId: string;
+  roleId: RoleId;
+  eventOverride?: GameEvent;
+  boostRequested?: boolean;
+};
+
+export type RegisterTurnResult =
+  | {
+    ok: true;
+    syncStatus: TurnSyncStatus;
+    boostRequested: boolean;
+    boostApplied: boolean;
+    boostRejectionReason: string | null;
+    rewards: Rewards;
+    tokenBalanceAfter: number | null;
+    turn: TurnRecord;
+  }
+  | {
+    ok: false;
+    error: string;
+  };
+
+export type TurnSyncFeedback = {
+  syncStatus: TurnSyncStatus;
+  boostRequested: boolean;
+  boostApplied: boolean;
+  boostRejectionReason: string | null;
+  eventName: string;
+  createdAt: number;
 };
 
 export type GameState = {
@@ -253,6 +291,7 @@ const HTML_ENTITY_MAP: Record<string, string> = {
 const QUEUED_MUTATION_KINDS = [
   'profile_upsert',
   'turn_insert',
+  'turn_register',
   'activity_insert',
   'follow_event_insert',
   'follow_event_delete',
@@ -290,6 +329,19 @@ type TurnInsertPayload = {
   rewards: Rewards;
 };
 
+type TurnRegisterPayload = {
+  id: string;
+  user_id: string;
+  event_id: string;
+  event_name: string;
+  theatre: string;
+  event_date: string;
+  event_time: string;
+  role_id: RoleId;
+  boost_requested: boolean;
+  sync_status: TurnSyncStatus;
+};
+
 type ActivityInsertPayload = {
   id: string;
   user_id: string;
@@ -313,6 +365,7 @@ type QueueBase = {
 type QueuedSupabaseMutation =
   | (QueueBase & { kind: 'profile_upsert'; payload: ProfileUpsertPayload })
   | (QueueBase & { kind: 'turn_insert'; payload: TurnInsertPayload })
+  | (QueueBase & { kind: 'turn_register'; payload: TurnRegisterPayload })
   | (QueueBase & { kind: 'activity_insert'; payload: ActivityInsertPayload })
   | (QueueBase & { kind: 'follow_event_insert'; payload: FollowEventMutationPayload })
   | (QueueBase & { kind: 'follow_event_delete'; payload: FollowEventMutationPayload })
@@ -599,6 +652,15 @@ function summarizeQueuedMutation(
         eventId: mutation.payload.event_id,
         roleId: mutation.payload.role_id,
       };
+    case 'turn_register':
+      return {
+        ...base,
+        turnId: mutation.payload.id,
+        eventId: mutation.payload.event_id,
+        roleId: mutation.payload.role_id,
+        boostRequested: mutation.payload.boost_requested,
+        syncStatus: mutation.payload.sync_status,
+      };
     case 'activity_insert':
       return {
         ...base,
@@ -661,6 +723,9 @@ function readQueuedSupabaseMutations(): QueuedSupabaseMutation[] {
           break;
         case 'turn_insert':
           queue.push({ ...base, kind: 'turn_insert', payload: payload as TurnInsertPayload });
+          break;
+        case 'turn_register':
+          queue.push({ ...base, kind: 'turn_register', payload: payload as TurnRegisterPayload });
           break;
         case 'activity_insert':
           queue.push({
@@ -877,6 +942,76 @@ function buildProfileUpsertPayload(userId: string, profile: PlayerProfile): Prof
   };
 }
 
+type TurnRegistrationRpcRow = {
+  turn_registered: boolean;
+  boost_requested: boolean;
+  boost_applied: boolean;
+  boost_rejection_reason: string | null;
+  rewards_applied: Rewards;
+  token_balance_after: number | null;
+};
+
+function normalizeRewardsPayload(value: unknown): Rewards {
+  if (!isRecord(value)) return { xp: 0, reputation: 0, cachet: 0 };
+  return {
+    xp: Number(value.xp ?? 0),
+    reputation: Number(value.reputation ?? 0),
+    cachet: Number(value.cachet ?? 0),
+  };
+}
+
+function parseTurnRegistrationRpcRow(data: unknown): TurnRegistrationRpcRow | null {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!isRecord(row)) return null;
+  const tokenBalanceRaw = Number(row.token_balance_after ?? 0);
+  return {
+    turn_registered: Boolean(row.turn_registered),
+    boost_requested: Boolean(row.boost_requested),
+    boost_applied: Boolean(row.boost_applied),
+    boost_rejection_reason:
+      typeof row.boost_rejection_reason === 'string' && row.boost_rejection_reason.trim()
+        ? row.boost_rejection_reason.trim()
+        : null,
+    rewards_applied: normalizeRewardsPayload(row.rewards_applied),
+    token_balance_after: Number.isFinite(tokenBalanceRaw) ? tokenBalanceRaw : null,
+  };
+}
+
+function buildTurnRecordFromPayload(
+  payload: TurnRegisterPayload,
+  rewards: Rewards,
+  syncStatus: TurnSyncStatus,
+  boostApplied: boolean,
+  boostRejectionReason: string | null
+): TurnRecord {
+  return {
+    id: payload.id,
+    eventId: payload.event_id,
+    eventName: payload.event_name,
+    theatre: payload.theatre,
+    date: payload.event_date,
+    time: payload.event_time,
+    roleId: payload.role_id,
+    rewards,
+    createdAt: Date.now(),
+    syncStatus,
+    boostRequested: payload.boost_requested,
+    boostApplied,
+    boostRejectionReason,
+  };
+}
+
+function countPendingBoostRequests(queue: QueuedSupabaseMutation[], userId: string | null) {
+  if (!userId) return 0;
+  return queue.filter(
+    (mutation) =>
+      mutation.userId === userId &&
+      mutation.kind === 'turn_register' &&
+      mutation.payload.boost_requested &&
+      mutation.payload.sync_status === 'pending'
+  ).length;
+}
+
 function createInitialState(): GameState {
   return {
     profile: {
@@ -890,6 +1025,7 @@ function createInitialState(): GameState {
       xpField: 0,
       reputation: 0,
       cachet: 0,
+      tokenAtcl: 0,
       profileImage: undefined,
       lastActivityAt: Date.now(),
     },
@@ -910,6 +1046,7 @@ function createDemoState(): GameState {
       xpField: 1800,
       reputation: 75,
       cachet: 250,
+      tokenAtcl: 3,
       profileImage: undefined,
       lastActivityAt: Date.now(),
     },
@@ -1107,7 +1244,10 @@ type GameContextValue = {
   isEventFollowed: (eventId: string) => boolean;
   markBadgesSeen: () => void;
   updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage'>>) => void;
-  registerTurn: (eventId: string, roleId: RoleId, eventOverride?: GameEvent) => TurnRecord | null;
+  registerTurn: (input: RegisterTurnInput) => Promise<RegisterTurnResult>;
+  pendingBoostRequests: number;
+  turnSyncFeedback: TurnSyncFeedback | null;
+  clearTurnSyncFeedback: () => void;
   completeActivity: (activityId: string) => { activity: Activity; rewards: Rewards } | null;
   resetProgress: () => Promise<void>;
   changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
@@ -1142,6 +1282,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [badgesLoading, setBadgesLoading] = useState(false);
   const [followedEvents, setFollowedEvents] = useState<GameEvent[]>([]);
   const [followedEventsLoading, setFollowedEventsLoading] = useState(false);
+  const [pendingBoostRequests, setPendingBoostRequests] = useState(0);
+  const [turnSyncFeedback, setTurnSyncFeedback] = useState<TurnSyncFeedback | null>(null);
   const lastDecaySyncKeyRef = useRef<string | null>(null);
   const offlineSyncInFlightRef = useRef(false);
   const offlineServerLogSyncInFlightRef = useRef(false);
@@ -1391,6 +1533,67 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     }
   }, [authUserId]);
 
+  const refreshPendingBoostRequests = useCallback(
+    (queueOverride?: QueuedSupabaseMutation[]) => {
+      const queue = queueOverride ?? readQueuedSupabaseMutations();
+      setPendingBoostRequests(countPendingBoostRequests(queue, authUserId));
+    },
+    [authUserId]
+  );
+
+  const applyTurnRegistrationResult = useCallback(
+    (
+      payload: TurnRegisterPayload,
+      rpcRow: TurnRegistrationRpcRow,
+      syncStatus: TurnSyncStatus
+    ) => {
+      const turnRecord = buildTurnRecordFromPayload(
+        payload,
+        rpcRow.rewards_applied,
+        syncStatus,
+        rpcRow.boost_applied,
+        rpcRow.boost_rejection_reason
+      );
+
+      setState((prev: GameState) => {
+        const turnAlreadyPresent = prev.turns.some((turn) => turn.id === turnRecord.id);
+        const nextTurns = (turnAlreadyPresent
+          ? prev.turns
+            .map((turn) => (turn.id === turnRecord.id ? { ...turn, ...turnRecord } : turn))
+            .sort((a, b) => b.createdAt - a.createdAt)
+          : [turnRecord, ...prev.turns].sort((a, b) => b.createdAt - a.createdAt)).slice(0, MAX_TURNS);
+
+        let nextProfile = prev.profile;
+        if (rpcRow.turn_registered) {
+          nextProfile = applyRewards(prev.profile, rpcRow.rewards_applied, 'turn');
+        }
+
+        if (rpcRow.token_balance_after != null) {
+          nextProfile = {
+            ...nextProfile,
+            tokenAtcl: rpcRow.token_balance_after,
+          };
+        }
+
+        return {
+          ...prev,
+          profile: nextProfile,
+          turns: nextTurns,
+        };
+      });
+
+      setTurnSyncFeedback({
+        syncStatus,
+        boostRequested: rpcRow.boost_requested,
+        boostApplied: rpcRow.boost_applied,
+        boostRejectionReason: rpcRow.boost_rejection_reason,
+        eventName: payload.event_name,
+        createdAt: Date.now(),
+      });
+    },
+    []
+  );
+
   type QueueExecutionResult = { status: 'applied' | 'retry' | 'discard'; error?: unknown };
 
   const executeQueuedSupabaseMutation = useCallback(
@@ -1416,6 +1619,30 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           return shouldRetrySyncError(error)
             ? { status: 'retry', error }
             : { status: 'discard', error };
+        }
+
+        if (mutation.kind === 'turn_register') {
+          const { data, error } = await supabase.rpc('register_turn_with_token_boost', {
+            p_event_id: mutation.payload.event_id,
+            p_role_id: mutation.payload.role_id,
+            p_client_action_id: mutation.payload.id,
+            p_boost_requested: mutation.payload.boost_requested,
+          });
+          if (error) {
+            return shouldRetrySyncError(error)
+              ? { status: 'retry', error }
+              : { status: 'discard', error };
+          }
+          const rpcRow = parseTurnRegistrationRpcRow(data);
+          if (!rpcRow) {
+            return { status: 'retry', error: new Error('Risposta RPC non valida') };
+          }
+          const syncStatus: TurnSyncStatus =
+            rpcRow.boost_requested && !rpcRow.boost_applied
+              ? 'failed_boost_fallback'
+              : 'synced';
+          applyTurnRegistrationResult(mutation.payload, rpcRow, syncStatus);
+          return { status: 'applied' };
         }
 
         if (mutation.kind === 'activity_insert') {
@@ -1469,7 +1696,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           : { status: 'discard', error };
       }
     },
-    []
+    [applyTurnRegistrationResult]
   );
 
   const flushQueuedSupabaseMutations = useCallback(async () => {
@@ -1525,6 +1752,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         if (result.status === 'applied' || result.status === 'discard') {
           queue = queue.filter((entry) => entry.id !== queuedMutation.id);
           writeQueuedSupabaseMutations(queue);
+          refreshPendingBoostRequests(queue);
           logOfflineSync(
             result.status === 'applied'
               ? 'Mutation synced successfully'
@@ -1538,6 +1766,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
           if (
             queuedMutation.kind === 'turn_insert' ||
+            queuedMutation.kind === 'turn_register' ||
             queuedMutation.kind === 'activity_insert' ||
             queuedMutation.kind === 'reset_progress'
           ) {
@@ -1569,6 +1798,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             : entry
         );
         writeQueuedSupabaseMutations(queue);
+        refreshPendingBoostRequests(queue);
 
         const updatedMutation = queue.find((entry) => entry.id === queuedMutation.id);
         logOfflineSync('Mutation retry scheduled', {
@@ -1581,6 +1811,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         ) {
           queue = queue.filter((entry) => entry.id !== queuedMutation.id);
           writeQueuedSupabaseMutations(queue);
+          refreshPendingBoostRequests(queue);
           logOfflineSync('Mutation dropped after max retry attempts', {
             mutation: summarizeQueuedMutation(updatedMutation),
             queueSize: queue.length,
@@ -1601,6 +1832,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       }
     } finally {
       offlineSyncInFlightRef.current = false;
+      refreshPendingBoostRequests(queue);
       logOfflineSync('Flush completed', {
         authUserId,
         remainingForUser: queue.filter((entry) => entry.userId === authUserId).length,
@@ -1625,6 +1857,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     authUserId,
     executeQueuedSupabaseMutation,
     refreshBadges,
+    refreshPendingBoostRequests,
     refreshTheatreReputation,
     refreshTurnStats,
   ]);
@@ -1636,6 +1869,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         online: !isNavigatorOffline(),
       });
       enqueueQueuedSupabaseMutation(mutation);
+      refreshPendingBoostRequests();
       if (mutation.userId === authUserId && !isNavigatorOffline()) {
         logOfflineSync('Triggering immediate flush after enqueue', {
           mutationKind: mutation.kind,
@@ -1643,7 +1877,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         void flushQueuedSupabaseMutations();
       }
     },
-    [authUserId, flushQueuedSupabaseMutations]
+    [authUserId, flushQueuedSupabaseMutations, refreshPendingBoostRequests]
   );
 
   const markBadgesSeen = useCallback(async () => {
@@ -1767,6 +2001,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setHasHydratedRemote(false);
   }, [authUserId]);
+
+  useEffect(() => {
+    refreshPendingBoostRequests();
+  }, [authUserId, refreshPendingBoostRequests]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !authUserId) return;
@@ -2219,6 +2457,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 xpField: profileRow.xp_field ?? prev.profile.xpField,
                 reputation: profileRow.reputation ?? prev.profile.reputation,
                 cachet: profileRow.cachet ?? prev.profile.cachet,
+                tokenAtcl: profileRow.token_atcl ?? prev.profile.tokenAtcl,
                 profileImage: profileRow.profile_image ?? prev.profile.profileImage,
                 lastActivityAt: Number.isFinite(parsedLastActivityAt)
                   ? parsedLastActivityAt
@@ -2293,6 +2532,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               xpField: profile.xp_field ?? prev.profile.xpField,
               reputation: profile.reputation ?? prev.profile.reputation,
               cachet: profile.cachet ?? prev.profile.cachet,
+              tokenAtcl: profile.token_atcl ?? prev.profile.tokenAtcl,
               profileImage: profile.profile_image ?? prev.profile.profileImage,
               lastActivityAt: profile.last_activity_at ? new Date(profile.last_activity_at).getTime() : prev.profile.lastActivityAt,
             },
@@ -2454,110 +2694,246 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const registerTurn = useCallback(
-    (eventId: string, roleId: RoleId, eventOverride?: GameEvent): TurnRecord | null => {
+    async ({
+      eventId,
+      roleId,
+      eventOverride,
+      boostRequested = false,
+    }: RegisterTurnInput): Promise<RegisterTurnResult> => {
       const event = eventOverride ?? catalog.events.find((item) => item.id === eventId);
       if (!event) {
         logOfflineSync('registerTurn aborted: event not found', { eventId, roleId }, 'warn');
-        return null;
+        return { ok: false, error: 'Evento non trovato.' };
       }
+
       logOfflineSync('Action registerTurn', {
         eventId,
         roleId,
+        boostRequested,
       });
-      const rewards = computeTurnRewards(event, roleId);
+
       const turnId =
-        supabase && authUserId && globalThis.crypto?.randomUUID
+        globalThis.crypto?.randomUUID
           ? globalThis.crypto.randomUUID()
           : `turn-${Date.now()}`;
-      const record: TurnRecord = {
+
+      const turnRegisterPayload: TurnRegisterPayload = {
         id: turnId,
-        eventId: event.id,
-        eventName: event.name,
+        user_id: authUserId ?? '',
+        event_id: event.id,
+        event_name: event.name,
         theatre: event.theatre,
-        date: event.date,
-        time: event.time,
-        roleId,
-        rewards,
-        createdAt: Date.now(),
+        event_date: event.date,
+        event_time: event.time,
+        role_id: roleId,
+        boost_requested: Boolean(boostRequested),
+        sync_status: 'pending',
       };
 
-      let nextProfile: PlayerProfile | null = null;
-      setState((prev: GameState) => {
-        nextProfile = applyRewards(prev.profile, rewards, 'turn');
-        return {
-          profile: nextProfile,
-          turns: [record, ...prev.turns].slice(0, MAX_TURNS),
-        };
-      });
+      const pendingTurnRecord = buildTurnRecordFromPayload(
+        turnRegisterPayload,
+        computeTurnRewards(event, roleId),
+        'pending',
+        false,
+        null
+      );
 
-      if (nextProfile) {
-        persistProfile(nextProfile);
+      if (!isSupabaseConfigured || !supabase || !authUserId) {
+        let localBoostApplied = false;
+        let localBoostRejectionReason: string | null = null;
+        let localRewards = computeTurnRewards(event, roleId);
+        let nextTokenAtcl = 0;
+        let localSyncStatus: TurnSyncStatus = 'synced';
+        let localTurnRecord: TurnRecord | null = null;
+        setState((prev: GameState) => {
+          let workingToken = prev.profile.tokenAtcl;
+          if (boostRequested) {
+            if (workingToken > 0) {
+              localBoostApplied = true;
+              workingToken -= 1;
+              localRewards = {
+                ...localRewards,
+                xp: Math.ceil(localRewards.xp * 1.1),
+                cachet: Math.ceil(localRewards.cachet * 1.1),
+              };
+            } else {
+              localBoostRejectionReason = 'insufficient_token_balance';
+            }
+          }
+          workingToken += 1;
+          nextTokenAtcl = workingToken;
+          localSyncStatus = boostRequested && !localBoostApplied ? 'failed_boost_fallback' : 'synced';
+          localTurnRecord = buildTurnRecordFromPayload(
+            turnRegisterPayload,
+            localRewards,
+            localSyncStatus,
+            localBoostApplied,
+            localBoostRejectionReason
+          );
+          const rewardedProfile = applyRewards(prev.profile, localRewards, 'turn');
+          return {
+            profile: {
+              ...rewardedProfile,
+              tokenAtcl: nextTokenAtcl,
+            },
+            turns: localTurnRecord ? [localTurnRecord, ...prev.turns].slice(0, MAX_TURNS) : prev.turns,
+          };
+        });
+        if (!localTurnRecord) {
+          return { ok: false, error: 'Impossibile registrare il turno in locale.' };
+        }
+        setTurnSyncFeedback({
+          syncStatus: localSyncStatus,
+          boostRequested,
+          boostApplied: localBoostApplied,
+          boostRejectionReason: localBoostRejectionReason,
+          eventName: event.name,
+          createdAt: Date.now(),
+        });
+        return {
+          ok: true,
+          syncStatus: localSyncStatus,
+          boostRequested,
+          boostApplied: localBoostApplied,
+          boostRejectionReason: localBoostRejectionReason,
+          rewards: localRewards,
+          tokenBalanceAfter: nextTokenAtcl,
+          turn: localTurnRecord,
+        };
       }
 
-      if (supabase && authUserId) {
-        const turnInsertPayload: TurnInsertPayload = {
-          id: turnId,
-          user_id: authUserId,
-          event_id: event.id,
-          event_name: event.name,
-          theatre: event.theatre,
-          event_date: event.date,
-          event_time: event.time,
-          role_id: roleId,
-          rewards,
-        };
-        const queuedMutation: QueuedSupabaseMutationInput = {
-          kind: 'turn_insert',
-          userId: authUserId,
-          payload: turnInsertPayload,
-        };
-        if (isNavigatorOffline()) {
-          logOfflineSync('registerTurn queued because browser is offline', {
-            turnId,
-            eventId: event.id,
-          });
-          enqueueSupabaseMutation(queuedMutation);
-          return record;
-        }
+      turnRegisterPayload.user_id = authUserId;
+      const queuedMutation: QueuedSupabaseMutationInput = {
+        kind: 'turn_register',
+        userId: authUserId,
+        payload: turnRegisterPayload,
+      };
 
-        void withMobileWatchdog(
+      if (isNavigatorOffline()) {
+        logOfflineSync('registerTurn queued because browser is offline', {
+          turnId,
+          eventId: event.id,
+          boostRequested,
+        });
+        enqueueSupabaseMutation(queuedMutation);
+        setTurnSyncFeedback({
+          syncStatus: 'pending',
+          boostRequested,
+          boostApplied: false,
+          boostRejectionReason: null,
+          eventName: event.name,
+          createdAt: Date.now(),
+        });
+        return {
+          ok: true,
+          syncStatus: 'pending',
+          boostRequested,
+          boostApplied: false,
+          boostRejectionReason: null,
+          rewards: pendingTurnRecord.rewards,
+          tokenBalanceAfter: null,
+          turn: pendingTurnRecord,
+        };
+      }
+
+      try {
+        const rpcResponse = await withMobileWatchdog(
           async () => {
-            const { error } = await supabase.from('turns').insert(turnInsertPayload);
-            if (error && !isDuplicateSyncError(error)) {
-              console.warn('Supabase turn insert failed', error);
-              logOfflineSync('registerTurn immediate sync failed, falling back to queue', {
-                turnId,
-                eventId: event.id,
-                error: formatSyncError(error),
-              }, 'warn');
-              enqueueSupabaseMutation(queuedMutation);
-              return;
-            }
-            logOfflineSync('registerTurn synced immediately', {
-              turnId,
-              eventId: event.id,
+            const { data, error } = await supabase.rpc('register_turn_with_token_boost', {
+              p_event_id: event.id,
+              p_role_id: roleId,
+              p_client_action_id: turnId,
+              p_boost_requested: boostRequested,
             });
+            if (error) throw error;
+            const rpcRow = parseTurnRegistrationRpcRow(data);
+            if (!rpcRow) throw new Error('Risposta RPC non valida');
+            return rpcRow;
           },
           {
             operation: 'registerTurnInsert',
             timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.registerTurnInsert,
             title: 'Registrazione turno lenta',
-            message: 'La scrittura del turno sul database sta impiegando troppo tempo.',
+            message: 'La registrazione del turno sta impiegando troppo tempo.',
           }
-        ).catch((error) => {
-          console.warn('Supabase turn insert failed', error);
-          logOfflineSync('registerTurn threw, falling back to queue', {
+        );
+
+        const syncStatus: TurnSyncStatus =
+          rpcResponse.boost_requested && !rpcResponse.boost_applied
+            ? 'failed_boost_fallback'
+            : 'synced';
+        applyTurnRegistrationResult(turnRegisterPayload, rpcResponse, syncStatus);
+        logOfflineSync('registerTurn synced immediately via RPC', {
+          turnId,
+          eventId: event.id,
+          boostRequested,
+          boostApplied: rpcResponse.boost_applied,
+          turnRegistered: rpcResponse.turn_registered,
+        });
+        return {
+          ok: true,
+          syncStatus,
+          boostRequested: rpcResponse.boost_requested,
+          boostApplied: rpcResponse.boost_applied,
+          boostRejectionReason: rpcResponse.boost_rejection_reason,
+          rewards: rpcResponse.rewards_applied,
+          tokenBalanceAfter: rpcResponse.token_balance_after,
+          turn: buildTurnRecordFromPayload(
+            turnRegisterPayload,
+            rpcResponse.rewards_applied,
+            syncStatus,
+            rpcResponse.boost_applied,
+            rpcResponse.boost_rejection_reason
+          ),
+        };
+      } catch (error) {
+        const errorMessage = formatSyncError(error);
+        if (!shouldRetrySyncError(error)) {
+          logOfflineSync('registerTurn failed with non-retryable error', {
             turnId,
             eventId: event.id,
-            error: formatSyncError(error),
+            boostRequested,
+            error: errorMessage,
           }, 'warn');
-          enqueueSupabaseMutation(queuedMutation);
-        });
-      }
+          return {
+            ok: false,
+            error: errorMessage || 'Impossibile registrare il turno.',
+          };
+        }
 
-      return record;
+        logOfflineSync('registerTurn immediate sync failed, falling back to queue', {
+          turnId,
+          eventId: event.id,
+          boostRequested,
+          error: errorMessage,
+        }, 'warn');
+        enqueueSupabaseMutation(queuedMutation);
+        setTurnSyncFeedback({
+          syncStatus: 'pending',
+          boostRequested,
+          boostApplied: false,
+          boostRejectionReason: null,
+          eventName: event.name,
+          createdAt: Date.now(),
+        });
+        return {
+          ok: true,
+          syncStatus: 'pending',
+          boostRequested,
+          boostApplied: false,
+          boostRejectionReason: null,
+          rewards: pendingTurnRecord.rewards,
+          tokenBalanceAfter: null,
+          turn: pendingTurnRecord,
+        };
+      }
     },
-    [catalog.events, authUserId, enqueueSupabaseMutation, persistProfile]
+    [
+      authUserId,
+      catalog.events,
+      enqueueSupabaseMutation,
+      applyTurnRegistrationResult,
+    ]
   );
 
   const completeActivity = useCallback(
@@ -2696,6 +3072,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             xpField: 0,
             reputation: 0,
             cachet: 0,
+            tokenAtcl: 0,
           },
           turns: [],
         }));
@@ -2797,9 +3174,15 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  const clearTurnSyncFeedback = useCallback(() => {
+    setTurnSyncFeedback(null);
+  }, []);
+
   const resetState = useCallback(() => {
     const next = createDefaultState();
     setState(next);
+    setPendingBoostRequests(0);
+    setTurnSyncFeedback(null);
   }, []);
 
   // Gestione decadimento reputazione per inattività
@@ -2878,6 +3261,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       markBadgesSeen,
       updateProfile,
       registerTurn,
+      pendingBoostRequests,
+      turnSyncFeedback,
+      clearTurnSyncFeedback,
       completeActivity,
       resetProgress,
       changePassword,
@@ -2907,6 +3293,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       markBadgesSeen,
       updateProfile,
       registerTurn,
+      pendingBoostRequests,
+      turnSyncFeedback,
+      clearTurnSyncFeedback,
       completeActivity,
       resetProgress,
       changePassword,
