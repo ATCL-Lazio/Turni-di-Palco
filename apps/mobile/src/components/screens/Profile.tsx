@@ -15,6 +15,7 @@ interface ProfileProps {
   xpTotal: number;
   xpSulCampo: number;
   reputationGlobal: number;
+  tokenAtcl: number;
   theatreReputation: TheatreReputation[];
   theatreReputationLoading: boolean;
   badgesUnlockedCount: number;
@@ -35,6 +36,7 @@ export function Profile({
   xpTotal,
   xpSulCampo,
   reputationGlobal,
+  tokenAtcl,
   theatreReputation,
   theatreReputationLoading,
   badgesUnlockedCount,
@@ -157,6 +159,10 @@ export function Profile({
             <div className="flex items-center justify-between px-[5px] text-[14px] leading-[20px] text-[#b8b2b3]">
               <span>XP totale</span>
               <span className="text-white">{xpTotal}</span>
+            </div>
+            <div className="flex items-center justify-between px-[5px] text-[14px] leading-[20px] text-[#b8b2b3]">
+              <span>Token ATCL</span>
+              <span className="text-[#f4bf4f]">{tokenAtcl}</span>
             </div>
             <div className="flex flex-col gap-[4px] px-[5px]">
               <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
