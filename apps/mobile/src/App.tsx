@@ -58,7 +58,8 @@ function AppShell() {
     activities, turnStats, statsLoading, theatreReputation,
     theatreReputationLoading, badges, followedEvents, followedEventsLoading,
     followEvent, unfollowEvent, isEventFollowed, markBadgesSeen,
-    updateProfile, registerTurn, completeActivity, resetProgress, resetState,
+    updateProfile, registerTurn, pendingBoostRequests, turnSyncFeedback, clearTurnSyncFeedback,
+    completeActivity, resetProgress, resetState,
     changePassword, sendPasswordResetEmail
   } = useGameState();
 
@@ -357,7 +358,21 @@ function AppShell() {
     return { ok: true as const };
   };
 
-  const handleEventConfirm = async (): Promise<{ ok: true } | { ok: false; error: string }> => {
+  const handleEventConfirm = async ({
+    boostRequested,
+  }: {
+    boostRequested: boolean;
+  }): Promise<
+    | {
+      ok: true;
+      syncStatus: 'pending' | 'synced' | 'failed_boost_fallback';
+      boostRequested: boolean;
+      boostApplied: boolean;
+      boostRejectionReason: string | null;
+      rewards: Rewards;
+    }
+    | { ok: false; error: string }
+  > => {
     const activationUserId = (authUserId ?? state.profile.email ?? '').trim();
 
     if (pendingTicketActivation?.mode === 'hash') {
@@ -372,19 +387,27 @@ function AppShell() {
       }
 
       const resolvedEventId = activation.eventId ?? pendingTicketActivation.eventId;
-      const turnRecord = registerTurn(
-        resolvedEventId,
-        state.profile.roleId,
-        mapActivatedEvent(resolvedEventId, activation.event ?? pendingTicketActivation.event)
-      );
-      if (!turnRecord) {
-        return { ok: false, error: 'Ticket attivato, ma non e stato possibile registrare il turno.' };
+      const turnResult = await registerTurn({
+        eventId: resolvedEventId,
+        roleId: state.profile.roleId,
+        eventOverride: mapActivatedEvent(resolvedEventId, activation.event ?? pendingTicketActivation.event),
+        boostRequested,
+      });
+      if (!turnResult.ok) {
+        return { ok: false, error: turnResult.error || 'Ticket attivato, ma non e stato possibile registrare il turno.' };
       }
 
       setPendingTicketActivation(null);
       setConfirmationEventOverride(null);
       setScannedEventId(resolvedEventId);
-      return { ok: true };
+      return {
+        ok: true,
+        syncStatus: turnResult.syncStatus,
+        boostRequested: turnResult.boostRequested,
+        boostApplied: turnResult.boostApplied,
+        boostRejectionReason: turnResult.boostRejectionReason,
+        rewards: turnResult.rewards,
+      };
     }
 
     if (pendingTicketActivation?.mode === 'manual') {
@@ -403,28 +426,49 @@ function AppShell() {
       }
 
       const resolvedEventId = activation.eventId ?? pendingTicketActivation.eventId;
-      const turnRecord = registerTurn(
-        resolvedEventId,
-        state.profile.roleId,
-        mapActivatedEvent(resolvedEventId, activation.event)
-      );
-      if (!turnRecord) {
-        return { ok: false, error: 'Ticket attivato, ma non e stato possibile registrare il turno.' };
+      const turnResult = await registerTurn({
+        eventId: resolvedEventId,
+        roleId: state.profile.roleId,
+        eventOverride: mapActivatedEvent(resolvedEventId, activation.event),
+        boostRequested,
+      });
+      if (!turnResult.ok) {
+        return { ok: false, error: turnResult.error || 'Ticket attivato, ma non e stato possibile registrare il turno.' };
       }
 
       setPendingTicketActivation(null);
       setConfirmationEventOverride(null);
       setScannedEventId(resolvedEventId);
-      return { ok: true };
+      return {
+        ok: true,
+        syncStatus: turnResult.syncStatus,
+        boostRequested: turnResult.boostRequested,
+        boostApplied: turnResult.boostApplied,
+        boostRejectionReason: turnResult.boostRejectionReason,
+        rewards: turnResult.rewards,
+      };
     }
 
-    if (registerTurn(scannedEventId, state.profile.roleId, confirmationEventOverride ?? undefined)) {
+    const turnResult = await registerTurn({
+      eventId: scannedEventId,
+      roleId: state.profile.roleId,
+      eventOverride: confirmationEventOverride ?? undefined,
+      boostRequested,
+    });
+    if (turnResult.ok) {
       setPendingTicketActivation(null);
       setConfirmationEventOverride(null);
-      return { ok: true };
+      return {
+        ok: true,
+        syncStatus: turnResult.syncStatus,
+        boostRequested: turnResult.boostRequested,
+        boostApplied: turnResult.boostApplied,
+        boostRejectionReason: turnResult.boostRejectionReason,
+        rewards: turnResult.rewards,
+      };
     }
 
-    return { ok: false, error: 'Non e stato possibile registrare il turno.' };
+    return { ok: false, error: turnResult.error || 'Non e stato possibile registrare il turno.' };
   };
   const handleUploadImage = async (file: File) => {
     if (!authUserId) return;
@@ -453,7 +497,7 @@ function AppShell() {
         />
       );
       case 'role-selection': return <RoleSelection roles={roles} onComplete={(role) => { updateProfile({ roleId: role.id as any }); setCurrentScreen('home'); }} />;
-      case 'home': return <Home userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpToNextLevel={state.profile.xpToNextLevel} reputation={state.profile.reputation} onScanQR={() => setCurrentScreen('qr-scanner')} onViewActivities={() => handleTabChange('activities')} onViewTurni={() => handleTabChange('turns')} onViewEventDetails={() => { setScannedEventId(upcomingEvent?.id ?? ''); setCurrentScreen('event-details'); }} onNavigateToEvent={() => openInMaps(upcomingEvent?.theatre ?? '')} upcomingEvent={upcomingEvent} totalTurns={turnStats.totalTurns} turnsThisMonth={turnStats.turnsThisMonth} uniqueTheatres={turnStats.uniqueTheatres} activitiesCount={activities.length} eventLoading={followedEventsLoading} statsLoading={statsLoading} newBadgesCount={newBadges.length} newBadgeTitle={newestNewBadge?.title} onDismissBadgeNotification={markBadgesSeen} />;
+      case 'home': return <Home userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpToNextLevel={state.profile.xpToNextLevel} reputation={state.profile.reputation} tokenAtcl={state.profile.tokenAtcl} pendingBoostRequests={pendingBoostRequests} turnSyncFeedback={turnSyncFeedback} onDismissTurnSyncFeedback={clearTurnSyncFeedback} onScanQR={() => setCurrentScreen('qr-scanner')} onViewActivities={() => handleTabChange('activities')} onViewTurni={() => handleTabChange('turns')} onViewEventDetails={() => { setScannedEventId(upcomingEvent?.id ?? ''); setCurrentScreen('event-details'); }} onNavigateToEvent={() => openInMaps(upcomingEvent?.theatre ?? '')} upcomingEvent={upcomingEvent} totalTurns={turnStats.totalTurns} turnsThisMonth={turnStats.turnsThisMonth} uniqueTheatres={turnStats.uniqueTheatres} activitiesCount={activities.length} eventLoading={followedEventsLoading} statsLoading={statsLoading} newBadgesCount={newBadges.length} newBadgeTitle={newestNewBadge?.title} onDismissBadgeNotification={markBadgesSeen} />;
       case 'turns': return <ATCLTurns events={events} isEventFollowed={isEventFollowed} onToggleFollow={(id: string) => isEventFollowed(id) ? unfollowEvent(id) : followEvent(id)} onViewMap={() => openEventsMap(events.map(e => e.theatre))} onViewEvent={(id: string) => { setScannedEventId(id); setCurrentScreen('event-details'); }} onScanQR={() => setCurrentScreen('qr-scanner')} />;
       case 'leaderboard': return <Leaderboard />;
       case 'qr-scanner': return <QRScanner onClose={() => handleTabChange(activeTab === 'home' ? 'home' : 'turns')} onScan={handleQRScanAttempt} events={events} />;
@@ -461,6 +505,8 @@ function AppShell() {
         <EventConfirmation
           event={selectedEvent}
           role={selectedRole}
+          tokenAtcl={state.profile.tokenAtcl}
+          pendingBoostRequests={pendingBoostRequests}
           onConfirm={handleEventConfirm}
           onSuccess={() => handleTabChange('home')}
           onCancel={() => {
@@ -502,7 +548,7 @@ function AppShell() {
         ) : (
           <Activities activities={activities} onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }} />
         );
-      case 'profile': return <Profile userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} theatreReputation={theatreReputation.map(tr => ({ name: tr.theatre, reputation: tr.reputation }))} theatreReputationLoading={theatreReputationLoading} badgesUnlockedCount={unlockedBadges.length} newBadgesCount={newBadges.length} profileImage={state.profile.profileImage} onViewCarriera={() => setCurrentScreen('career')} onViewTitoli={() => setCurrentScreen('earned-titles')} onSettings={() => setCurrentScreen('account-settings')} onLogout={handleLogout} onUploadProfileImage={handleUploadImage} />;
+      case 'profile': return <Profile userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} tokenAtcl={state.profile.tokenAtcl} theatreReputation={theatreReputation.map(tr => ({ name: tr.theatre, reputation: tr.reputation }))} theatreReputationLoading={theatreReputationLoading} badgesUnlockedCount={unlockedBadges.length} newBadgesCount={newBadges.length} profileImage={state.profile.profileImage} onViewCarriera={() => setCurrentScreen('career')} onViewTitoli={() => setCurrentScreen('earned-titles')} onSettings={() => setCurrentScreen('account-settings')} onLogout={handleLogout} onUploadProfileImage={handleUploadImage} />;
       case 'account-settings': return <AccountSettings userName={state.profile.name} email={state.profile.email} onBack={() => setCurrentScreen('profile')} onViewTerms={() => openLegal('terms', 'account-settings')} onViewPrivacy={() => openLegal('privacy', 'account-settings')} onViewSupport={() => setCurrentScreen('support')} onViewTicketPrototype={() => setCurrentScreen('ticket-qr-prototype')} onChangePassword={() => { setIsPasswordRecovery(false); setCurrentScreen('change-password'); }} onResetProgress={async () => { await resetProgress(); handleTabChange('home'); setCurrentScreen('role-selection'); }} onLogout={handleLogout} />;
       case 'support': return <SupportChat userName={state.profile.name} onBack={() => setCurrentScreen('account-settings')} />;
       case 'change-password': return <ChangePassword email={state.profile.email} mode={isPasswordRecovery ? 'recovery' : 'change'} onBack={() => { setIsPasswordRecovery(false); setCurrentScreen(isPasswordRecovery ? 'home' : 'account-settings'); }} onChangePassword={(current, next) => changePassword(next, current)} onSendResetEmail={() => sendPasswordResetEmail(state.profile.email)} />;

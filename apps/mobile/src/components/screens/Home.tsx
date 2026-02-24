@@ -7,7 +7,7 @@ import { Skeleton } from '../ui/skeleton';
 import { Button } from '../ui/Button';
 import { Play, Calendar, TrendingUp, Award, ChevronRight, Navigation, CalendarPlus, X, Bell } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
-import { GameEvent } from '../../state/store';
+import { GameEvent, TurnSyncFeedback } from '../../state/store';
 import { ScanQRCard } from '../ScanQRCard';
 import { AtclPromoBanner } from '../AtclPromoBanner';
 import { useAtclPromotion } from '../../hooks/useAtclPromotion';
@@ -23,6 +23,10 @@ interface HomeProps {
   xp: number;
   xpToNextLevel: number;
   reputation: number;
+  tokenAtcl: number;
+  pendingBoostRequests?: number;
+  turnSyncFeedback?: TurnSyncFeedback | null;
+  onDismissTurnSyncFeedback?: () => void;
   totalTurns: number;
   turnsThisMonth: number;
   uniqueTheatres: number;
@@ -48,6 +52,10 @@ export function Home({
   xp,
   xpToNextLevel,
   reputation,
+  tokenAtcl,
+  pendingBoostRequests = 0,
+  turnSyncFeedback = null,
+  onDismissTurnSyncFeedback,
   totalTurns,
   turnsThisMonth,
   uniqueTheatres,
@@ -144,7 +152,10 @@ export function Home({
               <div>
                 <h2 className="text-2xl text-white font-semibold leading-tight">{userName || 'Profilo'}</h2>
               </div>
-              <Tag size="sm">{userRole}</Tag>
+              <div className="flex items-center gap-2">
+                <Tag size="sm">{userRole}</Tag>
+                <Tag size="sm">Token {tokenAtcl}</Tag>
+              </div>
             </div>
           </div>
 
@@ -164,6 +175,43 @@ export function Home({
               progress={{ value: reputation, max: 100, color: 'burgundy' }}
             />
           </div>
+
+          {pendingBoostRequests > 0 ? (
+            <Card className="bg-[#2a1f14] border border-[#f4bf4f]/30 mt-3">
+              <p className="text-sm text-[#f4bf4f]">
+                Boost in verifica: {pendingBoostRequests} richiesta/e in coda offline.
+              </p>
+            </Card>
+          ) : null}
+
+          {turnSyncFeedback && (turnSyncFeedback.boostRequested || turnSyncFeedback.syncStatus === 'failed_boost_fallback') ? (
+            <Card className="bg-[#241f20] border border-[#3d3a3b] mt-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm text-white">
+                    {turnSyncFeedback.syncStatus === 'synced' && turnSyncFeedback.boostApplied
+                      ? 'Boost confermato'
+                      : turnSyncFeedback.syncStatus === 'failed_boost_fallback'
+                        ? 'Boost non applicato (fallback base)'
+                        : 'Richiesta boost in verifica'}
+                  </p>
+                  <p className="text-xs text-[#b8b2b3]">
+                    {turnSyncFeedback.eventName}
+                  </p>
+                </div>
+                {onDismissTurnSyncFeedback ? (
+                  <button
+                    type="button"
+                    onClick={onDismissTurnSyncFeedback}
+                    className="text-[#7a7577] hover:text-white transition-colors p-1"
+                    aria-label="Chiudi notifica boost"
+                  >
+                    <X size={16} />
+                  </button>
+                ) : null}
+              </div>
+            </Card>
+          ) : null}
         </header>
 
         <ScanQRCard onScanQR={onScanQR} className="mt-5" />
