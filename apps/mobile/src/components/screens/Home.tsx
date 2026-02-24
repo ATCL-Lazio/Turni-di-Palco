@@ -9,6 +9,10 @@ import { Play, Calendar, TrendingUp, Award, ChevronRight, Navigation, CalendarPl
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { GameEvent } from '../../state/store';
 import { ScanQRCard } from '../ScanQRCard';
+import { AtclPromoBanner } from '../AtclPromoBanner';
+import { useAtclPromotion } from '../../hooks/useAtclPromotion';
+import { useAtclNewsTicker } from '../../hooks/useAtclNewsTicker';
+import { AtclNewsTicker } from '../AtclNewsTicker';
 
 type EventState = 'loading' | 'error' | 'empty' | 'ready';
 
@@ -83,6 +87,9 @@ export function Home({
   }, [hasNewBadges, newBadgesCount]);
 
   const eventState: EventState = eventError ? 'error' : eventLoading ? 'loading' : !upcomingEvent ? 'empty' : 'ready';
+  const homePromotion = useAtclPromotion('home');
+  const homeTickerItems = useAtclNewsTicker(18);
+  const showHomeTicker = homeTickerItems.length > 1;
 
   return (
     <div
@@ -160,6 +167,11 @@ export function Home({
         </header>
 
         <ScanQRCard onScanQR={onScanQR} className="mt-5" />
+        {showHomeTicker ? (
+          <AtclNewsTicker items={homeTickerItems} />
+        ) : homePromotion ? (
+          <AtclPromoBanner promotion={homePromotion} />
+        ) : null}
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">

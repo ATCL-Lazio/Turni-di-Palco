@@ -218,6 +218,9 @@ const OFFLINE_SYNC_SERVER_LOG_BATCH_SIZE = 60;
 const OFFLINE_SYNC_SERVER_LOG_MAX_ITEMS = 2500;
 const OFFLINE_SYNC_SERVER_LOG_RETRY_INTERVAL_MS = 8000;
 const OFFLINE_SYNC_SERVER_LOG_FUNCTION = 'mobile-logs';
+const OFFLINE_SYNC_SERVER_LOG_MIRROR_ENV =
+  import.meta.env.VITE_OFFLINE_SYNC_SERVER_LOG_MIRROR_ENABLED;
+const OFFLINE_SYNC_SERVER_LOG_PREVIEW_HOST_RE = /^turni-di-palco-pr-\d+\.onrender\.com$/i;
 const OFFLINE_SYNC_LOG_PREFIX = '[TDP Offline Sync]';
 const MOBILE_WATCHDOG_TIMEOUTS = {
   refreshTurnStats: 10000,
@@ -358,7 +361,7 @@ function serializeMirroredLogDetails(details: unknown): unknown {
 }
 
 function readMirroredClientLogs(): MirroredClientLogEntry[] {
-  if (typeof window === 'undefined' || !isSupabaseConfigured) return [];
+  if (typeof window === 'undefined' || !isSupabaseConfigured || !shouldMirrorOfflineSyncLogsToServer()) return [];
   try {
     const raw = window.localStorage.getItem(OFFLINE_SYNC_SERVER_LOG_QUEUE_KEY);
     if (!raw) return [];
@@ -397,7 +400,7 @@ function readMirroredClientLogs(): MirroredClientLogEntry[] {
 }
 
 function writeMirroredClientLogs(queue: MirroredClientLogEntry[]) {
-  if (typeof window === 'undefined' || !isSupabaseConfigured) return;
+  if (typeof window === 'undefined' || !isSupabaseConfigured || !shouldMirrorOfflineSyncLogsToServer()) return;
   try {
     if (!queue.length) {
       window.localStorage.removeItem(OFFLINE_SYNC_SERVER_LOG_QUEUE_KEY);
@@ -413,7 +416,7 @@ function writeMirroredClientLogs(queue: MirroredClientLogEntry[]) {
 }
 
 function enqueueMirroredClientLog(message: string, level: OfflineSyncLogLevel, details?: unknown) {
-  if (typeof window === 'undefined' || !isSupabaseConfigured) return;
+  if (typeof window === 'undefined' || !isSupabaseConfigured || !shouldMirrorOfflineSyncLogsToServer()) return;
   const trimmedMessage = message.trim();
   if (!trimmedMessage) return;
   const queue = readMirroredClientLogs();
@@ -547,6 +550,21 @@ function isQueuedMutationKind(value: unknown): value is QueuedMutationKind {
 
 function isNavigatorOffline() {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
+
+function parseOptionalBooleanEnv(value: unknown): boolean | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return null;
+}
+
+function shouldMirrorOfflineSyncLogsToServer() {
+  const envOverride = parseOptionalBooleanEnv(OFFLINE_SYNC_SERVER_LOG_MIRROR_ENV);
+  if (envOverride !== null) return envOverride;
+  if (typeof window === 'undefined') return true;
+  return !OFFLINE_SYNC_SERVER_LOG_PREVIEW_HOST_RE.test(window.location.hostname);
 }
 
 function createOfflineMutationId() {
@@ -1321,7 +1339,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const flushMirroredClientLogsToServer = useCallback(async () => {
-    if (!isSupabaseConfigured || !supabase) return;
+    if (!isSupabaseConfigured || !supabase || !shouldMirrorOfflineSyncLogsToServer()) return;
     if (offlineServerLogSyncInFlightRef.current) return;
     if (isNavigatorOffline()) return;
 
@@ -1790,12 +1808,12 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   }, [authUserId, flushQueuedSupabaseMutations]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return;
+    if (!isSupabaseConfigured || !supabase || !shouldMirrorOfflineSyncLogsToServer()) return;
     void flushMirroredClientLogsToServer();
   }, [authUserId, authReady, flushMirroredClientLogsToServer]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return;
+    if (!isSupabaseConfigured || !supabase || !shouldMirrorOfflineSyncLogsToServer()) return;
     if (typeof window === 'undefined') return;
     console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror listeners started`, {
       retryIntervalMs: OFFLINE_SYNC_SERVER_LOG_RETRY_INTERVAL_MS,
