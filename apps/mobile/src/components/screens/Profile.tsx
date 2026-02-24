@@ -15,6 +15,7 @@ interface ProfileProps {
   xpTotal: number;
   xpSulCampo: number;
   reputationGlobal: number;
+  cachet: number;
   tokenAtcl: number;
   theatreReputation: TheatreReputation[];
   theatreReputationLoading: boolean;
@@ -36,6 +37,7 @@ export function Profile({
   xpTotal,
   xpSulCampo,
   reputationGlobal,
+  cachet,
   tokenAtcl,
   theatreReputation,
   theatreReputationLoading,
@@ -161,9 +163,16 @@ export function Profile({
               <span className="text-white">{xpTotal}</span>
             </div>
             <div className="flex items-center justify-between px-[5px] text-[14px] leading-[20px] text-[#b8b2b3]">
-              <span>Token ATCL</span>
+              <span>Cachet accumulato</span>
+              <span className="text-white">{cachet}</span>
+            </div>
+            <div className="flex items-center justify-between px-[5px] text-[14px] leading-[20px] text-[#b8b2b3]">
+              <span>Token ATCL (premium)</span>
               <span className="text-[#f4bf4f]">{tokenAtcl}</span>
             </div>
+            <p className="px-[5px] text-[12px] leading-[16px] text-[#7a7577]">
+              Cachet = valuta base di gioco. Token ATCL = boost e futuri riscatti.
+            </p>
             <div className="flex flex-col gap-[4px] px-[5px]">
               <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
                 <span className="flex items-center gap-[8px]">

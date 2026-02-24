@@ -19,6 +19,7 @@ type ConfirmTurnResult =
 interface EventConfirmationProps {
   event?: GameEvent;
   role?: Role;
+  cachet: number;
   tokenAtcl: number;
   pendingBoostRequests: number;
   onConfirm: (options: { boostRequested: boolean }) => Promise<ConfirmTurnResult> | ConfirmTurnResult;
@@ -29,6 +30,7 @@ interface EventConfirmationProps {
 export function EventConfirmation({
   event,
   role,
+  cachet,
   tokenAtcl,
   pendingBoostRequests,
   onConfirm,
@@ -215,7 +217,9 @@ export function EventConfirmation({
               <p className="text-sm text-[#b8b2b3]">
                 Costo 1 token. Effetto: +10% XP e +10% Cachet.
               </p>
-              <p className="text-xs text-[#b8b2b3] mt-2">Saldo attuale: {tokenAtcl} token</p>
+              <p className="text-xs text-[#b8b2b3] mt-2">
+                Saldo economico: Cachet {cachet} - Token {tokenAtcl}
+              </p>
             </div>
             <button
               type="button"
