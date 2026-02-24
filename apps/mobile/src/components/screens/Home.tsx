@@ -190,7 +190,6 @@ export function Home({
           <Card className="bg-[#1a1617] border border-[#2d2728] mt-3">
             <div className="flex items-center justify-between gap-3 mb-3">
               <h4 className="text-white text-sm font-semibold">Economia</h4>
-              <p className="text-xs text-[#7a7577]">Cachet + Token ATCL</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-[#241f20] border border-[#3d3a3b] p-3">
