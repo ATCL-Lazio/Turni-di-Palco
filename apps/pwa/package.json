@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "node ../../tools/with-https-env.js node ../../tools/serve-dist.js",
     "preview:https": "npm run preview",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run --passWithNoTests --coverage",
+    "test:watch": "vitest --passWithNoTests",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier . --write"
   },
@@ -18,6 +19,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "@vitest/coverage-v8": "^4.0.16",
     "@typescript-eslint/eslint-plugin": "^8.56.1-alpha.3",
     "@typescript-eslint/parser": "^8.56.1-alpha.3",
     "cross-env": "^7.0.3",

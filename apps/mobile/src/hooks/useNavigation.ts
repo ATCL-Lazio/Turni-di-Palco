@@ -8,17 +8,17 @@ const NAV_STATE_VERSION = 1 as const;
 const VALID_SCREENS = new Set<Screen>([
     'welcome', 'login', 'signup', 'install', 'role-selection',
     'home', 'turns', 'leaderboard', 'qr-scanner', 'event-confirmation',
-    'event-details', 'activities', 'activity-detail', 'activity-minigame', 'activity-result', 'profile',
+    'event-details', 'activities', 'shop', 'activity-detail', 'activity-minigame', 'activity-result', 'profile',
     'account-settings', 'support', 'change-password', 'career',
     'terms', 'privacy', 'earned-titles',
     'ticket-qr-prototype',
 ]);
 
-const VALID_TABS = new Set<Tab>(['home', 'turns', 'leaderboard', 'activities', 'profile']);
+const VALID_TABS = new Set<Tab>(['home', 'turns', 'leaderboard', 'activities', 'shop', 'profile']);
 
 const VALID_LEGAL_RETURN_SCREENS = new Set<LegalReturnScreen>([
     'welcome', 'login', 'signup', 'role-selection', 'home', 'turns',
-    'qr-scanner', 'event-confirmation', 'activities', 'activity-detail', 'activity-minigame', 'activity-result',
+    'qr-scanner', 'event-confirmation', 'activities', 'shop', 'activity-detail', 'activity-minigame', 'activity-result',
     'profile', 'account-settings', 'support', 'change-password',
     'career', 'earned-titles', 'ticket-qr-prototype',
 ]);
