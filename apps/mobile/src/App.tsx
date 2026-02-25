@@ -45,7 +45,7 @@ import { initErrorHandler, subscribeToCriticalErrors, getLastCriticalError, clea
 import { MinigameOutcome } from './gameplay/minigames';
 
 // Types and Hooks
-import { LegalReturnScreen } from './types/navigation';
+import { LegalReturnScreen, Screen, Tab } from './types/navigation';
 import { useNavigation } from './hooks/useNavigation';
 import { useAuth } from './hooks/useAuth';
 import { useNotifications } from './hooks/useNotifications';
@@ -63,15 +63,76 @@ function AppShell() {
     followEvent, unfollowEvent, isEventFollowed, markBadgesSeen,
     updateProfile, registerTurn, pendingBoostRequests, turnSyncFeedback, clearTurnSyncFeedback,
     completeActivity, resetProgress, resetState,
-    changePassword, sendPasswordResetEmail
+    changePassword, sendPasswordResetEmail, featureFlags, isFeatureEnabled
   } = useGameState();
+
+  const tabFeatureFlags = useMemo(
+    () => ({
+      turns: featureFlags['mobile.section.turns'],
+      leaderboard: featureFlags['mobile.section.leaderboard'],
+      activities: featureFlags['mobile.section.activities'],
+      shop: featureFlags['mobile.section.shop'],
+      career: featureFlags['mobile.section.career'],
+      earnedTitles: featureFlags['mobile.section.earned_titles'],
+    }),
+    [featureFlags]
+  );
+
+  const isTabEnabled = useCallback(
+    (tab: Tab) => {
+      if (tab === 'home' || tab === 'profile') return true;
+      if (tab === 'turns') return tabFeatureFlags.turns;
+      if (tab === 'leaderboard') return tabFeatureFlags.leaderboard;
+      if (tab === 'activities') return tabFeatureFlags.activities;
+      if (tab === 'shop') return tabFeatureFlags.shop;
+      return false;
+    },
+    [tabFeatureFlags]
+  );
+
+  const isScreenEnabled = useCallback(
+    (screen: Screen) => {
+      if (screen === 'turns') return tabFeatureFlags.turns;
+      if (screen === 'leaderboard') return tabFeatureFlags.leaderboard;
+      if (screen === 'activities' || screen === 'activity-detail' || screen === 'activity-minigame' || screen === 'activity-result') {
+        return tabFeatureFlags.activities;
+      }
+      if (screen === 'event-details') return tabFeatureFlags.turns;
+      if (screen === 'shop') return tabFeatureFlags.shop;
+      if (screen === 'career') return tabFeatureFlags.career;
+      if (screen === 'earned-titles') return tabFeatureFlags.earnedTitles;
+      if (screen === 'qr-scanner') return isFeatureEnabled('mobile.action.qr_scan');
+      if (screen === 'event-confirmation') return isFeatureEnabled('mobile.action.turn_submit');
+      return true;
+    },
+    [isFeatureEnabled, tabFeatureFlags]
+  );
+
+  const showFeatureDisabledAlert = useCallback((label: string) => {
+    window.alert(`${label} temporaneamente disattivata.`);
+  }, []);
 
   // Navigation Hook
   const {
-    currentScreen, setCurrentScreen, activeTab, setActiveTab, handleTabChange,
+    currentScreen, setCurrentScreen, activeTab, setActiveTab, handleTabChange: baseHandleTabChange,
     legalReturnScreen, setLegalReturnScreen, isPasswordRecovery, setIsPasswordRecovery,
     scannedEventId, setScannedEventId, selectedActivityId, setSelectedActivityId,
-  } = useNavigation(events);
+  } = useNavigation(events, {
+    isScreenEnabled,
+    isTabEnabled,
+  });
+
+  const handleTabChange = useCallback(
+    (tab: Tab) => {
+      if (!isTabEnabled(tab)) {
+        showFeatureDisabledAlert(`La sezione ${tab}`);
+        baseHandleTabChange('home');
+        return;
+      }
+      baseHandleTabChange(tab);
+    },
+    [baseHandleTabChange, isTabEnabled, showFeatureDisabledAlert]
+  );
 
   const [activityOutcome, setActivityOutcome] = useState<MinigameOutcome | null>(null);
   const [activityCompletion, setActivityCompletion] = useState<{ activity: Activity; rewards: Rewards } | null>(null);
@@ -235,13 +296,17 @@ function AppShell() {
     }
 
     if (authReady && isAuthValid) {
+      if (!isFeatureEnabled('mobile.action.turn_submit')) {
+        window.sessionStorage.removeItem(PENDING_EVENT_KEY);
+        return;
+      }
       setPendingTicketActivation(null);
       setConfirmationEventOverride(null);
       setScannedEventId(pendingFromUrl.eventId);
       setCurrentScreen('event-confirmation');
       window.sessionStorage.removeItem(PENDING_EVENT_KEY);
     }
-  }, [authReady, isAuthValid, setCurrentScreen, setScannedEventId]);
+  }, [authReady, isAuthValid, isFeatureEnabled, setCurrentScreen, setScannedEventId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -249,13 +314,17 @@ function AppShell() {
 
     const pendingEventId = window.sessionStorage.getItem(PENDING_EVENT_KEY);
     if (!pendingEventId) return;
+    if (!isFeatureEnabled('mobile.action.turn_submit')) {
+      window.sessionStorage.removeItem(PENDING_EVENT_KEY);
+      return;
+    }
 
     setPendingTicketActivation(null);
     setConfirmationEventOverride(null);
     setScannedEventId(pendingEventId);
     setCurrentScreen('event-confirmation');
     window.sessionStorage.removeItem(PENDING_EVENT_KEY);
-  }, [authReady, isAuthValid, setCurrentScreen, setScannedEventId]);
+  }, [authReady, isAuthValid, isFeatureEnabled, setCurrentScreen, setScannedEventId]);
 
   // Handler Actions
   const mapActivatedEvent = (eventId: string, eventPayload?: ActivatedEventPayload): GameEvent | undefined => {
@@ -289,6 +358,9 @@ function AppShell() {
   };
 
   const handleQRScanAttempt = async (code: string) => {
+    if (!isFeatureEnabled('mobile.action.qr_scan')) {
+      return { ok: false as const, error: 'Scansione QR temporaneamente disattivata.' };
+    }
     if (!authReady) return { ok: false as const, error: 'Verifica sessione...' };
     if (!isAuthValid) {
       setCurrentScreen('welcome');
@@ -376,6 +448,13 @@ function AppShell() {
     }
     | { ok: false; error: string }
   > => {
+    if (!isFeatureEnabled('mobile.action.turn_submit')) {
+      return { ok: false, error: 'Registrazione turni temporaneamente disattivata.' };
+    }
+    if (boostRequested && !isFeatureEnabled('mobile.action.turn_boost')) {
+      return { ok: false, error: 'Boost turno temporaneamente disattivato.' };
+    }
+
     const activationUserId = (authUserId ?? state.profile.email ?? '').trim();
 
     if (pendingTicketActivation?.mode === 'hash') {
@@ -484,6 +563,46 @@ function AppShell() {
     setCurrentScreen(screen);
   };
 
+  const openQrScanner = useCallback(() => {
+    if (!isFeatureEnabled('mobile.action.qr_scan')) {
+      showFeatureDisabledAlert('Scansione QR');
+      return;
+    }
+    setCurrentScreen('qr-scanner');
+  }, [isFeatureEnabled, setCurrentScreen, showFeatureDisabledAlert]);
+
+  const openTurns = useCallback(() => {
+    if (!tabFeatureFlags.turns) {
+      showFeatureDisabledAlert('La sezione turni');
+      return;
+    }
+    handleTabChange('turns');
+  }, [handleTabChange, showFeatureDisabledAlert, tabFeatureFlags.turns]);
+
+  const openActivities = useCallback(() => {
+    if (!tabFeatureFlags.activities) {
+      showFeatureDisabledAlert('La sezione attivita');
+      return;
+    }
+    handleTabChange('activities');
+  }, [handleTabChange, showFeatureDisabledAlert, tabFeatureFlags.activities]);
+
+  const openCareer = useCallback(() => {
+    if (!tabFeatureFlags.career) {
+      showFeatureDisabledAlert('La sezione carriera');
+      return;
+    }
+    setCurrentScreen('career');
+  }, [setCurrentScreen, showFeatureDisabledAlert, tabFeatureFlags.career]);
+
+  const openEarnedTitles = useCallback(() => {
+    if (!tabFeatureFlags.earnedTitles) {
+      showFeatureDisabledAlert('La sezione titoli');
+      return;
+    }
+    setCurrentScreen('earned-titles');
+  }, [setCurrentScreen, showFeatureDisabledAlert, tabFeatureFlags.earnedTitles]);
+
   const renderScreen = () => {
     const selectedEvent = confirmationEventOverride ?? events.find(e => e.id === scannedEventId);
     const selectedRole = roles.find(r => r.id === state.profile.roleId);
@@ -500,10 +619,71 @@ function AppShell() {
         />
       );
       case 'role-selection': return <RoleSelection roles={roles} onComplete={(role) => { updateProfile({ roleId: role.id as any }); setCurrentScreen('home'); }} />;
-      case 'home': return <Home userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpToNextLevel={state.profile.xpToNextLevel} reputation={state.profile.reputation} cachet={state.profile.cachet} tokenAtcl={state.profile.tokenAtcl} pendingBoostRequests={pendingBoostRequests} turnSyncFeedback={turnSyncFeedback} onDismissTurnSyncFeedback={clearTurnSyncFeedback} onScanQR={() => setCurrentScreen('qr-scanner')} onViewActivities={() => handleTabChange('activities')} onViewTurni={() => handleTabChange('turns')} onViewEventDetails={() => { setScannedEventId(upcomingEvent?.id ?? ''); setCurrentScreen('event-details'); }} onNavigateToEvent={() => openInMaps(upcomingEvent?.theatre ?? '')} upcomingEvent={upcomingEvent} totalTurns={turnStats.totalTurns} turnsThisMonth={turnStats.turnsThisMonth} uniqueTheatres={turnStats.uniqueTheatres} activitiesCount={activities.length} eventLoading={followedEventsLoading} statsLoading={statsLoading} newBadgesCount={newBadges.length} newBadgeTitle={newestNewBadge?.title} onDismissBadgeNotification={markBadgesSeen} />;
-      case 'turns': return <ATCLTurns events={events} isEventFollowed={isEventFollowed} onToggleFollow={(id: string) => isEventFollowed(id) ? unfollowEvent(id) : followEvent(id)} onViewMap={() => openEventsMap(events.map(e => e.theatre))} onViewEvent={(id: string) => { setScannedEventId(id); setCurrentScreen('event-details'); }} onScanQR={() => setCurrentScreen('qr-scanner')} />;
+      case 'home': return (
+        <Home
+          userName={state.profile.name}
+          userRole={selectedRole?.name ?? 'Ruolo'}
+          level={state.profile.level}
+          xp={state.profile.xp}
+          xpToNextLevel={state.profile.xpToNextLevel}
+          reputation={state.profile.reputation}
+          cachet={state.profile.cachet}
+          tokenAtcl={state.profile.tokenAtcl}
+          pendingBoostRequests={pendingBoostRequests}
+          turnSyncFeedback={turnSyncFeedback}
+          onDismissTurnSyncFeedback={clearTurnSyncFeedback}
+          allowScanQr={isFeatureEnabled('mobile.action.qr_scan')}
+          allowTurnsSection={tabFeatureFlags.turns}
+          allowActivitiesSection={tabFeatureFlags.activities}
+          onScanQR={openQrScanner}
+          onViewActivities={openActivities}
+          onViewTurni={openTurns}
+          onViewEventDetails={() => {
+            if (!tabFeatureFlags.turns) {
+              showFeatureDisabledAlert('La sezione turni');
+              return;
+            }
+            setScannedEventId(upcomingEvent?.id ?? '');
+            setCurrentScreen('event-details');
+          }}
+          onNavigateToEvent={() => openInMaps(upcomingEvent?.theatre ?? '')}
+          upcomingEvent={upcomingEvent}
+          totalTurns={turnStats.totalTurns}
+          turnsThisMonth={turnStats.turnsThisMonth}
+          uniqueTheatres={turnStats.uniqueTheatres}
+          activitiesCount={activities.length}
+          eventLoading={followedEventsLoading}
+          statsLoading={statsLoading}
+          newBadgesCount={newBadges.length}
+          newBadgeTitle={newestNewBadge?.title}
+          onDismissBadgeNotification={markBadgesSeen}
+        />
+      );
+      case 'turns': return <ATCLTurns events={events} isEventFollowed={isEventFollowed} onToggleFollow={(id: string) => isEventFollowed(id) ? unfollowEvent(id) : followEvent(id)} onViewMap={() => openEventsMap(events.map(e => e.theatre))} onViewEvent={(id: string) => { setScannedEventId(id); setCurrentScreen('event-details'); }} onScanQR={openQrScanner} canScanQr={isFeatureEnabled('mobile.action.qr_scan')} />;
       case 'leaderboard': return <Leaderboard />;
-      case 'qr-scanner': return <QRScanner onClose={() => handleTabChange(activeTab === 'home' ? 'home' : 'turns')} onScan={handleQRScanAttempt} events={events} />;
+      case 'qr-scanner':
+        if (!isFeatureEnabled('mobile.action.qr_scan')) {
+          return (
+            <div className="min-h-screen pb-24">
+              <div className="app-content px-6 pt-6 space-y-4">
+                <Card>
+                  <h3 className="text-white mb-2">Scansione QR non disponibile</h3>
+                  <p className="text-[#b8b2b3] text-sm mb-4">
+                    Questa funzione e temporaneamente disattivata dalla configurazione runtime.
+                  </p>
+                  <button
+                    type="button"
+                    className="text-sm text-[#f4bf4f] hover:text-[#e6a23c]"
+                    onClick={() => handleTabChange('home')}
+                  >
+                    Torna alla Home
+                  </button>
+                </Card>
+              </div>
+            </div>
+          );
+        }
+        return <QRScanner onClose={() => handleTabChange(activeTab === 'home' ? 'home' : 'turns')} onScan={handleQRScanAttempt} events={events} />;
       case 'event-confirmation': return (
         <EventConfirmation
           event={selectedEvent}
@@ -511,6 +691,7 @@ function AppShell() {
           cachet={state.profile.cachet}
           tokenAtcl={state.profile.tokenAtcl}
           pendingBoostRequests={pendingBoostRequests}
+          allowBoost={isFeatureEnabled('mobile.action.turn_boost')}
           onConfirm={handleEventConfirm}
           onSuccess={() => handleTabChange('home')}
           onCancel={() => {
@@ -528,7 +709,15 @@ function AppShell() {
           slotsStatus={activitySlotsStatus}
           slotsLoading={activitySlotsLoading}
           isOnline={typeof navigator === 'undefined' ? true : navigator.onLine}
-          onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }}
+          canStartActivities={isFeatureEnabled('mobile.action.activity_start')}
+          onStartActivity={(id: string) => {
+            if (!isFeatureEnabled('mobile.action.activity_start')) {
+              showFeatureDisabledAlert('Avvio attivita');
+              return;
+            }
+            setSelectedActivityId(id);
+            setCurrentScreen('activity-detail');
+          }}
         />
       );
       case 'shop': return (
@@ -541,10 +730,19 @@ function AppShell() {
             reputation: item.reputation,
           }))}
           loading={shopCatalogLoading}
+          canPurchase={isFeatureEnabled('mobile.action.shop_purchase')}
           onPurchase={purchaseShopItem}
         />
       );
-      case 'activity-detail': return currentActivity && <ActivityDetail activity={currentActivity} onStart={() => { setActivityOutcome(null); setActivityCompletion(null); setCurrentScreen('activity-minigame'); }} onClose={() => setCurrentScreen('activities')} />;
+      case 'activity-detail': return currentActivity && <ActivityDetail activity={currentActivity} onStart={() => {
+        if (!isFeatureEnabled('mobile.action.activity_start')) {
+          showFeatureDisabledAlert('Avvio attivita');
+          return;
+        }
+        setActivityOutcome(null);
+        setActivityCompletion(null);
+        setCurrentScreen('activity-minigame');
+      }} onClose={() => setCurrentScreen('activities')} />;
       case 'activity-minigame':
         return currentActivity && (
           <ActivityMinigame
@@ -552,6 +750,11 @@ function AppShell() {
             onCancel={() => setCurrentScreen('activity-detail')}
             onComplete={(outcome) => {
               void (async () => {
+                if (!isFeatureEnabled('mobile.action.activity_complete')) {
+                  showFeatureDisabledAlert('Completamento attivita');
+                  handleTabChange('activities');
+                  return;
+                }
                 const completion = await completeActivity(selectedActivityId);
                 if (!completion.ok) {
                   window.alert(completion.error);
@@ -582,10 +785,18 @@ function AppShell() {
             slotsStatus={activitySlotsStatus}
             slotsLoading={activitySlotsLoading}
             isOnline={typeof navigator === 'undefined' ? true : navigator.onLine}
-            onStartActivity={(id: string) => { setSelectedActivityId(id); setCurrentScreen('activity-detail'); }}
+            canStartActivities={isFeatureEnabled('mobile.action.activity_start')}
+            onStartActivity={(id: string) => {
+              if (!isFeatureEnabled('mobile.action.activity_start')) {
+                showFeatureDisabledAlert('Avvio attivita');
+                return;
+              }
+              setSelectedActivityId(id);
+              setCurrentScreen('activity-detail');
+            }}
           />
         );
-      case 'profile': return <Profile userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} cachet={state.profile.cachet} tokenAtcl={state.profile.tokenAtcl} theatreReputation={theatreReputation.map(tr => ({ name: tr.theatre, reputation: tr.reputation }))} theatreReputationLoading={theatreReputationLoading} badgesUnlockedCount={unlockedBadges.length} newBadgesCount={newBadges.length} profileImage={state.profile.profileImage} onViewCarriera={() => setCurrentScreen('career')} onViewTitoli={() => setCurrentScreen('earned-titles')} onSettings={() => setCurrentScreen('account-settings')} onLogout={handleLogout} onUploadProfileImage={handleUploadImage} />;
+      case 'profile': return <Profile userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} cachet={state.profile.cachet} tokenAtcl={state.profile.tokenAtcl} theatreReputation={theatreReputation.map(tr => ({ name: tr.theatre, reputation: tr.reputation }))} theatreReputationLoading={theatreReputationLoading} badgesUnlockedCount={unlockedBadges.length} newBadgesCount={newBadges.length} profileImage={state.profile.profileImage} onViewCarriera={openCareer} onViewTitoli={openEarnedTitles} onSettings={() => setCurrentScreen('account-settings')} onLogout={handleLogout} onUploadProfileImage={handleUploadImage} />;
       case 'account-settings': return <AccountSettings userName={state.profile.name} email={state.profile.email} onBack={() => setCurrentScreen('profile')} onViewTerms={() => openLegal('terms', 'account-settings')} onViewPrivacy={() => openLegal('privacy', 'account-settings')} onViewSupport={() => setCurrentScreen('support')} onViewTicketPrototype={() => setCurrentScreen('ticket-qr-prototype')} onChangePassword={() => { setIsPasswordRecovery(false); setCurrentScreen('change-password'); }} onResetProgress={async () => { await resetProgress(); handleTabChange('home'); setCurrentScreen('role-selection'); }} onLogout={handleLogout} />;
       case 'support': return <SupportChat userName={state.profile.name} onBack={() => setCurrentScreen('account-settings')} />;
       case 'change-password': return <ChangePassword email={state.profile.email} mode={isPasswordRecovery ? 'recovery' : 'change'} onBack={() => { setIsPasswordRecovery(false); setCurrentScreen(isPasswordRecovery ? 'home' : 'account-settings'); }} onChangePassword={(current, next) => changePassword(next, current)} onSendResetEmail={() => sendPasswordResetEmail(state.profile.email)} />;
@@ -597,6 +808,16 @@ function AppShell() {
       default: return null;
     }
   };
+
+  const enabledNavTabs = useMemo<Tab[]>(() => {
+    const next: Tab[] = ['home'];
+    if (tabFeatureFlags.turns) next.push('turns');
+    if (tabFeatureFlags.leaderboard) next.push('leaderboard');
+    if (tabFeatureFlags.activities) next.push('activities');
+    if (tabFeatureFlags.shop) next.push('shop');
+    next.push('profile');
+    return next;
+  }, [tabFeatureFlags.activities, tabFeatureFlags.leaderboard, tabFeatureFlags.shop, tabFeatureFlags.turns]);
 
   const showBottomNav = ['home', 'turns', 'leaderboard', 'activities', 'shop', 'profile', 'career', 'earned-titles'].includes(currentScreen);
   const normalizedError = useMemo(() => {
@@ -613,7 +834,7 @@ function AppShell() {
       <ScreenTransition animationClass={screenAnimation} animationKey={screenAnimationKey}>
         <div className="app-frame">{renderScreen()}</div>
       </ScreenTransition>
-      {showBottomNav && <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />}
+      {showBottomNav && <BottomNav activeTab={activeTab} onTabChange={handleTabChange} enabledTabs={enabledNavTabs} />}
       {normalizedError ? (
         <ErrorOverlay
           title={normalizedError.title}

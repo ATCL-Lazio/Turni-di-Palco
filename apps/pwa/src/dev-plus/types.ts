@@ -47,6 +47,16 @@ export type DbOperationStatus = {
   nextRunAt?: string;
 };
 
+export type MobileFeatureFlagEntry = {
+  key: string;
+  enabled: boolean;
+  label: string;
+  description: string;
+  category: 'section' | 'action' | string;
+  updatedAt?: string;
+  updatedBy?: string | null;
+};
+
 export type DashboardSnapshot = {
   metrics: MetricCard[];
   audit: AuditEntry[];

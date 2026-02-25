@@ -11,6 +11,7 @@ interface ActivitiesProps {
   slotsStatus: ActivitySlotsStatus;
   slotsLoading?: boolean;
   isOnline?: boolean;
+  canStartActivities?: boolean;
   onStartActivity: (activityId: string) => void;
 }
 
@@ -25,6 +26,7 @@ export function Activities({
   slotsStatus,
   slotsLoading = false,
   isOnline = true,
+  canStartActivities = true,
   onStartActivity,
 }: ActivitiesProps) {
   const totalActivities = activities.length;
@@ -40,7 +42,7 @@ export function Activities({
     >
       <div className="w-full app-content px-6 pt-6 pb-8 space-y-6">
         <header className="space-y-2">
-          <h2 className="text-white">Attività simulate</h2>
+          <h2 className="text-white">Attivita simulate</h2>
           <p className="text-[#b8b2b3]">
             Migliora le tue skill e guadagna ricompense
           </p>
@@ -54,7 +56,7 @@ export function Activities({
             <div className="space-y-1">
               <h3 className="text-white">Allenati ogni giorno</h3>
               <p className="text-sm text-[#b8b2b3]">
-                Completa le attività per migliorare le tue competenze e prepararti per gli eventi reali
+                Completa le attivita per migliorare le tue competenze e prepararti per gli eventi reali
               </p>
             </div>
           </div>
@@ -82,7 +84,7 @@ export function Activities({
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-white">Attività disponibili</h3>
+            <h3 className="text-white">Attivita disponibili</h3>
             <Tag size="sm" variant="info">
               {totalActivities} disponibili
             </Tag>
@@ -91,7 +93,7 @@ export function Activities({
           <div className="space-y-3">
             {activities.map((activity, index) => {
               const difficultyLabel = difficultyLabels[activity.difficulty] ?? activity.difficulty;
-              const canStart = isOnline && remainingSlots > 0;
+              const canStart = canStartActivities && isOnline && remainingSlots > 0;
               return (
                 <Card
                   key={activity.id}
@@ -137,9 +139,11 @@ export function Activities({
                       </div>
                       {!canStart ? (
                         <p className="text-xs text-[#ff9aac]">
-                          {!isOnline
-                            ? 'Per completare attività serve connessione online.'
-                            : 'Limite slot giornalieri raggiunto.'}
+                          {!canStartActivities
+                            ? 'Funzione temporaneamente disattivata.'
+                            : !isOnline
+                              ? 'Per completare attivita serve connessione online.'
+                              : 'Limite slot giornalieri raggiunto.'}
                         </p>
                       ) : null}
                     </div>
@@ -152,9 +156,9 @@ export function Activities({
 
         {totalActivities === 0 ? (
           <Card className="text-center">
-            <p className="text-sm text-[#7a7577]">Nuove attività in arrivo</p>
+            <p className="text-sm text-[#7a7577]">Nuove attivita in arrivo</p>
             <p className="text-sm text-[#b8b2b3]">
-              Stiamo preparando nuove sfide e attività
+              Stiamo preparando nuove sfide e attivita
             </p>
           </Card>
         ) : null}
