@@ -23,6 +23,7 @@ import type {
   CommandDraft,
   DashboardSnapshot,
   DbOperationStatus,
+  MobileFeatureFlagEntry,
   MetricCard,
   PreparedCommand,
   RenderServiceStatus,
@@ -30,7 +31,7 @@ import type {
 } from "./types";
 
 type AuthState = "checking" | "anonymous" | "authenticated";
-type ViewId = "commands" | "audit" | "render" | "db";
+type ViewId = "commands" | "audit" | "render" | "db" | "mobile-flags";
 type FeedbackTone = "info" | "ok" | "warn" | "error";
 
 type FeedbackMessage = {
@@ -106,9 +107,25 @@ const VIEW_OPTIONS: { id: ViewId; label: string; note: string }[] = [
   { id: "audit", label: "Audit View", note: "eventi recenti e motivazioni" },
   { id: "render", label: "Render Services", note: "stato servizi e deploy" },
   { id: "db", label: "DB Ops", note: "operazioni database recenti" },
+  { id: "mobile-flags", label: "Mobile Flags", note: "toggle runtime feature flag mobile" },
 ];
 
 const DEFAULT_CONFIRM_TEXT = "CONFIRM";
+
+const MOBILE_FLAG_DEFAULTS: MobileFeatureFlagEntry[] = [
+  { key: "mobile.section.turns", enabled: true, label: "Sezione Turni", description: "Mostra sezione turni e tab.", category: "section" },
+  { key: "mobile.section.leaderboard", enabled: true, label: "Sezione Classifica", description: "Mostra sezione classifica e tab.", category: "section" },
+  { key: "mobile.section.activities", enabled: true, label: "Sezione Attivita", description: "Mostra sezione attivita e tab.", category: "section" },
+  { key: "mobile.section.shop", enabled: true, label: "Sezione Shop", description: "Mostra sezione shop e tab.", category: "section" },
+  { key: "mobile.section.career", enabled: true, label: "Sezione Carriera", description: "Abilita schermata carriera.", category: "section" },
+  { key: "mobile.section.earned_titles", enabled: true, label: "Sezione Titoli", description: "Abilita schermata titoli sbloccati.", category: "section" },
+  { key: "mobile.action.qr_scan", enabled: true, label: "Azione Scansione QR", description: "Abilita scanner QR mobile.", category: "action" },
+  { key: "mobile.action.turn_submit", enabled: true, label: "Azione Conferma Turno", description: "Abilita registrazione turni.", category: "action" },
+  { key: "mobile.action.turn_boost", enabled: true, label: "Azione Boost Turno", description: "Abilita boost token su turno.", category: "action" },
+  { key: "mobile.action.activity_start", enabled: true, label: "Azione Avvio Attivita", description: "Abilita avvio attivita.", category: "action" },
+  { key: "mobile.action.activity_complete", enabled: true, label: "Azione Completamento Attivita", description: "Abilita completamento attivita.", category: "action" },
+  { key: "mobile.action.shop_purchase", enabled: true, label: "Azione Acquisto Shop", description: "Abilita acquisti shop.", category: "action" },
+];
 
 function formatDateTime(value?: string) {
   if (!value) return "-";
@@ -199,6 +216,12 @@ function App() {
     tone: "info",
     text: "Pronto. Prepara un comando e conferma in due step.",
   });
+  const [mobileFlags, setMobileFlags] = useState<MobileFeatureFlagEntry[]>([]);
+  const [mobileFlagsBusy, setMobileFlagsBusy] = useState(false);
+  const [mobileFlagsFeedback, setMobileFlagsFeedback] = useState<FeedbackMessage>({
+    tone: "info",
+    text: "Apri la vista Mobile Flags per leggere e modificare le feature runtime.",
+  });
 
   const controlPlaneEndpoint = getControlPlaneEndpoint();
 
@@ -240,6 +263,46 @@ function App() {
     }
     setCatalog(response.commands);
   }, []);
+
+  const loadMobileFlags = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      setMobileFlags([]);
+      setMobileFlagsFeedback({ tone: "warn", text: "Supabase non configurato: impossibile leggere le mobile feature flags." });
+      return;
+    }
+    if (authState !== "authenticated") return;
+
+    setMobileFlagsBusy(true);
+    const { data, error } = await supabase
+      .from("mobile_feature_flags")
+      .select("key,enabled,label,description,category,updated_at,updated_by")
+      .order("category", { ascending: true })
+      .order("key", { ascending: true });
+    setMobileFlagsBusy(false);
+
+    if (error) {
+      setMobileFlagsFeedback({ tone: "error", text: error.message || "Lettura feature flags fallita." });
+      return;
+    }
+
+    const next = (data ?? []).map((row) => ({
+      key: String(row.key ?? ""),
+      enabled: Boolean(row.enabled),
+      label: String(row.label ?? row.key ?? ""),
+      description: String(row.description ?? ""),
+      category: String(row.category ?? ""),
+      updatedAt: typeof row.updated_at === "string" ? row.updated_at : undefined,
+      updatedBy: typeof row.updated_by === "string" ? row.updated_by : null,
+    }));
+
+    setMobileFlags(next);
+    setMobileFlagsFeedback({
+      tone: "ok",
+      text: next.length
+        ? `${next.length} feature flags mobile caricate.`
+        : "Nessuna feature flag trovata: usa il reset per inizializzare.",
+    });
+  }, [authState]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
@@ -351,9 +414,11 @@ function App() {
     setValidation(null);
     setSnapshot(null);
     setCatalog([]);
+    setMobileFlags([]);
     setAuthState("anonymous");
     setPassword("");
     setCommandFeedback({ tone: "info", text: "Sessione chiusa." });
+    setMobileFlagsFeedback({ tone: "info", text: "Sessione chiusa." });
   }, []);
 
   const handleRefresh = useCallback(async () => {
@@ -375,12 +440,105 @@ function App() {
     }
 
     await Promise.all([loadSnapshot(session, validationResult), loadCatalog(session)]);
-  }, [loadCatalog, loadSnapshot, session]);
+    if (activeView === "mobile-flags") {
+      await loadMobileFlags();
+    }
+  }, [activeView, loadCatalog, loadMobileFlags, loadSnapshot, session]);
+
+  const handleToggleMobileFlag = useCallback(
+    async (flag: MobileFeatureFlagEntry, enabled: boolean) => {
+      if (!supabase || authState !== "authenticated") {
+        setMobileFlagsFeedback({ tone: "error", text: "Sessione non valida per modificare le feature flags." });
+        return;
+      }
+      setMobileFlagsBusy(true);
+      const { error } = await supabase
+        .from("mobile_feature_flags")
+        .update({ enabled })
+        .eq("key", flag.key);
+      setMobileFlagsBusy(false);
+
+      if (error) {
+        setMobileFlagsFeedback({ tone: "error", text: error.message || "Aggiornamento flag fallito." });
+        return;
+      }
+
+      setMobileFlagsFeedback({ tone: "ok", text: `Flag aggiornata: ${flag.key} -> ${enabled ? "ON" : "OFF"}` });
+      await loadMobileFlags();
+    },
+    [authState, loadMobileFlags]
+  );
+
+  const handleBulkSetMobileFlags = useCallback(
+    async (enabled: boolean) => {
+      if (!supabase || authState !== "authenticated") {
+        setMobileFlagsFeedback({ tone: "error", text: "Sessione non valida per modificare le feature flags." });
+        return;
+      }
+      if (!mobileFlags.length) {
+        setMobileFlagsFeedback({ tone: "warn", text: "Nessuna flag disponibile per bulk update." });
+        return;
+      }
+
+      setMobileFlagsBusy(true);
+      const keys = mobileFlags.map((entry) => entry.key);
+      const { error } = await supabase
+        .from("mobile_feature_flags")
+        .update({ enabled })
+        .in("key", keys);
+      setMobileFlagsBusy(false);
+
+      if (error) {
+        setMobileFlagsFeedback({ tone: "error", text: error.message || "Bulk update feature flags fallito." });
+        return;
+      }
+
+      setMobileFlagsFeedback({ tone: "ok", text: `Aggiornamento bulk completato: ${enabled ? "tutte ON" : "tutte OFF"}.` });
+      await loadMobileFlags();
+    },
+    [authState, loadMobileFlags, mobileFlags]
+  );
+
+  const handleResetMobileFlags = useCallback(async () => {
+    if (!supabase || authState !== "authenticated") {
+      setMobileFlagsFeedback({ tone: "error", text: "Sessione non valida per il reset feature flags." });
+      return;
+    }
+
+    setMobileFlagsBusy(true);
+    const { error } = await supabase
+      .from("mobile_feature_flags")
+      .upsert(
+        MOBILE_FLAG_DEFAULTS.map((entry) => ({
+          key: entry.key,
+          enabled: true,
+          label: entry.label,
+          description: entry.description,
+          category: entry.category,
+        })),
+        { onConflict: "key" }
+      );
+    setMobileFlagsBusy(false);
+
+    if (error) {
+      setMobileFlagsFeedback({ tone: "error", text: error.message || "Reset feature flags fallito." });
+      return;
+    }
+
+    setMobileFlagsFeedback({ tone: "ok", text: "Reset feature flags completato (seed ON)." });
+    await loadMobileFlags();
+  }, [authState, loadMobileFlags]);
 
   useEffect(() => {
     setPreparedCommand(null);
     setConfirmText("");
   }, [commandValue, dryRunValue, payloadValue, reasonValue, targetValue]);
+
+  useEffect(() => {
+    if (activeView !== "mobile-flags") return;
+    if (authState !== "authenticated") return;
+    void loadMobileFlags();
+  }, [activeView, authState, loadMobileFlags]);
 
   const buildDraft = useCallback((): { draft?: CommandDraft; error?: string } => {
     if (reasonValue.trim().length < 8) {
@@ -813,6 +971,75 @@ function App() {
                 </div>
               ) : (
                 <p className="feedback feedback-info">Nessuna operazione DB disponibile.</p>
+              )}
+            </section>
+          ) : null}
+
+          {activeView === "mobile-flags" ? (
+            <section className="devplus-panel">
+              <h3>Mobile Feature Flags</h3>
+              <p className="devplus-muted">
+                Toggle runtime per funzionalita mobile. Le modifiche vengono applicate in realtime lato app.
+              </p>
+
+              <div className="devplus-inline-actions">
+                <button type="button" onClick={() => void loadMobileFlags()} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+                  {mobileFlagsBusy ? "Sync..." : "Ricarica flags"}
+                </button>
+                <button type="button" onClick={() => void handleBulkSetMobileFlags(true)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+                  Attiva tutte
+                </button>
+                <button type="button" className="ghost" onClick={() => void handleBulkSetMobileFlags(false)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+                  Disattiva tutte
+                </button>
+                <button type="button" className="ghost" onClick={() => void handleResetMobileFlags()} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+                  Reset default (ON)
+                </button>
+              </div>
+
+              <p className={toFeedbackClass(mobileFlagsFeedback.tone)}>{mobileFlagsFeedback.text}</p>
+
+              {mobileFlags.length ? (
+                <div className="devplus-table-wrap">
+                  <table className="devplus-table">
+                    <thead>
+                      <tr>
+                        <th>Categoria</th>
+                        <th>Chiave</th>
+                        <th>Label</th>
+                        <th>Stato</th>
+                        <th>Aggiornata</th>
+                        <th>By</th>
+                        <th>Azioni</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mobileFlags.map((flag) => (
+                        <tr key={flag.key}>
+                          <td>{flag.category}</td>
+                          <td><code>{flag.key}</code></td>
+                          <td title={flag.description}>{flag.label}</td>
+                          <td>{flag.enabled ? "ON" : "OFF"}</td>
+                          <td>{formatDateTime(flag.updatedAt)}</td>
+                          <td>{flag.updatedBy || "-"}</td>
+                          <td>
+                            <div className="devplus-inline-actions">
+                              <button
+                                type="button"
+                                onClick={() => void handleToggleMobileFlag(flag, !flag.enabled)}
+                                disabled={mobileFlagsBusy || authState !== "authenticated"}
+                              >
+                                {flag.enabled ? "Disattiva" : "Attiva"}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="feedback feedback-info">Nessuna mobile feature flag disponibile.</p>
               )}
             </section>
           ) : null}
