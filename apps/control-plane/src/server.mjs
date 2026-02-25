@@ -168,6 +168,8 @@ app.use(cleanupPendingMiddleware);
 
 const router = express.Router();
 
+router.get("/", controlPlaneRootHandler);
+router.get("/control-plane", controlPlaneRootHandler);
 router.get("/health", healthHandler);
 for (const path of ["/api/badges/mobile-version", "/badges/mobile-version"]) {
   router.get(path, asyncRoute(mobileVersionBadgeHandler));
@@ -415,6 +417,16 @@ function createHttpError(statusCode, message) {
   const error = new Error(message);
   error.statusCode = statusCode;
   return error;
+}
+
+function controlPlaneRootHandler(_req, res) {
+  return sendJson(res, 200, {
+    ok: true,
+    service: "turni-di-palco-control-plane",
+    version: CONTROL_PLANE_VERSION,
+    endpoints: ["/health", "/api/auth/session/validate", "/api/commands/catalog"],
+    requestId: res.locals.requestId || null,
+  });
 }
 
 function parseRenderServiceRegistry(raw) {
