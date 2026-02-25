@@ -10,6 +10,16 @@ import {
 import { resolveDisplayName } from '../lib/profile-utils';
 import { formatErrorDetails, reportCriticalError } from '../services/error-handler';
 import { withMobileWatchdog } from '../services/mobile-watchdog';
+import {
+  MOBILE_FEATURE_FLAGS_ALL_ON,
+  MOBILE_FEATURE_FLAGS_FAIL_CLOSED,
+  type MobileFeatureFlagKey,
+  type MobileFeatureFlagsSource,
+  type MobileFeatureFlagsState,
+  normalizeMobileFeatureFlags,
+  readMobileFeatureFlagsCache,
+  writeMobileFeatureFlagsCache,
+} from '../services/feature-flags';
 
 export type RoleId = 'attore' | 'luci' | 'fonico' | 'attrezzista' | 'palco';
 export type Rewards = { xp: number; reputation: number; cachet: number };
@@ -357,6 +367,7 @@ const MOBILE_WATCHDOG_TIMEOUTS = {
   followEvent: 10000,
   unfollowEvent: 10000,
   loadCatalog: 18000,
+  loadFeatureFlags: 10000,
   loadRemoteState: 20000,
   persistProfile: 12000,
   registerTurnInsert: 12000,
@@ -1414,6 +1425,10 @@ type GameContextValue = {
   refreshLeaderboard: () => Promise<void>;
   badges: Badge[];
   badgesLoading: boolean;
+  featureFlags: MobileFeatureFlagsState;
+  featureFlagsReady: boolean;
+  featureFlagsSource: MobileFeatureFlagsSource;
+  isFeatureEnabled: (key: MobileFeatureFlagKey) => boolean;
   followedEvents: GameEvent[];
   followedEventsLoading: boolean;
   shopCatalog: ShopCatalogItem[];
@@ -1464,6 +1479,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [remoteBadges, setRemoteBadges] = useState<Badge[]>([]);
   const [badgesLoading, setBadgesLoading] = useState(false);
+  const [featureFlags, setFeatureFlags] = useState<MobileFeatureFlagsState>(() => (
+    isSupabaseConfigured ? { ...MOBILE_FEATURE_FLAGS_FAIL_CLOSED } : { ...MOBILE_FEATURE_FLAGS_ALL_ON }
+  ));
+  const [featureFlagsReady, setFeatureFlagsReady] = useState(!isSupabaseConfigured);
+  const [featureFlagsSource, setFeatureFlagsSource] = useState<MobileFeatureFlagsSource>('default');
   const [followedEvents, setFollowedEvents] = useState<GameEvent[]>([]);
   const [followedEventsLoading, setFollowedEventsLoading] = useState(false);
   const [shopCatalog, setShopCatalog] = useState<ShopCatalogItem[]>(DEFAULT_SHOP_CATALOG);
@@ -2407,6 +2427,93 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     );
   }, [authUserId, state.profile.extraActivitySlots]);
 
+  const applyFeatureFlagsSnapshot = useCallback(
+    (
+      nextFlags: MobileFeatureFlagsState,
+      source: MobileFeatureFlagsSource,
+      persistCache = false
+    ) => {
+      setFeatureFlags({ ...nextFlags });
+      setFeatureFlagsSource(source);
+      setFeatureFlagsReady(true);
+      if (persistCache) {
+        writeMobileFeatureFlagsCache(nextFlags);
+      }
+    },
+    []
+  );
+
+  const refreshFeatureFlags = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      applyFeatureFlagsSnapshot(MOBILE_FEATURE_FLAGS_ALL_ON, 'default');
+      return;
+    }
+
+    const cachedFlags = readMobileFeatureFlagsCache();
+    if (!authUserId) {
+      if (cachedFlags) {
+        applyFeatureFlagsSnapshot(cachedFlags, 'cache');
+        return;
+      }
+      applyFeatureFlagsSnapshot(MOBILE_FEATURE_FLAGS_FAIL_CLOSED, 'default');
+      return;
+    }
+
+    if (cachedFlags) {
+      setFeatureFlags({ ...cachedFlags });
+      setFeatureFlagsSource('cache');
+    } else {
+      setFeatureFlags({ ...MOBILE_FEATURE_FLAGS_FAIL_CLOSED });
+      setFeatureFlagsSource('default');
+    }
+    setFeatureFlagsReady(false);
+
+    await withMobileWatchdog(
+      async () => {
+        const { data, error } = await supabase
+          .from('mobile_feature_flags')
+          .select('key,enabled');
+        if (error) {
+          console.warn('Supabase feature flags fetch failed', error);
+          if (cachedFlags) {
+            applyFeatureFlagsSnapshot(cachedFlags, 'cache');
+            return;
+          }
+          applyFeatureFlagsSnapshot(MOBILE_FEATURE_FLAGS_FAIL_CLOSED, 'default');
+          return;
+        }
+
+        const parsed = normalizeMobileFeatureFlags(data);
+        if (!parsed) {
+          if (cachedFlags) {
+            applyFeatureFlagsSnapshot(cachedFlags, 'cache');
+            return;
+          }
+          applyFeatureFlagsSnapshot(MOBILE_FEATURE_FLAGS_FAIL_CLOSED, 'default');
+          return;
+        }
+
+        applyFeatureFlagsSnapshot(parsed, 'remote', true);
+      },
+      {
+        operation: 'loadFeatureFlags',
+        timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.loadFeatureFlags,
+        title: 'Feature flag lente',
+        message: 'Il caricamento delle feature flag mobile sta impiegando troppo tempo.',
+      }
+    ).catch(() => {
+      if (cachedFlags) {
+        applyFeatureFlagsSnapshot(cachedFlags, 'cache');
+        return;
+      }
+      applyFeatureFlagsSnapshot(MOBILE_FEATURE_FLAGS_FAIL_CLOSED, 'default');
+    });
+  }, [applyFeatureFlagsSnapshot, authUserId]);
+
+  useEffect(() => {
+    void refreshFeatureFlags();
+  }, [authUserId, refreshFeatureFlags]);
+
   const followEvent = useCallback(
     async (eventId: string) => {
       const event = catalog.events.find((item) => item.id === eventId);
@@ -2917,6 +3024,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           refreshShopCatalog();
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'mobile_feature_flags' },
+        () => {
+          void refreshFeatureFlags();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -2928,6 +3042,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     refreshBadges,
     refreshActivitySlotsStatus,
     refreshFollowedEvents,
+    refreshFeatureFlags,
     refreshShopCatalog,
     refreshTheatreReputation,
     refreshTurnStats,
@@ -3030,6 +3145,16 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       if (!event) {
         logOfflineSync('registerTurn aborted: event not found', { eventId, roleId }, 'warn');
         return { ok: false, error: 'Evento non trovato.' };
+      }
+
+      if (!featureFlags['mobile.action.turn_submit']) {
+        logOfflineSync('registerTurn aborted: feature disabled', { eventId, roleId, feature: 'mobile.action.turn_submit' }, 'warn');
+        return { ok: false, error: 'Registrazione turni temporaneamente disattivata.' };
+      }
+
+      if (boostRequested && !featureFlags['mobile.action.turn_boost']) {
+        logOfflineSync('registerTurn aborted: boost feature disabled', { eventId, roleId, feature: 'mobile.action.turn_boost' }, 'warn');
+        return { ok: false, error: 'Boost turno temporaneamente disattivato.' };
       }
 
       logOfflineSync('Action registerTurn', {
@@ -3258,12 +3383,20 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       authUserId,
       catalog.events,
       enqueueSupabaseMutation,
+      featureFlags,
       applyTurnRegistrationResult,
     ]
   );
 
   const purchaseShopItem = useCallback(
     async (itemCode: string, targetTheatre?: string | null): Promise<ShopPurchaseResult> => {
+      if (!featureFlags['mobile.action.shop_purchase']) {
+        return {
+          ok: false,
+          status: 'error',
+          error: 'Acquisti shop temporaneamente disattivati.',
+        };
+      }
       if (!isSupabaseConfigured || !supabase || !authUserId) {
         return {
           ok: false,
@@ -3347,11 +3480,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         };
       }
     },
-    [authUserId, refreshActivitySlotsStatus, refreshTheatreReputation]
+    [authUserId, featureFlags, refreshActivitySlotsStatus, refreshTheatreReputation]
   );
 
   const completeActivity = useCallback(
     async (activityId: string): Promise<CompleteActivityResult> => {
+      if (!featureFlags['mobile.action.activity_complete']) {
+        return { ok: false, error: 'Completamento attivita temporaneamente disattivato.' };
+      }
       const activity = catalog.activities.find((item) => item.id === activityId);
       if (!activity) {
         logOfflineSync('completeActivity aborted: activity not found', { activityId }, 'warn');
@@ -3447,7 +3583,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         };
       }
     },
-    [authUserId, catalog.activities]
+    [authUserId, catalog.activities, featureFlags]
   );
 
   const resetProgress = useCallback(async () => {
@@ -3608,11 +3744,21 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     setTurnSyncFeedback(null);
   }, []);
 
+  const isFeatureEnabled = useCallback(
+    (key: MobileFeatureFlagKey) => Boolean(featureFlags[key]),
+    [featureFlags]
+  );
+
   const resetState = useCallback(() => {
     const next = createDefaultState();
     setState(next);
     setPendingBoostRequests(0);
     setTurnSyncFeedback(null);
+    setFeatureFlags(
+      isSupabaseConfigured ? { ...MOBILE_FEATURE_FLAGS_FAIL_CLOSED } : { ...MOBILE_FEATURE_FLAGS_ALL_ON }
+    );
+    setFeatureFlagsSource('default');
+    setFeatureFlagsReady(!isSupabaseConfigured);
     const totalSlots = 3 + next.profile.extraActivitySlots;
     setActivitySlotsStatus({
       usedToday: 0,
@@ -3640,6 +3786,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       refreshLeaderboard,
       badges,
       badgesLoading,
+      featureFlags,
+      featureFlagsReady,
+      featureFlagsSource,
+      isFeatureEnabled,
       followedEvents,
       followedEventsLoading,
       shopCatalog,
@@ -3679,6 +3829,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       refreshLeaderboard,
       badges,
       badgesLoading,
+      featureFlags,
+      featureFlagsReady,
+      featureFlagsSource,
+      isFeatureEnabled,
       followedEvents,
       followedEventsLoading,
       shopCatalog,
