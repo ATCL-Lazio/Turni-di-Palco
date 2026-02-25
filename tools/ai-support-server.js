@@ -1190,9 +1190,19 @@ function resolveHttpsOptions() {
 function resolveHost() {
   const configuredHost = process.env.AI_SUPPORT_HOST;
   const runningOnRender = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID);
-  const allowLocalhostOnRender =
+  const runningOnRailway = Boolean(
+    process.env.RAILWAY_PROJECT_ID ||
+      process.env.RAILWAY_SERVICE_ID ||
+      process.env.RAILWAY_ENVIRONMENT_ID ||
+      process.env.RAILWAY_ENVIRONMENT_NAME ||
+      process.env.RAILWAY_STATIC_URL
+  );
+  const runningOnManagedPlatform = runningOnRender || runningOnRailway;
+  const allowLocalhostOnManagedPlatform =
     process.env.AI_SUPPORT_ALLOW_LOCALHOST_ON_RENDER === '1' ||
-    process.env.AI_SUPPORT_ALLOW_LOCALHOST_ON_RENDER === 'true';
+    process.env.AI_SUPPORT_ALLOW_LOCALHOST_ON_RENDER === 'true' ||
+    process.env.AI_SUPPORT_ALLOW_LOCALHOST_ON_PLATFORM === '1' ||
+    process.env.AI_SUPPORT_ALLOW_LOCALHOST_ON_PLATFORM === 'true';
 
   if (configuredHost) {
     const normalizedHost = configuredHost.trim().toLowerCase();
@@ -1201,9 +1211,13 @@ function resolveHost() {
       normalizedHost === 'localhost' ||
       normalizedHost === '::1';
 
-    if (runningOnRender && isLoopbackHost && !allowLocalhostOnRender) {
+    if (
+      runningOnManagedPlatform &&
+      isLoopbackHost &&
+      !allowLocalhostOnManagedPlatform
+    ) {
       logLine(
-        `AI_SUPPORT_HOST=${configuredHost} ignored on Render; forcing 0.0.0.0 for port binding`
+        `AI_SUPPORT_HOST=${configuredHost} ignored on cloud deploy; forcing 0.0.0.0 for port binding`
       );
       return '0.0.0.0';
     }
@@ -1211,7 +1225,7 @@ function resolveHost() {
     return configuredHost;
   }
 
-  if (runningOnRender) {
+  if (runningOnManagedPlatform || process.env.PORT) {
     return '0.0.0.0';
   }
   return '127.0.0.1';
