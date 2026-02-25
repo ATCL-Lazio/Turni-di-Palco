@@ -16,6 +16,7 @@ interface ShopProps {
   items: ShopCatalogItem[];
   theatreOptions: TheatreOption[];
   loading?: boolean;
+  canPurchase?: boolean;
   onPurchase: (itemCode: string, targetTheatre?: string | null) => Promise<ShopPurchaseResult>;
 }
 
@@ -31,6 +32,7 @@ export function Shop({
   items,
   theatreOptions,
   loading = false,
+  canPurchase = true,
   onPurchase,
 }: ShopProps) {
   const [selectedTheatre, setSelectedTheatre] = React.useState<string>(theatreOptions[0]?.theatre ?? '');
@@ -135,7 +137,7 @@ export function Shop({
           const theatreRequiredMissing =
             item.category === 'rep_theatre' && (!theatreOptions.length || !selectedTheatre);
           const disabled =
-            busyItemCode != null || maxReached || insufficientCachet || theatreRequiredMissing;
+            !canPurchase || busyItemCode != null || maxReached || insufficientCachet || theatreRequiredMissing;
 
           return (
             <Card
@@ -198,6 +200,8 @@ export function Shop({
                   <div className="text-xs text-[#7a7577]">
                     {maxReached
                       ? 'Limite acquisti raggiunto'
+                      : !canPurchase
+                        ? 'Acquisti temporaneamente disattivati'
                       : insufficientCachet
                         ? 'Saldo insufficiente'
                         : theatreRequiredMissing
