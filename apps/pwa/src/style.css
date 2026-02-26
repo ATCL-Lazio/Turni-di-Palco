@@ -931,6 +931,22 @@ code {
     inset 0 1px 0 var(--surface-veil-bright);
 }
 
+.ops-embed-wrap {
+  margin-top: 0.85rem;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border-regular);
+  background: rgba(11, 17, 27, 0.85);
+  min-height: 68vh;
+}
+
+.ops-embed-frame {
+  display: block;
+  width: 100%;
+  height: 68vh;
+  border: 0;
+}
+
 .card h2 {
   font-size: 1.25rem;
 }
