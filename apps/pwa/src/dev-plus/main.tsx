@@ -49,8 +49,8 @@ type FeedbackMessage = {
 const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   {
     id: "render.services.health",
-    label: "Render services health",
-    description: "Read health and deploy state for allowlisted Render services.",
+    label: "Stato servizi Render",
+    description: "Legge salute servizi e stato rilascio.",
     requiredRole: "dev_viewer",
     riskLevel: "low",
     requiresConfirmation: false,
@@ -59,8 +59,8 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   },
   {
     id: "render.deployments.list",
-    label: "Render deployments list",
-    description: "List Render deployments for allowlisted services.",
+    label: "Elenco rilasci Render",
+    description: "Mostra i rilasci recenti dei servizi.",
     requiredRole: "dev_viewer",
     riskLevel: "low",
     requiresConfirmation: false,
@@ -69,8 +69,8 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   },
   {
     id: "render.deployments.trigger",
-    label: "Render trigger deployment",
-    description: "Trigger deployment with two-step confirmation.",
+    label: "Avvia nuovo rilascio",
+    description: "Avvia rilascio con conferma in due passaggi.",
     requiredRole: "dev_operator",
     riskLevel: "high",
     requiresConfirmation: true,
@@ -79,8 +79,8 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   },
   {
     id: "supabase.db.read",
-    label: "Supabase readonly query",
-    description: "Read rows from Supabase with safe filters.",
+    label: "Lettura dati Supabase",
+    description: "Legge dati con filtri sicuri.",
     requiredRole: "dev_viewer",
     riskLevel: "low",
     requiresConfirmation: false,
@@ -89,8 +89,8 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   },
   {
     id: "supabase.events.cleanup",
-    label: "Supabase cleanup old events",
-    description: "Delete stale events older than threshold days.",
+    label: "Pulizia eventi vecchi",
+    description: "Elimina eventi più vecchi della soglia giorni.",
     requiredRole: "dev_operator",
     riskLevel: "medium",
     requiresConfirmation: true,
@@ -99,8 +99,8 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   },
   {
     id: "supabase.db.mutate",
-    label: "Supabase mutate",
-    description: "Insert/update/upsert/delete data with strict guardrails.",
+    label: "Modifica dati Supabase",
+    description: "Inserisce o aggiorna dati con regole di sicurezza.",
     requiredRole: "dev_admin",
     riskLevel: "high",
     requiresConfirmation: true,
@@ -110,11 +110,11 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
 ];
 
 const VIEW_OPTIONS: { id: ViewId; label: string; note: string }[] = [
-  { id: "commands", label: "Comandi", note: "reason, dry-run, conferma 2-step" },
-  { id: "audit", label: "Audit", note: "eventi recenti e motivazioni" },
-  { id: "render", label: "Deploy", note: "stato servizi e deploy" },
-  { id: "db", label: "Database", note: "operazioni database recenti" },
-  { id: "mobile-flags", label: "Flags mobile", note: "toggle runtime feature flag mobile" },
+  { id: "commands", label: "Comandi", note: "motivo, simulazione e conferma" },
+  { id: "audit", label: "Registro", note: "eventi recenti e motivazioni" },
+  { id: "render", label: "Rilasci", note: "stato servizi e versione online" },
+  { id: "db", label: "Database", note: "operazioni dati recenti" },
+  { id: "mobile-flags", label: "Interruttori mobile", note: "accendi/spegni funzioni mobile" },
 ];
 
 const DEFAULT_CONFIRM_TEXT = "CONFIRM";
@@ -152,11 +152,11 @@ function parsePayloadInput(payloadText: string) {
   try {
     const parsed = JSON.parse(trimmed) as unknown;
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return { error: "Il payload JSON deve essere un oggetto." };
+      return { error: "I dati aggiuntivi devono essere un oggetto JSON." };
     }
     return { payload: parsed as Record<string, unknown> };
   } catch {
-    return { error: "Payload JSON non valido." };
+    return { error: "Formato JSON non valido nei dati aggiuntivi." };
   }
 }
 
@@ -229,13 +229,13 @@ function App() {
   const [commandBusy, setCommandBusy] = useState(false);
   const [commandFeedback, setCommandFeedback] = useState<FeedbackMessage>({
     tone: "info",
-    text: "Pronto. Prepara un comando e conferma in due step.",
+    text: "Pronto. Seleziona un'azione, controlla e poi conferma.",
   });
   const [mobileFlags, setMobileFlags] = useState<MobileFeatureFlagEntry[]>([]);
   const [mobileFlagsBusy, setMobileFlagsBusy] = useState(false);
   const [mobileFlagsFeedback, setMobileFlagsFeedback] = useState<FeedbackMessage>({
     tone: "info",
-    text: "Apri la vista Mobile Flags per leggere e modificare le feature runtime.",
+    text: "Apri la sezione interruttori mobile per modificare le funzioni.",
   });
 
   const controlPlaneEndpoint = getControlPlaneEndpoint();
@@ -693,9 +693,9 @@ function App() {
       <header className="devplus-header">
         <div className="devplus-brand-wrap">
           <p className="devplus-kicker">Turni di Palco</p>
-          <h1>Control Plane</h1>
+          <h1>Pannello di controllo</h1>
           <p className="devplus-subtitle">
-            Console operativa unica: comandi, deploy, DB, audit e feature flags con flusso a due step.
+            Qui fai tutto da un solo posto: comandi, rilasci, database e registro attività.
           </p>
         </div>
         <div className="devplus-header-actions">
@@ -705,7 +705,7 @@ function App() {
             <a href={buildControlPlaneUrl({ view: "commands", source: "header" })}>Comandi</a>
           </div>
           <div className="devplus-endpoint">
-            <span>Control-plane</span>
+            <span>Server controllo</span>
             <code>{controlPlaneEndpoint}</code>
           </div>
         </div>
@@ -713,9 +713,9 @@ function App() {
 
       <section className="devplus-auth-card">
         <div>
-          <h2>Accesso e session validation</h2>
+          <h2>Accesso</h2>
           <p className="devplus-muted">
-            Login via Supabase e verifica server-side su endpoint <code>/api/auth/session/validate</code>.
+            Accedi con Supabase. Il sistema verifica in automatico se hai i permessi.
           </p>
         </div>
 
@@ -725,7 +725,7 @@ function App() {
           </p>
         ) : null}
 
-        {authState === "checking" ? <p className="feedback feedback-info">Verifica sessione esistente...</p> : null}
+        {authState === "checking" ? <p className="feedback feedback-info">Controllo sessione in corso...</p> : null}
 
         {authState !== "authenticated" && isSupabaseConfigured ? (
           <form className="devplus-login-form" onSubmit={handleSignIn}>
@@ -744,7 +744,7 @@ function App() {
               />
             </label>
             <button type="submit" disabled={authBusy}>
-              {authBusy ? "Accesso in corso..." : "Accedi e valida sessione"}
+              {authBusy ? "Accesso in corso..." : "Accedi"}
             </button>
           </form>
         ) : null}
@@ -754,7 +754,7 @@ function App() {
             <div>
               <p className="devplus-session-user">Sessione attiva: {currentUser}</p>
               <p className="devplus-muted">
-                Validata: {formatDateTime(validation?.validatedAt)}
+                Verificata: {formatDateTime(validation?.validatedAt)}
                 {validation?.expiresAt ? ` | Scadenza: ${formatDateTime(validation.expiresAt)}` : ""}
               </p>
             </div>
@@ -769,7 +769,7 @@ function App() {
           </div>
         ) : null}
 
-        {validation?.roles?.length ? <p className="devplus-muted">Ruoli validati: {validation.roles.join(", ")}</p> : null}
+        {validation?.roles?.length ? <p className="devplus-muted">Ruoli disponibili: {validation.roles.join(", ")}</p> : null}
         {authError ? <p className="feedback feedback-error">{authError}</p> : null}
       </section>
 
@@ -790,9 +790,9 @@ function App() {
 
       <section className="devplus-quick-actions-card">
         <div>
-          <h2>Preset rapidi per ruolo</h2>
+          <h2>Azioni rapide</h2>
           <p className="devplus-muted">
-            Seleziona un preset per compilare il form comandi o aprire direttamente la vista corretta.
+            Premi un pulsante e il form si compila da solo.
           </p>
         </div>
         <div className="devplus-quick-actions-grid">
@@ -803,6 +803,16 @@ function App() {
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="devplus-glossary-card">
+        <h2>Traduzione veloce</h2>
+        <ul className="devplus-glossary-list">
+          <li><strong>Simulazione</strong>: prova senza modificare nulla.</li>
+          <li><strong>Motivo</strong>: spiegazione obbligatoria del perché fai l'azione.</li>
+          <li><strong>Dati aggiuntivi (JSON)</strong>: parametri extra dell'azione.</li>
+          <li><strong>Registro attività</strong>: cronologia completa delle azioni.</li>
+        </ul>
       </section>
 
       <section className="devplus-views-card">
@@ -825,15 +835,14 @@ function App() {
         <div className="devplus-view-content">
           {activeView === "commands" ? (
             <section className="devplus-panel">
-              <h3>Command Console</h3>
+              <h3>Pannello comandi</h3>
               <p className="devplus-muted">
-                Ogni comando richiede <code>reason</code>, supporta <code>dry-run</code> e usa token server-side per lo
-                step 2.
+                Ogni azione richiede un motivo. Puoi prima fare una simulazione senza modifiche.
               </p>
 
               <div className="devplus-command-grid">
                 <label>
-                  <span>Command</span>
+                  <span>Azione</span>
                   <select value={commandValue} onChange={(event) => setCommandValue(event.target.value)}>
                     {commandOptions.map((option) => (
                       <option key={option.id} value={option.id}>
@@ -844,27 +853,27 @@ function App() {
                 </label>
 
                 <label>
-                  <span>Target (opzionale)</span>
+                  <span>Elemento da colpire (opzionale)</span>
                   <input
                     type="text"
                     value={targetValue}
                     onChange={(event) => setTargetValue(event.target.value)}
-                    placeholder="service-id, table, resource..."
+                    placeholder="es. nome servizio o tabella"
                   />
                 </label>
 
                 <label className="full-row">
-                  <span>Reason</span>
+                  <span>Motivo</span>
                   <textarea
                     value={reasonValue}
                     onChange={(event) => setReasonValue(event.target.value)}
-                    placeholder="Perche questo comando e necessario"
+                    placeholder="Scrivi perche questa azione e necessaria"
                     rows={3}
                   />
                 </label>
 
                 <label className="full-row">
-                  <span>Payload JSON</span>
+                  <span>Dati aggiuntivi (JSON)</span>
                   <textarea
                     value={payloadValue}
                     onChange={(event) => setPayloadValue(event.target.value)}
@@ -879,27 +888,27 @@ function App() {
                     checked={dryRunValue}
                     onChange={(event) => setDryRunValue(event.target.checked)}
                   />
-                  <span>Dry-run attivo (nessuna mutazione definitiva)</span>
+                  <span>Simulazione attiva (nessuna modifica reale)</span>
                 </label>
               </div>
 
               <div className="devplus-inline-actions">
                 <button type="button" onClick={handlePrepareCommand} disabled={commandBusy || authState !== "authenticated"}>
-                  Step 1/2: Prepara comando
+                  1) Controlla azione
                 </button>
               </div>
 
               {preparedCommand ? (
                 <article className="devplus-review-card">
                   <div className="devplus-review-head">
-                    <h4>Review pre-esecuzione</h4>
+                    <h4>Controllo prima di eseguire</h4>
                     <span className={normalizeRiskLabel(preparedCommand.riskLevel)}>
-                      risk: {preparedCommand.riskLevel || "medium"}
+                      rischio: {preparedCommand.riskLevel || "medio"}
                     </span>
                   </div>
                   <p className="devplus-muted">{preparedCommand.summary}</p>
                   <p className="devplus-muted">
-                    Command ID: <code>{preparedCommand.commandId}</code>
+                    Codice azione: <code>{preparedCommand.commandId}</code>
                   </p>
                   {preparedCommand.confirmationTokenExpiresAt ? (
                     <p className="devplus-muted">
@@ -917,13 +926,13 @@ function App() {
 
                   <label>
                     <span>
-                      Step 2/2 conferma: digita <code>{preparedCommand.requiresConfirmText || DEFAULT_CONFIRM_TEXT}</code>
+                      2) Per confermare digita <code>{preparedCommand.requiresConfirmText || DEFAULT_CONFIRM_TEXT}</code>
                     </span>
                     <input type="text" value={confirmText} onChange={(event) => setConfirmText(event.target.value)} />
                   </label>
 
                   <button type="button" onClick={handleExecuteCommand} disabled={commandBusy || authState !== "authenticated"}>
-                    Step 2/2: Conferma ed esegui
+                    2) Conferma ed esegui
                   </button>
                 </article>
               ) : null}
@@ -934,8 +943,8 @@ function App() {
 
           {activeView === "audit" ? (
             <section className="devplus-panel">
-              <h3>Audit View</h3>
-              <p className="devplus-muted">Eventi operativi recenti registrati dal control-plane.</p>
+              <h3>Registro attività</h3>
+              <p className="devplus-muted">Cronologia delle azioni recenti.</p>
 
               {auditRows.length ? (
                 <div className="devplus-table-wrap">
@@ -974,8 +983,8 @@ function App() {
 
           {activeView === "render" ? (
             <section className="devplus-panel">
-              <h3>Render Services</h3>
-              <p className="devplus-muted">Stato servizi Render e ultimo deploy disponibile.</p>
+              <h3>Rilasci e servizi</h3>
+              <p className="devplus-muted">Stato servizi e ultima versione pubblicata.</p>
 
               {renderRows.length ? (
                 <div className="devplus-render-grid">
@@ -1001,8 +1010,8 @@ function App() {
 
           {activeView === "db" ? (
             <section className="devplus-panel">
-              <h3>DB Ops</h3>
-              <p className="devplus-muted">Storico recente delle operazioni database tracciate.</p>
+              <h3>Operazioni database</h3>
+              <p className="devplus-muted">Storico recente delle operazioni sui dati.</p>
 
               {dbRows.length ? (
                 <div className="devplus-table-wrap">
@@ -1041,9 +1050,9 @@ function App() {
 
           {activeView === "mobile-flags" ? (
             <section className="devplus-panel">
-              <h3>Mobile Feature Flags</h3>
+              <h3>Interruttori funzioni mobile</h3>
               <p className="devplus-muted">
-                Toggle runtime per funzionalita mobile. Le modifiche vengono applicate in realtime lato app.
+                Accendi o spegni funzioni mobile in tempo reale.
               </p>
 
               <div className="devplus-inline-actions">
