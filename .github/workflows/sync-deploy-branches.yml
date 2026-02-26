@@ -58,6 +58,94 @@ jobs:
           echo "deploy_sha=$(git rev-parse origin/main)" >> "$GITHUB_OUTPUT"
           echo "sync_epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
 
+  deploy-railway:
+    runs-on: ubuntu-latest
+    needs: sync-deploy-preview-branches
+    permissions:
+      contents: read
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: 1517725a-20c2-49d2-baea-3be40ad0d8d2
+      RAILWAY_ENVIRONMENT: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Railway token
+        run: |
+          set -euo pipefail
+          if [ -z "${RAILWAY_TOKEN:-}" ]; then
+            echo "::error::Missing secret RAILWAY_TOKEN. Configure it in repository secrets to enable deterministic Railway deploys."
+            exit 1
+          fi
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Verify Railway authentication
+        run: railway whoami
+
+      - name: Force deploy Turni-di-Palco on Railway
+        run: |
+          railway up \
+            --ci \
+            --project "$RAILWAY_PROJECT_ID" \
+            --environment "$RAILWAY_ENVIRONMENT" \
+            --service "Turni-di-Palco" \
+            --message "sync-deploy-branches:${{ needs.sync-deploy-preview-branches.outputs.deploy_sha }}"
+
+      - name: Force deploy Maxwell-AI-Support on Railway
+        run: |
+          railway up \
+            --ci \
+            --project "$RAILWAY_PROJECT_ID" \
+            --environment "$RAILWAY_ENVIRONMENT" \
+            --service "Maxwell-AI-Support" \
+            --message "sync-deploy-branches:${{ needs.sync-deploy-preview-branches.outputs.deploy_sha }}"
+
+      - name: Force deploy Turni-di-Palco-Control-Plane on Railway
+        run: |
+          railway up \
+            --ci \
+            --project "$RAILWAY_PROJECT_ID" \
+            --environment "$RAILWAY_ENVIRONMENT" \
+            --service "Turni-di-Palco-Control-Plane" \
+            --message "sync-deploy-branches:${{ needs.sync-deploy-preview-branches.outputs.deploy_sha }}"
+
+      - name: Force deploy Turni-di-Palco-Badges on Railway
+        run: |
+          railway up \
+            --ci \
+            --project "$RAILWAY_PROJECT_ID" \
+            --environment "$RAILWAY_ENVIRONMENT" \
+            --service "Turni-di-Palco-Badges" \
+            --message "sync-deploy-branches:${{ needs.sync-deploy-preview-branches.outputs.deploy_sha }}"
+
+      - name: Link Railway project for status checks
+        run: |
+          railway link \
+            --project "$RAILWAY_PROJECT_ID" \
+            --environment "$RAILWAY_ENVIRONMENT" \
+            --service "Turni-di-Palco" \
+            --json
+
+      - name: Verify active Railway service statuses
+        run: |
+          set -euo pipefail
+          for service in \
+            "Turni-di-Palco" \
+            "Maxwell-AI-Support" \
+            "Turni-di-Palco-Control-Plane" \
+            "Turni-di-Palco-Badges"; do
+            status_json="$(railway service status --service "$service" --environment "$RAILWAY_ENVIRONMENT" --json)"
+            echo "$status_json"
+            status="$(echo "$status_json" | jq -r '.status')"
+            if [ "$status" != "SUCCESS" ]; then
+              echo "::error::Railway service $service is not SUCCESS after forced deploy."
+              exit 1
+            fi
+          done
+
   deploy-turni:
     runs-on: ubuntu-latest
     needs: sync-deploy-preview-branches
