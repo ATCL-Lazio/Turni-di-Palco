@@ -8,31 +8,92 @@ import { appConfig, getConfigWarnings } from "./services/app-config";
 import { buildControlPlaneUrl } from "./services/ops-sdk";
 import { enforceDesktopOnly } from "./utils/desktop-only";
 
-type CockpitCard = {
-  id: string;
-  title: string;
-  summary: string;
-  bullets: string[];
-  links: Array<{ label: string; href: string }>;
+type DashboardPanel = "overview" | "commands" | "deploy" | "db" | "audit" | "flags" | "mobile";
+
+type PanelDefinition = {
+  id: DashboardPanel;
+  label: string;
+  description: string;
+  controlPlaneView?: "commands" | "render" | "db" | "audit" | "mobile-flags";
+  externalUrl?: string;
 };
 
-function getPanelFromUrl() {
-  if (typeof window === "undefined") return "";
-  return new URLSearchParams(window.location.search).get("panel")?.trim() || "";
+const PANELS: PanelDefinition[] = [
+  {
+    id: "overview",
+    label: "Panoramica",
+    description: "Stato rapido del sistema e configurazione runtime.",
+  },
+  {
+    id: "commands",
+    label: "Comandi",
+    description: "Prepara/esegui operazioni con conferma a 2 step.",
+    controlPlaneView: "commands",
+  },
+  {
+    id: "deploy",
+    label: "Deploy",
+    description: "Stato servizi e deploy attivi.",
+    controlPlaneView: "render",
+  },
+  {
+    id: "db",
+    label: "Database",
+    description: "Operazioni DB e controlli safe.",
+    controlPlaneView: "db",
+  },
+  {
+    id: "audit",
+    label: "Audit",
+    description: "Tracciamento tecnico eventi e comandi.",
+    controlPlaneView: "audit",
+  },
+  {
+    id: "flags",
+    label: "Feature Flags",
+    description: "Gestione runtime flag mobile.",
+    controlPlaneView: "mobile-flags",
+  },
+  {
+    id: "mobile",
+    label: "Mobile Preview",
+    description: "Preview client mobile live.",
+    externalUrl: "/mobile/",
+  },
+];
+
+function isDashboardPanel(value: string | null | undefined): value is DashboardPanel {
+  return PANELS.some((panel) => panel.id === value);
 }
 
-function renderCockpitCard(card: CockpitCard, focusedPanel: string) {
-  const isFocused = focusedPanel === card.id;
-  return `
-    <article class="card${isFocused ? " card-focused" : ""}">
-      <h2>${card.title}</h2>
-      <p>${card.summary}</p>
-      <ul class="list">${card.bullets.map((item) => `<li>${item}</li>`).join("")}</ul>
-      <div class="cta-row">
-        ${card.links.map((link) => `<a class="button ghost" href="${link.href}">${link.label}</a>`).join("")}
-      </div>
-    </article>
-  `;
+function getPanelFromUrl(): DashboardPanel {
+  if (typeof window === "undefined") return "overview";
+  const panel = new URLSearchParams(window.location.search).get("panel")?.trim() || "";
+  return isDashboardPanel(panel) ? panel : "overview";
+}
+
+function getPanelHref(panel: DashboardPanel) {
+  if (panel === "overview") return "/";
+  return `/?panel=${panel}`;
+}
+
+function renderPanelSwitcher(activePanel: DashboardPanel) {
+  return PANELS.map((panel) => {
+    const variant = panel.id === activePanel ? "primary" : "ghost";
+    return `<a class="button ${variant} small" href="${getPanelHref(panel.id)}">${panel.label}</a>`;
+  }).join("");
+}
+
+function getPanelById(panel: DashboardPanel) {
+  return PANELS.find((item) => item.id === panel) ?? PANELS[0];
+}
+
+function resolveWorkspaceUrl(panel: PanelDefinition) {
+  if (panel.controlPlaneView) {
+    return buildControlPlaneUrl({ view: panel.controlPlaneView, source: "ops-dashboard" });
+  }
+  if (panel.externalUrl) return panel.externalUrl;
+  return null;
 }
 
 const start = async () => {
@@ -46,86 +107,46 @@ const start = async () => {
   }
 
   const description = isPublicMode
-    ? "Dashboard leggera per controllare salute mobile e deploy."
-    : "Dashboard operativa: stato, deploy, DB, audit e feature flags in un unico flusso.";
+    ? "Una pagina unica per monitoraggio tecnico essenziale."
+    : "Una pagina unica con sezioni dinamiche: comandi, deploy, database, audit, flags e mobile preview.";
 
-  const focusedPanel = getPanelFromUrl();
-  const controlPlaneCommandsUrl = buildControlPlaneUrl({ view: "commands", source: "home" });
-  const controlPlaneRenderUrl = buildControlPlaneUrl({ view: "render", source: "home" });
-  const controlPlaneDbUrl = buildControlPlaneUrl({ view: "db", source: "home" });
-  const controlPlaneAuditUrl = buildControlPlaneUrl({ view: "audit", source: "home" });
-  const controlPlaneFlagsUrl = buildControlPlaneUrl({ view: "mobile-flags", source: "home" });
+  const activePanelId = getPanelFromUrl();
+  const activePanel = getPanelById(activePanelId);
+  const workspaceUrl = resolveWorkspaceUrl(activePanel);
 
-  const quickActions = [
-    { id: "control-plane", label: "Comandi", href: controlPlaneCommandsUrl },
-    { id: "render", label: "Deploy", href: controlPlaneRenderUrl },
-    { id: "db", label: "Database", href: controlPlaneDbUrl },
-    { id: "audit", label: "Audit", href: controlPlaneAuditUrl },
-    { id: "mobile-flags", label: "Flags", href: controlPlaneFlagsUrl },
-    { id: "mobile-preview", label: "Mobile", href: "/mobile/" },
-  ];
-
-  if (!isPublicMode) {
-    quickActions.unshift({ id: "dev-plus", label: "Dev Plus", href: controlPlaneCommandsUrl });
-  }
+  const quickActions = PANELS.map((panel) => ({
+    id: panel.id,
+    label: panel.label,
+    href: getPanelHref(panel.id),
+  }));
 
   const ctaRow = [
-    { id: "open-commands", label: "Apri comandi", href: controlPlaneCommandsUrl, variant: "primary" },
-    { id: "open-deploy", label: "Apri deploy", href: controlPlaneRenderUrl, variant: "ghost" },
-    { id: "open-mobile-preview", label: "Apri mobile", href: "/mobile/", variant: "ghost" },
-    { id: "refresh", label: "Reload", kind: "button", dataAction: "refresh", variant: "ghost" },
-  ];
-
-  const cockpitCards: CockpitCard[] = [
     {
-      id: "operations",
-      title: "Comandi operativi",
-      summary: "Tutto passa dal Control Plane: step 1 prepara, step 2 conferma.",
-      bullets: [
-        "Preset comando con reason e dry-run",
-        "Conferma esplicita per azioni sensibili",
-        "Fallback leggibile in caso di errore remoto",
-      ],
-      links: [
-        { label: "Console comandi", href: controlPlaneCommandsUrl },
-        { label: "Feature flags", href: controlPlaneFlagsUrl },
-      ],
+      id: "open-active",
+      label: activePanel.label,
+      href: getPanelHref(activePanelId),
+      variant: "primary",
     },
     {
-      id: "deploy",
-      title: "Deploy e runtime",
-      summary: "Monitora servizi Railway/Render e verifica release prima di intervenire.",
-      bullets: [
-        "Stato servizi e latenza",
-        "Cronologia deploy e segnali runtime",
-        "Quick path per trigger deployment",
-      ],
-      links: [
-        { label: "Vista deploy", href: controlPlaneRenderUrl },
-        { label: "Audit tecnico", href: controlPlaneAuditUrl },
-      ],
+      id: "open-overview",
+      label: "Panoramica",
+      href: "/",
+      variant: "ghost",
     },
     {
-      id: "data",
-      title: "Database e audit",
-      summary: "Controllo dati e tracciamento in una pipeline unica.",
-      bullets: [
-        "Read path sicuro su Supabase",
-        "Mutazioni protette da ruoli",
-        "Audit stream per postmortem",
-      ],
-      links: [
-        { label: "Vista DB", href: controlPlaneDbUrl },
-        { label: "Vista audit", href: controlPlaneAuditUrl },
-      ],
+      id: "refresh",
+      label: "Reload",
+      kind: "button",
+      dataAction: "refresh",
+      variant: "ghost",
     },
   ];
 
   const hero = renderPageHero({
-    title: "Developer Ops Dashboard",
+    title: "Ops Dashboard",
     description,
     currentPage: "home",
-    breadcrumbs: [{ label: "Home" }],
+    breadcrumbs: [{ label: "Home" }, { label: activePanel.label }],
     quickActions,
     ctaRow,
   });
@@ -134,6 +155,10 @@ const start = async () => {
   const runtimeFlags = Object.entries(appConfig.featureFlags)
     .map(([flag, enabled]) => `${flag}:${enabled ? "on" : "off"}`)
     .join(" | ");
+
+  const showOverviewCards = activePanelId === "overview";
+  const showStatusCard = showOverviewCards && isFeatureEnabled("status-card");
+  const showPermissionsCard = showOverviewCards && isFeatureEnabled("permissions-card");
 
   root.innerHTML = `
     <main class="page">
@@ -147,7 +172,31 @@ const start = async () => {
       </section>
 
       <section class="grid layout-grid">
-        ${cockpitCards.map((card) => renderCockpitCard(card, focusedPanel)).join("")}
+        <article class="card layout-span-2">
+          <h2>Area di lavoro</h2>
+          <p>${activePanel.description}</p>
+          <div class="cta-row">${renderPanelSwitcher(activePanelId)}</div>
+          ${
+            workspaceUrl
+              ? `
+                <div class="cta-row">
+                  <a class="button ghost small" href="${workspaceUrl}" target="_blank" rel="noreferrer">Apri in nuova scheda</a>
+                </div>
+                <div class="ops-embed-wrap">
+                  <iframe class="ops-embed-frame" src="${workspaceUrl}" title="${activePanel.label}" loading="lazy"></iframe>
+                </div>
+              `
+              : `
+                <ul class="list">
+                  <li><strong>Comandi:</strong> esegui operazioni con reason obbligatoria e conferma 2-step.</li>
+                  <li><strong>Deploy:</strong> verifica il deployment attivo reale prima di qualsiasi azione.</li>
+                  <li><strong>Database:</strong> usa query safe e mutazioni controllate da ruolo.</li>
+                  <li><strong>Audit:</strong> traccia tutte le operazioni tecniche in un solo stream.</li>
+                  <li><strong>Flags:</strong> abilita/disabilita feature mobile in runtime.</li>
+                </ul>
+              `
+          }
+        </article>
 
         <article class="card">
           <h2>Configurazione runtime</h2>
@@ -161,17 +210,17 @@ const start = async () => {
           ${configWarnings.length ? `<p class="muted">${configWarnings.join(" | ")}</p>` : "<p class=\"muted\">Nessun warning critico.</p>"}
         </article>
 
-        ${isFeatureEnabled("status-card") ? renderStatusCard() : ""}
+        ${showStatusCard ? renderStatusCard() : ""}
 
-        ${isFeatureEnabled("permissions-card") ? renderPermissionsCard() : ""}
+        ${showPermissionsCard ? renderPermissionsCard() : ""}
       </section>
     </main>
   `;
 
-  if (isFeatureEnabled("status-card")) {
+  if (showStatusCard) {
     attachStatusListeners(root, '[data-action="refresh"]');
   }
-  if (isFeatureEnabled("permissions-card")) {
+  if (showPermissionsCard) {
     attachPermissionsListeners(root);
   }
 };

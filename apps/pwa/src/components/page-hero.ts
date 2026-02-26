@@ -27,11 +27,12 @@ export type PageHeroProps = {
 
 export const sharedShortcuts: PageShortcut[] = [
   { id: "home", label: "Dashboard", href: "/" },
-  { id: "control-plane", label: "Comandi", href: "/control-plane.html?view=commands" },
-  { id: "deploy", label: "Deploy", href: "/control-plane.html?view=render" },
-  { id: "db", label: "DB", href: "/control-plane.html?view=db" },
-  { id: "audit", label: "Audit", href: "/control-plane.html?view=audit" },
-  { id: "mobile-preview", label: "Mobile", href: "/mobile/" },
+  { id: "commands", label: "Comandi", href: "/?panel=commands" },
+  { id: "deploy", label: "Deploy", href: "/?panel=deploy" },
+  { id: "db", label: "Database", href: "/?panel=db" },
+  { id: "audit", label: "Audit", href: "/?panel=audit" },
+  { id: "flags", label: "Flags", href: "/?panel=flags" },
+  { id: "mobile", label: "Mobile", href: "/?panel=mobile" },
   { id: "privacy", label: "Privacy", href: "/privacy.html" },
 ];
 
