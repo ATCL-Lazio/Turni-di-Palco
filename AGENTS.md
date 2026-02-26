@@ -47,7 +47,7 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - All commits should be done using **your own git identity**
 
-- Do not work directly on `main` or `render/preview`: create a dedicated branch with setup prefix before committing or pushing.
+- Do not work directly on `main`, `render/preview` or `railway/preview`: create a dedicated branch with setup prefix before committing or pushing.
   - Examples: `windsurf/feature-name`, `codex/fix-description`, `gemini/refactor-module`
 
 - Never delete branches (no `--delete-branch` on merges) unless explicitly instructed.
@@ -71,6 +71,14 @@ Template developed by [Heartran](https://github.com/heartran)
 - Update `apps/pwa/public/sw.js` cache version string (o automatizza) quando alteri asset core per forzare l’update.
 
 - Tieni manifest (`apps/pwa/public/manifest.webmanifest`) in sync con icone e theme color. Placeholder in `apps/pwa/public/icons/`.
+
+## Railway Deploy Semantics
+
+- Railway auto-deploy da Git puo mostrare eventi `REMOVED` in history (dedupe/cancel/queue). `REMOVED` non equivale a rollout completato e non sostituisce automaticamente il deployment attivo.
+
+- Per controllo deterministico, considerare valido solo un servizio con `status: SUCCESS` e `deploymentId` attivo da `railway service status --json`.
+
+- Non assumere mai che "ultimo commit visibile in history" sia la versione in esecuzione: verificare sempre il deployment attivo per singolo servizio.
 
 ## Git Identity
 
