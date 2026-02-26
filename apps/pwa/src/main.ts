@@ -5,7 +5,35 @@ import { renderStatusCard, attachStatusListeners } from "./features/status-card"
 import { isPublicMode, requireDevAccess } from "./services/dev-gate";
 import { isFeatureEnabled } from "./services/feature-flags";
 import { appConfig, getConfigWarnings } from "./services/app-config";
+import { buildControlPlaneUrl } from "./services/ops-sdk";
 import { enforceDesktopOnly } from "./utils/desktop-only";
+
+type CockpitCard = {
+  id: string;
+  title: string;
+  summary: string;
+  bullets: string[];
+  links: Array<{ label: string; href: string }>;
+};
+
+function getPanelFromUrl() {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("panel")?.trim() || "";
+}
+
+function renderCockpitCard(card: CockpitCard, focusedPanel: string) {
+  const isFocused = focusedPanel === card.id;
+  return `
+    <article class="card${isFocused ? " card-focused" : ""}">
+      <h2>${card.title}</h2>
+      <p>${card.summary}</p>
+      <ul class="list">${card.bullets.map((item) => `<li>${item}</li>`).join("")}</ul>
+      <div class="cta-row">
+        ${card.links.map((link) => `<a class="button ghost" href="${link.href}">${link.label}</a>`).join("")}
+      </div>
+    </article>
+  `;
+}
 
 const start = async () => {
   if (enforceDesktopOnly()) return;
@@ -18,33 +46,83 @@ const start = async () => {
   }
 
   const description = isPublicMode
-    ? "Installable shell for monitoring the mobile experience and release health."
-    : "Installable shell with Dev Plus control-plane for mobile monitoring, rollout checks, and mobile data operations.";
+    ? "Dashboard leggera per controllare salute mobile e deploy."
+    : "Dashboard operativa: stato, deploy, DB, audit e feature flags in un unico flusso.";
+
+  const focusedPanel = getPanelFromUrl();
+  const controlPlaneCommandsUrl = buildControlPlaneUrl({ view: "commands", source: "home" });
+  const controlPlaneRenderUrl = buildControlPlaneUrl({ view: "render", source: "home" });
+  const controlPlaneDbUrl = buildControlPlaneUrl({ view: "db", source: "home" });
+  const controlPlaneAuditUrl = buildControlPlaneUrl({ view: "audit", source: "home" });
+  const controlPlaneFlagsUrl = buildControlPlaneUrl({ view: "mobile-flags", source: "home" });
 
   const quickActions = [
-    { id: "game", label: "Mobile Ops Hub", href: "/mobile-ops.html" },
-    { id: "map", label: "Mobile Infrastructure", href: "/mobile-infrastructure.html" },
-    { id: "profile", label: "Mobile Runtime", href: "/mobile-runtime.html" },
-    { id: "events", label: "Mobile Releases", href: "/mobile-releases.html" },
-    { id: "turns", label: "Mobile Data Ops", href: "/mobile-data-ops.html" },
-    { id: "leaderboard", label: "Mobile Audit", href: "/mobile-audit.html" },
+    { id: "control-plane", label: "Comandi", href: controlPlaneCommandsUrl },
+    { id: "render", label: "Deploy", href: controlPlaneRenderUrl },
+    { id: "db", label: "Database", href: controlPlaneDbUrl },
+    { id: "audit", label: "Audit", href: controlPlaneAuditUrl },
+    { id: "mobile-flags", label: "Flags", href: controlPlaneFlagsUrl },
+    { id: "mobile-preview", label: "Mobile", href: "/mobile/" },
   ];
 
   if (!isPublicMode) {
-    quickActions.unshift({ id: "dev", label: "Dev Playground", href: "/dev-playground.html" });
-    quickActions.unshift({ id: "dev-plus", label: "Dev Plus", href: "/control-plane.html" });
+    quickActions.unshift({ id: "dev-plus", label: "Dev Plus", href: controlPlaneCommandsUrl });
   }
 
   const ctaRow = [
-    { id: "open-dev-plus", label: "Open Dev Plus", href: "/control-plane.html", variant: "primary" },
-    { id: "open-mobile-preview", label: "Open Mobile Preview", href: "/mobile/", variant: "ghost" },
-    { id: "open-ops-hub", label: "Open Mobile Ops Hub", href: "/mobile-ops.html", variant: "ghost" },
-    { id: "open-dev", label: "Open Dev Playground", href: "/dev-playground.html", variant: "ghost" },
+    { id: "open-commands", label: "Apri comandi", href: controlPlaneCommandsUrl, variant: "primary" },
+    { id: "open-deploy", label: "Apri deploy", href: controlPlaneRenderUrl, variant: "ghost" },
+    { id: "open-mobile-preview", label: "Apri mobile", href: "/mobile/", variant: "ghost" },
     { id: "refresh", label: "Reload", kind: "button", dataAction: "refresh", variant: "ghost" },
   ];
 
+  const cockpitCards: CockpitCard[] = [
+    {
+      id: "operations",
+      title: "Comandi operativi",
+      summary: "Tutto passa dal Control Plane: step 1 prepara, step 2 conferma.",
+      bullets: [
+        "Preset comando con reason e dry-run",
+        "Conferma esplicita per azioni sensibili",
+        "Fallback leggibile in caso di errore remoto",
+      ],
+      links: [
+        { label: "Console comandi", href: controlPlaneCommandsUrl },
+        { label: "Feature flags", href: controlPlaneFlagsUrl },
+      ],
+    },
+    {
+      id: "deploy",
+      title: "Deploy e runtime",
+      summary: "Monitora servizi Railway/Render e verifica release prima di intervenire.",
+      bullets: [
+        "Stato servizi e latenza",
+        "Cronologia deploy e segnali runtime",
+        "Quick path per trigger deployment",
+      ],
+      links: [
+        { label: "Vista deploy", href: controlPlaneRenderUrl },
+        { label: "Audit tecnico", href: controlPlaneAuditUrl },
+      ],
+    },
+    {
+      id: "data",
+      title: "Database e audit",
+      summary: "Controllo dati e tracciamento in una pipeline unica.",
+      bullets: [
+        "Read path sicuro su Supabase",
+        "Mutazioni protette da ruoli",
+        "Audit stream per postmortem",
+      ],
+      links: [
+        { label: "Vista DB", href: controlPlaneDbUrl },
+        { label: "Vista audit", href: controlPlaneAuditUrl },
+      ],
+    },
+  ];
+
   const hero = renderPageHero({
-    title: "Mobile Monitoring Dashboard",
+    title: "Developer Ops Dashboard",
     description,
     currentPage: "home",
     breadcrumbs: [{ label: "Home" }],
@@ -69,43 +147,18 @@ const start = async () => {
       </section>
 
       <section class="grid layout-grid">
-        <article class="card">
-          <h2>Mobile Monitoring Focus</h2>
-          <p>
-            This PWA now acts as a mobile operations cockpit: monitor runtime health, mobile releases, and
-            command-driven remediation from one place.
-          </p>
-          <ul class="list">
-            <li><strong>Mobile runtime:</strong> availability and error trend checks</li>
-            <li><strong>Mobile releases:</strong> rollout visibility and trigger flow</li>
-            <li><strong>Mobile data:</strong> safe Supabase read/mutate operations</li>
-          </ul>
-        </article>
+        ${cockpitCards.map((card) => renderCockpitCard(card, focusedPanel)).join("")}
 
         <article class="card">
-          <h2>Monitoring Domains</h2>
-          <p>The previous gameplay routes now map to mobile operations domains.</p>
-          <div class="pill-row">
-            <span class="pill">Mobile Ops Hub</span>
-            <span class="pill">Infrastructure</span>
-            <span class="pill">Access</span>
-            <span class="pill">Runtime Health</span>
-            <span class="pill">Releases</span>
-            <span class="pill">Data Ops</span>
-            <span class="pill">Audit</span>
-          </div>
-        </article>
-
-        <article class="card">
-          <h2>Runtime Configuration</h2>
+          <h2>Configurazione runtime</h2>
           <ul class="list">
-            <li><strong>Environment:</strong> ${appConfig.environment}</li>
-            <li><strong>Public mode:</strong> ${appConfig.publicMode ? "enabled" : "disabled"}</li>
-            <li><strong>Supabase:</strong> ${appConfig.supabase.configured ? "configured" : "missing"}</li>
+            <li><strong>Env:</strong> ${appConfig.environment}</li>
+            <li><strong>Public mode:</strong> ${appConfig.publicMode ? "on" : "off"}</li>
+            <li><strong>Supabase:</strong> ${appConfig.supabase.configured ? "ok" : "missing"}</li>
             <li><strong>Control-plane:</strong> ${runtimeControlPlane}</li>
-            <li><strong>Feature flags:</strong> ${runtimeFlags}</li>
+            <li><strong>Flags:</strong> ${runtimeFlags}</li>
           </ul>
-          ${configWarnings.length ? `<p class="muted">${configWarnings.join(" | ")}</p>` : "<p class=\"muted\">Config loaded without critical warnings.</p>"}
+          ${configWarnings.length ? `<p class="muted">${configWarnings.join(" | ")}</p>` : "<p class=\"muted\">Nessun warning critico.</p>"}
         </article>
 
         ${isFeatureEnabled("status-card") ? renderStatusCard() : ""}
