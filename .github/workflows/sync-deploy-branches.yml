@@ -10,13 +10,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  sync-render-preview:
+  sync-deploy-preview-branches:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     outputs:
-      deploy_sha: ${{ steps.sync-render-branch.outputs.deploy_sha }}
-      sync_epoch: ${{ steps.sync-render-branch.outputs.sync_epoch }}
+      deploy_sha: ${{ steps.sync-preview-branches.outputs.deploy_sha }}
+      sync_epoch: ${{ steps.sync-preview-branches.outputs.sync_epoch }}
     steps:
       - name: Configure Git
         run: |
@@ -29,8 +29,8 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Sync branch
-        id: sync-render-branch
+      - name: Sync preview branches
+        id: sync-preview-branches
         env:
           GH_SYNC_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -50,15 +50,130 @@ jobs:
           }
 
           retry git fetch origin main
-          # Hard align render/preview to main to avoid merge commits
+          # Hard align deploy preview branches to main to avoid merge commits
           git checkout -B render/preview origin/main
           retry git push -f origin render/preview
+          git checkout -B railway/preview origin/main
+          retry git push -f origin railway/preview
           echo "deploy_sha=$(git rev-parse origin/main)" >> "$GITHUB_OUTPUT"
           echo "sync_epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
 
+  deploy-railway:
+    runs-on: ubuntu-latest
+    needs: sync-deploy-preview-branches
+    permissions:
+      contents: read
+    env:
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+      RAILWAY_PROJECT_ID: 1517725a-20c2-49d2-baea-3be40ad0d8d2
+      RAILWAY_ENVIRONMENT: production
+      DEPLOY_SHA: ${{ needs.sync-deploy-preview-branches.outputs.deploy_sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Railway token
+        run: |
+          set -euo pipefail
+          if [ -z "${RAILWAY_API_TOKEN:-}" ]; then
+            echo "::error::Missing secret RAILWAY_API_TOKEN. Configure it in repository secrets to enable deterministic Railway deploys."
+            exit 1
+          fi
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Verify Railway authentication
+        run: railway whoami
+
+      - name: Link Railway project for status checks
+        run: |
+          railway link \
+            --project "$RAILWAY_PROJECT_ID" \
+            --environment "$RAILWAY_ENVIRONMENT" \
+            --service "Turni-di-Palco" \
+            --json
+
+      - name: Prefer auto-deploy, fallback only when not active
+        run: |
+          set -euo pipefail
+          services=(
+            "Turni-di-Palco"
+            "Maxwell-AI-Support"
+            "Turni-di-Palco-Control-Plane"
+            "Turni-di-Palco-Badges"
+          )
+
+          get_active_state() {
+            local service="$1"
+            local status_json deployment_id status deployments_json commit
+            status_json="$(railway service status --service "$service" --environment "$RAILWAY_ENVIRONMENT" --json)"
+            deployment_id="$(echo "$status_json" | jq -r '.deploymentId // ""')"
+            status="$(echo "$status_json" | jq -r '.status // ""')"
+            if [ -z "$deployment_id" ]; then
+              echo "${status}||"
+              return 0
+            fi
+            deployments_json="$(railway deployment list --service "$service" --environment "$RAILWAY_ENVIRONMENT" --limit 100 --json)"
+            commit="$(echo "$deployments_json" | jq -r --arg id "$deployment_id" '[.[] | select(.id == $id) | .meta.commitHash][0] // ""')"
+            echo "${status}|${commit}|${deployment_id}"
+          }
+
+          wait_for_auto_success() {
+            local service="$1"
+            local attempts=18
+            local sleep_seconds=20
+            local attempt status commit deployment_id
+            for attempt in $(seq 1 "$attempts"); do
+              IFS='|' read -r status commit deployment_id <<<"$(get_active_state "$service")"
+              echo "[$service] auto-check ${attempt}/${attempts} status=${status:-unknown} active_commit=${commit:-none} deployment=${deployment_id:-none}"
+              if [ "$status" = "SUCCESS" ] && [ "$commit" = "$DEPLOY_SHA" ]; then
+                return 0
+              fi
+              sleep "$sleep_seconds"
+            done
+            return 1
+          }
+
+          verify_after_fallback() {
+            local service="$1"
+            local attempts=12
+            local sleep_seconds=10
+            local attempt status commit deployment_id
+            for attempt in $(seq 1 "$attempts"); do
+              IFS='|' read -r status commit deployment_id <<<"$(get_active_state "$service")"
+              echo "[$service] fallback-check ${attempt}/${attempts} status=${status:-unknown} active_commit=${commit:-none} deployment=${deployment_id:-none}"
+              if [ "$status" = "SUCCESS" ] && [ "$commit" = "$DEPLOY_SHA" ]; then
+                return 0
+              fi
+              sleep "$sleep_seconds"
+            done
+            return 1
+          }
+
+          for service in "${services[@]}"; do
+            if wait_for_auto_success "$service"; then
+              echo "[$service] auto-deploy is active for commit $DEPLOY_SHA"
+              continue
+            fi
+
+            echo "[$service] auto-deploy did not become active for $DEPLOY_SHA; triggering fallback deploy"
+            railway up \
+              --ci \
+              --project "$RAILWAY_PROJECT_ID" \
+              --environment "$RAILWAY_ENVIRONMENT" \
+              --service "$service" \
+              --message "fallback:${DEPLOY_SHA}"
+
+            if ! verify_after_fallback "$service"; then
+              echo "::error::Railway service $service is not SUCCESS on commit $DEPLOY_SHA after fallback deploy."
+              exit 1
+            fi
+          done
+
   deploy-turni:
     runs-on: ubuntu-latest
-    needs: sync-render-preview
+    needs: sync-deploy-preview-branches
     permissions:
       contents: read
       actions: write
@@ -90,8 +205,8 @@ jobs:
         id: wait-turni
         uses: ./.github/actions/wait-render-deploy
         with:
-          deploy_sha: ${{ needs.sync-render-preview.outputs.deploy_sha }}
-          sync_epoch: ${{ needs.sync-render-preview.outputs.sync_epoch }}
+          deploy_sha: ${{ needs.sync-deploy-preview-branches.outputs.deploy_sha }}
+          sync_epoch: ${{ needs.sync-deploy-preview-branches.outputs.sync_epoch }}
           render_api_key: ${{ secrets.RENDER_API_KEY }}
           render_service_id: ${{ secrets.RENDER_SERVICE_ID_TURNI }}
           label: Turni-di-Palco
@@ -120,7 +235,7 @@ jobs:
 
   deploy-maxwell:
     runs-on: ubuntu-latest
-    needs: sync-render-preview
+    needs: sync-deploy-preview-branches
     permissions:
       contents: read
       actions: write
@@ -152,8 +267,8 @@ jobs:
         id: wait-maxwell
         uses: ./.github/actions/wait-render-deploy
         with:
-          deploy_sha: ${{ needs.sync-render-preview.outputs.deploy_sha }}
-          sync_epoch: ${{ needs.sync-render-preview.outputs.sync_epoch }}
+          deploy_sha: ${{ needs.sync-deploy-preview-branches.outputs.deploy_sha }}
+          sync_epoch: ${{ needs.sync-deploy-preview-branches.outputs.sync_epoch }}
           render_api_key: ${{ secrets.RENDER_API_KEY }}
           render_service_id: ${{ secrets.RENDER_SERVICE_ID_MAXWELL }}
           label: Maxwell-AI-Support
@@ -183,7 +298,7 @@ jobs:
 
   deploy-control-plane:
     runs-on: ubuntu-latest
-    needs: sync-render-preview
+    needs: sync-deploy-preview-branches
     permissions:
       contents: read
       actions: write
@@ -215,8 +330,8 @@ jobs:
         id: wait-control-plane
         uses: ./.github/actions/wait-render-deploy
         with:
-          deploy_sha: ${{ needs.sync-render-preview.outputs.deploy_sha }}
-          sync_epoch: ${{ needs.sync-render-preview.outputs.sync_epoch }}
+          deploy_sha: ${{ needs.sync-deploy-preview-branches.outputs.deploy_sha }}
+          sync_epoch: ${{ needs.sync-deploy-preview-branches.outputs.sync_epoch }}
           render_api_key: ${{ secrets.RENDER_API_KEY }}
           render_service_id: ${{ secrets.RENDER_SERVICE_ID_CONTROL_PLANE }}
           label: Turni-di-Palco-Control-Plane
@@ -245,7 +360,7 @@ jobs:
 
   deploy-badges:
     runs-on: ubuntu-latest
-    needs: sync-render-preview
+    needs: sync-deploy-preview-branches
     permissions:
       contents: read
       actions: write
@@ -277,8 +392,8 @@ jobs:
         id: wait-badges
         uses: ./.github/actions/wait-render-deploy
         with:
-          deploy_sha: ${{ needs.sync-render-preview.outputs.deploy_sha }}
-          sync_epoch: ${{ needs.sync-render-preview.outputs.sync_epoch }}
+          deploy_sha: ${{ needs.sync-deploy-preview-branches.outputs.deploy_sha }}
+          sync_epoch: ${{ needs.sync-deploy-preview-branches.outputs.sync_epoch }}
           render_api_key: ${{ secrets.RENDER_API_KEY }}
           render_service_id: ${{ secrets.RENDER_SERVICE_ID_BADGES }}
           label: Turni-di-Palco-Badges
