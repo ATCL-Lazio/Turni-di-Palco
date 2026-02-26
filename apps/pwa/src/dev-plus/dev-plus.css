@@ -54,6 +54,7 @@ body {
 .devplus-header,
 .devplus-auth-card,
 .devplus-quick-actions-card,
+.devplus-glossary-card,
 .devplus-views-card,
 .devplus-footer {
   border: 1px solid var(--devplus-border);
@@ -185,6 +186,26 @@ body {
 .devplus-quick-action small {
   color: var(--devplus-text-muted);
   font-size: 0.78rem;
+}
+
+.devplus-glossary-card {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.devplus-glossary-card h2 {
+  margin: 0;
+}
+
+.devplus-glossary-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.devplus-glossary-list li {
+  color: var(--devplus-text-muted);
 }
 
 .devplus-auth-card h2,
