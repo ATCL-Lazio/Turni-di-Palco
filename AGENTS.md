@@ -72,6 +72,14 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - Tieni manifest (`apps/pwa/public/manifest.webmanifest`) in sync con icone e theme color. Placeholder in `apps/pwa/public/icons/`.
 
+## Railway Deploy Semantics
+
+- Railway auto-deploy da Git puo mostrare eventi `REMOVED` in history (dedupe/cancel/queue). `REMOVED` non equivale a rollout completato e non sostituisce automaticamente il deployment attivo.
+
+- Per controllo deterministico, considerare valido solo un servizio con `status: SUCCESS` e `deploymentId` attivo da `railway service status --json`.
+
+- Non assumere mai che "ultimo commit visibile in history" sia la versione in esecuzione: verificare sempre il deployment attivo per singolo servizio.
+
 ## Git Identity
 
 - Every agent should have his own git identity when committing changes in order to have a more clear and readable history
