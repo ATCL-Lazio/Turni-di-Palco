@@ -4,6 +4,7 @@ import "./dev-plus.css";
 import type { Session } from "@supabase/supabase-js";
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { Analytics } from "@vercel/analytics/react";
 
 import { promptServiceWorkerUpdate } from "../pwa/sw-update";
 import { registerServiceWorker } from "../pwa/register-sw";
@@ -827,6 +828,7 @@ function App() {
           Data source: <code>{snapshot?.source || controlPlaneEndpoint}</code>
         </p>
       </footer>
+      <Analytics />
     </main>
   );
 }
