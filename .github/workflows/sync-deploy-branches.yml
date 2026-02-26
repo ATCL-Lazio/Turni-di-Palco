@@ -67,6 +67,7 @@ jobs:
       RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
       RAILWAY_PROJECT_ID: 1517725a-20c2-49d2-baea-3be40ad0d8d2
       RAILWAY_ENVIRONMENT: production
+      DEPLOY_SHA: ${{ needs.sync-deploy-preview-branches.outputs.deploy_sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -85,42 +86,6 @@ jobs:
       - name: Verify Railway authentication
         run: railway whoami
 
-      - name: Force deploy Turni-di-Palco on Railway
-        run: |
-          railway up \
-            --ci \
-            --project "$RAILWAY_PROJECT_ID" \
-            --environment "$RAILWAY_ENVIRONMENT" \
-            --service "Turni-di-Palco" \
-            --message "sync-deploy-branches:${{ needs.sync-deploy-preview-branches.outputs.deploy_sha }}"
-
-      - name: Force deploy Maxwell-AI-Support on Railway
-        run: |
-          railway up \
-            --ci \
-            --project "$RAILWAY_PROJECT_ID" \
-            --environment "$RAILWAY_ENVIRONMENT" \
-            --service "Maxwell-AI-Support" \
-            --message "sync-deploy-branches:${{ needs.sync-deploy-preview-branches.outputs.deploy_sha }}"
-
-      - name: Force deploy Turni-di-Palco-Control-Plane on Railway
-        run: |
-          railway up \
-            --ci \
-            --project "$RAILWAY_PROJECT_ID" \
-            --environment "$RAILWAY_ENVIRONMENT" \
-            --service "Turni-di-Palco-Control-Plane" \
-            --message "sync-deploy-branches:${{ needs.sync-deploy-preview-branches.outputs.deploy_sha }}"
-
-      - name: Force deploy Turni-di-Palco-Badges on Railway
-        run: |
-          railway up \
-            --ci \
-            --project "$RAILWAY_PROJECT_ID" \
-            --environment "$RAILWAY_ENVIRONMENT" \
-            --service "Turni-di-Palco-Badges" \
-            --message "sync-deploy-branches:${{ needs.sync-deploy-preview-branches.outputs.deploy_sha }}"
-
       - name: Link Railway project for status checks
         run: |
           railway link \
@@ -129,19 +94,79 @@ jobs:
             --service "Turni-di-Palco" \
             --json
 
-      - name: Verify active Railway service statuses
+      - name: Prefer auto-deploy, fallback only when not active
         run: |
           set -euo pipefail
-          for service in \
-            "Turni-di-Palco" \
-            "Maxwell-AI-Support" \
-            "Turni-di-Palco-Control-Plane" \
-            "Turni-di-Palco-Badges"; do
+          services=(
+            "Turni-di-Palco"
+            "Maxwell-AI-Support"
+            "Turni-di-Palco-Control-Plane"
+            "Turni-di-Palco-Badges"
+          )
+
+          get_active_state() {
+            local service="$1"
+            local status_json deployment_id status deployments_json commit
             status_json="$(railway service status --service "$service" --environment "$RAILWAY_ENVIRONMENT" --json)"
-            echo "$status_json"
-            status="$(echo "$status_json" | jq -r '.status')"
-            if [ "$status" != "SUCCESS" ]; then
-              echo "::error::Railway service $service is not SUCCESS after forced deploy."
+            deployment_id="$(echo "$status_json" | jq -r '.deploymentId // ""')"
+            status="$(echo "$status_json" | jq -r '.status // ""')"
+            if [ -z "$deployment_id" ]; then
+              echo "${status}||"
+              return 0
+            fi
+            deployments_json="$(railway deployment list --service "$service" --environment "$RAILWAY_ENVIRONMENT" --limit 100 --json)"
+            commit="$(echo "$deployments_json" | jq -r --arg id "$deployment_id" '[.[] | select(.id == $id) | .meta.commitHash][0] // ""')"
+            echo "${status}|${commit}|${deployment_id}"
+          }
+
+          wait_for_auto_success() {
+            local service="$1"
+            local attempts=18
+            local sleep_seconds=20
+            local attempt status commit deployment_id
+            for attempt in $(seq 1 "$attempts"); do
+              IFS='|' read -r status commit deployment_id <<<"$(get_active_state "$service")"
+              echo "[$service] auto-check ${attempt}/${attempts} status=${status:-unknown} active_commit=${commit:-none} deployment=${deployment_id:-none}"
+              if [ "$status" = "SUCCESS" ] && [ "$commit" = "$DEPLOY_SHA" ]; then
+                return 0
+              fi
+              sleep "$sleep_seconds"
+            done
+            return 1
+          }
+
+          verify_after_fallback() {
+            local service="$1"
+            local attempts=12
+            local sleep_seconds=10
+            local attempt status commit deployment_id
+            for attempt in $(seq 1 "$attempts"); do
+              IFS='|' read -r status commit deployment_id <<<"$(get_active_state "$service")"
+              echo "[$service] fallback-check ${attempt}/${attempts} status=${status:-unknown} active_commit=${commit:-none} deployment=${deployment_id:-none}"
+              if [ "$status" = "SUCCESS" ] && [ "$commit" = "$DEPLOY_SHA" ]; then
+                return 0
+              fi
+              sleep "$sleep_seconds"
+            done
+            return 1
+          }
+
+          for service in "${services[@]}"; do
+            if wait_for_auto_success "$service"; then
+              echo "[$service] auto-deploy is active for commit $DEPLOY_SHA"
+              continue
+            fi
+
+            echo "[$service] auto-deploy did not become active for $DEPLOY_SHA; triggering fallback deploy"
+            railway up \
+              --ci \
+              --project "$RAILWAY_PROJECT_ID" \
+              --environment "$RAILWAY_ENVIRONMENT" \
+              --service "$service" \
+              --message "fallback:${DEPLOY_SHA}"
+
+            if ! verify_after_fallback "$service"; then
+              echo "::error::Railway service $service is not SUCCESS on commit $DEPLOY_SHA after fallback deploy."
               exit 1
             fi
           done
