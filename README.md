@@ -81,9 +81,9 @@ npm run test:pwa
 
 Architettura attuale (v0.6):
 
-- Pagine operative principali: `/` (Developer Ops Dashboard) e `/control-plane.html` (Command Center).
-- URL legacy (`/mobile-ops.html`, `/mobile-runtime.html`, `/mobile-data-ops.html`, ecc.) restano supportati ma fanno redirect verso le due pagine principali.
-- Il Control Plane supporta deeplink con preset comando tramite querystring (`view`, `command`, `target`, `dryRun`, `payload`, `source`).
+- Entrypoint operativo unico: `/` (Ops Dashboard single-page con pannelli dinamici via `?panel=`).
+- URL legacy (`/mobile-ops.html`, `/mobile-runtime.html`, `/mobile-data-ops.html`, ecc.) restano supportati ma fanno redirect verso la dashboard.
+- `control-plane.html` resta disponibile come modulo tecnico (embed/apertura diretta) e supporta deeplink preset (`view`, `command`, `target`, `dryRun`, `payload`, `source`).
 
 Configurazione locale consigliata:
 
