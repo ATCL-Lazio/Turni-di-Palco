@@ -22,42 +22,42 @@ const PANELS: PanelDefinition[] = [
   {
     id: "overview",
     label: "Panoramica",
-    description: "Stato rapido del sistema e configurazione runtime.",
+    description: "Vista generale: cosa sta funzionando e cosa no.",
   },
   {
     id: "commands",
     label: "Comandi",
-    description: "Prepara/esegui operazioni con conferma a 2 step.",
+    description: "Esegui azioni tecniche guidate, in due passaggi.",
     controlPlaneView: "commands",
   },
   {
     id: "deploy",
-    label: "Deploy",
-    description: "Stato servizi e deploy attivi.",
+    label: "Rilasci",
+    description: "Controlla lo stato dei rilasci e dei servizi online.",
     controlPlaneView: "render",
   },
   {
     id: "db",
     label: "Database",
-    description: "Operazioni DB e controlli safe.",
+    description: "Leggi o aggiorna dati in modo sicuro.",
     controlPlaneView: "db",
   },
   {
     id: "audit",
-    label: "Audit",
-    description: "Tracciamento tecnico eventi e comandi.",
+    label: "Registro attività",
+    description: "Cronologia delle azioni fatte da dashboard.",
     controlPlaneView: "audit",
   },
   {
     id: "flags",
-    label: "Feature Flags",
-    description: "Gestione runtime flag mobile.",
+    label: "Interruttori funzioni",
+    description: "Attiva/disattiva funzioni mobile in tempo reale.",
     controlPlaneView: "mobile-flags",
   },
   {
     id: "mobile",
-    label: "Mobile Preview",
-    description: "Preview client mobile live.",
+    label: "Anteprima mobile",
+    description: "Apri l'app mobile come la vede l'utente.",
     externalUrl: "/mobile/",
   },
 ];
@@ -107,8 +107,8 @@ const start = async () => {
   }
 
   const description = isPublicMode
-    ? "Una pagina unica per monitoraggio tecnico essenziale."
-    : "Una pagina unica con sezioni dinamiche: comandi, deploy, database, audit, flags e mobile preview.";
+    ? "Una pagina unica, con comandi chiari e senza giri inutili."
+    : "Una sola dashboard: scegli una sezione e lavori lì, senza saltare tra pagine.";
 
   const activePanelId = getPanelFromUrl();
   const activePanel = getPanelById(activePanelId);
@@ -165,9 +165,9 @@ const start = async () => {
       <section class="layout-stack" id="hero">
         ${hero}
         <div class="badges">
-          <span class="badge">Installable</span>
-          <span class="badge">Mobile Focused</span>
-          <span class="badge">Control-Plane Ready</span>
+          <span class="badge">Installabile</span>
+          <span class="badge">Pronta per mobile</span>
+          <span class="badge">Controllo tecnico</span>
         </div>
       </section>
 
@@ -188,26 +188,36 @@ const start = async () => {
               `
               : `
                 <ul class="list">
-                  <li><strong>Comandi:</strong> esegui operazioni con reason obbligatoria e conferma 2-step.</li>
-                  <li><strong>Deploy:</strong> verifica il deployment attivo reale prima di qualsiasi azione.</li>
-                  <li><strong>Database:</strong> usa query safe e mutazioni controllate da ruolo.</li>
-                  <li><strong>Audit:</strong> traccia tutte le operazioni tecniche in un solo stream.</li>
-                  <li><strong>Flags:</strong> abilita/disabilita feature mobile in runtime.</li>
+                  <li><strong>Comandi:</strong> scegli un'azione, spiega il motivo e conferma.</li>
+                  <li><strong>Rilasci:</strong> controlla quale versione è davvero online.</li>
+                  <li><strong>Database:</strong> leggi o modifica dati con permessi controllati.</li>
+                  <li><strong>Registro attività:</strong> vedi chi ha fatto cosa e quando.</li>
+                  <li><strong>Interruttori funzioni:</strong> accendi/spegni funzioni mobile al volo.</li>
                 </ul>
               `
           }
         </article>
 
         <article class="card">
-          <h2>Configurazione runtime</h2>
+          <h2>Impostazioni tecniche</h2>
           <ul class="list">
-            <li><strong>Env:</strong> ${appConfig.environment}</li>
-            <li><strong>Public mode:</strong> ${appConfig.publicMode ? "on" : "off"}</li>
-            <li><strong>Supabase:</strong> ${appConfig.supabase.configured ? "ok" : "missing"}</li>
-            <li><strong>Control-plane:</strong> ${runtimeControlPlane}</li>
-            <li><strong>Flags:</strong> ${runtimeFlags}</li>
+            <li><strong>Ambiente:</strong> ${appConfig.environment}</li>
+            <li><strong>Modalità pubblica:</strong> ${appConfig.publicMode ? "attiva" : "disattiva"}</li>
+            <li><strong>Supabase:</strong> ${appConfig.supabase.configured ? "configurato" : "mancante"}</li>
+            <li><strong>Server controllo:</strong> ${runtimeControlPlane}</li>
+            <li><strong>Interruttori:</strong> ${runtimeFlags}</li>
           </ul>
           ${configWarnings.length ? `<p class="muted">${configWarnings.join(" | ")}</p>` : "<p class=\"muted\">Nessun warning critico.</p>"}
+        </article>
+
+        <article class="card">
+          <h2>Traduzione rapida</h2>
+          <ul class="list">
+            <li><strong>Rilasci</strong> = pubblicazioni nuove versioni.</li>
+            <li><strong>Registro attività</strong> = cronologia operazioni.</li>
+            <li><strong>Interruttori funzioni</strong> = pulsanti on/off delle feature.</li>
+            <li><strong>Comando in due passaggi</strong> = prima controlli, poi confermi.</li>
+          </ul>
         </article>
 
         ${showStatusCard ? renderStatusCard() : ""}
