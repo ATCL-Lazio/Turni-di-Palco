@@ -1,29 +1,23 @@
 <!doctype html>
-<html lang="en">
+<html lang="it">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirect - Control Plane</title>
     <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+      http-equiv="refresh"
+      content="0; url=/control-plane.html?view=commands&command=supabase.db.read&dryRun=true&source=legacy-data-ops"
     />
-    <title>Turni di Palco - Turni</title>
-    <meta name="description" content="Registro turni - Turni di Palco" />
-    <meta name="theme-color" content="#05070d" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/icons/pwa-192.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/icons/pwa-512.png" />
-    <link rel="icon" type="image/x-icon" href="/icons/pwa-512.png" />
-    <link rel="shortcut icon" href="/icons/pwa-512.png" />
-    <link rel="icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Turni di Palco" />
   </head>
-  <body data-theme="dark">
-    <div id="app"></div>
-    <script type="module" src="/src/turns.ts"></script>
+  <body>
+    <p>
+      Redirect verso
+      <a href="/control-plane.html?view=commands&command=supabase.db.read&dryRun=true&source=legacy-data-ops">
+        Control Plane / DB commands
+      </a>...
+    </p>
+    <script>
+      window.location.replace("/control-plane.html?view=commands&command=supabase.db.read&dryRun=true&source=legacy-data-ops");
+    </script>
   </body>
 </html>
