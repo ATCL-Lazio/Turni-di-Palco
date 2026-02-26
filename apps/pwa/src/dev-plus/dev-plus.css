@@ -53,6 +53,7 @@ body {
 
 .devplus-header,
 .devplus-auth-card,
+.devplus-quick-actions-card,
 .devplus-views-card,
 .devplus-footer {
   border: 1px solid var(--devplus-border);
@@ -151,6 +152,39 @@ body {
 .devplus-auth-card {
   display: grid;
   gap: 0.8rem;
+}
+
+.devplus-quick-actions-card {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.devplus-quick-actions-card h2 {
+  margin: 0;
+}
+
+.devplus-quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.55rem;
+}
+
+.devplus-quick-action {
+  display: grid;
+  justify-items: start;
+  gap: 0.2rem;
+  text-align: left;
+  border-color: var(--devplus-border);
+  background: rgba(12, 20, 30, 0.8);
+}
+
+.devplus-quick-action strong {
+  font-size: 0.92rem;
+}
+
+.devplus-quick-action small {
+  color: var(--devplus-text-muted);
+  font-size: 0.78rem;
 }
 
 .devplus-auth-card h2,

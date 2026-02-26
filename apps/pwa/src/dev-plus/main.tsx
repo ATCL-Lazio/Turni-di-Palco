@@ -8,6 +8,13 @@ import { createRoot } from "react-dom/client";
 import { promptServiceWorkerUpdate } from "../pwa/sw-update";
 import { registerServiceWorker } from "../pwa/register-sw";
 import { isSupabaseConfigured, supabase } from "../services/supabase";
+import {
+  buildControlPlaneUrl,
+  getRoleAdaptiveQuickActions,
+  parseControlPlanePreset,
+  type ControlPlaneView,
+  type OpsQuickAction,
+} from "../services/ops-sdk";
 import { enforceDesktopOnly } from "../utils/desktop-only";
 import {
   executeControlCommand,
@@ -31,7 +38,7 @@ import type {
 } from "./types";
 
 type AuthState = "checking" | "anonymous" | "authenticated";
-type ViewId = "commands" | "audit" | "render" | "db" | "mobile-flags";
+type ViewId = ControlPlaneView;
 type FeedbackTone = "info" | "ok" | "warn" | "error";
 
 type FeedbackMessage = {
@@ -103,14 +110,15 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
 ];
 
 const VIEW_OPTIONS: { id: ViewId; label: string; note: string }[] = [
-  { id: "commands", label: "Command Console", note: "reason + dry-run + two-step confirm" },
-  { id: "audit", label: "Audit View", note: "eventi recenti e motivazioni" },
-  { id: "render", label: "Render Services", note: "stato servizi e deploy" },
-  { id: "db", label: "DB Ops", note: "operazioni database recenti" },
-  { id: "mobile-flags", label: "Mobile Flags", note: "toggle runtime feature flag mobile" },
+  { id: "commands", label: "Comandi", note: "reason, dry-run, conferma 2-step" },
+  { id: "audit", label: "Audit", note: "eventi recenti e motivazioni" },
+  { id: "render", label: "Deploy", note: "stato servizi e deploy" },
+  { id: "db", label: "Database", note: "operazioni database recenti" },
+  { id: "mobile-flags", label: "Flags mobile", note: "toggle runtime feature flag mobile" },
 ];
 
 const DEFAULT_CONFIRM_TEXT = "CONFIRM";
+const DEFAULT_PAYLOAD = '{\n  "scope": "default"\n}';
 
 const MOBILE_FLAG_DEFAULTS: MobileFeatureFlagEntry[] = [
   { key: "mobile.section.turns", enabled: true, label: "Sezione Turni", description: "Mostra sezione turni e tab.", category: "section" },
@@ -188,6 +196,11 @@ function toFeedbackClass(tone: FeedbackTone) {
 }
 
 function App() {
+  const initialPreset = useMemo(
+    () => parseControlPlanePreset(typeof window === "undefined" ? "" : window.location.search),
+    []
+  );
+
   const [authState, setAuthState] = useState<AuthState>("checking");
   const [session, setSession] = useState<Session | null>(null);
   const [validation, setValidation] = useState<SessionValidation | null>(null);
@@ -202,13 +215,15 @@ function App() {
   const [snapshotError, setSnapshotError] = useState("");
 
   const [catalog, setCatalog] = useState<CommandCatalogEntry[]>([]);
-  const [activeView, setActiveView] = useState<ViewId>("commands");
+  const [activeView, setActiveView] = useState<ViewId>(initialPreset.view ?? "commands");
 
-  const [commandValue, setCommandValue] = useState(DEFAULT_COMMAND_OPTIONS[0].id);
-  const [targetValue, setTargetValue] = useState("");
-  const [reasonValue, setReasonValue] = useState("");
-  const [payloadValue, setPayloadValue] = useState('{\n  "scope": "default"\n}');
-  const [dryRunValue, setDryRunValue] = useState(true);
+  const [commandValue, setCommandValue] = useState(initialPreset.commandId ?? DEFAULT_COMMAND_OPTIONS[0].id);
+  const [targetValue, setTargetValue] = useState(initialPreset.target ?? "");
+  const [reasonValue, setReasonValue] = useState(initialPreset.reason ?? "");
+  const [payloadValue, setPayloadValue] = useState(
+    initialPreset.payload ? JSON.stringify(initialPreset.payload, null, 2) : DEFAULT_PAYLOAD
+  );
+  const [dryRunValue, setDryRunValue] = useState(initialPreset.dryRun ?? true);
   const [preparedCommand, setPreparedCommand] = useState<PreparedCommand | null>(null);
   const [confirmText, setConfirmText] = useState("");
   const [commandBusy, setCommandBusy] = useState(false);
@@ -240,6 +255,8 @@ function App() {
     if (snapshot?.metrics?.length) return snapshot.metrics;
     return fallbackMetrics(validation);
   }, [snapshot?.metrics, validation]);
+
+  const roleActions = useMemo(() => getRoleAdaptiveQuickActions(validation?.roles), [validation?.roles]);
 
   const loadSnapshot = useCallback(
     async (activeSession: Session, validationState: SessionValidation | null) => {
@@ -634,6 +651,36 @@ function App() {
     await handleRefresh();
   }, [buildDraft, confirmText, handleRefresh, preparedCommand, session]);
 
+  const applyQuickAction = useCallback((action: OpsQuickAction) => {
+    if (action.preset.view) setActiveView(action.preset.view);
+    if (action.preset.commandId) setCommandValue(action.preset.commandId);
+    if (action.preset.target) setTargetValue(action.preset.target);
+    if (action.preset.reason) setReasonValue(action.preset.reason);
+    if (typeof action.preset.dryRun === "boolean") setDryRunValue(action.preset.dryRun);
+    if (action.preset.payload) {
+      setPayloadValue(JSON.stringify(action.preset.payload, null, 2));
+    }
+    setCommandFeedback({
+      tone: "info",
+      text: `Preset applicato: ${action.label}. Esegui Step 1/2 per preparare il comando.`,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const nextUrl = buildControlPlaneUrl(
+      {
+        view: activeView,
+        commandId: activeView === "commands" ? commandValue : undefined,
+        target: activeView === "commands" ? targetValue || undefined : undefined,
+        dryRun: activeView === "commands" ? dryRunValue : undefined,
+        source: "session",
+      },
+      window.location.pathname || "/control-plane.html"
+    );
+    window.history.replaceState(null, "", nextUrl);
+  }, [activeView, commandValue, dryRunValue, targetValue]);
+
   const auditRows: AuditEntry[] = snapshot?.audit ?? [];
   const renderRows: RenderServiceStatus[] = snapshot?.renderServices ?? [];
   const dbRows: DbOperationStatus[] = snapshot?.dbOperations ?? [];
@@ -645,17 +692,17 @@ function App() {
 
       <header className="devplus-header">
         <div className="devplus-brand-wrap">
-          <p className="devplus-kicker">Maxwell Protocol</p>
-          <h1>Dev Plus Control Room</h1>
+          <p className="devplus-kicker">Turni di Palco</p>
+          <h1>Control Plane</h1>
           <p className="devplus-subtitle">
-            Dashboard tecnica con Supabase auth, controllo ruoli server-side e command center con guardrail operativi.
+            Console operativa unica: comandi, deploy, DB, audit e feature flags con flusso a due step.
           </p>
         </div>
         <div className="devplus-header-actions">
           <div className="devplus-links">
-            <a href="/">Home</a>
-            <a href="/dev-playground.html">Dev playground</a>
-            <a href="/mobile-ops.html">Hub</a>
+            <a href="/">Dashboard</a>
+            <a href="/mobile/">Mobile</a>
+            <a href={buildControlPlaneUrl({ view: "commands", source: "header" })}>Comandi</a>
           </div>
           <div className="devplus-endpoint">
             <span>Control-plane</span>
@@ -740,6 +787,23 @@ function App() {
       </section>
 
       {snapshotError ? <p className="feedback feedback-warn">{snapshotError}</p> : null}
+
+      <section className="devplus-quick-actions-card">
+        <div>
+          <h2>Preset rapidi per ruolo</h2>
+          <p className="devplus-muted">
+            Seleziona un preset per compilare il form comandi o aprire direttamente la vista corretta.
+          </p>
+        </div>
+        <div className="devplus-quick-actions-grid">
+          {roleActions.map((action) => (
+            <button key={action.id} type="button" className="devplus-quick-action" onClick={() => applyQuickAction(action)}>
+              <strong>{action.label}</strong>
+              <small>{action.note}</small>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="devplus-views-card">
         <div className="devplus-view-tabs" role="tablist" aria-label="Viste operative">
