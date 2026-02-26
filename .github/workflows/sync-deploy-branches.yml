@@ -64,7 +64,7 @@ jobs:
     permissions:
       contents: read
     env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
       RAILWAY_PROJECT_ID: 1517725a-20c2-49d2-baea-3be40ad0d8d2
       RAILWAY_ENVIRONMENT: production
     steps:
@@ -74,8 +74,8 @@ jobs:
       - name: Validate Railway token
         run: |
           set -euo pipefail
-          if [ -z "${RAILWAY_TOKEN:-}" ]; then
-            echo "::error::Missing secret RAILWAY_TOKEN. Configure it in repository secrets to enable deterministic Railway deploys."
+          if [ -z "${RAILWAY_API_TOKEN:-}" ]; then
+            echo "::error::Missing secret RAILWAY_API_TOKEN. Configure it in repository secrets to enable deterministic Railway deploys."
             exit 1
           fi
 
