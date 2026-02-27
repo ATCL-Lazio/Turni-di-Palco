@@ -1,23 +1,19 @@
-export const MOBILE_FEATURE_FLAG_KEYS = [
-  'mobile.section.turns',
-  'mobile.section.leaderboard',
-  'mobile.section.activities',
-  'mobile.section.shop',
-  'mobile.section.career',
-  'mobile.section.earned_titles',
-  'mobile.action.qr_scan',
-  'mobile.action.turn_submit',
-  'mobile.action.turn_boost',
-  'mobile.action.activity_start',
-  'mobile.action.activity_complete',
-  'mobile.action.shop_purchase',
-] as const;
+import {
+  MOBILE_FEATURE_FLAG_KEYS as SHARED_MOBILE_FEATURE_FLAG_KEYS,
+  type MobileFeatureFlagKey,
+} from "../../../../shared/flags/catalog";
+import {
+  pickBooleanOverrides,
+  readVercelFlagOverridesFromDocument,
+} from "../../../../shared/flags/vercel-overrides";
 
-export type MobileFeatureFlagKey = (typeof MOBILE_FEATURE_FLAG_KEYS)[number];
+export const MOBILE_FEATURE_FLAG_KEYS = SHARED_MOBILE_FEATURE_FLAG_KEYS;
+
+export type { MobileFeatureFlagKey };
 export type MobileFeatureFlagsState = Record<MobileFeatureFlagKey, boolean>;
-export type MobileFeatureFlagsSource = 'remote' | 'cache' | 'default';
+export type MobileFeatureFlagsSource = "remote" | "cache" | "default" | "vercel";
 
-const MOBILE_FEATURE_FLAG_CACHE_KEY = 'tdp-mobile-feature-flags:v1';
+const MOBILE_FEATURE_FLAG_CACHE_KEY = "tdp-mobile-feature-flags:v1";
 
 const buildFlagState = (value: boolean): MobileFeatureFlagsState =>
   MOBILE_FEATURE_FLAG_KEYS.reduce((acc, key) => {
@@ -44,9 +40,9 @@ export function normalizeMobileFeatureFlags(rows: unknown): MobileFeatureFlagsSt
   let hasKnownKey = false;
 
   for (const row of rows) {
-    if (!row || typeof row !== 'object') continue;
+    if (!row || typeof row !== "object") continue;
     const rowData = row as Partial<MobileFeatureFlagRow>;
-    if (typeof rowData.key !== 'string' || !isMobileFeatureFlagKey(rowData.key)) continue;
+    if (typeof rowData.key !== "string" || !isMobileFeatureFlagKey(rowData.key)) continue;
 
     next[rowData.key] = Boolean(rowData.enabled);
     hasKnownKey = true;
@@ -55,8 +51,24 @@ export function normalizeMobileFeatureFlags(rows: unknown): MobileFeatureFlagsSt
   return hasKnownKey ? next : null;
 }
 
+export function readVercelMobileFeatureFlagOverrides(): Partial<MobileFeatureFlagsState> {
+  const rawOverrides = readVercelFlagOverridesFromDocument();
+  return pickBooleanOverrides(MOBILE_FEATURE_FLAG_KEYS, rawOverrides);
+}
+
+export function applyMobileFeatureFlagOverrides(
+  baseline: MobileFeatureFlagsState,
+  overrides: Partial<MobileFeatureFlagsState>
+): MobileFeatureFlagsState {
+  if (!Object.keys(overrides).length) return { ...baseline };
+  return {
+    ...baseline,
+    ...overrides,
+  };
+}
+
 export function readMobileFeatureFlagsCache(): MobileFeatureFlagsState | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(MOBILE_FEATURE_FLAG_CACHE_KEY);
     if (!raw) return null;
@@ -68,7 +80,7 @@ export function readMobileFeatureFlagsCache(): MobileFeatureFlagsState | null {
 }
 
 export function writeMobileFeatureFlagsCache(flags: MobileFeatureFlagsState) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     const rows = MOBILE_FEATURE_FLAG_KEYS.map((key) => ({ key, enabled: Boolean(flags[key]) }));
     window.localStorage.setItem(MOBILE_FEATURE_FLAG_CACHE_KEY, JSON.stringify(rows));
@@ -78,7 +90,7 @@ export function writeMobileFeatureFlagsCache(flags: MobileFeatureFlagsState) {
 }
 
 export function clearMobileFeatureFlagsCache() {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     window.localStorage.removeItem(MOBILE_FEATURE_FLAG_CACHE_KEY);
   } catch {

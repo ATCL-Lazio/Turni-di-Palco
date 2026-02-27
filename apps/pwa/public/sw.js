@@ -49,9 +49,13 @@ const TILE_HOSTS = new Set([
   "c.tile.openstreetmap.org",
 ]);
 const CORE_ASSET_PATHS = new Set(CORE_ASSETS);
+const NEVER_CACHE_PATHS = new Set(["/.well-known/vercel/flags"]);
 
 const isNonPublicPath = (url) => !isDevEnvironment && NON_PUBLIC_PATHS.has(url.pathname);
-const shouldCacheRequest = (url) => url.origin === self.location.origin && !isNonPublicPath(url);
+const shouldCacheRequest = (url) =>
+  url.origin === self.location.origin &&
+  !isNonPublicPath(url) &&
+  !NEVER_CACHE_PATHS.has(url.pathname);
 
 const getRequestUrl = (requestOrUrl) =>
   typeof requestOrUrl === "string"
