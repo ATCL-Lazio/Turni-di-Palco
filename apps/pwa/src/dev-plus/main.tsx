@@ -1,4 +1,4 @@
-import "../../../../shared/styles/main.css";
+﻿import "../../../../shared/styles/main.css";
 import "./dev-plus.css";
 
 import type { Session } from "@supabase/supabase-js";
@@ -8,6 +8,7 @@ import { createRoot } from "react-dom/client";
 import { promptServiceWorkerUpdate } from "../pwa/sw-update";
 import { registerServiceWorker } from "../pwa/register-sw";
 import { isSupabaseConfigured, supabase } from "../services/supabase";
+import { appConfig } from "../services/app-config";
 import {
   buildControlPlaneUrl,
   getRoleAdaptiveQuickActions,
@@ -31,7 +32,6 @@ import type {
   DashboardSnapshot,
   DbOperationStatus,
   MobileFeatureFlagEntry,
-  MetricCard,
   PreparedCommand,
   RenderServiceStatus,
   SessionValidation,
@@ -101,7 +101,7 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   {
     id: "supabase.events.cleanup",
     label: "Pulizia eventi vecchi",
-    description: "Elimina eventi più vecchi della soglia giorni.",
+    description: "Elimina eventi piÃ¹ vecchi della soglia giorni.",
     requiredRole: "dev_operator",
     riskLevel: "medium",
     requiresConfirmation: true,
@@ -121,11 +121,11 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
 ];
 
 const VIEW_OPTIONS: { id: ViewId; label: string; note: string }[] = [
-  { id: "commands", label: "Comandi", note: "motivo, simulazione e conferma" },
-  { id: "audit", label: "Registro", note: "eventi recenti e motivazioni" },
-  { id: "render", label: "Rilasci", note: "stato servizi e versione online" },
-  { id: "db", label: "Database", note: "operazioni dati recenti" },
-  { id: "mobile-flags", label: "Interruttori mobile", note: "accendi/spegni funzioni mobile" },
+  { id: "commands", label: "Comandi", note: "usa preset e conferma" },
+  { id: "mobile-flags", label: "Feature flags", note: "on/off funzioni mobile" },
+  { id: "render", label: "Rilasci", note: "stato servizi online" },
+  { id: "audit", label: "Registro", note: "azioni recenti" },
+  { id: "db", label: "Database", note: "operazioni dati" },
 ];
 
 const DEFAULT_CONFIRM_TEXT = "CONFIRM";
@@ -215,12 +215,6 @@ function parsePayloadInput(payloadText: string) {
   }
 }
 
-function metricTrendLabel(trend?: MetricCard["trend"]) {
-  if (trend === "up") return "trend-up";
-  if (trend === "down") return "trend-down";
-  return "trend-steady";
-}
-
 function normalizeRiskLabel(risk?: PreparedCommand["riskLevel"]) {
   if (!risk) return "risk-medium";
   return risk === "low" ? "risk-low" : risk === "high" ? "risk-high" : "risk-medium";
@@ -229,18 +223,6 @@ function normalizeRiskLabel(risk?: PreparedCommand["riskLevel"]) {
 function toDisplayValue(value: number | undefined, suffix = "") {
   if (typeof value !== "number" || Number.isNaN(value)) return "-";
   return `${value}${suffix}`;
-}
-
-function fallbackMetrics(validation: SessionValidation | null): MetricCard[] {
-  return [
-    {
-      id: "validation",
-      label: "Session Validation",
-      value: validation?.valid ? "verified" : "pending",
-      detail: validation?.reason || "control-plane handshake",
-      trend: validation?.valid ? "up" : "steady",
-    },
-  ];
 }
 
 function toFeedbackClass(tone: FeedbackTone) {
@@ -305,11 +287,6 @@ function App() {
       setCommandValue(commandOptions[0]?.id ?? DEFAULT_COMMAND_OPTIONS[0].id);
     }
   }, [commandOptions, commandValue]);
-
-  const metrics = useMemo(() => {
-    if (snapshot?.metrics?.length) return snapshot.metrics;
-    return fallbackMetrics(validation);
-  }, [snapshot?.metrics, validation]);
 
   const roleActions = useMemo(() => getRoleAdaptiveQuickActions(validation?.roles), [validation?.roles]);
 
@@ -755,6 +732,7 @@ function App() {
   const renderRows: RenderServiceStatus[] = snapshot?.renderServices ?? [];
   const dbRows: DbOperationStatus[] = snapshot?.dbOperations ?? [];
   const currentUser = session?.user?.email || "anonymous";
+  const pwaFeatureFlags = Object.entries(appConfig.featureFlags);
 
   return (
     <main className="devplus-shell">
@@ -763,16 +741,16 @@ function App() {
       <header className="devplus-header">
         <div className="devplus-brand-wrap">
           <p className="devplus-kicker">Turni di Palco</p>
-          <h1>Pannello di controllo</h1>
+          <h1>Dashboard comandi semplice</h1>
           <p className="devplus-subtitle">
-            Qui fai tutto da un solo posto: comandi, rilasci, database e registro attività.
+            Un solo flusso: scegli un preset, controlla il risultato e conferma.
           </p>
         </div>
         <div className="devplus-header-actions">
           <div className="devplus-links">
             <a href="/">Dashboard</a>
             <a href="/mobile/">Mobile</a>
-            <a href={buildControlPlaneUrl({ view: "commands", source: "header" })}>Comandi</a>
+            <a href={buildControlPlaneUrl({ view: "mobile-flags", source: "header" })}>Feature flags</a>
           </div>
           <div className="devplus-endpoint">
             <span>Server controllo</span>
@@ -842,27 +820,11 @@ function App() {
         {validation?.roles?.length ? <p className="devplus-muted">Ruoli disponibili: {validation.roles.join(", ")}</p> : null}
         {authError ? <p className="feedback feedback-error">{authError}</p> : null}
       </section>
-
-      <section className="devplus-metrics-grid">
-        {metrics.map((metric) => (
-          <article key={metric.id} className="devplus-metric-card">
-            <div className="devplus-metric-head">
-              <p>{metric.label}</p>
-              <span className={metricTrendLabel(metric.trend)}>{metric.trend || "steady"}</span>
-            </div>
-            <strong>{metric.value}</strong>
-            {metric.detail ? <small>{metric.detail}</small> : null}
-          </article>
-        ))}
-      </section>
-
-      {snapshotError ? <p className="feedback feedback-warn">{snapshotError}</p> : null}
-
       <section className="devplus-quick-actions-card">
         <div>
-          <h2>Azioni rapide</h2>
+          <h2>Preset rapidi</h2>
           <p className="devplus-muted">
-            Premi un pulsante e il form si compila da solo.
+            Scegli una voce e il form si compila in automatico.
           </p>
         </div>
         <div className="devplus-quick-actions-grid">
@@ -876,14 +838,17 @@ function App() {
       </section>
 
       <section className="devplus-glossary-card">
-        <h2>Traduzione veloce</h2>
+        <h2>Feature flags PWA</h2>
         <ul className="devplus-glossary-list">
-          <li><strong>Simulazione</strong>: prova senza modificare nulla.</li>
-          <li><strong>Motivo</strong>: spiegazione obbligatoria del perché fai l'azione.</li>
-          <li><strong>Dati aggiuntivi (JSON)</strong>: parametri extra dell'azione.</li>
-          <li><strong>Registro attività</strong>: cronologia completa delle azioni.</li>
+          {pwaFeatureFlags.map(([flagKey, enabled]) => (
+            <li key={flagKey}>
+              <strong>{flagKey}</strong>: {enabled ? "ON" : "OFF"}
+            </li>
+          ))}
         </ul>
       </section>
+
+      {snapshotError ? <p className="feedback feedback-warn">{snapshotError}</p> : null}
 
       <section className="devplus-views-card">
         <div className="devplus-view-tabs" role="tablist" aria-label="Viste operative">
@@ -1025,7 +990,7 @@ function App() {
 
           {activeView === "audit" ? (
             <section className="devplus-panel">
-              <h3>Registro attività</h3>
+              <h3>Registro attivitÃ </h3>
               <p className="devplus-muted">Cronologia delle azioni recenti.</p>
 
               {auditRows.length ? (
@@ -1236,3 +1201,4 @@ const start = () => {
 };
 
 start();
+
