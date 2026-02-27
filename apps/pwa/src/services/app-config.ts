@@ -1,3 +1,8 @@
+import {
+  pickBooleanOverrides,
+  readVercelFlagOverridesFromDocument,
+} from "../../../../shared/flags/vercel-overrides";
+
 export type FeatureFlag =
   | "status-card"
   | "permissions-card"
@@ -177,7 +182,8 @@ function resolveEnvironment(env: EnvSource): RuntimeEnvironment {
 function resolveFeatureFlags(
   env: EnvSource,
   runtimeOverride?: FeatureFlagOverride,
-  storedOverride?: FeatureFlagOverride
+  storedOverride?: FeatureFlagOverride,
+  vercelOverride?: FeatureFlagOverride
 ): FeatureFlagConfig {
   const enabled = new Set(parseList(env.VITE_FEATURE_FLAGS));
   const disabled = new Set(parseList(env.VITE_DISABLED_FEATURE_FLAGS));
@@ -200,6 +206,14 @@ function resolveFeatureFlags(
     FEATURE_FLAG_KEYS.forEach((flag) => {
       if (typeof runtimeOverride[flag] === "boolean") {
         resolved[flag] = runtimeOverride[flag] as boolean;
+      }
+    });
+  }
+
+  if (vercelOverride) {
+    FEATURE_FLAG_KEYS.forEach((flag) => {
+      if (typeof vercelOverride[flag] === "boolean") {
+        resolved[flag] = vercelOverride[flag] as boolean;
       }
     });
   }
@@ -255,6 +269,14 @@ function readStoredFeatureFlagOverride(): FeatureFlagOverride | undefined {
   } catch {
     return undefined;
   }
+}
+
+function readVercelFeatureFlagOverride(): FeatureFlagOverride | undefined {
+  const rawOverrides = readVercelFlagOverridesFromDocument();
+  const overrides = pickBooleanOverrides(FEATURE_FLAG_KEYS, rawOverrides);
+  return Object.keys(overrides).length
+    ? (overrides as FeatureFlagOverride)
+    : undefined;
 }
 
 function writeStoredFeatureFlagOverride(overrides: FeatureFlagOverride) {
@@ -313,10 +335,13 @@ export function resolveAppConfig(params?: {
   env?: EnvSource;
   runtimeOverride?: RuntimeConfigOverride;
   origin?: string;
+  vercelOverride?: FeatureFlagOverride;
 }): AppConfig {
   const env = params?.env ?? (import.meta.env as unknown as EnvSource);
   const runtimeOverride = params?.runtimeOverride;
   const storedFeatureFlags = params?.env ? undefined : readStoredFeatureFlagOverride();
+  const vercelFeatureFlags =
+    params?.vercelOverride ?? (params?.env ? undefined : readVercelFeatureFlagOverride());
   const origin =
     params?.origin ??
     (typeof window === "undefined" ? "" : window.location.origin);
@@ -382,7 +407,12 @@ export function resolveAppConfig(params?: {
           ? runtimeOverride.serviceWorker.devCleanupRegistrations
           : parseBoolean(env.VITE_SW_DEV_CLEANUP, true),
     },
-    featureFlags: resolveFeatureFlags(env, runtimeOverride?.featureFlags, storedFeatureFlags),
+    featureFlags: resolveFeatureFlags(
+      env,
+      runtimeOverride?.featureFlags,
+      storedFeatureFlags,
+      vercelFeatureFlags
+    ),
   };
 }
 
