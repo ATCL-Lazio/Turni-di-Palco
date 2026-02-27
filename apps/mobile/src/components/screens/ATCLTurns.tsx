@@ -17,6 +17,7 @@ interface ATCLTurnsProps {
   onViewMap: () => void;
   onScanQR: () => void;
   canScanQr?: boolean;
+  embedded?: boolean;
 }
 
 export function ATCLTurns({
@@ -27,6 +28,7 @@ export function ATCLTurns({
   onViewMap,
   onScanQR,
   canScanQr = true,
+  embedded = false,
 }: ATCLTurnsProps) {
   const stats = useMemo(() => {
     const totalXp = events.reduce((acc, event) => acc + event.baseRewards.xp, 0);
@@ -59,12 +61,8 @@ export function ATCLTurns({
   const turnsTickerItems = useAtclNewsTicker(18);
   const showTurnsTicker = turnsTickerItems.length > 1;
 
-  return (
-    <div
-      className="min-h-screen"
-      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
-    >
-      <div className="w-full app-content px-6 space-y-6 pt-6 pb-8">
+  const content = (
+    <div className={embedded ? 'space-y-6' : 'w-full app-content px-6 space-y-6 pt-6 pb-8'}>
         <div>
           <h2 className="text-white mb-2">Eventi ATCL</h2>
           <p className="text-[#b8b2b3]">Tutti gli eventi disponibili</p>
@@ -200,7 +198,19 @@ export function ATCLTurns({
             ) : null}
           </Card>
         )}
-      </div>
+    </div>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <div
+      className="min-h-screen"
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
+    >
+      {content}
     </div>
   );
 }

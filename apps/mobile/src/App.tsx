@@ -10,6 +10,7 @@ import { QRScanner } from './components/screens/QRScanner';
 import { EventConfirmation } from './components/screens/EventConfirmation';
 import { EventDetails } from './components/screens/EventDetails';
 import { Activities } from './components/screens/Activities';
+import { ActivitiesHub, type ActivitiesHubSection } from './components/screens/ActivitiesHub';
 import { ActivityDetail } from './components/screens/ActivityDetail';
 import { ActivityMinigame } from './components/screens/ActivityMinigame';
 import { ActivityResult } from './components/screens/ActivityResult';
@@ -25,6 +26,7 @@ import { TermsAndConditions } from './components/screens/TermsAndConditions';
 import { PrivacyPolicy } from './components/screens/PrivacyPolicy';
 import { EarnedTitles } from './components/screens/EarnedTitles';
 import { TicketQrActivationPrototype } from './components/screens/TicketQrActivationPrototype';
+import { Card } from './components/ui/Card';
 import { Activity, GameEvent, GameStateProvider, Rewards, useGameState } from './state/store';
 import { isSupabaseConfigured } from './lib/supabase';
 import { hasStoredAuthState, PUBLIC_SCREENS } from './lib/auth-storage';
@@ -81,9 +83,8 @@ function AppShell() {
   const isTabEnabled = useCallback(
     (tab: Tab) => {
       if (tab === 'home' || tab === 'profile') return true;
-      if (tab === 'turns') return tabFeatureFlags.turns;
+      if (tab === 'turns' || tab === 'activities') return tabFeatureFlags.turns || tabFeatureFlags.activities;
       if (tab === 'leaderboard') return tabFeatureFlags.leaderboard;
-      if (tab === 'activities') return tabFeatureFlags.activities;
       if (tab === 'shop') return tabFeatureFlags.shop;
       return false;
     },
@@ -92,9 +93,9 @@ function AppShell() {
 
   const isScreenEnabled = useCallback(
     (screen: Screen) => {
-      if (screen === 'turns') return tabFeatureFlags.turns;
+      if (screen === 'turns' || screen === 'activities') return tabFeatureFlags.turns || tabFeatureFlags.activities;
       if (screen === 'leaderboard') return tabFeatureFlags.leaderboard;
-      if (screen === 'activities' || screen === 'activity-detail' || screen === 'activity-minigame' || screen === 'activity-result') {
+      if (screen === 'activity-detail' || screen === 'activity-minigame' || screen === 'activity-result') {
         return tabFeatureFlags.activities;
       }
       if (screen === 'event-details') return tabFeatureFlags.turns;
@@ -124,6 +125,32 @@ function AppShell() {
 
   const handleTabChange = useCallback(
     (tab: Tab) => {
+      if (tab === 'turns') {
+        if (!tabFeatureFlags.turns) {
+          showFeatureDisabledAlert('La sezione turni');
+          baseHandleTabChange('home');
+          return;
+        }
+        setActivitiesSection('turns');
+        baseHandleTabChange('activities');
+        return;
+      }
+
+      if (tab === 'activities') {
+        if (!(tabFeatureFlags.turns || tabFeatureFlags.activities)) {
+          showFeatureDisabledAlert('La sezione attivita');
+          baseHandleTabChange('home');
+          return;
+        }
+        if (!tabFeatureFlags.activities && tabFeatureFlags.turns) {
+          setActivitiesSection('turns');
+        } else if (tabFeatureFlags.activities) {
+          setActivitiesSection('activities');
+        }
+        baseHandleTabChange('activities');
+        return;
+      }
+
       if (!isTabEnabled(tab)) {
         showFeatureDisabledAlert(`La sezione ${tab}`);
         baseHandleTabChange('home');
@@ -131,11 +158,12 @@ function AppShell() {
       }
       baseHandleTabChange(tab);
     },
-    [baseHandleTabChange, isTabEnabled, showFeatureDisabledAlert]
+    [baseHandleTabChange, isTabEnabled, showFeatureDisabledAlert, tabFeatureFlags.activities, tabFeatureFlags.turns]
   );
 
   const [activityOutcome, setActivityOutcome] = useState<MinigameOutcome | null>(null);
   const [activityCompletion, setActivityCompletion] = useState<{ activity: Activity; rewards: Rewards } | null>(null);
+  const [activitiesSection, setActivitiesSection] = useState<ActivitiesHubSection>('activities');
 
   // Animation state for tab transitions
   const [screenAnimation, setScreenAnimation] = useState('');
@@ -224,7 +252,7 @@ function AppShell() {
     if (activeTab === previousTabRef.current) return;
 
     // Determine animation based on tab order
-    const tabOrder = ['home', 'turns', 'leaderboard', 'activities', 'profile'];
+    const tabOrder = ['home', 'leaderboard', 'activities', 'shop', 'profile'];
     const currentIndex = tabOrder.indexOf(activeTab);
     const previousIndex = tabOrder.indexOf(previousTabRef.current);
 
@@ -246,6 +274,12 @@ function AppShell() {
     setScreenAnimationKey((value) => value + 1);
     previousTabRef.current = activeTab;
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'turns') return;
+    setActivitiesSection('turns');
+    baseHandleTabChange('activities');
+  }, [activeTab, baseHandleTabChange]);
 
   useEffect(() => {
     if (PUBLIC_SCREENS.has(currentScreen)) return;
@@ -659,7 +693,46 @@ function AppShell() {
           onDismissBadgeNotification={markBadgesSeen}
         />
       );
-      case 'turns': return <ATCLTurns events={events} isEventFollowed={isEventFollowed} onToggleFollow={(id: string) => isEventFollowed(id) ? unfollowEvent(id) : followEvent(id)} onViewMap={() => openEventsMap(events.map(e => e.theatre))} onViewEvent={(id: string) => { setScannedEventId(id); setCurrentScreen('event-details'); }} onScanQR={openQrScanner} canScanQr={isFeatureEnabled('mobile.action.qr_scan')} />;
+      case 'turns':
+      case 'activities':
+        return (
+          <ActivitiesHub
+            activeSection={activitiesSection}
+            onSectionChange={setActivitiesSection}
+            showTurns={tabFeatureFlags.turns}
+            showActivities={tabFeatureFlags.activities}
+            turnsView={
+              <ATCLTurns
+                events={events}
+                isEventFollowed={isEventFollowed}
+                onToggleFollow={(id: string) => isEventFollowed(id) ? unfollowEvent(id) : followEvent(id)}
+                onViewMap={() => openEventsMap(events.map(e => e.theatre))}
+                onViewEvent={(id: string) => { setScannedEventId(id); setCurrentScreen('event-details'); }}
+                onScanQR={openQrScanner}
+                canScanQr={isFeatureEnabled('mobile.action.qr_scan')}
+                embedded
+              />
+            }
+            activitiesView={
+              <Activities
+                activities={activities}
+                slotsStatus={activitySlotsStatus}
+                slotsLoading={activitySlotsLoading}
+                isOnline={typeof navigator === 'undefined' ? true : navigator.onLine}
+                canStartActivities={isFeatureEnabled('mobile.action.activity_start')}
+                onStartActivity={(id: string) => {
+                  if (!isFeatureEnabled('mobile.action.activity_start')) {
+                    showFeatureDisabledAlert('Avvio attivita');
+                    return;
+                  }
+                  setSelectedActivityId(id);
+                  setCurrentScreen('activity-detail');
+                }}
+                embedded
+              />
+            }
+          />
+        );
       case 'leaderboard': return <Leaderboard />;
       case 'qr-scanner':
         if (!isFeatureEnabled('mobile.action.qr_scan')) {
@@ -683,7 +756,7 @@ function AppShell() {
             </div>
           );
         }
-        return <QRScanner onClose={() => handleTabChange(activeTab === 'home' ? 'home' : 'turns')} onScan={handleQRScanAttempt} events={events} />;
+        return <QRScanner onClose={() => handleTabChange(activeTab === 'home' ? 'home' : 'activities')} onScan={handleQRScanAttempt} events={events} />;
       case 'event-confirmation': return (
         <EventConfirmation
           event={selectedEvent}
@@ -698,28 +771,11 @@ function AppShell() {
             setPendingTicketActivation(null);
             setConfirmationEventOverride(null);
             setScannedEventId('');
-            handleTabChange(activeTab === 'home' ? 'home' : 'turns');
+            handleTabChange(activeTab === 'home' ? 'home' : 'activities');
           }}
         />
       );
       case 'event-details': return <EventDetails event={selectedEvent} onBack={() => setCurrentScreen('home')} onNavigate={() => openInMaps(selectedEvent?.theatre ?? '')} />;
-      case 'activities': return (
-        <Activities
-          activities={activities}
-          slotsStatus={activitySlotsStatus}
-          slotsLoading={activitySlotsLoading}
-          isOnline={typeof navigator === 'undefined' ? true : navigator.onLine}
-          canStartActivities={isFeatureEnabled('mobile.action.activity_start')}
-          onStartActivity={(id: string) => {
-            if (!isFeatureEnabled('mobile.action.activity_start')) {
-              showFeatureDisabledAlert('Avvio attivita');
-              return;
-            }
-            setSelectedActivityId(id);
-            setCurrentScreen('activity-detail');
-          }}
-        />
-      );
       case 'shop': return (
         <Shop
           cachet={state.profile.cachet}
@@ -811,9 +867,8 @@ function AppShell() {
 
   const enabledNavTabs = useMemo<Tab[]>(() => {
     const next: Tab[] = ['home'];
-    if (tabFeatureFlags.turns) next.push('turns');
+    if (tabFeatureFlags.turns || tabFeatureFlags.activities) next.push('activities');
     if (tabFeatureFlags.leaderboard) next.push('leaderboard');
-    if (tabFeatureFlags.activities) next.push('activities');
     if (tabFeatureFlags.shop) next.push('shop');
     next.push('profile');
     return next;
