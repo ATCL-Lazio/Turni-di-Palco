@@ -52,7 +52,7 @@ const FEATURE_FLAG_KEYS: FeatureFlag[] = ["status-card", "permissions-card", "ai
 const DEFAULT_FEATURE_FLAGS: FeatureFlagConfig = {
   "status-card": true,
   "permissions-card": true,
-  "ai-support": false,
+  "ai-support": true,
 };
 
 const DEFAULT_DEV_ACCESS_FUNCTION = "dev-access";
