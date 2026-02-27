@@ -1,4 +1,4 @@
-import "../../../../shared/styles/main.css";
+﻿import "../../../../shared/styles/main.css";
 import "./dev-plus.css";
 
 import type { Session } from "@supabase/supabase-js";
@@ -9,6 +9,13 @@ import { Analytics } from "@vercel/analytics/react";
 import { promptServiceWorkerUpdate } from "../pwa/sw-update";
 import { registerServiceWorker } from "../pwa/register-sw";
 import { isSupabaseConfigured, supabase } from "../services/supabase";
+import { appConfig } from "../services/app-config";
+import {
+  buildControlPlaneUrl,
+  getRoleAdaptiveQuickActions,
+  parseControlPlanePreset,
+  type OpsQuickAction,
+} from "../services/ops-sdk";
 import { enforceDesktopOnly } from "../utils/desktop-only";
 import {
   executeControlCommand,
@@ -24,14 +31,13 @@ import type {
   CommandDraft,
   DashboardSnapshot,
   DbOperationStatus,
-  MetricCard,
+  MobileFeatureFlagEntry,
   PreparedCommand,
   RenderServiceStatus,
   SessionValidation,
 } from "./types";
 
 type AuthState = "checking" | "anonymous" | "authenticated";
-type ViewId = "commands" | "audit" | "render" | "db";
 type FeedbackTone = "info" | "ok" | "warn" | "error";
 
 type FeedbackMessage = {
@@ -39,11 +45,22 @@ type FeedbackMessage = {
   text: string;
 };
 
+type CommandPreset = {
+  id: string;
+  label: string;
+  note: string;
+  commandId: string;
+  target?: string;
+  reason: string;
+  payload: Record<string, unknown>;
+  dryRun?: boolean;
+};
+
 const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   {
     id: "render.services.health",
-    label: "Render services health",
-    description: "Read health and deploy state for allowlisted Render services.",
+    label: "Stato servizi Render",
+    description: "Legge salute servizi e stato rilascio.",
     requiredRole: "dev_viewer",
     riskLevel: "low",
     requiresConfirmation: false,
@@ -52,8 +69,8 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   },
   {
     id: "render.deployments.list",
-    label: "Render deployments list",
-    description: "List Render deployments for allowlisted services.",
+    label: "Elenco rilasci Render",
+    description: "Mostra i rilasci recenti dei servizi.",
     requiredRole: "dev_viewer",
     riskLevel: "low",
     requiresConfirmation: false,
@@ -62,8 +79,8 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   },
   {
     id: "render.deployments.trigger",
-    label: "Render trigger deployment",
-    description: "Trigger deployment with two-step confirmation.",
+    label: "Avvia nuovo rilascio",
+    description: "Avvia rilascio con conferma in due passaggi.",
     requiredRole: "dev_operator",
     riskLevel: "high",
     requiresConfirmation: true,
@@ -72,8 +89,8 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   },
   {
     id: "supabase.db.read",
-    label: "Supabase readonly query",
-    description: "Read rows from Supabase with safe filters.",
+    label: "Lettura dati Supabase",
+    description: "Legge dati con filtri sicuri.",
     requiredRole: "dev_viewer",
     riskLevel: "low",
     requiresConfirmation: false,
@@ -82,8 +99,8 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   },
   {
     id: "supabase.events.cleanup",
-    label: "Supabase cleanup old events",
-    description: "Delete stale events older than threshold days.",
+    label: "Pulizia eventi vecchi",
+    description: "Elimina eventi piÃ¹ vecchi della soglia giorni.",
     requiredRole: "dev_operator",
     riskLevel: "medium",
     requiresConfirmation: true,
@@ -92,8 +109,8 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   },
   {
     id: "supabase.db.mutate",
-    label: "Supabase mutate",
-    description: "Insert/update/upsert/delete data with strict guardrails.",
+    label: "Modifica dati Supabase",
+    description: "Inserisce o aggiorna dati con regole di sicurezza.",
     requiredRole: "dev_admin",
     riskLevel: "high",
     requiresConfirmation: true,
@@ -102,14 +119,67 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   },
 ];
 
-const VIEW_OPTIONS: { id: ViewId; label: string; note: string }[] = [
-  { id: "commands", label: "Command Console", note: "reason + dry-run + two-step confirm" },
-  { id: "audit", label: "Audit View", note: "eventi recenti e motivazioni" },
-  { id: "render", label: "Render Services", note: "stato servizi e deploy" },
-  { id: "db", label: "DB Ops", note: "operazioni database recenti" },
+const DEFAULT_CONFIRM_TEXT = "CONFIRM";
+const DEFAULT_PAYLOAD = '{\n  "scope": "default"\n}';
+const DEFAULT_PRESET_REASON = "Controllo operativo pianificato da dashboard.";
+
+const COMMAND_PRESETS: CommandPreset[] = [
+  {
+    id: "health-check",
+    label: "Check servizi",
+    note: "Stato rapido servizi Render",
+    commandId: "render.services.health",
+    target: "all",
+    reason: "Verifica salute servizi prima del controllo giornaliero.",
+    payload: { scope: "all" },
+    dryRun: true,
+  },
+  {
+    id: "deployments-last24h",
+    label: "Ultimi rilasci",
+    note: "Rilasci ultime 24 ore",
+    commandId: "render.deployments.list",
+    target: "all",
+    reason: "Verifica storico rilasci per controllo versioni online.",
+    payload: { windowHours: 24, includeStatus: true },
+    dryRun: true,
+  },
+  {
+    id: "db-read-events",
+    label: "Leggi eventi",
+    note: "Lettura tabella eventi",
+    commandId: "supabase.db.read",
+    target: "events",
+    reason: "Controllo rapido record eventi da dashboard.",
+    payload: { table: "events", limit: 20, orderBy: "created_at.desc" },
+    dryRun: true,
+  },
+  {
+    id: "cleanup-preview",
+    label: "Pulizia eventi (preview)",
+    note: "Simulazione pulizia dati storici",
+    commandId: "supabase.events.cleanup",
+    target: "events",
+    reason: "Valutazione impatto pulizia eventi piu vecchi.",
+    payload: { retentionDays: 90, scope: "stale-events" },
+    dryRun: true,
+  },
 ];
 
-const DEFAULT_CONFIRM_TEXT = "CONFIRM";
+const MOBILE_FLAG_DEFAULTS: MobileFeatureFlagEntry[] = [
+  { key: "mobile.section.turns", enabled: true, label: "Sezione Turni", description: "Mostra sezione turni e tab.", category: "section" },
+  { key: "mobile.section.leaderboard", enabled: true, label: "Sezione Classifica", description: "Mostra sezione classifica e tab.", category: "section" },
+  { key: "mobile.section.activities", enabled: true, label: "Sezione Attivita", description: "Mostra sezione attivita e tab.", category: "section" },
+  { key: "mobile.section.shop", enabled: true, label: "Sezione Shop", description: "Mostra sezione shop e tab.", category: "section" },
+  { key: "mobile.section.career", enabled: true, label: "Sezione Carriera", description: "Abilita schermata carriera.", category: "section" },
+  { key: "mobile.section.earned_titles", enabled: true, label: "Sezione Titoli", description: "Abilita schermata titoli sbloccati.", category: "section" },
+  { key: "mobile.action.qr_scan", enabled: true, label: "Azione Scansione QR", description: "Abilita scanner QR mobile.", category: "action" },
+  { key: "mobile.action.turn_submit", enabled: true, label: "Azione Conferma Turno", description: "Abilita registrazione turni.", category: "action" },
+  { key: "mobile.action.turn_boost", enabled: true, label: "Azione Boost Turno", description: "Abilita boost token su turno.", category: "action" },
+  { key: "mobile.action.activity_start", enabled: true, label: "Azione Avvio Attivita", description: "Abilita avvio attivita.", category: "action" },
+  { key: "mobile.action.activity_complete", enabled: true, label: "Azione Completamento Attivita", description: "Abilita completamento attivita.", category: "action" },
+  { key: "mobile.action.shop_purchase", enabled: true, label: "Azione Acquisto Shop", description: "Abilita acquisti shop.", category: "action" },
+];
 
 function formatDateTime(value?: string) {
   if (!value) return "-";
@@ -128,18 +198,12 @@ function parsePayloadInput(payloadText: string) {
   try {
     const parsed = JSON.parse(trimmed) as unknown;
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return { error: "Il payload JSON deve essere un oggetto." };
+      return { error: "I dati aggiuntivi devono essere un oggetto JSON." };
     }
     return { payload: parsed as Record<string, unknown> };
   } catch {
-    return { error: "Payload JSON non valido." };
+    return { error: "Formato JSON non valido nei dati aggiuntivi." };
   }
-}
-
-function metricTrendLabel(trend?: MetricCard["trend"]) {
-  if (trend === "up") return "trend-up";
-  if (trend === "down") return "trend-down";
-  return "trend-steady";
 }
 
 function normalizeRiskLabel(risk?: PreparedCommand["riskLevel"]) {
@@ -152,18 +216,6 @@ function toDisplayValue(value: number | undefined, suffix = "") {
   return `${value}${suffix}`;
 }
 
-function fallbackMetrics(validation: SessionValidation | null): MetricCard[] {
-  return [
-    {
-      id: "validation",
-      label: "Session Validation",
-      value: validation?.valid ? "verified" : "pending",
-      detail: validation?.reason || "control-plane handshake",
-      trend: validation?.valid ? "up" : "steady",
-    },
-  ];
-}
-
 function toFeedbackClass(tone: FeedbackTone) {
   if (tone === "ok") return "feedback feedback-ok";
   if (tone === "warn") return "feedback feedback-warn";
@@ -172,6 +224,11 @@ function toFeedbackClass(tone: FeedbackTone) {
 }
 
 function App() {
+  const initialPreset = useMemo(
+    () => parseControlPlanePreset(typeof window === "undefined" ? "" : window.location.search),
+    []
+  );
+
   const [authState, setAuthState] = useState<AuthState>("checking");
   const [session, setSession] = useState<Session | null>(null);
   const [validation, setValidation] = useState<SessionValidation | null>(null);
@@ -186,19 +243,26 @@ function App() {
   const [snapshotError, setSnapshotError] = useState("");
 
   const [catalog, setCatalog] = useState<CommandCatalogEntry[]>([]);
-  const [activeView, setActiveView] = useState<ViewId>("commands");
 
-  const [commandValue, setCommandValue] = useState(DEFAULT_COMMAND_OPTIONS[0].id);
-  const [targetValue, setTargetValue] = useState("");
-  const [reasonValue, setReasonValue] = useState("");
-  const [payloadValue, setPayloadValue] = useState('{\n  "scope": "default"\n}');
-  const [dryRunValue, setDryRunValue] = useState(true);
+  const [commandValue, setCommandValue] = useState(initialPreset.commandId ?? DEFAULT_COMMAND_OPTIONS[0].id);
+  const [targetValue, setTargetValue] = useState(initialPreset.target ?? "");
+  const [reasonValue, setReasonValue] = useState(initialPreset.reason ?? "");
+  const [payloadValue, setPayloadValue] = useState(
+    initialPreset.payload ? JSON.stringify(initialPreset.payload, null, 2) : DEFAULT_PAYLOAD
+  );
+  const [dryRunValue, setDryRunValue] = useState(initialPreset.dryRun ?? true);
   const [preparedCommand, setPreparedCommand] = useState<PreparedCommand | null>(null);
   const [confirmText, setConfirmText] = useState("");
   const [commandBusy, setCommandBusy] = useState(false);
   const [commandFeedback, setCommandFeedback] = useState<FeedbackMessage>({
     tone: "info",
-    text: "Pronto. Prepara un comando e conferma in due step.",
+    text: "Pronto. Seleziona un'azione, controlla e poi conferma.",
+  });
+  const [mobileFlags, setMobileFlags] = useState<MobileFeatureFlagEntry[]>([]);
+  const [mobileFlagsBusy, setMobileFlagsBusy] = useState(false);
+  const [mobileFlagsFeedback, setMobileFlagsFeedback] = useState<FeedbackMessage>({
+    tone: "info",
+    text: "Apri la sezione interruttori mobile per modificare le funzioni.",
   });
 
   const controlPlaneEndpoint = getControlPlaneEndpoint();
@@ -214,10 +278,7 @@ function App() {
     }
   }, [commandOptions, commandValue]);
 
-  const metrics = useMemo(() => {
-    if (snapshot?.metrics?.length) return snapshot.metrics;
-    return fallbackMetrics(validation);
-  }, [snapshot?.metrics, validation]);
+  const roleActions = useMemo(() => getRoleAdaptiveQuickActions(validation?.roles), [validation?.roles]);
 
   const loadSnapshot = useCallback(
     async (activeSession: Session, validationState: SessionValidation | null) => {
@@ -241,6 +302,46 @@ function App() {
     }
     setCatalog(response.commands);
   }, []);
+
+  const loadMobileFlags = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      setMobileFlags([]);
+      setMobileFlagsFeedback({ tone: "warn", text: "Supabase non configurato: impossibile leggere le mobile feature flags." });
+      return;
+    }
+    if (authState !== "authenticated") return;
+
+    setMobileFlagsBusy(true);
+    const { data, error } = await supabase
+      .from("mobile_feature_flags")
+      .select("key,enabled,label,description,category,updated_at,updated_by")
+      .order("category", { ascending: true })
+      .order("key", { ascending: true });
+    setMobileFlagsBusy(false);
+
+    if (error) {
+      setMobileFlagsFeedback({ tone: "error", text: error.message || "Lettura feature flags fallita." });
+      return;
+    }
+
+    const next = (data ?? []).map((row) => ({
+      key: String(row.key ?? ""),
+      enabled: Boolean(row.enabled),
+      label: String(row.label ?? row.key ?? ""),
+      description: String(row.description ?? ""),
+      category: String(row.category ?? ""),
+      updatedAt: typeof row.updated_at === "string" ? row.updated_at : undefined,
+      updatedBy: typeof row.updated_by === "string" ? row.updated_by : null,
+    }));
+
+    setMobileFlags(next);
+    setMobileFlagsFeedback({
+      tone: "ok",
+      text: next.length
+        ? `${next.length} feature flags mobile caricate.`
+        : "Nessuna feature flag trovata: usa il reset per inizializzare.",
+    });
+  }, [authState]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
@@ -284,7 +385,7 @@ function App() {
       setSession(data.session);
       setValidation(validationResult);
       setAuthState("authenticated");
-      await Promise.all([loadSnapshot(data.session, validationResult), loadCatalog(data.session)]);
+      await Promise.all([loadSnapshot(data.session, validationResult), loadCatalog(data.session), loadMobileFlags()]);
     };
 
     void bootstrap();
@@ -293,7 +394,7 @@ function App() {
       cancelled = true;
       controller.abort();
     };
-  }, [loadCatalog, loadSnapshot]);
+  }, [loadCatalog, loadMobileFlags, loadSnapshot]);
 
   const handleSignIn = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -339,9 +440,9 @@ function App() {
       setValidation(validationResult);
       setAuthState("authenticated");
       setAuthBusy(false);
-      await Promise.all([loadSnapshot(activeSession, validationResult), loadCatalog(activeSession)]);
+      await Promise.all([loadSnapshot(activeSession, validationResult), loadCatalog(activeSession), loadMobileFlags()]);
     },
-    [email, loadCatalog, loadSnapshot, password]
+    [email, loadCatalog, loadMobileFlags, loadSnapshot, password]
   );
 
   const handleSignOut = useCallback(async () => {
@@ -352,9 +453,11 @@ function App() {
     setValidation(null);
     setSnapshot(null);
     setCatalog([]);
+    setMobileFlags([]);
     setAuthState("anonymous");
     setPassword("");
     setCommandFeedback({ tone: "info", text: "Sessione chiusa." });
+    setMobileFlagsFeedback({ tone: "info", text: "Sessione chiusa." });
   }, []);
 
   const handleRefresh = useCallback(async () => {
@@ -375,8 +478,92 @@ function App() {
       return;
     }
 
-    await Promise.all([loadSnapshot(session, validationResult), loadCatalog(session)]);
-  }, [loadCatalog, loadSnapshot, session]);
+    await Promise.all([loadSnapshot(session, validationResult), loadCatalog(session), loadMobileFlags()]);
+  }, [loadCatalog, loadMobileFlags, loadSnapshot, session]);
+
+  const handleToggleMobileFlag = useCallback(
+    async (flag: MobileFeatureFlagEntry, enabled: boolean) => {
+      if (!supabase || authState !== "authenticated") {
+        setMobileFlagsFeedback({ tone: "error", text: "Sessione non valida per modificare le feature flags." });
+        return;
+      }
+      setMobileFlagsBusy(true);
+      const { error } = await supabase
+        .from("mobile_feature_flags")
+        .update({ enabled })
+        .eq("key", flag.key);
+      setMobileFlagsBusy(false);
+
+      if (error) {
+        setMobileFlagsFeedback({ tone: "error", text: error.message || "Aggiornamento flag fallito." });
+        return;
+      }
+
+      setMobileFlagsFeedback({ tone: "ok", text: `Flag aggiornata: ${flag.key} -> ${enabled ? "ON" : "OFF"}` });
+      await loadMobileFlags();
+    },
+    [authState, loadMobileFlags]
+  );
+
+  const handleBulkSetMobileFlags = useCallback(
+    async (enabled: boolean) => {
+      if (!supabase || authState !== "authenticated") {
+        setMobileFlagsFeedback({ tone: "error", text: "Sessione non valida per modificare le feature flags." });
+        return;
+      }
+      if (!mobileFlags.length) {
+        setMobileFlagsFeedback({ tone: "warn", text: "Nessuna flag disponibile per bulk update." });
+        return;
+      }
+
+      setMobileFlagsBusy(true);
+      const keys = mobileFlags.map((entry) => entry.key);
+      const { error } = await supabase
+        .from("mobile_feature_flags")
+        .update({ enabled })
+        .in("key", keys);
+      setMobileFlagsBusy(false);
+
+      if (error) {
+        setMobileFlagsFeedback({ tone: "error", text: error.message || "Bulk update feature flags fallito." });
+        return;
+      }
+
+      setMobileFlagsFeedback({ tone: "ok", text: `Aggiornamento bulk completato: ${enabled ? "tutte ON" : "tutte OFF"}.` });
+      await loadMobileFlags();
+    },
+    [authState, loadMobileFlags, mobileFlags]
+  );
+
+  const handleResetMobileFlags = useCallback(async () => {
+    if (!supabase || authState !== "authenticated") {
+      setMobileFlagsFeedback({ tone: "error", text: "Sessione non valida per il reset feature flags." });
+      return;
+    }
+
+    setMobileFlagsBusy(true);
+    const { error } = await supabase
+      .from("mobile_feature_flags")
+      .upsert(
+        MOBILE_FLAG_DEFAULTS.map((entry) => ({
+          key: entry.key,
+          enabled: true,
+          label: entry.label,
+          description: entry.description,
+          category: entry.category,
+        })),
+        { onConflict: "key" }
+      );
+    setMobileFlagsBusy(false);
+
+    if (error) {
+      setMobileFlagsFeedback({ tone: "error", text: error.message || "Reset feature flags fallito." });
+      return;
+    }
+
+    setMobileFlagsFeedback({ tone: "ok", text: "Reset feature flags completato (seed ON)." });
+    await loadMobileFlags();
+  }, [authState, loadMobileFlags]);
 
   useEffect(() => {
     setPreparedCommand(null);
@@ -477,54 +664,72 @@ function App() {
     await handleRefresh();
   }, [buildDraft, confirmText, handleRefresh, preparedCommand, session]);
 
+  const applyQuickAction = useCallback((action: OpsQuickAction) => {
+    if (action.preset.view) {
+      const section = document.getElementById(`section-${action.preset.view}`);
+      if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    if (action.preset.commandId) setCommandValue(action.preset.commandId);
+    if (action.preset.target) setTargetValue(action.preset.target);
+    if (action.preset.reason) setReasonValue(action.preset.reason);
+    if (typeof action.preset.dryRun === "boolean") setDryRunValue(action.preset.dryRun);
+    if (action.preset.payload) {
+      setPayloadValue(JSON.stringify(action.preset.payload, null, 2));
+    }
+    setCommandFeedback({
+      tone: "info",
+      text: `Preset applicato: ${action.label}. Esegui Step 1/2 per preparare il comando.`,
+    });
+  }, []);
+
+  const applyCommandPreset = useCallback((preset: CommandPreset) => {
+    setCommandValue(preset.commandId);
+    setTargetValue(preset.target ?? "");
+    setReasonValue(preset.reason || DEFAULT_PRESET_REASON);
+    setPayloadValue(JSON.stringify(preset.payload, null, 2));
+    setDryRunValue(typeof preset.dryRun === "boolean" ? preset.dryRun : true);
+    setPreparedCommand(null);
+    setConfirmText("");
+    setCommandFeedback({
+      tone: "info",
+      text: `Preset pronto: ${preset.label}. Esegui Step 1/2 per validare.`,
+    });
+  }, []);
+
   const auditRows: AuditEntry[] = snapshot?.audit ?? [];
   const renderRows: RenderServiceStatus[] = snapshot?.renderServices ?? [];
   const dbRows: DbOperationStatus[] = snapshot?.dbOperations ?? [];
   const currentUser = session?.user?.email || "anonymous";
+  const pwaFeatureFlags = Object.entries(appConfig.featureFlags);
 
   return (
-    <main className="devplus-shell">
-      <div className="devplus-grid-bg" aria-hidden="true" />
-
-      <header className="devplus-header">
-        <div className="devplus-brand-wrap">
-          <p className="devplus-kicker">Maxwell Protocol</p>
-          <h1>Dev Plus Control Room</h1>
-          <p className="devplus-subtitle">
-            Dashboard tecnica con Supabase auth, controllo ruoli server-side e command center con guardrail operativi.
-          </p>
+    <main className="cp-shell">
+      <header className="cp-card cp-header">
+        <div>
+          <p className="cp-kicker">Turni di Palco</p>
+          <h1>Dashboard comandi semplice</h1>
+          <p className="cp-muted">Una pagina, flusso lineare, preset pronti.</p>
         </div>
-        <div className="devplus-header-actions">
-          <div className="devplus-links">
-            <a href="/">Home</a>
-            <a href="/dev-playground.html">Dev playground</a>
-            <a href="/mobile-ops.html">Hub</a>
-          </div>
-          <div className="devplus-endpoint">
-            <span>Control-plane</span>
-            <code>{controlPlaneEndpoint}</code>
-          </div>
+        <div className="cp-links">
+          <a href="/">Dashboard</a>
+          <a href="/mobile/">Mobile</a>
+          <a href={buildControlPlaneUrl({ view: "commands", source: "header" })}>Comandi</a>
         </div>
       </header>
 
-      <section className="devplus-auth-card">
-        <div>
-          <h2>Accesso e session validation</h2>
-          <p className="devplus-muted">
-            Login via Supabase e verifica server-side su endpoint <code>/api/auth/session/validate</code>.
-          </p>
-        </div>
+      <section className="cp-card cp-auth">
+        <h2>Accesso</h2>
 
         {!isSupabaseConfigured ? (
-          <p className="feedback feedback-error">
+          <p className="cp-feedback cp-feedback-error">
             Supabase non configurato. Imposta <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code>.
           </p>
         ) : null}
 
-        {authState === "checking" ? <p className="feedback feedback-info">Verifica sessione esistente...</p> : null}
+        {authState === "checking" ? <p className="cp-feedback cp-feedback-info">Controllo sessione in corso...</p> : null}
 
         {authState !== "authenticated" && isSupabaseConfigured ? (
-          <form className="devplus-login-form" onSubmit={handleSignIn}>
+          <form className="cp-login" onSubmit={handleSignIn}>
             <label>
               <span>Email</span>
               <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
@@ -539,24 +744,21 @@ function App() {
                 autoComplete="current-password"
               />
             </label>
-            <button type="submit" disabled={authBusy}>
-              {authBusy ? "Accesso in corso..." : "Accedi e valida sessione"}
-            </button>
+            <button type="submit" disabled={authBusy}>{authBusy ? "Accesso in corso..." : "Accedi"}</button>
           </form>
         ) : null}
 
         {authState === "authenticated" ? (
-          <div className="devplus-session-ok">
-            <div>
-              <p className="devplus-session-user">Sessione attiva: {currentUser}</p>
-              <p className="devplus-muted">
-                Validata: {formatDateTime(validation?.validatedAt)}
-                {validation?.expiresAt ? ` | Scadenza: ${formatDateTime(validation.expiresAt)}` : ""}
-              </p>
-            </div>
-            <div className="devplus-inline-actions">
+          <div className="cp-session">
+            <p>
+              Sessione: <strong>{currentUser}</strong>
+            </p>
+            <p>
+              Verificata: <strong>{formatDateTime(validation?.validatedAt)}</strong>
+            </p>
+            <div className="cp-inline-actions">
               <button type="button" onClick={handleRefresh} disabled={snapshotBusy}>
-                {snapshotBusy ? "Sync..." : "Aggiorna viste"}
+                {snapshotBusy ? "Sync..." : "Aggiorna tutto"}
               </button>
               <button type="button" className="ghost" onClick={handleSignOut}>
                 Logout
@@ -565,262 +767,222 @@ function App() {
           </div>
         ) : null}
 
-        {validation?.roles?.length ? <p className="devplus-muted">Ruoli validati: {validation.roles.join(", ")}</p> : null}
-        {authError ? <p className="feedback feedback-error">{authError}</p> : null}
+        {validation?.roles?.length ? <p className="cp-muted">Ruoli: {validation.roles.join(", ")}</p> : null}
+        {authError ? <p className="cp-feedback cp-feedback-error">{authError}</p> : null}
       </section>
 
-      <section className="devplus-metrics-grid">
-        {metrics.map((metric) => (
-          <article key={metric.id} className="devplus-metric-card">
-            <div className="devplus-metric-head">
-              <p>{metric.label}</p>
-              <span className={metricTrendLabel(metric.trend)}>{metric.trend || "steady"}</span>
-            </div>
-            <strong>{metric.value}</strong>
-            {metric.detail ? <small>{metric.detail}</small> : null}
-          </article>
-        ))}
+      <section className="cp-grid cp-grid-2">
+        <article className="cp-card">
+          <h2>Feature flags PWA</h2>
+          <ul className="cp-list">
+            {pwaFeatureFlags.map(([flagKey, enabled]) => (
+              <li key={flagKey}>
+                <strong>{flagKey}</strong>
+                <span className={enabled ? "cp-on" : "cp-off"}>{enabled ? "ON" : "OFF"}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
+
+        <article className="cp-card">
+          <h2>Preset rapidi</h2>
+          <div className="cp-preset-grid">
+            {roleActions.map((action) => (
+              <button key={action.id} type="button" className="cp-preset-button" onClick={() => applyQuickAction(action)}>
+                <strong>{action.label}</strong>
+                <small>{action.note}</small>
+              </button>
+            ))}
+            {COMMAND_PRESETS.map((preset) => (
+              <button key={preset.id} type="button" className="cp-preset-button" onClick={() => applyCommandPreset(preset)}>
+                <strong>{preset.label}</strong>
+                <small>{preset.note}</small>
+              </button>
+            ))}
+          </div>
+        </article>
       </section>
 
-      {snapshotError ? <p className="feedback feedback-warn">{snapshotError}</p> : null}
+      <section className="cp-card" id="section-commands">
+        <h2>Comando guidato</h2>
+        <p className="cp-muted">Compila i campi, poi usa Step 1 e Step 2.</p>
 
-      <section className="devplus-views-card">
-        <div className="devplus-view-tabs" role="tablist" aria-label="Viste operative">
-          {VIEW_OPTIONS.map((view) => (
-            <button
-              key={view.id}
-              type="button"
-              role="tab"
-              aria-selected={activeView === view.id}
-              className={activeView === view.id ? "active" : ""}
-              onClick={() => setActiveView(view.id)}
-            >
-              <span>{view.label}</span>
-              <small>{view.note}</small>
+        <div className="cp-command-grid">
+          <label>
+            <span>Azione</span>
+            <select value={commandValue} onChange={(event) => setCommandValue(event.target.value)}>
+              {commandOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>Target (opzionale)</span>
+            <input
+              type="text"
+              value={targetValue}
+              onChange={(event) => setTargetValue(event.target.value)}
+              placeholder="es. servizio o tabella"
+            />
+          </label>
+
+          <label className="cp-full-row">
+            <span>Motivo</span>
+            <textarea value={reasonValue} onChange={(event) => setReasonValue(event.target.value)} rows={3} />
+          </label>
+
+          <label className="cp-full-row">
+            <span>Dati aggiuntivi (JSON)</span>
+            <textarea value={payloadValue} onChange={(event) => setPayloadValue(event.target.value)} rows={7} spellCheck={false} />
+          </label>
+
+          <label className="cp-checkbox cp-full-row">
+            <input type="checkbox" checked={dryRunValue} onChange={(event) => setDryRunValue(event.target.checked)} />
+            <span>Simulazione attiva (nessuna modifica reale)</span>
+          </label>
+        </div>
+
+        <div className="cp-inline-actions">
+          <button type="button" onClick={handlePrepareCommand} disabled={commandBusy || authState !== "authenticated"}>
+            1) Prepara comando
+          </button>
+        </div>
+
+        {preparedCommand ? (
+          <article className="cp-review">
+            <p>
+              <strong>Summary:</strong> {preparedCommand.summary}
+            </p>
+            <p>
+              <strong>Rischio:</strong> {preparedCommand.riskLevel || "medio"}
+            </p>
+            <p>
+              <strong>Comando:</strong> <code>{preparedCommand.commandId}</code>
+            </p>
+
+            {preparedCommand.preview?.length ? (
+              <ul className="cp-list cp-list-plain">
+                {preparedCommand.preview.map((item, index) => (
+                  <li key={`${preparedCommand.commandId}-${index}`}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+
+            <label>
+              <span>
+                2) Digita <code>{preparedCommand.requiresConfirmText || DEFAULT_CONFIRM_TEXT}</code> per confermare
+              </span>
+              <input type="text" value={confirmText} onChange={(event) => setConfirmText(event.target.value)} />
+            </label>
+
+            <button type="button" onClick={handleExecuteCommand} disabled={commandBusy || authState !== "authenticated"}>
+              2) Conferma ed esegui
             </button>
-          ))}
-        </div>
+          </article>
+        ) : null}
 
-        <div className="devplus-view-content">
-          {activeView === "commands" ? (
-            <section className="devplus-panel">
-              <h3>Command Console</h3>
-              <p className="devplus-muted">
-                Ogni comando richiede <code>reason</code>, supporta <code>dry-run</code> e usa token server-side per lo
-                step 2.
-              </p>
-
-              <div className="devplus-command-grid">
-                <label>
-                  <span>Command</span>
-                  <select value={commandValue} onChange={(event) => setCommandValue(event.target.value)}>
-                    {commandOptions.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label>
-                  <span>Target (opzionale)</span>
-                  <input
-                    type="text"
-                    value={targetValue}
-                    onChange={(event) => setTargetValue(event.target.value)}
-                    placeholder="service-id, table, resource..."
-                  />
-                </label>
-
-                <label className="full-row">
-                  <span>Reason</span>
-                  <textarea
-                    value={reasonValue}
-                    onChange={(event) => setReasonValue(event.target.value)}
-                    placeholder="Perche questo comando e necessario"
-                    rows={3}
-                  />
-                </label>
-
-                <label className="full-row">
-                  <span>Payload JSON</span>
-                  <textarea
-                    value={payloadValue}
-                    onChange={(event) => setPayloadValue(event.target.value)}
-                    rows={7}
-                    spellCheck={false}
-                  />
-                </label>
-
-                <label className="devplus-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={dryRunValue}
-                    onChange={(event) => setDryRunValue(event.target.checked)}
-                  />
-                  <span>Dry-run attivo (nessuna mutazione definitiva)</span>
-                </label>
-              </div>
-
-              <div className="devplus-inline-actions">
-                <button type="button" onClick={handlePrepareCommand} disabled={commandBusy || authState !== "authenticated"}>
-                  Step 1/2: Prepara comando
-                </button>
-              </div>
-
-              {preparedCommand ? (
-                <article className="devplus-review-card">
-                  <div className="devplus-review-head">
-                    <h4>Review pre-esecuzione</h4>
-                    <span className={normalizeRiskLabel(preparedCommand.riskLevel)}>
-                      risk: {preparedCommand.riskLevel || "medium"}
-                    </span>
-                  </div>
-                  <p className="devplus-muted">{preparedCommand.summary}</p>
-                  <p className="devplus-muted">
-                    Command ID: <code>{preparedCommand.commandId}</code>
-                  </p>
-                  {preparedCommand.confirmationTokenExpiresAt ? (
-                    <p className="devplus-muted">
-                      Token scade: <strong>{formatDateTime(preparedCommand.confirmationTokenExpiresAt)}</strong>
-                    </p>
-                  ) : null}
-
-                  {preparedCommand.preview?.length ? (
-                    <ul className="devplus-preview-list">
-                      {preparedCommand.preview.map((item, index) => (
-                        <li key={`${preparedCommand.commandId}-${index}`}>{item}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-
-                  <label>
-                    <span>
-                      Step 2/2 conferma: digita <code>{preparedCommand.requiresConfirmText || DEFAULT_CONFIRM_TEXT}</code>
-                    </span>
-                    <input type="text" value={confirmText} onChange={(event) => setConfirmText(event.target.value)} />
-                  </label>
-
-                  <button type="button" onClick={handleExecuteCommand} disabled={commandBusy || authState !== "authenticated"}>
-                    Step 2/2: Conferma ed esegui
-                  </button>
-                </article>
-              ) : null}
-
-              <p className={toFeedbackClass(commandFeedback.tone)}>{commandFeedback.text}</p>
-            </section>
-          ) : null}
-
-          {activeView === "audit" ? (
-            <section className="devplus-panel">
-              <h3>Audit View</h3>
-              <p className="devplus-muted">Eventi operativi recenti registrati dal control-plane.</p>
-
-              {auditRows.length ? (
-                <div className="devplus-table-wrap">
-                  <table className="devplus-table">
-                    <thead>
-                      <tr>
-                        <th>Timestamp</th>
-                        <th>Actor</th>
-                        <th>Action</th>
-                        <th>Result</th>
-                        <th>Reason</th>
-                        <th>Dry-run</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {auditRows.map((entry) => (
-                        <tr key={entry.id}>
-                          <td>{formatDateTime(entry.at)}</td>
-                          <td>{entry.actor}</td>
-                          <td>{entry.action}</td>
-                          <td>
-                            <span className={`audit-${entry.result}`}>{entry.result}</span>
-                          </td>
-                          <td>{entry.reason || "-"}</td>
-                          <td>{entry.dryRun ? "yes" : "no"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="feedback feedback-info">Nessun record audit disponibile.</p>
-              )}
-            </section>
-          ) : null}
-
-          {activeView === "render" ? (
-            <section className="devplus-panel">
-              <h3>Render Services</h3>
-              <p className="devplus-muted">Stato servizi Render e ultimo deploy disponibile.</p>
-
-              {renderRows.length ? (
-                <div className="devplus-render-grid">
-                  {renderRows.map((service) => (
-                    <article key={service.id} className="devplus-render-card">
-                      <div className="devplus-render-head">
-                        <strong>{service.name}</strong>
-                        <span className="service-status">{service.status}</span>
-                      </div>
-                      <p>Env: {service.environment}</p>
-                      <p>Region: {service.region || "-"}</p>
-                      <p>Latency: {toDisplayValue(service.latencyMs, "ms")}</p>
-                      <p>Instances: {toDisplayValue(service.instances)}</p>
-                      <p>Updated: {formatDateTime(service.updatedAt)}</p>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <p className="feedback feedback-info">Nessun servizio Render disponibile.</p>
-              )}
-            </section>
-          ) : null}
-
-          {activeView === "db" ? (
-            <section className="devplus-panel">
-              <h3>DB Ops</h3>
-              <p className="devplus-muted">Storico recente delle operazioni database tracciate.</p>
-
-              {dbRows.length ? (
-                <div className="devplus-table-wrap">
-                  <table className="devplus-table">
-                    <thead>
-                      <tr>
-                        <th>Operation</th>
-                        <th>Target</th>
-                        <th>Status</th>
-                        <th>Duration</th>
-                        <th>Started</th>
-                        <th>Finished</th>
-                        <th>Next Run</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dbRows.map((operation) => (
-                        <tr key={operation.id}>
-                          <td>{operation.operation}</td>
-                          <td>{operation.target}</td>
-                          <td>{operation.status}</td>
-                          <td>{toDisplayValue(operation.durationMs, "ms")}</td>
-                          <td>{formatDateTime(operation.startedAt)}</td>
-                          <td>{formatDateTime(operation.finishedAt)}</td>
-                          <td>{formatDateTime(operation.nextRunAt)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="feedback feedback-info">Nessuna operazione DB disponibile.</p>
-              )}
-            </section>
-          ) : null}
-        </div>
+        <p className={toFeedbackClass(commandFeedback.tone)}>{commandFeedback.text}</p>
       </section>
 
-      <footer className="devplus-footer">
+      <section className="cp-card" id="section-mobile-flags">
+        <h2>Feature flags mobile</h2>
+
+        <div className="cp-inline-actions">
+          <button type="button" onClick={() => void loadMobileFlags()} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+            {mobileFlagsBusy ? "Sync..." : "Ricarica"}
+          </button>
+          <button type="button" onClick={() => void handleBulkSetMobileFlags(true)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+            Tutte ON
+          </button>
+          <button type="button" className="ghost" onClick={() => void handleBulkSetMobileFlags(false)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+            Tutte OFF
+          </button>
+          <button type="button" className="ghost" onClick={() => void handleResetMobileFlags()} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+            Reset default
+          </button>
+        </div>
+
+        <p className={toFeedbackClass(mobileFlagsFeedback.tone)}>{mobileFlagsFeedback.text}</p>
+
+        {mobileFlags.length ? (
+          <div className="cp-flag-list">
+            {mobileFlags.map((flag) => (
+              <article key={flag.key} className="cp-flag-item">
+                <div>
+                  <p>
+                    <strong>{flag.label}</strong>
+                  </p>
+                  <p className="cp-muted">
+                    <code>{flag.key}</code> | {flag.category}
+                  </p>
+                </div>
+                <div className="cp-inline-actions">
+                  <span className={flag.enabled ? "cp-on" : "cp-off"}>{flag.enabled ? "ON" : "OFF"}</span>
+                  <button type="button" onClick={() => void handleToggleMobileFlag(flag, !flag.enabled)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+                    {flag.enabled ? "Disattiva" : "Attiva"}
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="cp-feedback cp-feedback-info">Nessuna mobile flag disponibile.</p>
+        )}
+      </section>
+
+      <section className="cp-grid cp-grid-3">
+        <article className="cp-card" id="section-render">
+          <h2>Rilasci</h2>
+          <ul className="cp-list cp-list-plain">
+            {renderRows.length ? (
+              renderRows.slice(0, 12).map((service) => (
+                <li key={service.id}>
+                  <strong>{service.name}</strong> - {service.status} - {service.environment}
+                </li>
+              ))
+            ) : (
+              <li>Nessun dato disponibile.</li>
+            )}
+          </ul>
+        </article>
+
+        <article className="cp-card" id="section-audit">
+          <h2>Registro</h2>
+          <ul className="cp-list cp-list-plain">
+            {auditRows.length ? (
+              auditRows.slice(0, 12).map((entry) => (
+                <li key={entry.id}>
+                  <strong>{entry.action}</strong> ({entry.result}) - {formatDateTime(entry.at)}
+                </li>
+              ))
+            ) : (
+              <li>Nessun dato disponibile.</li>
+            )}
+          </ul>
+        </article>
+
+        <article className="cp-card" id="section-db">
+          <h2>Database</h2>
+          <ul className="cp-list cp-list-plain">
+            {dbRows.length ? (
+              dbRows.slice(0, 12).map((operation) => (
+                <li key={operation.id}>
+                  <strong>{operation.operation}</strong> - {operation.status} - {operation.target}
+                </li>
+              ))
+            ) : (
+              <li>Nessun dato disponibile.</li>
+            )}
+          </ul>
+        </article>
+      </section>
+
+      {snapshotError ? <p className="cp-feedback cp-feedback-warn">{snapshotError}</p> : null}
+
+      <footer className="cp-card cp-footer">
         <p>
           Last refresh: <strong>{snapshot ? formatDateTime(snapshot.refreshedAt) : "-"}</strong>
         </p>
@@ -856,3 +1018,5 @@ const start = () => {
 };
 
 start();
+
+

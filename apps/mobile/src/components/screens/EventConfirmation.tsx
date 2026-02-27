@@ -22,6 +22,7 @@ interface EventConfirmationProps {
   cachet: number;
   tokenAtcl: number;
   pendingBoostRequests: number;
+  allowBoost?: boolean;
   onConfirm: (options: { boostRequested: boolean }) => Promise<ConfirmTurnResult> | ConfirmTurnResult;
   onSuccess: () => void;
   onCancel: () => void;
@@ -33,6 +34,7 @@ export function EventConfirmation({
   cachet,
   tokenAtcl,
   pendingBoostRequests,
+  allowBoost = true,
   onConfirm,
   onSuccess,
   onCancel,
@@ -56,7 +58,7 @@ export function EventConfirmation({
   }), [resolvedRewards]);
 
   const renderedRewards = confirmResult?.rewards ?? (
-    boostRequested && !isOffline ? boostedPreviewRewards : resolvedRewards
+    boostRequested && allowBoost && !isOffline ? boostedPreviewRewards : resolvedRewards
   );
 
   const resolvedEvent = event ?? {
@@ -100,7 +102,7 @@ export function EventConfirmation({
     setIsSubmitting(true);
 
     try {
-      const result = await onConfirm({ boostRequested });
+      const result = await onConfirm({ boostRequested: allowBoost ? boostRequested : false });
       if (!result.ok) {
         window.alert(result.error);
         return;
@@ -224,6 +226,7 @@ export function EventConfirmation({
             <button
               type="button"
               onClick={() => setBoostRequested((prev) => !prev)}
+              disabled={!allowBoost}
               className={`rounded-full px-4 py-2 text-sm transition-colors ${
                 boostRequested
                   ? 'bg-[#f4bf4f] text-[#0f0d0e]'
@@ -235,7 +238,9 @@ export function EventConfirmation({
           </div>
 
           <div className="mt-3 rounded-lg bg-[#241f20] px-3 py-2 text-xs text-[#b8b2b3]">
-            {isOffline
+            {!allowBoost
+              ? 'Boost temporaneamente disattivato da configurazione.'
+              : isOffline
               ? 'Offline: richiesta boost in coda, verifica solo online.'
               : boostRequested
                 ? 'Online: la verifica token avviene lato server al momento della registrazione.'
@@ -260,7 +265,7 @@ export function EventConfirmation({
           <div className="flex items-center justify-around">
             <div className="text-center">
               <TrendingUp className="text-[#f4bf4f] mx-auto mb-2" size={24} />
-              <p className="text-white mb-1">+{boostRequested ? boostedPreviewRewards.xp : resolvedRewards.xp}</p>
+              <p className="text-white mb-1">+{boostRequested && allowBoost ? boostedPreviewRewards.xp : resolvedRewards.xp}</p>
               <p className="text-xs text-[#b8b2b3]">XP</p>
             </div>
 
@@ -272,11 +277,11 @@ export function EventConfirmation({
 
             <div className="text-center">
               <Coins className="text-[#f4bf4f] mx-auto mb-2" size={24} />
-              <p className="text-white mb-1">+{boostRequested ? boostedPreviewRewards.cachet : resolvedRewards.cachet}</p>
+              <p className="text-white mb-1">+{boostRequested && allowBoost ? boostedPreviewRewards.cachet : resolvedRewards.cachet}</p>
               <p className="text-xs text-[#b8b2b3]">Cachet</p>
             </div>
           </div>
-          {boostRequested ? (
+          {boostRequested && allowBoost ? (
             <div className="mt-3 text-xs text-[#f4bf4f] flex items-center gap-2">
               <Zap size={14} />
               Richiesta boost attiva (conferma finale solo lato server).

@@ -26,14 +26,13 @@ export type PageHeroProps = {
 };
 
 export const sharedShortcuts: PageShortcut[] = [
-  { id: "home", label: "Landing", href: "/" },
-  { id: "game", label: "Mobile Ops Hub", href: "/mobile-ops.html" },
-  { id: "map", label: "Mobile Infrastructure", href: "/mobile-infrastructure.html" },
-  { id: "turns", label: "Mobile Data Ops", href: "/mobile-data-ops.html" },
-  { id: "events", label: "Mobile Releases", href: "/mobile-releases.html" },
-  { id: "profile", label: "Mobile Runtime", href: "/mobile-runtime.html" },
-  { id: "avatar", label: "Mobile Access", href: "/mobile-access.html" },
-  { id: "leaderboard", label: "Mobile Audit", href: "/mobile-audit.html" },
+  { id: "home", label: "Dashboard", href: "/" },
+  { id: "commands", label: "Comandi", href: "/?panel=commands" },
+  { id: "deploy", label: "Deploy", href: "/?panel=deploy" },
+  { id: "db", label: "Database", href: "/?panel=db" },
+  { id: "audit", label: "Audit", href: "/?panel=audit" },
+  { id: "flags", label: "Flags", href: "/?panel=flags" },
+  { id: "mobile", label: "Mobile", href: "/?panel=mobile" },
   { id: "privacy", label: "Privacy", href: "/privacy.html" },
 ];
 
@@ -76,7 +75,7 @@ function renderQuickbar(currentPage: string, quickActions: PageShortcut[]) {
   const shortcuts = uniqueActions.map((action) => renderShortcut(action, currentPage)).join("");
   return `
     <div class="quickbar" role="navigation" aria-label="Scorciatoie">
-      <span class="quickbar-label">Navigazione rapida</span>
+      <span class="quickbar-label">Azioni rapide</span>
       <div class="quickbar-actions">
         ${shortcuts}
       </div>
