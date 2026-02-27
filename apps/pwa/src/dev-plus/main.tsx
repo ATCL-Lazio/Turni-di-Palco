@@ -13,7 +13,6 @@ import {
   buildControlPlaneUrl,
   getRoleAdaptiveQuickActions,
   parseControlPlanePreset,
-  type ControlPlaneView,
   type OpsQuickAction,
 } from "../services/ops-sdk";
 import { enforceDesktopOnly } from "../utils/desktop-only";
@@ -38,7 +37,6 @@ import type {
 } from "./types";
 
 type AuthState = "checking" | "anonymous" | "authenticated";
-type ViewId = ControlPlaneView;
 type FeedbackTone = "info" | "ok" | "warn" | "error";
 
 type FeedbackMessage = {
@@ -118,14 +116,6 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
     supportsDryRun: true,
     available: true,
   },
-];
-
-const VIEW_OPTIONS: { id: ViewId; label: string; note: string }[] = [
-  { id: "commands", label: "Comandi", note: "usa preset e conferma" },
-  { id: "mobile-flags", label: "Feature flags", note: "on/off funzioni mobile" },
-  { id: "render", label: "Rilasci", note: "stato servizi online" },
-  { id: "audit", label: "Registro", note: "azioni recenti" },
-  { id: "db", label: "Database", note: "operazioni dati" },
 ];
 
 const DEFAULT_CONFIRM_TEXT = "CONFIRM";
@@ -252,7 +242,6 @@ function App() {
   const [snapshotError, setSnapshotError] = useState("");
 
   const [catalog, setCatalog] = useState<CommandCatalogEntry[]>([]);
-  const [activeView, setActiveView] = useState<ViewId>(initialPreset.view ?? "commands");
 
   const [commandValue, setCommandValue] = useState(initialPreset.commandId ?? DEFAULT_COMMAND_OPTIONS[0].id);
   const [targetValue, setTargetValue] = useState(initialPreset.target ?? "");
@@ -395,7 +384,7 @@ function App() {
       setSession(data.session);
       setValidation(validationResult);
       setAuthState("authenticated");
-      await Promise.all([loadSnapshot(data.session, validationResult), loadCatalog(data.session)]);
+      await Promise.all([loadSnapshot(data.session, validationResult), loadCatalog(data.session), loadMobileFlags()]);
     };
 
     void bootstrap();
@@ -404,7 +393,7 @@ function App() {
       cancelled = true;
       controller.abort();
     };
-  }, [loadCatalog, loadSnapshot]);
+  }, [loadCatalog, loadMobileFlags, loadSnapshot]);
 
   const handleSignIn = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -450,9 +439,9 @@ function App() {
       setValidation(validationResult);
       setAuthState("authenticated");
       setAuthBusy(false);
-      await Promise.all([loadSnapshot(activeSession, validationResult), loadCatalog(activeSession)]);
+      await Promise.all([loadSnapshot(activeSession, validationResult), loadCatalog(activeSession), loadMobileFlags()]);
     },
-    [email, loadCatalog, loadSnapshot, password]
+    [email, loadCatalog, loadMobileFlags, loadSnapshot, password]
   );
 
   const handleSignOut = useCallback(async () => {
@@ -488,11 +477,8 @@ function App() {
       return;
     }
 
-    await Promise.all([loadSnapshot(session, validationResult), loadCatalog(session)]);
-    if (activeView === "mobile-flags") {
-      await loadMobileFlags();
-    }
-  }, [activeView, loadCatalog, loadMobileFlags, loadSnapshot, session]);
+    await Promise.all([loadSnapshot(session, validationResult), loadCatalog(session), loadMobileFlags()]);
+  }, [loadCatalog, loadMobileFlags, loadSnapshot, session]);
 
   const handleToggleMobileFlag = useCallback(
     async (flag: MobileFeatureFlagEntry, enabled: boolean) => {
@@ -582,12 +568,6 @@ function App() {
     setPreparedCommand(null);
     setConfirmText("");
   }, [commandValue, dryRunValue, payloadValue, reasonValue, targetValue]);
-
-  useEffect(() => {
-    if (activeView !== "mobile-flags") return;
-    if (authState !== "authenticated") return;
-    void loadMobileFlags();
-  }, [activeView, authState, loadMobileFlags]);
 
   const buildDraft = useCallback((): { draft?: CommandDraft; error?: string } => {
     if (reasonValue.trim().length < 8) {
@@ -684,7 +664,10 @@ function App() {
   }, [buildDraft, confirmText, handleRefresh, preparedCommand, session]);
 
   const applyQuickAction = useCallback((action: OpsQuickAction) => {
-    if (action.preset.view) setActiveView(action.preset.view);
+    if (action.preset.view) {
+      const section = document.getElementById(`section-${action.preset.view}`);
+      if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
     if (action.preset.commandId) setCommandValue(action.preset.commandId);
     if (action.preset.target) setTargetValue(action.preset.target);
     if (action.preset.reason) setReasonValue(action.preset.reason);
@@ -699,7 +682,6 @@ function App() {
   }, []);
 
   const applyCommandPreset = useCallback((preset: CommandPreset) => {
-    setActiveView("commands");
     setCommandValue(preset.commandId);
     setTargetValue(preset.target ?? "");
     setReasonValue(preset.reason || DEFAULT_PRESET_REASON);
@@ -713,21 +695,6 @@ function App() {
     });
   }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const nextUrl = buildControlPlaneUrl(
-      {
-        view: activeView,
-        commandId: activeView === "commands" ? commandValue : undefined,
-        target: activeView === "commands" ? targetValue || undefined : undefined,
-        dryRun: activeView === "commands" ? dryRunValue : undefined,
-        source: "session",
-      },
-      window.location.pathname || "/control-plane.html"
-    );
-    window.history.replaceState(null, "", nextUrl);
-  }, [activeView, commandValue, dryRunValue, targetValue]);
-
   const auditRows: AuditEntry[] = snapshot?.audit ?? [];
   const renderRows: RenderServiceStatus[] = snapshot?.renderServices ?? [];
   const dbRows: DbOperationStatus[] = snapshot?.dbOperations ?? [];
@@ -735,48 +702,33 @@ function App() {
   const pwaFeatureFlags = Object.entries(appConfig.featureFlags);
 
   return (
-    <main className="devplus-shell">
-      <div className="devplus-grid-bg" aria-hidden="true" />
-
-      <header className="devplus-header">
-        <div className="devplus-brand-wrap">
-          <p className="devplus-kicker">Turni di Palco</p>
+    <main className="cp-shell">
+      <header className="cp-card cp-header">
+        <div>
+          <p className="cp-kicker">Turni di Palco</p>
           <h1>Dashboard comandi semplice</h1>
-          <p className="devplus-subtitle">
-            Un solo flusso: scegli un preset, controlla il risultato e conferma.
-          </p>
+          <p className="cp-muted">Una pagina, flusso lineare, preset pronti.</p>
         </div>
-        <div className="devplus-header-actions">
-          <div className="devplus-links">
-            <a href="/">Dashboard</a>
-            <a href="/mobile/">Mobile</a>
-            <a href={buildControlPlaneUrl({ view: "mobile-flags", source: "header" })}>Feature flags</a>
-          </div>
-          <div className="devplus-endpoint">
-            <span>Server controllo</span>
-            <code>{controlPlaneEndpoint}</code>
-          </div>
+        <div className="cp-links">
+          <a href="/">Dashboard</a>
+          <a href="/mobile/">Mobile</a>
+          <a href={buildControlPlaneUrl({ view: "commands", source: "header" })}>Comandi</a>
         </div>
       </header>
 
-      <section className="devplus-auth-card">
-        <div>
-          <h2>Accesso</h2>
-          <p className="devplus-muted">
-            Accedi con Supabase. Il sistema verifica in automatico se hai i permessi.
-          </p>
-        </div>
+      <section className="cp-card cp-auth">
+        <h2>Accesso</h2>
 
         {!isSupabaseConfigured ? (
-          <p className="feedback feedback-error">
+          <p className="cp-feedback cp-feedback-error">
             Supabase non configurato. Imposta <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code>.
           </p>
         ) : null}
 
-        {authState === "checking" ? <p className="feedback feedback-info">Controllo sessione in corso...</p> : null}
+        {authState === "checking" ? <p className="cp-feedback cp-feedback-info">Controllo sessione in corso...</p> : null}
 
         {authState !== "authenticated" && isSupabaseConfigured ? (
-          <form className="devplus-login-form" onSubmit={handleSignIn}>
+          <form className="cp-login" onSubmit={handleSignIn}>
             <label>
               <span>Email</span>
               <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
@@ -791,24 +743,21 @@ function App() {
                 autoComplete="current-password"
               />
             </label>
-            <button type="submit" disabled={authBusy}>
-              {authBusy ? "Accesso in corso..." : "Accedi"}
-            </button>
+            <button type="submit" disabled={authBusy}>{authBusy ? "Accesso in corso..." : "Accedi"}</button>
           </form>
         ) : null}
 
         {authState === "authenticated" ? (
-          <div className="devplus-session-ok">
-            <div>
-              <p className="devplus-session-user">Sessione attiva: {currentUser}</p>
-              <p className="devplus-muted">
-                Verificata: {formatDateTime(validation?.validatedAt)}
-                {validation?.expiresAt ? ` | Scadenza: ${formatDateTime(validation.expiresAt)}` : ""}
-              </p>
-            </div>
-            <div className="devplus-inline-actions">
+          <div className="cp-session">
+            <p>
+              Sessione: <strong>{currentUser}</strong>
+            </p>
+            <p>
+              Verificata: <strong>{formatDateTime(validation?.validatedAt)}</strong>
+            </p>
+            <div className="cp-inline-actions">
               <button type="button" onClick={handleRefresh} disabled={snapshotBusy}>
-                {snapshotBusy ? "Sync..." : "Aggiorna viste"}
+                {snapshotBusy ? "Sync..." : "Aggiorna tutto"}
               </button>
               <button type="button" className="ghost" onClick={handleSignOut}>
                 Logout
@@ -817,356 +766,222 @@ function App() {
           </div>
         ) : null}
 
-        {validation?.roles?.length ? <p className="devplus-muted">Ruoli disponibili: {validation.roles.join(", ")}</p> : null}
-        {authError ? <p className="feedback feedback-error">{authError}</p> : null}
+        {validation?.roles?.length ? <p className="cp-muted">Ruoli: {validation.roles.join(", ")}</p> : null}
+        {authError ? <p className="cp-feedback cp-feedback-error">{authError}</p> : null}
       </section>
-      <section className="devplus-quick-actions-card">
-        <div>
+
+      <section className="cp-grid cp-grid-2">
+        <article className="cp-card">
+          <h2>Feature flags PWA</h2>
+          <ul className="cp-list">
+            {pwaFeatureFlags.map(([flagKey, enabled]) => (
+              <li key={flagKey}>
+                <strong>{flagKey}</strong>
+                <span className={enabled ? "cp-on" : "cp-off"}>{enabled ? "ON" : "OFF"}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
+
+        <article className="cp-card">
           <h2>Preset rapidi</h2>
-          <p className="devplus-muted">
-            Scegli una voce e il form si compila in automatico.
-          </p>
-        </div>
-        <div className="devplus-quick-actions-grid">
-          {roleActions.map((action) => (
-            <button key={action.id} type="button" className="devplus-quick-action" onClick={() => applyQuickAction(action)}>
-              <strong>{action.label}</strong>
-              <small>{action.note}</small>
-            </button>
-          ))}
-        </div>
+          <div className="cp-preset-grid">
+            {roleActions.map((action) => (
+              <button key={action.id} type="button" className="cp-preset-button" onClick={() => applyQuickAction(action)}>
+                <strong>{action.label}</strong>
+                <small>{action.note}</small>
+              </button>
+            ))}
+            {COMMAND_PRESETS.map((preset) => (
+              <button key={preset.id} type="button" className="cp-preset-button" onClick={() => applyCommandPreset(preset)}>
+                <strong>{preset.label}</strong>
+                <small>{preset.note}</small>
+              </button>
+            ))}
+          </div>
+        </article>
       </section>
 
-      <section className="devplus-glossary-card">
-        <h2>Feature flags PWA</h2>
-        <ul className="devplus-glossary-list">
-          {pwaFeatureFlags.map(([flagKey, enabled]) => (
-            <li key={flagKey}>
-              <strong>{flagKey}</strong>: {enabled ? "ON" : "OFF"}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <section className="cp-card" id="section-commands">
+        <h2>Comando guidato</h2>
+        <p className="cp-muted">Compila i campi, poi usa Step 1 e Step 2.</p>
 
-      {snapshotError ? <p className="feedback feedback-warn">{snapshotError}</p> : null}
+        <div className="cp-command-grid">
+          <label>
+            <span>Azione</span>
+            <select value={commandValue} onChange={(event) => setCommandValue(event.target.value)}>
+              {commandOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
-      <section className="devplus-views-card">
-        <div className="devplus-view-tabs" role="tablist" aria-label="Viste operative">
-          {VIEW_OPTIONS.map((view) => (
-            <button
-              key={view.id}
-              type="button"
-              role="tab"
-              aria-selected={activeView === view.id}
-              className={activeView === view.id ? "active" : ""}
-              onClick={() => setActiveView(view.id)}
-            >
-              <span>{view.label}</span>
-              <small>{view.note}</small>
-            </button>
-          ))}
+          <label>
+            <span>Target (opzionale)</span>
+            <input
+              type="text"
+              value={targetValue}
+              onChange={(event) => setTargetValue(event.target.value)}
+              placeholder="es. servizio o tabella"
+            />
+          </label>
+
+          <label className="cp-full-row">
+            <span>Motivo</span>
+            <textarea value={reasonValue} onChange={(event) => setReasonValue(event.target.value)} rows={3} />
+          </label>
+
+          <label className="cp-full-row">
+            <span>Dati aggiuntivi (JSON)</span>
+            <textarea value={payloadValue} onChange={(event) => setPayloadValue(event.target.value)} rows={7} spellCheck={false} />
+          </label>
+
+          <label className="cp-checkbox cp-full-row">
+            <input type="checkbox" checked={dryRunValue} onChange={(event) => setDryRunValue(event.target.checked)} />
+            <span>Simulazione attiva (nessuna modifica reale)</span>
+          </label>
         </div>
 
-        <div className="devplus-view-content">
-          {activeView === "commands" ? (
-            <section className="devplus-panel">
-              <h3>Pannello comandi</h3>
-              <p className="devplus-muted">
-                Ogni azione richiede un motivo. Puoi prima fare una simulazione senza modifiche.
-              </p>
+        <div className="cp-inline-actions">
+          <button type="button" onClick={handlePrepareCommand} disabled={commandBusy || authState !== "authenticated"}>
+            1) Prepara comando
+          </button>
+        </div>
 
-              <div className="devplus-command-presets">
-                <p className="devplus-muted">Comandi gia pronti</p>
-                <div className="devplus-command-presets-grid">
-                  {COMMAND_PRESETS.map((preset) => (
-                    <button key={preset.id} type="button" className="devplus-preset-button" onClick={() => applyCommandPreset(preset)}>
-                      <strong>{preset.label}</strong>
-                      <small>{preset.note}</small>
-                    </button>
-                  ))}
-                </div>
-              </div>
+        {preparedCommand ? (
+          <article className="cp-review">
+            <p>
+              <strong>Summary:</strong> {preparedCommand.summary}
+            </p>
+            <p>
+              <strong>Rischio:</strong> {preparedCommand.riskLevel || "medio"}
+            </p>
+            <p>
+              <strong>Comando:</strong> <code>{preparedCommand.commandId}</code>
+            </p>
 
-              <div className="devplus-command-grid">
-                <label>
-                  <span>Azione</span>
-                  <select value={commandValue} onChange={(event) => setCommandValue(event.target.value)}>
-                    {commandOptions.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+            {preparedCommand.preview?.length ? (
+              <ul className="cp-list cp-list-plain">
+                {preparedCommand.preview.map((item, index) => (
+                  <li key={`${preparedCommand.commandId}-${index}`}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
 
-                <label>
-                  <span>Elemento da colpire (opzionale)</span>
-                  <input
-                    type="text"
-                    value={targetValue}
-                    onChange={(event) => setTargetValue(event.target.value)}
-                    placeholder="es. nome servizio o tabella"
-                  />
-                </label>
+            <label>
+              <span>
+                2) Digita <code>{preparedCommand.requiresConfirmText || DEFAULT_CONFIRM_TEXT}</code> per confermare
+              </span>
+              <input type="text" value={confirmText} onChange={(event) => setConfirmText(event.target.value)} />
+            </label>
 
-                <label className="full-row">
-                  <span>Motivo</span>
-                  <textarea
-                    value={reasonValue}
-                    onChange={(event) => setReasonValue(event.target.value)}
-                    placeholder="Scrivi perche questa azione e necessaria"
-                    rows={3}
-                  />
-                </label>
+            <button type="button" onClick={handleExecuteCommand} disabled={commandBusy || authState !== "authenticated"}>
+              2) Conferma ed esegui
+            </button>
+          </article>
+        ) : null}
 
-                <label className="full-row">
-                  <span>Dati aggiuntivi (JSON)</span>
-                  <textarea
-                    value={payloadValue}
-                    onChange={(event) => setPayloadValue(event.target.value)}
-                    rows={7}
-                    spellCheck={false}
-                  />
-                </label>
+        <p className={toFeedbackClass(commandFeedback.tone)}>{commandFeedback.text}</p>
+      </section>
 
-                <label className="devplus-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={dryRunValue}
-                    onChange={(event) => setDryRunValue(event.target.checked)}
-                  />
-                  <span>Simulazione attiva (nessuna modifica reale)</span>
-                </label>
-              </div>
+      <section className="cp-card" id="section-mobile-flags">
+        <h2>Feature flags mobile</h2>
 
-              <div className="devplus-inline-actions">
-                <button type="button" onClick={handlePrepareCommand} disabled={commandBusy || authState !== "authenticated"}>
-                  1) Controlla azione
-                </button>
-              </div>
+        <div className="cp-inline-actions">
+          <button type="button" onClick={() => void loadMobileFlags()} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+            {mobileFlagsBusy ? "Sync..." : "Ricarica"}
+          </button>
+          <button type="button" onClick={() => void handleBulkSetMobileFlags(true)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+            Tutte ON
+          </button>
+          <button type="button" className="ghost" onClick={() => void handleBulkSetMobileFlags(false)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+            Tutte OFF
+          </button>
+          <button type="button" className="ghost" onClick={() => void handleResetMobileFlags()} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+            Reset default
+          </button>
+        </div>
 
-              {preparedCommand ? (
-                <article className="devplus-review-card">
-                  <div className="devplus-review-head">
-                    <h4>Controllo prima di eseguire</h4>
-                    <span className={normalizeRiskLabel(preparedCommand.riskLevel)}>
-                      rischio: {preparedCommand.riskLevel || "medio"}
-                    </span>
-                  </div>
-                  <p className="devplus-muted">{preparedCommand.summary}</p>
-                  <p className="devplus-muted">
-                    Codice azione: <code>{preparedCommand.commandId}</code>
+        <p className={toFeedbackClass(mobileFlagsFeedback.tone)}>{mobileFlagsFeedback.text}</p>
+
+        {mobileFlags.length ? (
+          <div className="cp-flag-list">
+            {mobileFlags.map((flag) => (
+              <article key={flag.key} className="cp-flag-item">
+                <div>
+                  <p>
+                    <strong>{flag.label}</strong>
                   </p>
-                  {preparedCommand.confirmationTokenExpiresAt ? (
-                    <p className="devplus-muted">
-                      Token scade: <strong>{formatDateTime(preparedCommand.confirmationTokenExpiresAt)}</strong>
-                    </p>
-                  ) : null}
-
-                  {preparedCommand.preview?.length ? (
-                    <ul className="devplus-preview-list">
-                      {preparedCommand.preview.map((item, index) => (
-                        <li key={`${preparedCommand.commandId}-${index}`}>{item}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-
-                  <label>
-                    <span>
-                      2) Per confermare digita <code>{preparedCommand.requiresConfirmText || DEFAULT_CONFIRM_TEXT}</code>
-                    </span>
-                    <input type="text" value={confirmText} onChange={(event) => setConfirmText(event.target.value)} />
-                  </label>
-
-                  <button type="button" onClick={handleExecuteCommand} disabled={commandBusy || authState !== "authenticated"}>
-                    2) Conferma ed esegui
+                  <p className="cp-muted">
+                    <code>{flag.key}</code> | {flag.category}
+                  </p>
+                </div>
+                <div className="cp-inline-actions">
+                  <span className={flag.enabled ? "cp-on" : "cp-off"}>{flag.enabled ? "ON" : "OFF"}</span>
+                  <button type="button" onClick={() => void handleToggleMobileFlag(flag, !flag.enabled)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+                    {flag.enabled ? "Disattiva" : "Attiva"}
                   </button>
-                </article>
-              ) : null}
-
-              <p className={toFeedbackClass(commandFeedback.tone)}>{commandFeedback.text}</p>
-            </section>
-          ) : null}
-
-          {activeView === "audit" ? (
-            <section className="devplus-panel">
-              <h3>Registro attivitÃ </h3>
-              <p className="devplus-muted">Cronologia delle azioni recenti.</p>
-
-              {auditRows.length ? (
-                <div className="devplus-table-wrap">
-                  <table className="devplus-table">
-                    <thead>
-                      <tr>
-                        <th>Timestamp</th>
-                        <th>Actor</th>
-                        <th>Action</th>
-                        <th>Result</th>
-                        <th>Reason</th>
-                        <th>Dry-run</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {auditRows.map((entry) => (
-                        <tr key={entry.id}>
-                          <td>{formatDateTime(entry.at)}</td>
-                          <td>{entry.actor}</td>
-                          <td>{entry.action}</td>
-                          <td>
-                            <span className={`audit-${entry.result}`}>{entry.result}</span>
-                          </td>
-                          <td>{entry.reason || "-"}</td>
-                          <td>{entry.dryRun ? "yes" : "no"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
-              ) : (
-                <p className="feedback feedback-info">Nessun record audit disponibile.</p>
-              )}
-            </section>
-          ) : null}
-
-          {activeView === "render" ? (
-            <section className="devplus-panel">
-              <h3>Rilasci e servizi</h3>
-              <p className="devplus-muted">Stato servizi e ultima versione pubblicata.</p>
-
-              {renderRows.length ? (
-                <div className="devplus-render-grid">
-                  {renderRows.map((service) => (
-                    <article key={service.id} className="devplus-render-card">
-                      <div className="devplus-render-head">
-                        <strong>{service.name}</strong>
-                        <span className="service-status">{service.status}</span>
-                      </div>
-                      <p>Env: {service.environment}</p>
-                      <p>Region: {service.region || "-"}</p>
-                      <p>Latency: {toDisplayValue(service.latencyMs, "ms")}</p>
-                      <p>Instances: {toDisplayValue(service.instances)}</p>
-                      <p>Updated: {formatDateTime(service.updatedAt)}</p>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <p className="feedback feedback-info">Nessun servizio Render disponibile.</p>
-              )}
-            </section>
-          ) : null}
-
-          {activeView === "db" ? (
-            <section className="devplus-panel">
-              <h3>Operazioni database</h3>
-              <p className="devplus-muted">Storico recente delle operazioni sui dati.</p>
-
-              {dbRows.length ? (
-                <div className="devplus-table-wrap">
-                  <table className="devplus-table">
-                    <thead>
-                      <tr>
-                        <th>Operation</th>
-                        <th>Target</th>
-                        <th>Status</th>
-                        <th>Duration</th>
-                        <th>Started</th>
-                        <th>Finished</th>
-                        <th>Next Run</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dbRows.map((operation) => (
-                        <tr key={operation.id}>
-                          <td>{operation.operation}</td>
-                          <td>{operation.target}</td>
-                          <td>{operation.status}</td>
-                          <td>{toDisplayValue(operation.durationMs, "ms")}</td>
-                          <td>{formatDateTime(operation.startedAt)}</td>
-                          <td>{formatDateTime(operation.finishedAt)}</td>
-                          <td>{formatDateTime(operation.nextRunAt)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="feedback feedback-info">Nessuna operazione DB disponibile.</p>
-              )}
-            </section>
-          ) : null}
-
-          {activeView === "mobile-flags" ? (
-            <section className="devplus-panel">
-              <h3>Interruttori funzioni mobile</h3>
-              <p className="devplus-muted">
-                Accendi o spegni funzioni mobile in tempo reale.
-              </p>
-
-              <div className="devplus-inline-actions">
-                <button type="button" onClick={() => void loadMobileFlags()} disabled={mobileFlagsBusy || authState !== "authenticated"}>
-                  {mobileFlagsBusy ? "Sync..." : "Ricarica flags"}
-                </button>
-                <button type="button" onClick={() => void handleBulkSetMobileFlags(true)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
-                  Attiva tutte
-                </button>
-                <button type="button" className="ghost" onClick={() => void handleBulkSetMobileFlags(false)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
-                  Disattiva tutte
-                </button>
-                <button type="button" className="ghost" onClick={() => void handleResetMobileFlags()} disabled={mobileFlagsBusy || authState !== "authenticated"}>
-                  Reset default (ON)
-                </button>
-              </div>
-
-              <p className={toFeedbackClass(mobileFlagsFeedback.tone)}>{mobileFlagsFeedback.text}</p>
-
-              {mobileFlags.length ? (
-                <div className="devplus-table-wrap">
-                  <table className="devplus-table">
-                    <thead>
-                      <tr>
-                        <th>Categoria</th>
-                        <th>Chiave</th>
-                        <th>Label</th>
-                        <th>Stato</th>
-                        <th>Aggiornata</th>
-                        <th>By</th>
-                        <th>Azioni</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mobileFlags.map((flag) => (
-                        <tr key={flag.key}>
-                          <td>{flag.category}</td>
-                          <td><code>{flag.key}</code></td>
-                          <td title={flag.description}>{flag.label}</td>
-                          <td>{flag.enabled ? "ON" : "OFF"}</td>
-                          <td>{formatDateTime(flag.updatedAt)}</td>
-                          <td>{flag.updatedBy || "-"}</td>
-                          <td>
-                            <div className="devplus-inline-actions">
-                              <button
-                                type="button"
-                                onClick={() => void handleToggleMobileFlag(flag, !flag.enabled)}
-                                disabled={mobileFlagsBusy || authState !== "authenticated"}
-                              >
-                                {flag.enabled ? "Disattiva" : "Attiva"}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="feedback feedback-info">Nessuna mobile feature flag disponibile.</p>
-              )}
-            </section>
-          ) : null}
-        </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="cp-feedback cp-feedback-info">Nessuna mobile flag disponibile.</p>
+        )}
       </section>
 
-      <footer className="devplus-footer">
+      <section className="cp-grid cp-grid-3">
+        <article className="cp-card" id="section-render">
+          <h2>Rilasci</h2>
+          <ul className="cp-list cp-list-plain">
+            {renderRows.length ? (
+              renderRows.slice(0, 12).map((service) => (
+                <li key={service.id}>
+                  <strong>{service.name}</strong> - {service.status} - {service.environment}
+                </li>
+              ))
+            ) : (
+              <li>Nessun dato disponibile.</li>
+            )}
+          </ul>
+        </article>
+
+        <article className="cp-card" id="section-audit">
+          <h2>Registro</h2>
+          <ul className="cp-list cp-list-plain">
+            {auditRows.length ? (
+              auditRows.slice(0, 12).map((entry) => (
+                <li key={entry.id}>
+                  <strong>{entry.action}</strong> ({entry.result}) - {formatDateTime(entry.at)}
+                </li>
+              ))
+            ) : (
+              <li>Nessun dato disponibile.</li>
+            )}
+          </ul>
+        </article>
+
+        <article className="cp-card" id="section-db">
+          <h2>Database</h2>
+          <ul className="cp-list cp-list-plain">
+            {dbRows.length ? (
+              dbRows.slice(0, 12).map((operation) => (
+                <li key={operation.id}>
+                  <strong>{operation.operation}</strong> - {operation.status} - {operation.target}
+                </li>
+              ))
+            ) : (
+              <li>Nessun dato disponibile.</li>
+            )}
+          </ul>
+        </article>
+      </section>
+
+      {snapshotError ? <p className="cp-feedback cp-feedback-warn">{snapshotError}</p> : null}
+
+      <footer className="cp-card cp-footer">
         <p>
           Last refresh: <strong>{snapshot ? formatDateTime(snapshot.refreshedAt) : "-"}</strong>
         </p>
@@ -1201,4 +1016,5 @@ const start = () => {
 };
 
 start();
+
 
