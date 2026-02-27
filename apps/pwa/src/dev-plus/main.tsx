@@ -180,6 +180,10 @@ const MOBILE_FLAG_DEFAULTS: MobileFeatureFlagEntry[] = [
   { key: "mobile.action.shop_purchase", enabled: true, label: "Azione Acquisto Shop", description: "Abilita acquisti shop.", category: "action" },
 ];
 
+const MOBILE_FLAG_FALLBACK_ENTRIES: MobileFeatureFlagEntry[] = MOBILE_FLAG_DEFAULTS.map((entry) => ({
+  ...entry,
+}));
+
 function formatDateTime(value?: string) {
   if (!value) return "-";
   const date = new Date(value);
@@ -257,7 +261,7 @@ function App() {
     tone: "info",
     text: "Pronto. Seleziona un'azione, controlla e poi conferma.",
   });
-  const [mobileFlags, setMobileFlags] = useState<MobileFeatureFlagEntry[]>([]);
+  const [mobileFlags, setMobileFlags] = useState<MobileFeatureFlagEntry[]>(MOBILE_FLAG_FALLBACK_ENTRIES);
   const [mobileFlagsBusy, setMobileFlagsBusy] = useState(false);
   const [mobileFlagsFeedback, setMobileFlagsFeedback] = useState<FeedbackMessage>({
     tone: "info",
@@ -304,11 +308,15 @@ function App() {
 
   const loadMobileFlags = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) {
-      setMobileFlags([]);
+      setMobileFlags(MOBILE_FLAG_FALLBACK_ENTRIES);
       setMobileFlagsFeedback({ tone: "warn", text: "Supabase non configurato: impossibile leggere le mobile feature flags." });
       return;
     }
-    if (authState !== "authenticated") return;
+    if (authState !== "authenticated") {
+      setMobileFlags(MOBILE_FLAG_FALLBACK_ENTRIES);
+      setMobileFlagsFeedback({ tone: "info", text: "Preset locali visibili. Effettua login per leggere e modificare lo stato reale." });
+      return;
+    }
 
     setMobileFlagsBusy(true);
     const { data, error } = await supabase
@@ -319,6 +327,7 @@ function App() {
     setMobileFlagsBusy(false);
 
     if (error) {
+      setMobileFlags(MOBILE_FLAG_FALLBACK_ENTRIES);
       setMobileFlagsFeedback({ tone: "error", text: error.message || "Lettura feature flags fallita." });
       return;
     }
@@ -333,13 +342,17 @@ function App() {
       updatedBy: typeof row.updated_by === "string" ? row.updated_by : null,
     }));
 
+    if (!next.length) {
+      setMobileFlags(MOBILE_FLAG_FALLBACK_ENTRIES);
+      setMobileFlagsFeedback({
+        tone: "warn",
+        text: "Nessuna feature flag remota trovata: uso preset locali ON.",
+      });
+      return;
+    }
+
     setMobileFlags(next);
-    setMobileFlagsFeedback({
-      tone: "ok",
-      text: next.length
-        ? `${next.length} feature flags mobile caricate.`
-        : "Nessuna feature flag trovata: usa il reset per inizializzare.",
-    });
+    setMobileFlagsFeedback({ tone: "ok", text: `${next.length} feature flags mobile caricate.` });
   }, [authState]);
 
   useEffect(() => {
@@ -452,7 +465,7 @@ function App() {
     setValidation(null);
     setSnapshot(null);
     setCatalog([]);
-    setMobileFlags([]);
+    setMobileFlags(MOBILE_FLAG_FALLBACK_ENTRIES);
     setAuthState("anonymous");
     setPassword("");
     setCommandFeedback({ tone: "info", text: "Sessione chiusa." });
