@@ -16,6 +16,7 @@ interface ATCLTurnsProps {
   onViewEvent: (eventId: string) => void;
   onViewMap: () => void;
   onScanQR: () => void;
+  canScanQr?: boolean;
 }
 
 export function ATCLTurns({
@@ -25,6 +26,7 @@ export function ATCLTurns({
   onViewEvent,
   onViewMap,
   onScanQR,
+  canScanQr = true,
 }: ATCLTurnsProps) {
   const stats = useMemo(() => {
     const totalXp = events.reduce((acc, event) => acc + event.baseRewards.xp, 0);
@@ -68,7 +70,7 @@ export function ATCLTurns({
           <p className="text-[#b8b2b3]">Tutti gli eventi disponibili</p>
         </div>
 
-        <ScanQRCard onScanQR={onScanQR} />
+        {canScanQr ? <ScanQRCard onScanQR={onScanQR} /> : null}
         {showTurnsTicker ? (
           <AtclNewsTicker items={turnsTickerItems} />
         ) : turnsPromotion ? (
@@ -190,10 +192,12 @@ export function ATCLTurns({
             <p className="text-[#b8b2b3] mb-6 max-w-xs mx-auto">
               Torna piu tardi o aggiorna la lista eventi.
             </p>
-            <Button variant="primary" onClick={onScanQR}>
-              <QrCode size={18} />
-              Scansiona QR
-            </Button>
+            {canScanQr ? (
+              <Button variant="primary" onClick={onScanQR}>
+                <QrCode size={18} />
+                Scansiona QR
+              </Button>
+            ) : null}
           </Card>
         )}
       </div>

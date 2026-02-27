@@ -38,7 +38,7 @@ describe("main shell", () => {
     const heading = document.querySelector("h1");
     const connectionStatus = document.querySelector("[data-connection]");
 
-    expect(heading?.textContent).toContain("Mobile Monitoring Dashboard");
+    expect(heading?.textContent).toContain("Ops Dashboard");
     expect(connectionStatus).not.toBeNull();
     expect(registerServiceWorker).toHaveBeenCalledTimes(1);
   });
