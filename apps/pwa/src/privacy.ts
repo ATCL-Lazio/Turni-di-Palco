@@ -1,5 +1,4 @@
-import "../../../shared/styles/main.css";
-import { renderPageHero } from "./components/page-hero";
+﻿import "../../../shared/styles/main.css";
 import { enforceDesktopOnly } from "./utils/desktop-only";
 
 const IUBENDA_PRIVACY_POLICY_URL = "https://www.iubenda.com/privacy-policy/78603233";
@@ -18,42 +17,28 @@ function ensureIubendaScript() {
 
 const start = () => {
   if (enforceDesktopOnly()) return;
+
   const root = document.querySelector<HTMLDivElement>("#app");
-
-  if (!root) {
-    throw new Error("Root container missing");
-  }
-
-  const pageHero = renderPageHero({
-    title: "Privacy Policy",
-    description: "Informativa sul trattamento dati",
-    currentPage: "privacy",
-    breadcrumbs: [
-      { label: "Home", href: "/" },
-      { label: "Privacy" },
-    ],
-    backHref: "/",
-    backLabel: "Torna alla landing",
-  });
+  if (!root) throw new Error("Root container missing");
 
   root.innerHTML = `
-    <main class="page page-game layout-shell">
-      ${pageHero}
+    <main class="tdp-privacy">
+      <section class="tdp-privacy-card">
+        <p class="tdp-kicker">Turni di Palco</p>
+        <h1>Privacy</h1>
+        <p>Informativa ufficiale pubblicata tramite Iubenda.</p>
+        <div class="tdp-privacy-actions">
+          <a class="tdp-btn tdp-btn-primary" href="/">Torna alla dashboard</a>
+          <a class="tdp-btn tdp-btn-ghost" href="/mobile/">Apri app mobile</a>
+        </div>
+      </section>
 
-      <section class="grid layout-grid">
-        <article class="card layout-span-2 layout-stack">
-          <p class="muted">
-            L’informativa completa sulla privacy è pubblicata e mantenuta tramite Iubenda.
-          </p>
-          <div class="legal-embed" data-legal-embed>
-            <a href="${IUBENDA_PRIVACY_POLICY_URL}" class="${IUBENDA_ANCHOR_CLASSES}" title="Privacy Policy">
-              Privacy Policy
-            </a>
-          </div>
-          <p class="muted">
-            Nota: è necessaria una connessione internet per caricare il documento.
-          </p>
-        </article>
+      <section class="tdp-privacy-card">
+        <div class="legal-embed" data-legal-embed>
+          <a href="${IUBENDA_PRIVACY_POLICY_URL}" class="${IUBENDA_ANCHOR_CLASSES}" title="Privacy Policy">
+            Privacy Policy
+          </a>
+        </div>
       </section>
     </main>
   `;
@@ -61,4 +46,4 @@ const start = () => {
   ensureIubendaScript();
 };
 
-void start();
+start();
