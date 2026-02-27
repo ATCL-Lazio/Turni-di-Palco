@@ -1,25 +1,29 @@
 ﻿import React from 'react';
-import { Home, ListChecks, Ticket, Trophy, User } from 'lucide-react';
+import { Home, ListChecks, ShoppingBag, Ticket, Trophy, User } from 'lucide-react';
 import { Tab } from '../types/navigation';
 
 interface BottomNavProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
+  enabledTabs?: readonly Tab[];
 }
 
-export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
+export function BottomNav({ activeTab, onTabChange, enabledTabs }: BottomNavProps) {
   const tabs = [
     { id: 'home' as const, icon: Home, label: 'Home' },
     { id: 'turns' as const, icon: Ticket, label: 'Turni ATCL' },
     { id: 'leaderboard' as const, icon: Trophy, label: 'Classifica' },
     { id: 'activities' as const, icon: ListChecks, label: 'Attività' },
+    { id: 'shop' as const, icon: ShoppingBag, label: 'Shop' },
     { id: 'profile' as const, icon: User, label: 'Profilo' }
   ];
+  const allowedTabs = enabledTabs ? new Set(enabledTabs) : null;
+  const visibleTabs = allowedTabs ? tabs.filter((tab) => allowedTabs.has(tab.id)) : tabs;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 w-full app-nav bg-[#1a1617] border-t border-[#2d2728] z-50">
       <div className="app-content flex items-end justify-between gap-1 h-[72px] px-4 pb-4 pt-2">
-        {tabs.map((tab) => {
+        {visibleTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
 

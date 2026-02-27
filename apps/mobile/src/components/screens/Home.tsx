@@ -51,6 +51,9 @@ interface HomeProps {
   eventLoading?: boolean;
   eventError?: boolean;
   statsLoading?: boolean;
+  allowScanQr?: boolean;
+  allowTurnsSection?: boolean;
+  allowActivitiesSection?: boolean;
   onScanQR: () => void;
   onViewActivities: () => void;
   onViewTurni: () => void;
@@ -81,6 +84,9 @@ export function Home({
   eventLoading = false,
   eventError = false,
   statsLoading = false,
+  allowScanQr = true,
+  allowTurnsSection = true,
+  allowActivitiesSection = true,
   onScanQR,
   onViewActivities,
   onViewTurni,
@@ -249,17 +255,18 @@ export function Home({
           ) : null}
         </header>
 
-        <ScanQRCard onScanQR={onScanQR} className="mt-5" />
+        {allowScanQr ? <ScanQRCard onScanQR={onScanQR} className="mt-5" /> : null}
         {showHomeTicker ? (
           <AtclNewsTicker items={homeTickerItems} />
         ) : homePromotion ? (
           <AtclPromoBanner promotion={homePromotion} />
         ) : null}
 
+        {allowTurnsSection ? (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>Prossimo evento</h3>
-            {eventState === 'ready' ? (
+            {eventState === 'ready' && allowTurnsSection ? (
               <button
                 onClick={onViewEventDetails}
                 className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
@@ -271,8 +278,8 @@ export function Home({
           </div>
 
           <Card 
-            hoverable={eventState === 'ready'} 
-            onClick={eventState === 'ready' ? onViewTurni : undefined}
+            hoverable={eventState === 'ready' && allowTurnsSection}
+            onClick={eventState === 'ready' && allowTurnsSection ? onViewTurni : undefined}
             animateOnMount
           >
             {eventState === 'loading' ? (
@@ -294,12 +301,16 @@ export function Home({
                 <p className="text-white">Nessun evento in programma</p>
                 <p className="text-sm text-[#b8b2b3]">Aggiungi un evento o registra un turno dal QR.</p>
                 <div className="flex gap-2">
-                  <Button variant="secondary" size="sm" onClick={onScanQR}>
-                    Scansiona QR
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={onViewTurni}>
-                    Vedi turni
-                  </Button>
+                  {allowScanQr ? (
+                    <Button variant="secondary" size="sm" onClick={onScanQR}>
+                      Scansiona QR
+                    </Button>
+                  ) : null}
+                  {allowTurnsSection ? (
+                    <Button variant="ghost" size="sm" onClick={onViewTurni}>
+                      Vedi turni
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             ) : (
@@ -329,16 +340,20 @@ export function Home({
                     <Navigation size={16} className="text-white" />
                     <div className="text-white">Naviga</div>
                   </Button>
-                  <Button variant="ghost" size="sm" className="flex-1 justify-center min-h-[44px]" onClick={onViewTurni}>
-                    <CalendarPlus size={16} />
-                    Aggiungi
-                  </Button>
+                  {allowTurnsSection ? (
+                    <Button variant="ghost" size="sm" className="flex-1 justify-center min-h-[44px]" onClick={onViewTurni}>
+                      <CalendarPlus size={16} />
+                      Aggiungi
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             )}
           </Card>
         </section>
+        ) : null}
 
+        {allowActivitiesSection ? (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>Turni ATCL</h3>
@@ -366,6 +381,7 @@ export function Home({
             )}
           </Card>
         </section>
+        ) : null}
 
         <section className="space-y-3">
           <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>Attività simulate</h3>

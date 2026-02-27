@@ -8,20 +8,25 @@ const NAV_STATE_VERSION = 1 as const;
 const VALID_SCREENS = new Set<Screen>([
     'welcome', 'login', 'signup', 'install', 'role-selection',
     'home', 'turns', 'leaderboard', 'qr-scanner', 'event-confirmation',
-    'event-details', 'activities', 'activity-detail', 'activity-minigame', 'activity-result', 'profile',
+    'event-details', 'activities', 'shop', 'activity-detail', 'activity-minigame', 'activity-result', 'profile',
     'account-settings', 'support', 'change-password', 'career',
     'terms', 'privacy', 'earned-titles',
     'ticket-qr-prototype',
 ]);
 
-const VALID_TABS = new Set<Tab>(['home', 'turns', 'leaderboard', 'activities', 'profile']);
+const VALID_TABS = new Set<Tab>(['home', 'turns', 'leaderboard', 'activities', 'shop', 'profile']);
 
 const VALID_LEGAL_RETURN_SCREENS = new Set<LegalReturnScreen>([
     'welcome', 'login', 'signup', 'role-selection', 'home', 'turns',
-    'qr-scanner', 'event-confirmation', 'activities', 'activity-detail', 'activity-minigame', 'activity-result',
+    'qr-scanner', 'event-confirmation', 'activities', 'shop', 'activity-detail', 'activity-minigame', 'activity-result',
     'profile', 'account-settings', 'support', 'change-password',
     'career', 'earned-titles', 'ticket-qr-prototype',
 ]);
+
+type UseNavigationOptions = {
+    isScreenEnabled?: (screen: Screen) => boolean;
+    isTabEnabled?: (tab: Tab) => boolean;
+};
 
 function readNavState(): PersistedNavState | null {
     if (typeof window === 'undefined') return null;
@@ -67,16 +72,40 @@ function getScreenToPersist(screen: Screen, activeTab: Tab): Screen {
     return screen;
 }
 
-export function useNavigation(initialEvents: { id: string }[]) {
+function resolveFallbackTab(isTabEnabled?: (tab: Tab) => boolean): Tab {
+    const fallbackOrder: Tab[] = ['home', 'profile', 'turns', 'activities', 'leaderboard', 'shop'];
+    if (!isTabEnabled) return 'home';
+    return fallbackOrder.find((candidate) => isTabEnabled(candidate)) ?? 'home';
+}
+
+function resolveFallbackScreen(isTabEnabled?: (tab: Tab) => boolean): Screen {
+    return resolveFallbackTab(isTabEnabled);
+}
+
+export function useNavigation(initialEvents: { id: string }[], options?: UseNavigationOptions) {
+    const isScreenEnabled = options?.isScreenEnabled;
+    const isTabEnabled = options?.isTabEnabled;
+
     const persistedNavState = useMemo(() => {
         const persisted = readNavState();
         if (!persisted) return null;
+
+        let nextTab = persisted.activeTab;
+        if (isTabEnabled && !isTabEnabled(nextTab)) {
+            nextTab = resolveFallbackTab(isTabEnabled);
+        }
+
         let nextScreen = persisted.screen;
         if ((nextScreen === 'activity-detail' || nextScreen === 'activity-minigame' || nextScreen === 'activity-result') && !persisted.selectedActivityId) {
             nextScreen = 'activities';
         }
         if (nextScreen === 'event-confirmation' && !persisted.scannedEventId) nextScreen = 'turns';
-        nextScreen = getScreenToPersist(nextScreen, persisted.activeTab);
+
+        nextScreen = getScreenToPersist(nextScreen, nextTab);
+        if (isScreenEnabled && !isScreenEnabled(nextScreen)) {
+            nextScreen = resolveFallbackScreen(isTabEnabled);
+        }
+
         if (!hasStoredAuthState() && !PUBLIC_SCREENS.has(nextScreen)) {
             return {
                 ...persisted,
@@ -88,8 +117,13 @@ export function useNavigation(initialEvents: { id: string }[]) {
                 selectedActivityId: '',
             };
         }
-        return { ...persisted, screen: nextScreen };
-    }, []);
+
+        return {
+            ...persisted,
+            screen: nextScreen,
+            activeTab: nextTab,
+        };
+    }, [isScreenEnabled, isTabEnabled]);
 
     const [currentScreen, setCurrentScreen] = useState<Screen>(() => persistedNavState?.screen ?? 'welcome');
     const [legalReturnScreen, setLegalReturnScreen] = useState<LegalReturnScreen>(() => persistedNavState?.legalReturnScreen ?? 'welcome');
@@ -102,20 +136,45 @@ export function useNavigation(initialEvents: { id: string }[]) {
     useEffect(() => { currentScreenRef.current = currentScreen; }, [currentScreen]);
 
     useEffect(() => {
+        if (isTabEnabled && !isTabEnabled(activeTab)) {
+            const fallbackTab = resolveFallbackTab(isTabEnabled);
+            setActiveTab(fallbackTab);
+            if (!isScreenEnabled || !isScreenEnabled(currentScreen)) {
+                setCurrentScreen(fallbackTab);
+            }
+            return;
+        }
+
+        if (isScreenEnabled && !isScreenEnabled(currentScreen)) {
+            setCurrentScreen(resolveFallbackScreen(isTabEnabled));
+        }
+    }, [activeTab, currentScreen, isScreenEnabled, isTabEnabled]);
+
+    useEffect(() => {
+        const persistedTab = isTabEnabled && !isTabEnabled(activeTab)
+            ? resolveFallbackTab(isTabEnabled)
+            : activeTab;
+
+        const persistedScreenRaw = getScreenToPersist(currentScreen, persistedTab);
+        const persistedScreen = isScreenEnabled && !isScreenEnabled(persistedScreenRaw)
+            ? resolveFallbackScreen(isTabEnabled)
+            : persistedScreenRaw;
+
         writeNavState({
             version: NAV_STATE_VERSION,
-            screen: getScreenToPersist(currentScreen, activeTab),
-            activeTab,
+            screen: persistedScreen,
+            activeTab: persistedTab,
             legalReturnScreen,
             isPasswordRecovery,
             scannedEventId,
             selectedActivityId,
         });
-    }, [activeTab, currentScreen, isPasswordRecovery, legalReturnScreen, scannedEventId, selectedActivityId]);
+    }, [activeTab, currentScreen, isPasswordRecovery, isScreenEnabled, isTabEnabled, legalReturnScreen, scannedEventId, selectedActivityId]);
 
     const handleTabChange = (tab: Tab) => {
-        setActiveTab(tab);
-        setCurrentScreen(tab);
+        const nextTab = isTabEnabled && !isTabEnabled(tab) ? resolveFallbackTab(isTabEnabled) : tab;
+        setActiveTab(nextTab);
+        setCurrentScreen(nextTab);
     };
 
     return {

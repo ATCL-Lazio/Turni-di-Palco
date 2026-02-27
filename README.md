@@ -79,6 +79,12 @@ npm run test:pwa
 
 ## Dev Dashboard + Control Plane
 
+Architettura attuale (v0.6):
+
+- Entrypoint operativo unico: `/` (Ops Dashboard single-page con pannelli dinamici via `?panel=`).
+- URL legacy (`/mobile-ops.html`, `/mobile-runtime.html`, `/mobile-data-ops.html`, ecc.) restano supportati ma fanno redirect verso la dashboard.
+- `control-plane.html` resta disponibile come modulo tecnico (embed/apertura diretta) e supporta deeplink preset (`view`, `command`, `target`, `dryRun`, `payload`, `source`).
+
 Configurazione locale consigliata:
 
 1. Imposta le variabili da `.env.example` (root) e `apps/pwa/.env.example`.
@@ -103,6 +109,12 @@ Variabili principali:
 - `CONTROL_PLANE_CONFIRM_TTL_MS`
 - `RENDER_API_KEY`
 - `RENDER_SERVICE_IDS_JSON`
+
+Esempi deeplink Control Plane:
+
+- `/control-plane.html?view=commands&command=render.deployments.trigger&dryRun=true`
+- `/control-plane.html?view=db&command=supabase.db.read&dryRun=true`
+- `/control-plane.html?view=mobile-flags`
 
 Deploy Render:
 
