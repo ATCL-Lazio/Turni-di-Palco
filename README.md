@@ -43,7 +43,7 @@ La progressione non dipende solo dal gioco: cresce davvero quando si partecipa a
 3. Registri la presenza agli eventi tramite QR code.
 4. Guadagni esperienza, reputazione e nuovi traguardi.
 
-<a href="https://turni-di-palco-fq85.onrender.com/mobile"><img src=".temp/qrcodes/RenderStaticQR.png" alt="RenderStaticQR" width="200" height="200" style="margin: 20px;"></a>
+<a href="https://turni-di-palco-fq85.onrender.com/mobile"><img src="assets\images\RenderStaticQR.png" alt="RenderStaticQR" width="200" height="200" style="margin: 20px;"></a>
 
 ## Struttura del repository
 
@@ -135,3 +135,15 @@ Deploy GitHub (`sync-deploy-branches.yml`):
 ## Contributi
 
 Per linee guida di collaborazione e convenzioni di sviluppo, vedi [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Ticket QR Generator
+
+All'interno della cartella `tools/ticket_qr_generator` si trova lo script per generare i QR Code dei ticket, utilizzabile dalle biglietterie .
+
+Per utilizzare lo script, eseguire da linea di comando:
+```bash
+python ticket_qr_generator.py
+```
+oppure aprire il file `ticket_qr_generator_ui.py` con un editor di testo e eseguirlo.
+
+![Screenshot dell'app](<assets/images/Screenshot 2026-02-27 121448.png>)
