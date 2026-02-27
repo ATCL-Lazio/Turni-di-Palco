@@ -1,58 +1,42 @@
 ﻿import "../../../shared/styles/main.css";
 import { renderPageHero } from "./components/page-hero";
-import { renderPermissionsCard, attachPermissionsListeners } from "./features/permissions-card";
-import { renderStatusCard, attachStatusListeners } from "./features/status-card";
 import { requireDevAccess } from "./services/dev-gate";
-import { isFeatureEnabled } from "./services/feature-flags";
 import { appConfig, getConfigWarnings } from "./services/app-config";
 import { buildControlPlaneUrl } from "./services/ops-sdk";
 import { enforceDesktopOnly } from "./utils/desktop-only";
 
-type OpsShortcut = {
-  id: "commands" | "render" | "db" | "audit" | "mobile-flags";
+type MainAction = {
+  id: "commands" | "render" | "audit";
   label: string;
   description: string;
 };
 
-const OPS_SHORTCUTS: OpsShortcut[] = [
+const MAIN_ACTIONS: MainAction[] = [
   {
     id: "commands",
-    label: "Comandi",
-    description: "Azioni guidate in due passaggi.",
+    label: "Esegui un comando",
+    description: "Apri il flusso guidato per fare una modifica.",
   },
   {
     id: "render",
-    label: "Rilasci",
-    description: "Controlla cosa e davvero online.",
-  },
-  {
-    id: "db",
-    label: "Database",
-    description: "Consulta o aggiorna dati in sicurezza.",
+    label: "Controlla i rilasci",
+    description: "Verifica quale versione e online.",
   },
   {
     id: "audit",
-    label: "Registro",
-    description: "Storico operazioni eseguite.",
-  },
-  {
-    id: "mobile-flags",
-    label: "Interruttori",
-    description: "Accendi o spegni funzioni mobile.",
+    label: "Vedi il registro",
+    description: "Controlla le operazioni recenti.",
   },
 ];
 
-function renderOpsCards() {
-  return OPS_SHORTCUTS.map((shortcut) => {
-    const href = buildControlPlaneUrl({ view: shortcut.id, source: "ops-dashboard" });
+function renderMainActions() {
+  return MAIN_ACTIONS.map((action) => {
+    const href = buildControlPlaneUrl({ view: action.id, source: "ops-dashboard" });
     return `
-      <article class="card">
-        <h2>${shortcut.label}</h2>
-        <p>${shortcut.description}</p>
-        <div class="cta-row">
-          <a class="button ghost small" href="${href}" target="_blank" rel="noreferrer">Apri ${shortcut.label}</a>
-        </div>
-      </article>
+      <li>
+        <a class="button ghost" href="${href}" target="_blank" rel="noreferrer">${action.label}</a>
+        <p class="muted">${action.description}</p>
+      </li>
     `;
   }).join("");
 }
@@ -70,12 +54,11 @@ const start = async () => {
 
   const hero = renderPageHero({
     title: "Turni di Palco",
-    description: "Dashboard unica: tutto in una pagina, senza embed.",
+    description: "Dashboard comandi semplificata: scegli un'azione e apri.",
     currentPage: "home",
     breadcrumbs: [{ label: "Dashboard" }],
     quickActions: [
       { id: "mobile", label: "App mobile", href: "/mobile/" },
-      { id: "privacy", label: "Privacy", href: "/privacy.html" },
       { id: "commands", label: "Comandi", href: buildControlPlaneUrl({ view: "commands", source: "ops-dashboard" }) },
     ],
     ctaRow: [
@@ -95,49 +78,42 @@ const start = async () => {
     ],
   });
 
-  const showStatusCard = isFeatureEnabled("status-card");
-  const showPermissionsCard = isFeatureEnabled("permissions-card");
-
   root.innerHTML = `
     <main class="page">
       <section class="layout-stack" id="hero">
         ${hero}
         <div class="badges">
+          <span class="badge">Semplice</span>
+          <span class="badge">3 azioni</span>
           <span class="badge">1 pagina</span>
-          <span class="badge">Zero embed</span>
-          <span class="badge">Flusso guidato</span>
         </div>
       </section>
 
       <section class="grid layout-grid simple-grid">
         <article class="card layout-span-2">
-          <h2>Inizia da qui</h2>
-          <p>Usa i pulsanti qui sotto. Non servono passaggi tecnici.</p>
-          <div class="cta-row">
-            <a class="button primary" href="/mobile/">Apri app mobile</a>
-            <a class="button ghost" href="/privacy.html">Privacy</a>
-          </div>
-          <ul class="list step-list">
-            <li><strong>1.</strong> Apri l&apos;app mobile.</li>
-            <li><strong>2.</strong> Accedi o registrati.</li>
-            <li><strong>3.</strong> Scansiona il QR per registrare il turno.</li>
+          <h2>Cosa vuoi fare?</h2>
+          <ul class="list simple-action-list">
+            ${renderMainActions()}
           </ul>
         </article>
 
-        ${renderOpsCards()}
+        <article class="card">
+          <h2>Avanzate</h2>
+          <p>Usa queste opzioni solo se necessario.</p>
+          <div class="cta-row">
+            <a class="button ghost small" href="${buildControlPlaneUrl({ view: "db", source: "ops-dashboard" })}" target="_blank" rel="noreferrer">Database</a>
+            <a class="button ghost small" href="${buildControlPlaneUrl({ view: "mobile-flags", source: "ops-dashboard" })}" target="_blank" rel="noreferrer">Interruttori</a>
+          </div>
+        </article>
 
-        <article class="card layout-span-2">
-          <h2>Stato configurazione</h2>
+        <article class="card">
+          <h2>Stato</h2>
           <ul class="list">
             <li><strong>Ambiente:</strong> ${appConfig.environment}</li>
-            <li><strong>Modalita pubblica:</strong> ${appConfig.publicMode ? "attiva" : "disattiva"}</li>
-            <li><strong>Supabase:</strong> ${appConfig.supabase.configured ? "configurato" : "mancante"}</li>
+            <li><strong>Supabase:</strong> ${appConfig.supabase.configured ? "ok" : "da configurare"}</li>
           </ul>
-          ${configWarnings.length ? `<p class="muted">${configWarnings.join(" | ")}</p>` : '<p class="muted">Nessun warning critico.</p>'}
+          ${configWarnings.length ? `<p class="muted">${configWarnings.join(" | ")}</p>` : '<p class="muted">Nessun problema rilevato.</p>'}
         </article>
-
-        ${showStatusCard ? renderStatusCard() : ""}
-        ${showPermissionsCard ? renderPermissionsCard() : ""}
       </section>
     </main>
   `;
@@ -145,13 +121,6 @@ const start = async () => {
   const refreshButton = root.querySelector<HTMLElement>('[data-action="refresh"]');
   if (refreshButton) {
     refreshButton.addEventListener("click", () => window.location.reload());
-  }
-
-  if (showStatusCard) {
-    attachStatusListeners(root, '[data-action="refresh"]');
-  }
-  if (showPermissionsCard) {
-    attachPermissionsListeners(root);
   }
 };
 
