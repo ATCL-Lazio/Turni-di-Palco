@@ -192,6 +192,39 @@ const MOBILE_FLAG_FALLBACK_ENTRIES: MobileFeatureFlagEntry[] = MOBILE_FLAG_DEFAU
   ...entry,
 }));
 
+const MOBILE_FLAG_DEFAULTS_BY_KEY = new Map(
+  MOBILE_FLAG_DEFAULTS.map((entry) => [entry.key, entry] as const)
+);
+
+function mergeMobileFlagEntries(rows: MobileFeatureFlagEntry[]): MobileFeatureFlagEntry[] {
+  const merged = new Map<string, MobileFeatureFlagEntry>();
+
+  MOBILE_FLAG_FALLBACK_ENTRIES.forEach((entry) => {
+    merged.set(entry.key, { ...entry });
+  });
+
+  rows.forEach((entry) => {
+    const fallback = MOBILE_FLAG_DEFAULTS_BY_KEY.get(entry.key);
+    if (fallback) {
+      merged.set(entry.key, {
+        ...fallback,
+        ...entry,
+        label: entry.label || fallback.label,
+        description: entry.description || fallback.description,
+        category: entry.category || fallback.category,
+      });
+      return;
+    }
+
+    merged.set(entry.key, entry);
+  });
+
+  return Array.from(merged.values()).sort((a, b) => {
+    if (a.category !== b.category) return String(a.category).localeCompare(String(b.category));
+    return a.key.localeCompare(b.key);
+  });
+}
+
 function formatDateTime(value?: string) {
   if (!value) return "-";
   const date = new Date(value);
@@ -346,7 +379,7 @@ function App() {
       return;
     }
 
-    const next = (data ?? []).map((row) => ({
+    const remoteEntries = (data ?? []).map((row) => ({
       key: String(row.key ?? ""),
       enabled: Boolean(row.enabled),
       label: String(row.label ?? row.key ?? ""),
@@ -356,17 +389,25 @@ function App() {
       updatedBy: typeof row.updated_by === "string" ? row.updated_by : null,
     }));
 
-    if (!next.length) {
-      setMobileFlags(MOBILE_FLAG_FALLBACK_ENTRIES);
+    const mergedEntries = mergeMobileFlagEntries(remoteEntries);
+    setMobileFlags(mergedEntries);
+
+    if (!remoteEntries.length) {
       setMobileFlagsFeedback({
         tone: "warn",
-        text: "Nessuna feature flag remota trovata: uso preset locali ON.",
+        text: `Nessuna feature flag remota trovata: mostro preset locali (${mergedEntries.length} voci).`,
       });
       return;
     }
 
-    setMobileFlags(next);
-    setMobileFlagsFeedback({ tone: "ok", text: `${next.length} feature flags mobile caricate.` });
+    const missingRemote = mergedEntries.length - remoteEntries.length;
+    setMobileFlagsFeedback({
+      tone: missingRemote > 0 ? "warn" : "ok",
+      text:
+        missingRemote > 0
+          ? `Feature flags mobile parziali su Supabase (${remoteEntries.length}/${mergedEntries.length}). Le mancanti sono state aggiunte dal catalogo locale.`
+          : `${mergedEntries.length} feature flags mobile caricate.`,
+    });
   }, []);
 
   useEffect(() => {
@@ -513,11 +554,18 @@ function App() {
         setMobileFlagsFeedback({ tone: "error", text: "Sessione non valida per modificare le feature flags." });
         return;
       }
+      const fallback = MOBILE_FLAG_DEFAULTS_BY_KEY.get(flag.key);
+      const upsertRow = {
+        key: flag.key,
+        enabled,
+        label: flag.label || fallback?.label || flag.key,
+        description: flag.description || fallback?.description || "",
+        category: flag.category || fallback?.category || "action",
+      };
       setMobileFlagsBusy(true);
       const { error } = await supabase
         .from("mobile_feature_flags")
-        .update({ enabled })
-        .eq("key", flag.key);
+        .upsert(upsertRow, { onConflict: "key" });
       setMobileFlagsBusy(false);
 
       if (error) {
@@ -543,11 +591,19 @@ function App() {
       }
 
       setMobileFlagsBusy(true);
-      const keys = mobileFlags.map((entry) => entry.key);
+      const rows = mobileFlags.map((entry) => {
+        const fallback = MOBILE_FLAG_DEFAULTS_BY_KEY.get(entry.key);
+        return {
+          key: entry.key,
+          enabled,
+          label: entry.label || fallback?.label || entry.key,
+          description: entry.description || fallback?.description || "",
+          category: entry.category || fallback?.category || "action",
+        };
+      });
       const { error } = await supabase
         .from("mobile_feature_flags")
-        .update({ enabled })
-        .in("key", keys);
+        .upsert(rows, { onConflict: "key" });
       setMobileFlagsBusy(false);
 
       if (error) {
@@ -754,6 +810,23 @@ function App() {
     });
   }, [pwaFlagBaseline]);
 
+  const isPwaFlagEnabled = useCallback(
+    (flag: FeatureFlag) => Boolean(pwaFlags[flag]),
+    [pwaFlags]
+  );
+
+  const showPwaFlagsSection = isPwaFlagEnabled("cp.pwa-flags");
+  const showQuickPresetsSection =
+    isPwaFlagEnabled("cp.quick-presets") && isPwaFlagEnabled("ai-support");
+  const showCommandWizard = isPwaFlagEnabled("cp.command-wizard");
+  const showMobileFlagsSection = isPwaFlagEnabled("cp.mobile-flags");
+  const showRenderOverview = isPwaFlagEnabled("cp.render-overview");
+  const showAuditOverview = isPwaFlagEnabled("cp.audit-overview");
+  const showDbOverview = isPwaFlagEnabled("cp.db-overview");
+  const showFooterStatus = isPwaFlagEnabled("cp.footer-status");
+  const showTopGrid = showPwaFlagsSection || showQuickPresetsSection;
+  const showOverviewGrid = showRenderOverview || showAuditOverview || showDbOverview;
+
   const auditRows: AuditEntry[] = snapshot?.audit ?? [];
   const renderRows: RenderServiceStatus[] = snapshot?.renderServices ?? [];
   const dbRows: DbOperationStatus[] = snapshot?.dbOperations ?? [];
@@ -825,11 +898,13 @@ function App() {
           </div>
         ) : null}
 
-        {validation?.roles?.length ? <p className="cp-muted">Ruoli: {validation.roles.join(", ")}</p> : null}
+        {validation?.roles?.length && isPwaFlagEnabled("permissions-card") ? <p className="cp-muted">Ruoli: {validation.roles.join(", ")}</p> : null}
         {authError ? <p className="cp-feedback cp-feedback-error">{authError}</p> : null}
       </section>
 
+      {showTopGrid ? (
       <section className="cp-grid cp-grid-2">
+        {showPwaFlagsSection ? (
         <article className="cp-card">
           <h2>Feature flags PWA</h2>
           <div className="cp-inline-actions">
@@ -862,7 +937,9 @@ function App() {
             ))}
           </div>
         </article>
+        ) : null}
 
+        {showQuickPresetsSection ? (
         <article className="cp-card">
           <h2>Preset rapidi</h2>
           <div className="cp-preset-grid">
@@ -880,8 +957,11 @@ function App() {
             ))}
           </div>
         </article>
+        ) : null}
       </section>
+      ) : null}
 
+      {showCommandWizard ? (
       <section className="cp-card" id="section-commands">
         <h2>Comando guidato</h2>
         <p className="cp-muted">Compila i campi, poi usa Step 1 e Step 2.</p>
@@ -965,7 +1045,9 @@ function App() {
 
         <p className={toFeedbackClass(commandFeedback.tone)}>{commandFeedback.text}</p>
       </section>
+      ) : null}
 
+      {showMobileFlagsSection ? (
       <section className="cp-card" id="section-mobile-flags">
         <h2>Feature flags mobile</h2>
 
@@ -1011,8 +1093,11 @@ function App() {
           <p className="cp-feedback cp-feedback-info">Nessuna mobile flag disponibile.</p>
         )}
       </section>
+      ) : null}
 
+      {showOverviewGrid ? (
       <section className="cp-grid cp-grid-3">
+        {showRenderOverview ? (
         <article className="cp-card" id="section-render">
           <h2>Rilasci</h2>
           <ul className="cp-list cp-list-plain">
@@ -1027,7 +1112,9 @@ function App() {
             )}
           </ul>
         </article>
+        ) : null}
 
+        {showAuditOverview ? (
         <article className="cp-card" id="section-audit">
           <h2>Registro</h2>
           <ul className="cp-list cp-list-plain">
@@ -1042,7 +1129,9 @@ function App() {
             )}
           </ul>
         </article>
+        ) : null}
 
+        {showDbOverview ? (
         <article className="cp-card" id="section-db">
           <h2>Database</h2>
           <ul className="cp-list cp-list-plain">
@@ -1057,10 +1146,13 @@ function App() {
             )}
           </ul>
         </article>
+        ) : null}
       </section>
+      ) : null}
 
-      {snapshotError ? <p className="cp-feedback cp-feedback-warn">{snapshotError}</p> : null}
+      {snapshotError && isPwaFlagEnabled("status-card") ? <p className="cp-feedback cp-feedback-warn">{snapshotError}</p> : null}
 
+      {showFooterStatus ? (
       <footer className="cp-card cp-footer">
         <p>
           Last refresh: <strong>{snapshot ? formatDateTime(snapshot.refreshedAt) : "-"}</strong>
@@ -1069,6 +1161,7 @@ function App() {
           Data source: <code>{snapshot?.source || controlPlaneEndpoint}</code>
         </p>
       </footer>
+      ) : null}
     </main>
   );
 }

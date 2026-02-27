@@ -1,4 +1,17 @@
-export type FeatureFlag = "status-card" | "permissions-card" | "ai-support";
+export type FeatureFlag =
+  | "status-card"
+  | "permissions-card"
+  | "ai-support"
+  | "home.main-actions"
+  | "home.pwa-flags"
+  | "cp.pwa-flags"
+  | "cp.quick-presets"
+  | "cp.command-wizard"
+  | "cp.mobile-flags"
+  | "cp.render-overview"
+  | "cp.audit-overview"
+  | "cp.db-overview"
+  | "cp.footer-status";
 export type ServiceWorkerDevMode = "cleanup" | "register";
 export type RuntimeEnvironment = "development" | "production" | "test";
 
@@ -48,13 +61,37 @@ export type AppConfig = {
   featureFlags: FeatureFlagConfig;
 };
 
-const FEATURE_FLAG_KEYS: FeatureFlag[] = ["status-card", "permissions-card", "ai-support"];
+const FEATURE_FLAG_KEYS: FeatureFlag[] = [
+  "status-card",
+  "permissions-card",
+  "ai-support",
+  "home.main-actions",
+  "home.pwa-flags",
+  "cp.pwa-flags",
+  "cp.quick-presets",
+  "cp.command-wizard",
+  "cp.mobile-flags",
+  "cp.render-overview",
+  "cp.audit-overview",
+  "cp.db-overview",
+  "cp.footer-status",
+];
 const FEATURE_FLAG_STORAGE_KEY = "tdp-pwa-feature-flags:v1";
 
 const DEFAULT_FEATURE_FLAGS: FeatureFlagConfig = {
   "status-card": true,
   "permissions-card": true,
   "ai-support": true,
+  "home.main-actions": true,
+  "home.pwa-flags": true,
+  "cp.pwa-flags": true,
+  "cp.quick-presets": true,
+  "cp.command-wizard": true,
+  "cp.mobile-flags": true,
+  "cp.render-overview": true,
+  "cp.audit-overview": true,
+  "cp.db-overview": true,
+  "cp.footer-status": true,
 };
 
 const DEFAULT_DEV_ACCESS_FUNCTION = "dev-access";
