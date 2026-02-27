@@ -312,6 +312,33 @@ button:disabled {
   gap: 0.55rem;
 }
 
+.devplus-command-presets {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.devplus-command-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.55rem;
+}
+
+.devplus-preset-button {
+  text-align: left;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.devplus-preset-button strong {
+  font-size: 0.92rem;
+}
+
+.devplus-preset-button small {
+  color: var(--devplus-text-muted);
+  font-size: 0.8rem;
+}
+
 .devplus-metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
