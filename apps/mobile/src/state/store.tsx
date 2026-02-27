@@ -12,7 +12,6 @@ import { formatErrorDetails, reportCriticalError } from '../services/error-handl
 import { withMobileWatchdog } from '../services/mobile-watchdog';
 import {
   MOBILE_FEATURE_FLAGS_ALL_ON,
-  MOBILE_FEATURE_FLAGS_FAIL_CLOSED,
   type MobileFeatureFlagKey,
   type MobileFeatureFlagsSource,
   type MobileFeatureFlagsState,
@@ -1480,9 +1479,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [remoteBadges, setRemoteBadges] = useState<Badge[]>([]);
   const [badgesLoading, setBadgesLoading] = useState(false);
   const [featureFlags, setFeatureFlags] = useState<MobileFeatureFlagsState>(() => (
-    isSupabaseConfigured ? { ...MOBILE_FEATURE_FLAGS_FAIL_CLOSED } : { ...MOBILE_FEATURE_FLAGS_ALL_ON }
+    { ...MOBILE_FEATURE_FLAGS_ALL_ON }
   ));
-  const [featureFlagsReady, setFeatureFlagsReady] = useState(!isSupabaseConfigured);
+  const [featureFlagsReady, setFeatureFlagsReady] = useState(true);
   const [featureFlagsSource, setFeatureFlagsSource] = useState<MobileFeatureFlagsSource>('default');
   const [followedEvents, setFollowedEvents] = useState<GameEvent[]>([]);
   const [followedEventsLoading, setFollowedEventsLoading] = useState(false);
@@ -2455,7 +2454,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         applyFeatureFlagsSnapshot(cachedFlags, 'cache');
         return;
       }
-      applyFeatureFlagsSnapshot(MOBILE_FEATURE_FLAGS_FAIL_CLOSED, 'default');
+      applyFeatureFlagsSnapshot(MOBILE_FEATURE_FLAGS_ALL_ON, 'default');
       return;
     }
 
@@ -2463,7 +2462,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       setFeatureFlags({ ...cachedFlags });
       setFeatureFlagsSource('cache');
     } else {
-      setFeatureFlags({ ...MOBILE_FEATURE_FLAGS_FAIL_CLOSED });
+      setFeatureFlags({ ...MOBILE_FEATURE_FLAGS_ALL_ON });
       setFeatureFlagsSource('default');
     }
     setFeatureFlagsReady(false);
@@ -2479,7 +2478,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             applyFeatureFlagsSnapshot(cachedFlags, 'cache');
             return;
           }
-          applyFeatureFlagsSnapshot(MOBILE_FEATURE_FLAGS_FAIL_CLOSED, 'default');
+          applyFeatureFlagsSnapshot(MOBILE_FEATURE_FLAGS_ALL_ON, 'default');
           return;
         }
 
@@ -2489,7 +2488,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             applyFeatureFlagsSnapshot(cachedFlags, 'cache');
             return;
           }
-          applyFeatureFlagsSnapshot(MOBILE_FEATURE_FLAGS_FAIL_CLOSED, 'default');
+          applyFeatureFlagsSnapshot(MOBILE_FEATURE_FLAGS_ALL_ON, 'default');
           return;
         }
 
@@ -2506,7 +2505,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         applyFeatureFlagsSnapshot(cachedFlags, 'cache');
         return;
       }
-      applyFeatureFlagsSnapshot(MOBILE_FEATURE_FLAGS_FAIL_CLOSED, 'default');
+      applyFeatureFlagsSnapshot(MOBILE_FEATURE_FLAGS_ALL_ON, 'default');
     });
   }, [applyFeatureFlagsSnapshot, authUserId]);
 
@@ -3754,11 +3753,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     setState(next);
     setPendingBoostRequests(0);
     setTurnSyncFeedback(null);
-    setFeatureFlags(
-      isSupabaseConfigured ? { ...MOBILE_FEATURE_FLAGS_FAIL_CLOSED } : { ...MOBILE_FEATURE_FLAGS_ALL_ON }
-    );
+    setFeatureFlags({ ...MOBILE_FEATURE_FLAGS_ALL_ON });
     setFeatureFlagsSource('default');
-    setFeatureFlagsReady(!isSupabaseConfigured);
+    setFeatureFlagsReady(true);
     const totalSlots = 3 + next.profile.extraActivitySlots;
     setActivitySlotsStatus({
       usedToday: 0,
