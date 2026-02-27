@@ -977,6 +977,15 @@ code {
   margin-right: 0.35rem;
 }
 
+.simple-action-list li {
+  margin-top: 0.75rem;
+}
+
+.simple-action-list .button {
+  width: 100%;
+  justify-content: center;
+}
+
 .legal-embed {
   color: var(--text-primary);
 }
