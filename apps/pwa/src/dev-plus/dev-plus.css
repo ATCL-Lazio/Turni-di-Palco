@@ -262,6 +262,13 @@ button:disabled {
   margin: 0;
 }
 
+.cp-flag-description {
+  margin-top: 0.2rem !important;
+  color: var(--cp-muted);
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
 .cp-feedback {
   margin: 0.55rem 0 0;
   border-radius: 10px;
