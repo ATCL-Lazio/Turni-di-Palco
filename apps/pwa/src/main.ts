@@ -8,158 +8,76 @@ import { appConfig, getConfigWarnings } from "./services/app-config";
 import { buildControlPlaneUrl } from "./services/ops-sdk";
 import { enforceDesktopOnly } from "./utils/desktop-only";
 
-type DashboardPanel = "home" | "ops";
-
-type PanelDefinition = {
-  id: DashboardPanel;
+type OpsShortcut = {
+  id: "commands" | "render" | "db" | "audit" | "mobile-flags";
   label: string;
   description: string;
 };
 
-const PANELS: PanelDefinition[] = [
+const OPS_SHORTCUTS: OpsShortcut[] = [
   {
-    id: "home",
-    label: "Home",
-    description: "Tutto quello che serve per usare l'app in modo semplice.",
+    id: "commands",
+    label: "Comandi",
+    description: "Azioni guidate in due passaggi.",
   },
   {
-    id: "ops",
-    label: "Area tecnica",
-    description: "Strumenti per configurazioni e controlli avanzati.",
+    id: "render",
+    label: "Rilasci",
+    description: "Controlla cosa e davvero online.",
+  },
+  {
+    id: "db",
+    label: "Database",
+    description: "Consulta o aggiorna dati in sicurezza.",
+  },
+  {
+    id: "audit",
+    label: "Registro",
+    description: "Storico operazioni eseguite.",
+  },
+  {
+    id: "mobile-flags",
+    label: "Interruttori",
+    description: "Accendi o spegni funzioni mobile.",
   },
 ];
 
-function isDashboardPanel(value: string | null | undefined): value is DashboardPanel {
-  return PANELS.some((panel) => panel.id === value);
-}
-
-function getPanelFromUrl(): DashboardPanel {
-  if (typeof window === "undefined") return "home";
-  const panel = new URLSearchParams(window.location.search).get("panel")?.trim() || "";
-  return isDashboardPanel(panel) ? panel : "home";
-}
-
-function getPanelHref(panel: DashboardPanel) {
-  if (panel === "home") return "/";
-  return `/?panel=${panel}`;
-}
-
-function renderPanelSwitcher(activePanel: DashboardPanel) {
-  return PANELS.map((panel) => {
-    const variant = panel.id === activePanel ? "primary" : "ghost";
-    return `<a class="button ${variant} small" href="${getPanelHref(panel.id)}">${panel.label}</a>`;
+function renderOpsCards() {
+  return OPS_SHORTCUTS.map((shortcut) => {
+    const href = buildControlPlaneUrl({ view: shortcut.id, source: "ops-dashboard" });
+    return `
+      <article class="card">
+        <h2>${shortcut.label}</h2>
+        <p>${shortcut.description}</p>
+        <div class="cta-row">
+          <a class="button ghost small" href="${href}" target="_blank" rel="noreferrer">Apri ${shortcut.label}</a>
+        </div>
+      </article>
+    `;
   }).join("");
-}
-
-function renderHomePanel(configWarnings: string[]) {
-  return `
-    <article class="card layout-span-2">
-      <h2>Inizia da qui</h2>
-      <p>Usa i pulsanti qui sotto: non servono passaggi tecnici.</p>
-      <div class="cta-row">
-        <a class="button primary" href="/mobile/">Apri app mobile</a>
-        <a class="button ghost" href="/privacy.html">Privacy</a>
-      </div>
-      <ul class="list step-list">
-        <li><strong>1.</strong> Apri l&apos;app mobile.</li>
-        <li><strong>2.</strong> Accedi o registrati.</li>
-        <li><strong>3.</strong> Scansiona il QR per registrare il turno.</li>
-      </ul>
-    </article>
-
-    <article class="card">
-      <h2>Cosa puoi fare</h2>
-      <ul class="list">
-        <li>Vedere i turni e gli eventi disponibili.</li>
-        <li>Registrare rapidamente la presenza con QR.</li>
-        <li>Controllare profilo, reputazione e progressi.</li>
-      </ul>
-    </article>
-
-    <article class="card">
-      <h2>Hai bisogno di aiuto?</h2>
-      <p>Se qualcosa non funziona, ricarica la pagina e riprova dall&apos;app mobile.</p>
-      <div class="cta-row">
-        <a class="button ghost small" href="/mobile/">Torna all&apos;app</a>
-      </div>
-      ${
-        configWarnings.length
-          ? `<p class="muted">Nota configurazione: ${configWarnings.join(" | ")}</p>`
-          : `<p class="muted">Configurazione pronta.</p>`
-      }
-    </article>
-  `;
-}
-
-function renderOpsPanel() {
-  const runtimeControlPlane = appConfig.controlPlane.baseUrl || "relative origin";
-  const runtimeFlags = Object.entries(appConfig.featureFlags)
-    .map(([flag, enabled]) => `${flag}:${enabled ? "on" : "off"}`)
-    .join(" | ");
-
-  const opsViews = [
-    { id: "commands", label: "Comandi" as const },
-    { id: "render", label: "Rilasci" as const },
-    { id: "db", label: "Database" as const },
-    { id: "audit", label: "Registro" as const },
-    { id: "mobile-flags", label: "Interruttori" as const },
-  ];
-
-  const workspaceUrl = buildControlPlaneUrl({ view: "commands", source: "ops-dashboard" });
-
-  return `
-    <article class="card layout-span-2">
-      <h2>Area tecnica</h2>
-      <p>Sezione riservata per operazioni avanzate.</p>
-      <div class="cta-row">
-        ${opsViews
-          .map(
-            (view) =>
-              `<a class="button ghost small" href="${buildControlPlaneUrl({ view: view.id, source: "ops-dashboard" })}" target="_blank" rel="noreferrer">${view.label}</a>`
-          )
-          .join("")}
-      </div>
-      <div class="ops-embed-wrap">
-        <iframe class="ops-embed-frame" src="${workspaceUrl}" title="Area tecnica" loading="lazy"></iframe>
-      </div>
-    </article>
-
-    <article class="card">
-      <h2>Stato runtime</h2>
-      <ul class="list">
-        <li><strong>Ambiente:</strong> ${appConfig.environment}</li>
-        <li><strong>Supabase:</strong> ${appConfig.supabase.configured ? "configurato" : "mancante"}</li>
-        <li><strong>Control plane:</strong> ${runtimeControlPlane}</li>
-        <li><strong>Feature flags:</strong> ${runtimeFlags}</li>
-      </ul>
-    </article>
-  `;
 }
 
 const start = async () => {
   if (enforceDesktopOnly()) return;
-
-  const activePanelId = getPanelFromUrl();
-  if (activePanelId === "ops" && !(await requireDevAccess())) return;
+  if (!(await requireDevAccess())) return;
 
   const root = document.querySelector<HTMLDivElement>("#app");
   if (!root) {
     throw new Error("Root container missing");
   }
 
+  const configWarnings = getConfigWarnings();
+
   const hero = renderPageHero({
     title: "Turni di Palco",
-    description:
-      activePanelId === "home"
-        ? "Interfaccia semplificata: pochi pulsanti chiari e flusso guidato."
-        : "Area riservata a utenti tecnici.",
+    description: "Dashboard unica: tutto in una pagina, senza embed.",
     currentPage: "home",
-    breadcrumbs: [{ label: "Home" }, { label: activePanelId === "home" ? "Utente" : "Tecnica" }],
-    quickActions: PANELS.map((panel) => ({
-      id: panel.id,
-      label: panel.label,
-      href: getPanelHref(panel.id),
-    })),
+    breadcrumbs: [{ label: "Dashboard" }],
+    quickActions: [
+      { id: "mobile", label: "App mobile", href: "/mobile/" },
+      { id: "privacy", label: "Privacy", href: "/privacy.html" },
+      { id: "commands", label: "Comandi", href: buildControlPlaneUrl({ view: "commands", source: "ops-dashboard" }) },
+    ],
     ctaRow: [
       {
         id: "open-mobile",
@@ -177,23 +95,47 @@ const start = async () => {
     ],
   });
 
-  const showStatusCard = activePanelId === "ops" && isFeatureEnabled("status-card");
-  const showPermissionsCard = activePanelId === "ops" && isFeatureEnabled("permissions-card");
-  const configWarnings = getConfigWarnings();
+  const showStatusCard = isFeatureEnabled("status-card");
+  const showPermissionsCard = isFeatureEnabled("permissions-card");
 
   root.innerHTML = `
     <main class="page">
       <section class="layout-stack" id="hero">
         ${hero}
         <div class="badges">
-          <span class="badge">Facile da usare</span>
-          <span class="badge">Installabile</span>
-          <span class="badge">QR pronto</span>
+          <span class="badge">1 pagina</span>
+          <span class="badge">Zero embed</span>
+          <span class="badge">Flusso guidato</span>
         </div>
       </section>
 
       <section class="grid layout-grid simple-grid">
-        ${activePanelId === "home" ? renderHomePanel(configWarnings) : renderOpsPanel()}
+        <article class="card layout-span-2">
+          <h2>Inizia da qui</h2>
+          <p>Usa i pulsanti qui sotto. Non servono passaggi tecnici.</p>
+          <div class="cta-row">
+            <a class="button primary" href="/mobile/">Apri app mobile</a>
+            <a class="button ghost" href="/privacy.html">Privacy</a>
+          </div>
+          <ul class="list step-list">
+            <li><strong>1.</strong> Apri l&apos;app mobile.</li>
+            <li><strong>2.</strong> Accedi o registrati.</li>
+            <li><strong>3.</strong> Scansiona il QR per registrare il turno.</li>
+          </ul>
+        </article>
+
+        ${renderOpsCards()}
+
+        <article class="card layout-span-2">
+          <h2>Stato configurazione</h2>
+          <ul class="list">
+            <li><strong>Ambiente:</strong> ${appConfig.environment}</li>
+            <li><strong>Modalita pubblica:</strong> ${appConfig.publicMode ? "attiva" : "disattiva"}</li>
+            <li><strong>Supabase:</strong> ${appConfig.supabase.configured ? "configurato" : "mancante"}</li>
+          </ul>
+          ${configWarnings.length ? `<p class="muted">${configWarnings.join(" | ")}</p>` : '<p class="muted">Nessun warning critico.</p>'}
+        </article>
+
         ${showStatusCard ? renderStatusCard() : ""}
         ${showPermissionsCard ? renderPermissionsCard() : ""}
       </section>
