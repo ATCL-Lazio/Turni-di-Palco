@@ -8,7 +8,15 @@ import { createRoot } from "react-dom/client";
 import { promptServiceWorkerUpdate } from "../pwa/sw-update";
 import { registerServiceWorker } from "../pwa/register-sw";
 import { isSupabaseConfigured, supabase } from "../services/supabase";
-import { appConfig } from "../services/app-config";
+import {
+  appConfig,
+  clearStoredFeatureFlagOverrides,
+  getRuntimeFeatureFlagBaseline,
+  setStoredFeatureFlagOverride,
+  setStoredFeatureFlagOverrides,
+  type FeatureFlag,
+  type FeatureFlagConfig,
+} from "../services/app-config";
 import {
   buildControlPlaneUrl,
   getRoleAdaptiveQuickActions,
@@ -267,8 +275,14 @@ function App() {
     tone: "info",
     text: "Apri la sezione interruttori mobile per modificare le funzioni.",
   });
+  const [pwaFlags, setPwaFlags] = useState<FeatureFlagConfig>(() => ({ ...appConfig.featureFlags }));
+  const [pwaFlagsFeedback, setPwaFlagsFeedback] = useState<FeedbackMessage>({
+    tone: "info",
+    text: "Usa i toggle per attivare o disattivare le feature flags PWA.",
+  });
 
   const controlPlaneEndpoint = getControlPlaneEndpoint();
+  const pwaFlagBaseline = useMemo(() => getRuntimeFeatureFlagBaseline(), []);
 
   const commandOptions = useMemo(() => {
     const liveOptions = catalog.filter((entry) => entry.available);
@@ -708,11 +722,43 @@ function App() {
     });
   }, []);
 
+  const handleTogglePwaFlag = useCallback((flag: FeatureFlag, enabled: boolean) => {
+    setStoredFeatureFlagOverride(flag, enabled);
+    setPwaFlags((prev) => ({ ...prev, [flag]: enabled }));
+    setPwaFlagsFeedback({
+      tone: "ok",
+      text: `Flag aggiornata: ${flag} -> ${enabled ? "ON" : "OFF"}. Ricarica la pagina per applicarla ovunque.`,
+    });
+  }, []);
+
+  const handleSetAllPwaFlags = useCallback((enabled: boolean) => {
+    const keys = Object.keys(pwaFlags) as FeatureFlag[];
+    const next = keys.reduce((acc, key) => {
+      acc[key] = enabled;
+      return acc;
+    }, {} as FeatureFlagConfig);
+    setStoredFeatureFlagOverrides(next);
+    setPwaFlags(next);
+    setPwaFlagsFeedback({
+      tone: "ok",
+      text: `Feature flags PWA impostate su ${enabled ? "ON" : "OFF"}. Ricarica la pagina per applicarle ovunque.`,
+    });
+  }, [pwaFlags]);
+
+  const handleResetPwaFlags = useCallback(() => {
+    clearStoredFeatureFlagOverrides();
+    setPwaFlags({ ...pwaFlagBaseline });
+    setPwaFlagsFeedback({
+      tone: "info",
+      text: "Override locali rimossi. Ripristinato il baseline runtime delle flags PWA.",
+    });
+  }, [pwaFlagBaseline]);
+
   const auditRows: AuditEntry[] = snapshot?.audit ?? [];
   const renderRows: RenderServiceStatus[] = snapshot?.renderServices ?? [];
   const dbRows: DbOperationStatus[] = snapshot?.dbOperations ?? [];
   const currentUser = session?.user?.email || "anonymous";
-  const pwaFeatureFlags = Object.entries(appConfig.featureFlags);
+  const pwaFeatureFlags = Object.entries(pwaFlags) as [FeatureFlag, boolean][];
 
   return (
     <main className="cp-shell">
@@ -786,14 +832,35 @@ function App() {
       <section className="cp-grid cp-grid-2">
         <article className="cp-card">
           <h2>Feature flags PWA</h2>
-          <ul className="cp-list">
+          <div className="cp-inline-actions">
+            <button type="button" onClick={() => handleSetAllPwaFlags(true)}>
+              Tutte ON
+            </button>
+            <button type="button" className="ghost" onClick={() => handleSetAllPwaFlags(false)}>
+              Tutte OFF
+            </button>
+            <button type="button" className="ghost" onClick={handleResetPwaFlags}>
+              Reset
+            </button>
+          </div>
+          <p className={toFeedbackClass(pwaFlagsFeedback.tone)}>{pwaFlagsFeedback.text}</p>
+          <div className="cp-flag-list">
             {pwaFeatureFlags.map(([flagKey, enabled]) => (
-              <li key={flagKey}>
-                <strong>{flagKey}</strong>
-                <span className={enabled ? "cp-on" : "cp-off"}>{enabled ? "ON" : "OFF"}</span>
-              </li>
+              <article key={flagKey} className="cp-flag-item">
+                <div>
+                  <p>
+                    <strong>{flagKey}</strong>
+                  </p>
+                </div>
+                <div className="cp-inline-actions">
+                  <span className={enabled ? "cp-on" : "cp-off"}>{enabled ? "ON" : "OFF"}</span>
+                  <button type="button" onClick={() => handleTogglePwaFlag(flagKey, !enabled)}>
+                    {enabled ? "Disattiva" : "Attiva"}
+                  </button>
+                </div>
+              </article>
             ))}
-          </ul>
+          </div>
         </article>
 
         <article className="cp-card">
