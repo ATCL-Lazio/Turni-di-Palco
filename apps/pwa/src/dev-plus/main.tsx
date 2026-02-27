@@ -320,13 +320,13 @@ function App() {
     setCatalog(response.commands);
   }, []);
 
-  const loadMobileFlags = useCallback(async () => {
+  const loadMobileFlags = useCallback(async (activeSession?: Session | null) => {
     if (!isSupabaseConfigured || !supabase) {
       setMobileFlags(MOBILE_FLAG_FALLBACK_ENTRIES);
       setMobileFlagsFeedback({ tone: "warn", text: "Supabase non configurato: impossibile leggere le mobile feature flags." });
       return;
     }
-    if (authState !== "authenticated") {
+    if (!activeSession) {
       setMobileFlags(MOBILE_FLAG_FALLBACK_ENTRIES);
       setMobileFlagsFeedback({ tone: "info", text: "Preset locali visibili. Effettua login per leggere e modificare lo stato reale." });
       return;
@@ -367,7 +367,7 @@ function App() {
 
     setMobileFlags(next);
     setMobileFlagsFeedback({ tone: "ok", text: `${next.length} feature flags mobile caricate.` });
-  }, [authState]);
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
@@ -411,7 +411,7 @@ function App() {
       setSession(data.session);
       setValidation(validationResult);
       setAuthState("authenticated");
-      await Promise.all([loadSnapshot(data.session, validationResult), loadCatalog(data.session), loadMobileFlags()]);
+      await Promise.all([loadSnapshot(data.session, validationResult), loadCatalog(data.session), loadMobileFlags(data.session)]);
     };
 
     void bootstrap();
@@ -466,7 +466,7 @@ function App() {
       setValidation(validationResult);
       setAuthState("authenticated");
       setAuthBusy(false);
-      await Promise.all([loadSnapshot(activeSession, validationResult), loadCatalog(activeSession), loadMobileFlags()]);
+      await Promise.all([loadSnapshot(activeSession, validationResult), loadCatalog(activeSession), loadMobileFlags(activeSession)]);
     },
     [email, loadCatalog, loadMobileFlags, loadSnapshot, password]
   );
@@ -504,7 +504,7 @@ function App() {
       return;
     }
 
-    await Promise.all([loadSnapshot(session, validationResult), loadCatalog(session), loadMobileFlags()]);
+    await Promise.all([loadSnapshot(session, validationResult), loadCatalog(session), loadMobileFlags(session)]);
   }, [loadCatalog, loadMobileFlags, loadSnapshot, session]);
 
   const handleToggleMobileFlag = useCallback(
@@ -526,9 +526,9 @@ function App() {
       }
 
       setMobileFlagsFeedback({ tone: "ok", text: `Flag aggiornata: ${flag.key} -> ${enabled ? "ON" : "OFF"}` });
-      await loadMobileFlags();
+      await loadMobileFlags(session);
     },
-    [authState, loadMobileFlags]
+    [authState, loadMobileFlags, session]
   );
 
   const handleBulkSetMobileFlags = useCallback(
@@ -556,9 +556,9 @@ function App() {
       }
 
       setMobileFlagsFeedback({ tone: "ok", text: `Aggiornamento bulk completato: ${enabled ? "tutte ON" : "tutte OFF"}.` });
-      await loadMobileFlags();
+      await loadMobileFlags(session);
     },
-    [authState, loadMobileFlags, mobileFlags]
+    [authState, loadMobileFlags, mobileFlags, session]
   );
 
   const handleResetMobileFlags = useCallback(async () => {
@@ -588,8 +588,8 @@ function App() {
     }
 
     setMobileFlagsFeedback({ tone: "ok", text: "Reset feature flags completato (seed ON)." });
-    await loadMobileFlags();
-  }, [authState, loadMobileFlags]);
+    await loadMobileFlags(session);
+  }, [authState, loadMobileFlags, session]);
 
   useEffect(() => {
     setPreparedCommand(null);
@@ -970,7 +970,7 @@ function App() {
         <h2>Feature flags mobile</h2>
 
         <div className="cp-inline-actions">
-          <button type="button" onClick={() => void loadMobileFlags()} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+          <button type="button" onClick={() => void loadMobileFlags(session)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
             {mobileFlagsBusy ? "Sync..." : "Ricarica"}
           </button>
           <button type="button" onClick={() => void handleBulkSetMobileFlags(true)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
