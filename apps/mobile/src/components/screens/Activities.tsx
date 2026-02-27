@@ -12,6 +12,7 @@ interface ActivitiesProps {
   slotsLoading?: boolean;
   isOnline?: boolean;
   canStartActivities?: boolean;
+  embedded?: boolean;
   onStartActivity: (activityId: string) => void;
 }
 
@@ -27,6 +28,7 @@ export function Activities({
   slotsLoading = false,
   isOnline = true,
   canStartActivities = true,
+  embedded = false,
   onStartActivity,
 }: ActivitiesProps) {
   const totalActivities = activities.length;
@@ -35,12 +37,8 @@ export function Activities({
   const remainingSlots = slotsStatus.remainingSlots;
   const dailyProgress = dailyGoal > 0 ? Math.min((completedToday / dailyGoal) * 100, 100) : 0;
 
-  return (
-    <div
-      className="min-h-screen"
-      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
-    >
-      <div className="w-full app-content px-6 pt-6 pb-8 space-y-6">
+  const content = (
+    <div className={embedded ? 'space-y-6' : 'w-full app-content px-6 pt-6 pb-8 space-y-6'}>
         <header className="space-y-2">
           <h2 className="text-white">Attivita simulate</h2>
           <p className="text-[#b8b2b3]">
@@ -162,7 +160,19 @@ export function Activities({
             </p>
           </Card>
         ) : null}
-      </div>
+    </div>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <div
+      className="min-h-screen"
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
+    >
+      {content}
     </div>
   );
 }
