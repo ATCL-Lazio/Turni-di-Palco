@@ -1,0 +1,355 @@
+{
+  "overrideEncryptionMode": "plaintext",
+  "definitions": {
+    "ai-support": {
+      "description": "Abilita i preset rapidi legati al supporto operativo assistito.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "pwa-runtime"
+    },
+    "cp.audit-overview": {
+      "description": "Mostra la card registro operazioni recenti.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "pwa-runtime"
+    },
+    "cp.command-wizard": {
+      "description": "Abilita il wizard comandi Step 1/2 nel control-plane.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "pwa-runtime"
+    },
+    "cp.db-overview": {
+      "description": "Mostra la card panoramica operazioni database.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "pwa-runtime"
+    },
+    "cp.footer-status": {
+      "description": "Mostra il footer con last refresh e data source.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "pwa-runtime"
+    },
+    "cp.mobile-flags": {
+      "description": "Abilita la sezione toggle delle feature flag mobile nel control-plane.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "pwa-runtime"
+    },
+    "cp.pwa-flags": {
+      "description": "Abilita la sezione toggle delle feature flag PWA nel control-plane.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "pwa-runtime"
+    },
+    "cp.quick-presets": {
+      "description": "Abilita la sezione preset rapidi nel control-plane.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "pwa-runtime"
+    },
+    "cp.render-overview": {
+      "description": "Mostra la card panoramica rilasci e servizi Render.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "pwa-runtime"
+    },
+    "home.main-actions": {
+      "description": "Mostra il blocco Azioni principali nella home PWA.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "pwa-runtime"
+    },
+    "home.pwa-flags": {
+      "description": "Mostra il riepilogo delle feature flag nella home PWA.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "pwa-runtime"
+    },
+    "mobile.action.activity_complete": {
+      "description": "Abilita il completamento attivita simulate nell'app mobile.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "mobile-runtime"
+    },
+    "mobile.action.activity_start": {
+      "description": "Abilita l'avvio attivita simulate nell'app mobile.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "mobile-runtime"
+    },
+    "mobile.action.qr_scan": {
+      "description": "Abilita la scansione QR nell'app mobile.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "mobile-runtime"
+    },
+    "mobile.action.shop_purchase": {
+      "description": "Abilita gli acquisti nello shop mobile.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "mobile-runtime"
+    },
+    "mobile.action.turn_boost": {
+      "description": "Abilita il boost turno nell'app mobile.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "mobile-runtime"
+    },
+    "mobile.action.turn_submit": {
+      "description": "Abilita la registrazione turni nell'app mobile.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "mobile-runtime"
+    },
+    "mobile.section.activities": {
+      "description": "Mostra la sezione Attivita nell'app mobile.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "mobile-runtime"
+    },
+    "mobile.section.career": {
+      "description": "Mostra la sezione Carriera nell'app mobile.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "mobile-runtime"
+    },
+    "mobile.section.earned_titles": {
+      "description": "Mostra la sezione Titoli ottenuti nell'app mobile.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "mobile-runtime"
+    },
+    "mobile.section.leaderboard": {
+      "description": "Mostra la sezione Classifica nell'app mobile.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "mobile-runtime"
+    },
+    "mobile.section.shop": {
+      "description": "Mostra la sezione Shop nell'app mobile.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "mobile-runtime"
+    },
+    "mobile.section.turns": {
+      "description": "Mostra la sezione Turni ATCL nell'app mobile.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "mobile-runtime"
+    },
+    "permissions-card": {
+      "description": "Mostra i ruoli e permessi della sessione utente nel control-plane.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "pwa-runtime"
+    },
+    "status-card": {
+      "description": "Mostra i messaggi di stato ed errori sintetici nella dashboard.",
+      "options": [
+        {
+          "value": true,
+          "label": "On"
+        },
+        {
+          "value": false,
+          "label": "Off"
+        }
+      ],
+      "origin": "pwa-runtime"
+    }
+  }
+}

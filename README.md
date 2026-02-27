@@ -110,6 +110,20 @@ Variabili principali:
 - `RENDER_API_KEY`
 - `RENDER_SERVICE_IDS_JSON`
 
+### Flags Explorer (Vercel Toolbar)
+
+La PWA espone il discovery endpoint richiesto dal Toolbar:
+
+- `/.well-known/vercel/flags`
+
+Note operative:
+
+- È configurato `overrideEncryptionMode: plaintext` (setup custom): gli override arrivano dal cookie `vercel-flag-overrides`.
+- Gli override Toolbar hanno priorità alta in runtime su PWA e mobile web.
+- In assenza del cookie Toolbar il comportamento resta invariato:
+  - PWA: env + override locali/runtime.
+  - Mobile: Supabase/cache/default.
+
 Esempi deeplink Control Plane:
 
 - `/control-plane.html?view=commands&command=render.deployments.trigger&dryRun=true`
