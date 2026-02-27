@@ -55,6 +55,8 @@ const start = () => {
   if (!root) throw new Error("Root container missing");
 
   const configWarnings = getConfigWarnings();
+  const showMainActions = appConfig.featureFlags["home.main-actions"];
+  const showPwaFlags = appConfig.featureFlags["home.pwa-flags"];
 
   root.innerHTML = `
     <main class="tdp-shell">
@@ -70,19 +72,23 @@ const start = () => {
       </header>
 
       <section class="tdp-grid">
+        ${showMainActions ? `
         <article class="tdp-card tdp-span-2">
           <h2>Azioni principali</h2>
           <ul class="tdp-action-list">
             ${renderActions()}
           </ul>
         </article>
+        ` : ""}
 
+        ${showPwaFlags ? `
         <article class="tdp-card">
           <h2>Feature flags PWA</h2>
           <ul class="tdp-simple-list">
             ${renderFeatureFlags()}
           </ul>
         </article>
+        ` : ""}
 
         <article class="tdp-card">
           <h2>Stato sistema</h2>
