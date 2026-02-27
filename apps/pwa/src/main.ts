@@ -1,6 +1,5 @@
 ﻿import "../../../shared/styles/main.css";
 import { renderPageHero } from "./components/page-hero";
-import { requireDevAccess } from "./services/dev-gate";
 import { appConfig, getConfigWarnings } from "./services/app-config";
 import { buildControlPlaneUrl } from "./services/ops-sdk";
 import { enforceDesktopOnly } from "./utils/desktop-only";
@@ -41,9 +40,17 @@ function renderMainActions() {
   }).join("");
 }
 
-const start = async () => {
+function renderFeatureFlags() {
+  return Object.entries(appConfig.featureFlags)
+    .map(
+      ([flag, enabled]) =>
+        `<li><strong>${flag}</strong>: <span class="${enabled ? "flag-on" : "flag-off"}">${enabled ? "ON" : "OFF"}</span></li>`
+    )
+    .join("");
+}
+
+const start = () => {
   if (enforceDesktopOnly()) return;
-  if (!(await requireDevAccess())) return;
 
   const root = document.querySelector<HTMLDivElement>("#app");
   if (!root) {
@@ -107,7 +114,15 @@ const start = async () => {
         </article>
 
         <article class="card">
-          <h2>Stato</h2>
+          <h2>Feature flags</h2>
+          <ul class="list">
+            ${renderFeatureFlags()}
+          </ul>
+          <p class="muted">Le feature flags PWA sono sempre visibili qui.</p>
+        </article>
+
+        <article class="card">
+          <h2>Stato sistema</h2>
           <ul class="list">
             <li><strong>Ambiente:</strong> ${appConfig.environment}</li>
             <li><strong>Supabase:</strong> ${appConfig.supabase.configured ? "ok" : "da configurare"}</li>
@@ -124,4 +139,4 @@ const start = async () => {
   }
 };
 
-void start();
+start();

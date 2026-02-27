@@ -986,6 +986,16 @@ code {
   justify-content: center;
 }
 
+.flag-on {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.flag-off {
+  color: #dc2626;
+  font-weight: 700;
+}
+
 .legal-embed {
   color: var(--text-primary);
 }
