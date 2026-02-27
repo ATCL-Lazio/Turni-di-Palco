@@ -17,6 +17,10 @@ export type RuntimeEnvironment = "development" | "production" | "test";
 
 export type FeatureFlagConfig = Record<FeatureFlag, boolean>;
 export type FeatureFlagOverride = Partial<FeatureFlagConfig>;
+export type FeatureFlagDescriptor = {
+  key: FeatureFlag;
+  description: string;
+};
 
 export type RuntimeConfigOverride = {
   publicMode?: boolean;
@@ -92,6 +96,22 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlagConfig = {
   "cp.audit-overview": true,
   "cp.db-overview": true,
   "cp.footer-status": true,
+};
+
+const FEATURE_FLAG_DESCRIPTIONS: Record<FeatureFlag, string> = {
+  "status-card": "Mostra i messaggi di stato ed errori sintetici nella dashboard.",
+  "permissions-card": "Mostra i ruoli/permessi della sessione utente nel control-plane.",
+  "ai-support": "Abilita i preset rapidi legati al supporto operativo assistito.",
+  "home.main-actions": "Mostra il blocco 'Azioni principali' nella home PWA.",
+  "home.pwa-flags": "Mostra il riepilogo delle feature flag nella home PWA.",
+  "cp.pwa-flags": "Abilita la sezione toggle delle feature flag PWA nel control-plane.",
+  "cp.quick-presets": "Abilita la sezione preset rapidi nel control-plane.",
+  "cp.command-wizard": "Abilita il wizard comandi Step 1/2 nel control-plane.",
+  "cp.mobile-flags": "Abilita la sezione toggle delle feature flag mobile nel control-plane.",
+  "cp.render-overview": "Mostra la card panoramica rilasci/servizi Render.",
+  "cp.audit-overview": "Mostra la card registro operazioni recenti.",
+  "cp.db-overview": "Mostra la card panoramica operazioni database.",
+  "cp.footer-status": "Mostra il footer con last refresh e data source.",
 };
 
 const DEFAULT_DEV_ACCESS_FUNCTION = "dev-access";
@@ -249,6 +269,17 @@ function writeStoredFeatureFlagOverride(overrides: FeatureFlagOverride) {
 
 export function listFeatureFlagKeys(): FeatureFlag[] {
   return [...FEATURE_FLAG_KEYS];
+}
+
+export function getFeatureFlagDescription(flag: FeatureFlag): string {
+  return FEATURE_FLAG_DESCRIPTIONS[flag] ?? "Descrizione non disponibile.";
+}
+
+export function listFeatureFlagDescriptors(): FeatureFlagDescriptor[] {
+  return FEATURE_FLAG_KEYS.map((key) => ({
+    key,
+    description: getFeatureFlagDescription(key),
+  }));
 }
 
 export function getRuntimeFeatureFlagBaseline(params?: {
