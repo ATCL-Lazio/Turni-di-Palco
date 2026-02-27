@@ -1,5 +1,6 @@
 let activeToast: HTMLDivElement | null = null;
 let pendingRegistration: ServiceWorkerRegistration | null = null;
+let isReloadingForUpdate = false;
 
 function dismissToast() {
   if (activeToast) {
@@ -9,11 +10,17 @@ function dismissToast() {
 }
 
 function reloadWhenReady(registration: ServiceWorkerRegistration) {
-  const reload = () => window.location.reload();
+  const reloadOnce = () => {
+    if (isReloadingForUpdate) {
+      return;
+    }
+    isReloadingForUpdate = true;
+    window.location.reload();
+  };
 
   const onControllerChange = () => {
     navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
-    reload();
+    reloadOnce();
   };
 
   navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
@@ -22,13 +29,10 @@ function reloadWhenReady(registration: ServiceWorkerRegistration) {
   if (waitingWorker) {
     waitingWorker.addEventListener("statechange", () => {
       if (waitingWorker.state === "activated") {
-        reload();
+        reloadOnce();
       }
     });
     waitingWorker.postMessage({ type: "SKIP_WAITING" });
-    waitingWorker.postMessage("skipWaiting");
-  } else {
-    reload();
   }
 }
 
