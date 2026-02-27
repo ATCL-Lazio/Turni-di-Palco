@@ -46,6 +46,17 @@ type FeedbackMessage = {
   text: string;
 };
 
+type CommandPreset = {
+  id: string;
+  label: string;
+  note: string;
+  commandId: string;
+  target?: string;
+  reason: string;
+  payload: Record<string, unknown>;
+  dryRun?: boolean;
+};
+
 const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   {
     id: "render.services.health",
@@ -119,6 +130,50 @@ const VIEW_OPTIONS: { id: ViewId; label: string; note: string }[] = [
 
 const DEFAULT_CONFIRM_TEXT = "CONFIRM";
 const DEFAULT_PAYLOAD = '{\n  "scope": "default"\n}';
+const DEFAULT_PRESET_REASON = "Controllo operativo pianificato da dashboard.";
+
+const COMMAND_PRESETS: CommandPreset[] = [
+  {
+    id: "health-check",
+    label: "Check servizi",
+    note: "Stato rapido servizi Render",
+    commandId: "render.services.health",
+    target: "all",
+    reason: "Verifica salute servizi prima del controllo giornaliero.",
+    payload: { scope: "all" },
+    dryRun: true,
+  },
+  {
+    id: "deployments-last24h",
+    label: "Ultimi rilasci",
+    note: "Rilasci ultime 24 ore",
+    commandId: "render.deployments.list",
+    target: "all",
+    reason: "Verifica storico rilasci per controllo versioni online.",
+    payload: { windowHours: 24, includeStatus: true },
+    dryRun: true,
+  },
+  {
+    id: "db-read-events",
+    label: "Leggi eventi",
+    note: "Lettura tabella eventi",
+    commandId: "supabase.db.read",
+    target: "events",
+    reason: "Controllo rapido record eventi da dashboard.",
+    payload: { table: "events", limit: 20, orderBy: "created_at.desc" },
+    dryRun: true,
+  },
+  {
+    id: "cleanup-preview",
+    label: "Pulizia eventi (preview)",
+    note: "Simulazione pulizia dati storici",
+    commandId: "supabase.events.cleanup",
+    target: "events",
+    reason: "Valutazione impatto pulizia eventi piu vecchi.",
+    payload: { retentionDays: 90, scope: "stale-events" },
+    dryRun: true,
+  },
+];
 
 const MOBILE_FLAG_DEFAULTS: MobileFeatureFlagEntry[] = [
   { key: "mobile.section.turns", enabled: true, label: "Sezione Turni", description: "Mostra sezione turni e tab.", category: "section" },
@@ -666,6 +721,21 @@ function App() {
     });
   }, []);
 
+  const applyCommandPreset = useCallback((preset: CommandPreset) => {
+    setActiveView("commands");
+    setCommandValue(preset.commandId);
+    setTargetValue(preset.target ?? "");
+    setReasonValue(preset.reason || DEFAULT_PRESET_REASON);
+    setPayloadValue(JSON.stringify(preset.payload, null, 2));
+    setDryRunValue(typeof preset.dryRun === "boolean" ? preset.dryRun : true);
+    setPreparedCommand(null);
+    setConfirmText("");
+    setCommandFeedback({
+      tone: "info",
+      text: `Preset pronto: ${preset.label}. Esegui Step 1/2 per validare.`,
+    });
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const nextUrl = buildControlPlaneUrl(
@@ -839,6 +909,18 @@ function App() {
               <p className="devplus-muted">
                 Ogni azione richiede un motivo. Puoi prima fare una simulazione senza modifiche.
               </p>
+
+              <div className="devplus-command-presets">
+                <p className="devplus-muted">Comandi gia pronti</p>
+                <div className="devplus-command-presets-grid">
+                  {COMMAND_PRESETS.map((preset) => (
+                    <button key={preset.id} type="button" className="devplus-preset-button" onClick={() => applyCommandPreset(preset)}>
+                      <strong>{preset.label}</strong>
+                      <small>{preset.note}</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <div className="devplus-command-grid">
                 <label>
