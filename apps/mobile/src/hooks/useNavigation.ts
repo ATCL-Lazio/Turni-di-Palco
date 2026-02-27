@@ -64,7 +64,7 @@ function writeNavState(state: PersistedNavState) {
 
 function getScreenToPersist(screen: Screen, activeTab: Tab): Screen {
     if (screen === 'install' || screen === 'qr-scanner') {
-        return activeTab === 'home' ? 'home' : 'turns';
+        return activeTab === 'home' ? 'home' : 'activities';
     }
     if (screen === 'activity-minigame' || screen === 'activity-result') {
         return 'activities';
@@ -73,7 +73,7 @@ function getScreenToPersist(screen: Screen, activeTab: Tab): Screen {
 }
 
 function resolveFallbackTab(isTabEnabled?: (tab: Tab) => boolean): Tab {
-    const fallbackOrder: Tab[] = ['home', 'profile', 'turns', 'activities', 'leaderboard', 'shop'];
+    const fallbackOrder: Tab[] = ['home', 'profile', 'activities', 'leaderboard', 'shop', 'turns'];
     if (!isTabEnabled) return 'home';
     return fallbackOrder.find((candidate) => isTabEnabled(candidate)) ?? 'home';
 }
@@ -99,7 +99,7 @@ export function useNavigation(initialEvents: { id: string }[], options?: UseNavi
         if ((nextScreen === 'activity-detail' || nextScreen === 'activity-minigame' || nextScreen === 'activity-result') && !persisted.selectedActivityId) {
             nextScreen = 'activities';
         }
-        if (nextScreen === 'event-confirmation' && !persisted.scannedEventId) nextScreen = 'turns';
+        if (nextScreen === 'event-confirmation' && !persisted.scannedEventId) nextScreen = 'activities';
 
         nextScreen = getScreenToPersist(nextScreen, nextTab);
         if (isScreenEnabled && !isScreenEnabled(nextScreen)) {
