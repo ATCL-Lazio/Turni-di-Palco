@@ -1,5 +1,5 @@
 ﻿import "../../../shared/styles/main.css";
-import { appConfig, getConfigWarnings } from "./services/app-config";
+import { appConfig, getConfigWarnings, getFeatureFlagDescription, type FeatureFlag } from "./services/app-config";
 import { buildControlPlaneUrl } from "./services/ops-sdk";
 import { enforceDesktopOnly } from "./utils/desktop-only";
 
@@ -40,10 +40,16 @@ function renderActions() {
 }
 
 function renderFeatureFlags() {
-  return Object.entries(appConfig.featureFlags)
+  return (Object.entries(appConfig.featureFlags) as [FeatureFlag, boolean][])
     .map(
       ([key, enabled]) =>
-        `<li><strong>${key}</strong><span class="${enabled ? "tdp-flag-on" : "tdp-flag-off"}">${enabled ? "ON" : "OFF"}</span></li>`
+        `<li>
+          <div class="tdp-flag-meta">
+            <strong>${key}</strong>
+            <p class="tdp-flag-description">${getFeatureFlagDescription(key)}</p>
+          </div>
+          <span class="${enabled ? "tdp-flag-on" : "tdp-flag-off"}">${enabled ? "ON" : "OFF"}</span>
+        </li>`
     )
     .join("");
 }
