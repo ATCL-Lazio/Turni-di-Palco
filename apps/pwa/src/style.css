@@ -965,6 +965,18 @@ code {
   margin-top: 0.35rem;
 }
 
+.simple-grid .card {
+  min-height: 0;
+}
+
+.step-list {
+  margin-top: 0.9rem;
+}
+
+.step-list li strong {
+  margin-right: 0.35rem;
+}
+
 .legal-embed {
   color: var(--text-primary);
 }
