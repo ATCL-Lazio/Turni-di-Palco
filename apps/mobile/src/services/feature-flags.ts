@@ -40,7 +40,7 @@ export function isMobileFeatureFlagKey(value: string): value is MobileFeatureFla
 export function normalizeMobileFeatureFlags(rows: unknown): MobileFeatureFlagsState | null {
   if (!Array.isArray(rows)) return null;
 
-  const next: MobileFeatureFlagsState = { ...MOBILE_FEATURE_FLAGS_FAIL_CLOSED };
+  const next: MobileFeatureFlagsState = { ...MOBILE_FEATURE_FLAGS_ALL_ON };
   let hasKnownKey = false;
 
   for (const row of rows) {
