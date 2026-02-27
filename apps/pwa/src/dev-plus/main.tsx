@@ -10,10 +10,8 @@ import { registerServiceWorker } from "../pwa/register-sw";
 import { isSupabaseConfigured, supabase } from "../services/supabase";
 import {
   appConfig,
-  clearStoredFeatureFlagOverrides,
-  getRuntimeFeatureFlagBaseline,
+  getFeatureFlagDescription,
   setStoredFeatureFlagOverride,
-  setStoredFeatureFlagOverrides,
   type FeatureFlag,
   type FeatureFlagConfig,
 } from "../services/app-config";
@@ -315,7 +313,6 @@ function App() {
   });
 
   const controlPlaneEndpoint = getControlPlaneEndpoint();
-  const pwaFlagBaseline = useMemo(() => getRuntimeFeatureFlagBaseline(), []);
 
   const commandOptions = useMemo(() => {
     const liveOptions = catalog.filter((entry) => entry.available);
@@ -579,74 +576,6 @@ function App() {
     [authState, loadMobileFlags, session]
   );
 
-  const handleBulkSetMobileFlags = useCallback(
-    async (enabled: boolean) => {
-      if (!supabase || authState !== "authenticated") {
-        setMobileFlagsFeedback({ tone: "error", text: "Sessione non valida per modificare le feature flags." });
-        return;
-      }
-      if (!mobileFlags.length) {
-        setMobileFlagsFeedback({ tone: "warn", text: "Nessuna flag disponibile per bulk update." });
-        return;
-      }
-
-      setMobileFlagsBusy(true);
-      const rows = mobileFlags.map((entry) => {
-        const fallback = MOBILE_FLAG_DEFAULTS_BY_KEY.get(entry.key);
-        return {
-          key: entry.key,
-          enabled,
-          label: entry.label || fallback?.label || entry.key,
-          description: entry.description || fallback?.description || "",
-          category: entry.category || fallback?.category || "action",
-        };
-      });
-      const { error } = await supabase
-        .from("mobile_feature_flags")
-        .upsert(rows, { onConflict: "key" });
-      setMobileFlagsBusy(false);
-
-      if (error) {
-        setMobileFlagsFeedback({ tone: "error", text: error.message || "Bulk update feature flags fallito." });
-        return;
-      }
-
-      setMobileFlagsFeedback({ tone: "ok", text: `Aggiornamento bulk completato: ${enabled ? "tutte ON" : "tutte OFF"}.` });
-      await loadMobileFlags(session);
-    },
-    [authState, loadMobileFlags, mobileFlags, session]
-  );
-
-  const handleResetMobileFlags = useCallback(async () => {
-    if (!supabase || authState !== "authenticated") {
-      setMobileFlagsFeedback({ tone: "error", text: "Sessione non valida per il reset feature flags." });
-      return;
-    }
-
-    setMobileFlagsBusy(true);
-    const { error } = await supabase
-      .from("mobile_feature_flags")
-      .upsert(
-        MOBILE_FLAG_DEFAULTS.map((entry) => ({
-          key: entry.key,
-          enabled: true,
-          label: entry.label,
-          description: entry.description,
-          category: entry.category,
-        })),
-        { onConflict: "key" }
-      );
-    setMobileFlagsBusy(false);
-
-    if (error) {
-      setMobileFlagsFeedback({ tone: "error", text: error.message || "Reset feature flags fallito." });
-      return;
-    }
-
-    setMobileFlagsFeedback({ tone: "ok", text: "Reset feature flags completato (seed ON)." });
-    await loadMobileFlags(session);
-  }, [authState, loadMobileFlags, session]);
-
   useEffect(() => {
     setPreparedCommand(null);
     setConfirmText("");
@@ -787,29 +716,6 @@ function App() {
     });
   }, []);
 
-  const handleSetAllPwaFlags = useCallback((enabled: boolean) => {
-    const keys = Object.keys(pwaFlags) as FeatureFlag[];
-    const next = keys.reduce((acc, key) => {
-      acc[key] = enabled;
-      return acc;
-    }, {} as FeatureFlagConfig);
-    setStoredFeatureFlagOverrides(next);
-    setPwaFlags(next);
-    setPwaFlagsFeedback({
-      tone: "ok",
-      text: `Feature flags PWA impostate su ${enabled ? "ON" : "OFF"}. Ricarica la pagina per applicarle ovunque.`,
-    });
-  }, [pwaFlags]);
-
-  const handleResetPwaFlags = useCallback(() => {
-    clearStoredFeatureFlagOverrides();
-    setPwaFlags({ ...pwaFlagBaseline });
-    setPwaFlagsFeedback({
-      tone: "info",
-      text: "Override locali rimossi. Ripristinato il baseline runtime delle flags PWA.",
-    });
-  }, [pwaFlagBaseline]);
-
   const isPwaFlagEnabled = useCallback(
     (flag: FeatureFlag) => Boolean(pwaFlags[flag]),
     [pwaFlags]
@@ -907,17 +813,6 @@ function App() {
         {showPwaFlagsSection ? (
         <article className="cp-card">
           <h2>Feature flags PWA</h2>
-          <div className="cp-inline-actions">
-            <button type="button" onClick={() => handleSetAllPwaFlags(true)}>
-              Tutte ON
-            </button>
-            <button type="button" className="ghost" onClick={() => handleSetAllPwaFlags(false)}>
-              Tutte OFF
-            </button>
-            <button type="button" className="ghost" onClick={handleResetPwaFlags}>
-              Reset
-            </button>
-          </div>
           <p className={toFeedbackClass(pwaFlagsFeedback.tone)}>{pwaFlagsFeedback.text}</p>
           <div className="cp-flag-list">
             {pwaFeatureFlags.map(([flagKey, enabled]) => (
@@ -926,6 +821,7 @@ function App() {
                   <p>
                     <strong>{flagKey}</strong>
                   </p>
+                  <p className="cp-flag-description">{getFeatureFlagDescription(flagKey)}</p>
                 </div>
                 <div className="cp-inline-actions">
                   <span className={enabled ? "cp-on" : "cp-off"}>{enabled ? "ON" : "OFF"}</span>
@@ -1055,15 +951,6 @@ function App() {
           <button type="button" onClick={() => void loadMobileFlags(session)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
             {mobileFlagsBusy ? "Sync..." : "Ricarica"}
           </button>
-          <button type="button" onClick={() => void handleBulkSetMobileFlags(true)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
-            Tutte ON
-          </button>
-          <button type="button" className="ghost" onClick={() => void handleBulkSetMobileFlags(false)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
-            Tutte OFF
-          </button>
-          <button type="button" className="ghost" onClick={() => void handleResetMobileFlags()} disabled={mobileFlagsBusy || authState !== "authenticated"}>
-            Reset default
-          </button>
         </div>
 
         <p className={toFeedbackClass(mobileFlagsFeedback.tone)}>{mobileFlagsFeedback.text}</p>
@@ -1076,8 +963,9 @@ function App() {
                   <p>
                     <strong>{flag.label}</strong>
                   </p>
+                  <p className="cp-flag-description">{flag.description || "Descrizione non disponibile."}</p>
                   <p className="cp-muted">
-                    <code>{flag.key}</code> | {flag.category}
+                    <code>{flag.key}</code>
                   </p>
                 </div>
                 <div className="cp-inline-actions">
