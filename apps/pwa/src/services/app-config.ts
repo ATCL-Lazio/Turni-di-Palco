@@ -3,6 +3,7 @@ export type ServiceWorkerDevMode = "cleanup" | "register";
 export type RuntimeEnvironment = "development" | "production" | "test";
 
 export type FeatureFlagConfig = Record<FeatureFlag, boolean>;
+export type FeatureFlagOverride = Partial<FeatureFlagConfig>;
 
 export type RuntimeConfigOverride = {
   publicMode?: boolean;
@@ -48,6 +49,7 @@ export type AppConfig = {
 };
 
 const FEATURE_FLAG_KEYS: FeatureFlag[] = ["status-card", "permissions-card", "ai-support"];
+const FEATURE_FLAG_STORAGE_KEY = "tdp-pwa-feature-flags:v1";
 
 const DEFAULT_FEATURE_FLAGS: FeatureFlagConfig = {
   "status-card": true,
@@ -117,7 +119,8 @@ function resolveEnvironment(env: EnvSource): RuntimeEnvironment {
 
 function resolveFeatureFlags(
   env: EnvSource,
-  runtimeOverride?: Partial<FeatureFlagConfig>
+  runtimeOverride?: FeatureFlagOverride,
+  storedOverride?: FeatureFlagOverride
 ): FeatureFlagConfig {
   const enabled = new Set(parseList(env.VITE_FEATURE_FLAGS));
   const disabled = new Set(parseList(env.VITE_DISABLED_FEATURE_FLAGS));
@@ -127,6 +130,14 @@ function resolveFeatureFlags(
     if (enabled.has(flag)) resolved[flag] = true;
     if (disabled.has(flag)) resolved[flag] = false;
   });
+
+  if (storedOverride) {
+    FEATURE_FLAG_KEYS.forEach((flag) => {
+      if (typeof storedOverride[flag] === "boolean") {
+        resolved[flag] = storedOverride[flag] as boolean;
+      }
+    });
+  }
 
   if (runtimeOverride) {
     FEATURE_FLAG_KEYS.forEach((flag) => {
@@ -164,6 +175,72 @@ function readRuntimeOverride(): RuntimeConfigOverride | undefined {
   return window.__TDP_PWA_CONFIG__;
 }
 
+function sanitizeFeatureFlagOverride(value: unknown): FeatureFlagOverride | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const candidate = value as Record<string, unknown>;
+  const next: FeatureFlagOverride = {};
+
+  FEATURE_FLAG_KEYS.forEach((flag) => {
+    if (typeof candidate[flag] === "boolean") {
+      next[flag] = candidate[flag] as boolean;
+    }
+  });
+
+  return Object.keys(next).length ? next : undefined;
+}
+
+function readStoredFeatureFlagOverride(): FeatureFlagOverride | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = window.localStorage.getItem(FEATURE_FLAG_STORAGE_KEY);
+    if (!raw) return undefined;
+    return sanitizeFeatureFlagOverride(JSON.parse(raw));
+  } catch {
+    return undefined;
+  }
+}
+
+function writeStoredFeatureFlagOverride(overrides: FeatureFlagOverride) {
+  if (typeof window === "undefined") return;
+  const sanitized = sanitizeFeatureFlagOverride(overrides);
+  if (!sanitized) {
+    window.localStorage.removeItem(FEATURE_FLAG_STORAGE_KEY);
+    return;
+  }
+  window.localStorage.setItem(FEATURE_FLAG_STORAGE_KEY, JSON.stringify(sanitized));
+}
+
+export function listFeatureFlagKeys(): FeatureFlag[] {
+  return [...FEATURE_FLAG_KEYS];
+}
+
+export function getRuntimeFeatureFlagBaseline(params?: {
+  env?: EnvSource;
+  runtimeOverride?: RuntimeConfigOverride;
+}): FeatureFlagConfig {
+  const env = params?.env ?? (import.meta.env as unknown as EnvSource);
+  const runtimeOverride = params?.runtimeOverride ?? readRuntimeOverride();
+  return resolveFeatureFlags(env, runtimeOverride?.featureFlags);
+}
+
+export function getStoredFeatureFlagOverrides(): FeatureFlagOverride {
+  return readStoredFeatureFlagOverride() ?? {};
+}
+
+export function setStoredFeatureFlagOverride(flag: FeatureFlag, enabled: boolean) {
+  const current = getStoredFeatureFlagOverrides();
+  writeStoredFeatureFlagOverride({ ...current, [flag]: enabled });
+}
+
+export function setStoredFeatureFlagOverrides(overrides: FeatureFlagOverride) {
+  writeStoredFeatureFlagOverride(overrides);
+}
+
+export function clearStoredFeatureFlagOverrides() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(FEATURE_FLAG_STORAGE_KEY);
+}
+
 export function resolveAppConfig(params?: {
   env?: EnvSource;
   runtimeOverride?: RuntimeConfigOverride;
@@ -171,6 +248,7 @@ export function resolveAppConfig(params?: {
 }): AppConfig {
   const env = params?.env ?? (import.meta.env as unknown as EnvSource);
   const runtimeOverride = params?.runtimeOverride;
+  const storedFeatureFlags = params?.env ? undefined : readStoredFeatureFlagOverride();
   const origin =
     params?.origin ??
     (typeof window === "undefined" ? "" : window.location.origin);
@@ -236,7 +314,7 @@ export function resolveAppConfig(params?: {
           ? runtimeOverride.serviceWorker.devCleanupRegistrations
           : parseBoolean(env.VITE_SW_DEV_CLEANUP, true),
     },
-    featureFlags: resolveFeatureFlags(env, runtimeOverride?.featureFlags),
+    featureFlags: resolveFeatureFlags(env, runtimeOverride?.featureFlags, storedFeatureFlags),
   };
 }
 
