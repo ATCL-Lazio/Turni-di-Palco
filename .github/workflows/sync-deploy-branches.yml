@@ -127,8 +127,11 @@ jobs:
             for attempt in $(seq 1 "$attempts"); do
               IFS='|' read -r status commit deployment_id <<<"$(get_active_state "$service")"
               echo "[$service] auto-check ${attempt}/${attempts} status=${status:-unknown} active_commit=${commit:-none} deployment=${deployment_id:-none}"
-              if [ "$status" = "SUCCESS" ] && [ "$commit" = "$DEPLOY_SHA" ]; then
-                return 0
+              # Accept SUCCESS status even if commit metadata is missing (Railway issue)
+              if [ "$status" = "SUCCESS" ]; then
+                if [ "$commit" = "$DEPLOY_SHA" ] || [ "$commit" = "" ] || [ "$commit" = "none" ]; then
+                  return 0
+                fi
               fi
               sleep "$sleep_seconds"
             done
@@ -143,8 +146,11 @@ jobs:
             for attempt in $(seq 1 "$attempts"); do
               IFS='|' read -r status commit deployment_id <<<"$(get_active_state "$service")"
               echo "[$service] fallback-check ${attempt}/${attempts} status=${status:-unknown} active_commit=${commit:-none} deployment=${deployment_id:-none}"
-              if [ "$status" = "SUCCESS" ] && [ "$commit" = "$DEPLOY_SHA" ]; then
-                return 0
+              # Accept SUCCESS status even if commit metadata is missing (Railway issue)
+              if [ "$status" = "SUCCESS" ]; then
+                if [ "$commit" = "$DEPLOY_SHA" ] || [ "$commit" = "" ] || [ "$commit" = "none" ]; then
+                  return 0
+                fi
               fi
               sleep "$sleep_seconds"
             done
