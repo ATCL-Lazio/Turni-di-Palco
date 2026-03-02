@@ -146,10 +146,6 @@ Deploy GitHub (`sync-deploy-branches.yml`):
 - Il workflow traccia i deployment per tutti i servizi Render attivi: `Turni-di-Palco`, `Maxwell-AI-Support`, `Turni-di-Palco-Control-Plane`, `Turni-di-Palco-Badges`.
 - Secrets richiesti: `RENDER_API_KEY`, `RENDER_SERVICE_ID_TURNI`, `RENDER_SERVICE_ID_MAXWELL`, `RENDER_SERVICE_ID_CONTROL_PLANE`, `RENDER_SERVICE_ID_BADGES`.
 
-## Contributi
-
-Per linee guida di collaborazione e convenzioni di sviluppo, vedi [CONTRIBUTING.md](CONTRIBUTING.md).
-
 ## Ticket QR Generator
 
 All'interno della cartella `tools/ticket_qr_generator` si trova lo script per generare i QR Code dei ticket, utilizzabile dalle biglietterie .
