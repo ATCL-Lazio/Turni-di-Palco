@@ -248,15 +248,6 @@ function parsePayloadInput(payloadText: string) {
   }
 }
 
-function normalizeRiskLabel(risk?: PreparedCommand["riskLevel"]) {
-  if (!risk) return "risk-medium";
-  return risk === "low" ? "risk-low" : risk === "high" ? "risk-high" : "risk-medium";
-}
-
-function toDisplayValue(value: number | undefined, suffix = "") {
-  if (typeof value !== "number" || Number.isNaN(value)) return "-";
-  return `${value}${suffix}`;
-}
 
 function toFeedbackClass(tone: FeedbackTone) {
   if (tone === "ok") return "feedback feedback-ok";
