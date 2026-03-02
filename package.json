@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
+    "@eslint/js": "^10.0.1",
     "qrcode": "^1.5.4",
     "qrcode-terminal": "^0.12.0"
   },
