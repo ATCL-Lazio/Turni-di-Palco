@@ -553,6 +553,43 @@
   }
 }
 
+@keyframes secret-badge-shimmer-sweep {
+  0% {
+    transform: translateX(-170%) skewX(-18deg);
+    opacity: 0;
+  }
+
+  18% {
+    opacity: 0;
+  }
+
+  42% {
+    opacity: 0.9;
+  }
+
+  58% {
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateX(240%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes secret-badge-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(244, 191, 79, 0);
+    filter: saturate(1);
+  }
+
+  50% {
+    box-shadow: 0 0 16px rgba(244, 191, 79, 0.18);
+    filter: saturate(1.12);
+  }
+}
+
 /* Tab transition classes */
 .tab-slide-right {
   animation: slide-in-right 300ms ease-out;
@@ -592,6 +629,30 @@
   animation: pulse-gentle 400ms ease-in-out;
 }
 
+.secret-badge-shimmer {
+  position: relative;
+  overflow: hidden;
+  animation: secret-badge-glow 2.8s ease-in-out infinite;
+}
+
+.secret-badge-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: -35% auto -35% -70%;
+  width: 55%;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(244, 191, 79, 0) 28%,
+    rgba(255, 255, 255, 0.22) 48%,
+    rgba(244, 191, 79, 0.5) 56%,
+    rgba(244, 191, 79, 0) 82%,
+    transparent 100%
+  );
+  animation: secret-badge-shimmer-sweep 2.8s ease-in-out infinite;
+}
+
 /* Accessibility for tab transitions */
 @media (prefers-reduced-motion: reduce) {
   .tab-slide-right,
@@ -605,6 +666,11 @@
   
   .tab-button-active {
     transition: none;
+  }
+
+  .secret-badge-shimmer,
+  .secret-badge-shimmer::after {
+    animation: none;
   }
   
   .tab-button-active:hover,
