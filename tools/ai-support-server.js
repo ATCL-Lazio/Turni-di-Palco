@@ -787,44 +787,50 @@ let ghLoginProcess = null;
 
 function spawnCodexSync(args) {
   const env = buildCodexEnv();
+  const safeCodexBin = validateBinaryPath(codexBin, 'codex');
+  
   if (process.platform === 'win32') {
-    const lower = codexBin.toLowerCase();
+    const lower = safeCodexBin.toLowerCase();
     if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
-      return spawnSync('cmd.exe', ['/c', codexBin, ...args], {
+      return spawnSync('cmd.exe', ['/c', safeCodexBin, ...args], {
         encoding: 'utf8',
         env: env ?? process.env,
       });
     }
   }
-  return spawnSync(codexBin, args, { encoding: 'utf8', env: env ?? process.env });
+  return spawnSync(safeCodexBin, args, { encoding: 'utf8', env: env ?? process.env });
 }
 
 function spawnGhSync(args) {
   const env = buildGhEnv();
+  const safeGhBin = validateBinaryPath(ghBin, 'gh');
+  
   if (process.platform === 'win32') {
-    const lower = ghBin.toLowerCase();
+    const lower = safeGhBin.toLowerCase();
     if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
-      return spawnSync('cmd.exe', ['/c', ghBin, ...args], {
+      return spawnSync('cmd.exe', ['/c', safeGhBin, ...args], {
         encoding: 'utf8',
         env: env ?? process.env,
       });
     }
   }
-  return spawnSync(ghBin, args, { encoding: 'utf8', env: env ?? process.env });
+  return spawnSync(safeGhBin, args, { encoding: 'utf8', env: env ?? process.env });
 }
 
 function spawnCodexLoginProcess(args) {
   const env = buildCodexEnv();
+  const safeCodexBin = validateBinaryPath(codexBin, 'codex');
+  
   if (process.platform === 'win32') {
-    const lower = codexBin.toLowerCase();
+    const lower = safeCodexBin.toLowerCase();
     if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
-      return spawn('cmd.exe', ['/c', codexBin, ...args], {
+      return spawn('cmd.exe', ['/c', safeCodexBin, ...args], {
         stdio: ['ignore', 'pipe', 'pipe'],
         env: env ?? process.env,
       });
     }
   }
-  return spawn(codexBin, args, {
+  return spawn(safeCodexBin, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
     env: env ?? process.env,
   });
@@ -832,16 +838,18 @@ function spawnCodexLoginProcess(args) {
 
 function spawnGhLoginProcess(args) {
   const env = buildGhEnv();
+  const safeGhBin = validateBinaryPath(ghBin, 'gh');
+  
   if (process.platform === 'win32') {
-    const lower = ghBin.toLowerCase();
+    const lower = safeGhBin.toLowerCase();
     if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
-      return spawn('cmd.exe', ['/c', ghBin, ...args], {
+      return spawn('cmd.exe', ['/c', safeGhBin, ...args], {
         stdio: ['ignore', 'pipe', 'pipe'],
         env: env ?? process.env,
       });
     }
   }
-  return spawn(ghBin, args, {
+  return spawn(safeGhBin, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
     env: env ?? process.env,
   });
@@ -2282,18 +2290,73 @@ async function findExistingIssueByTitle(title) {
   }
 }
 
+function validateBinaryPath(binaryPath, binaryName) {
+  // Basic validation to prevent command injection
+  if (typeof binaryPath !== 'string' || !binaryPath.trim()) {
+    throw new Error(`Invalid ${binaryName} binary path: empty or not a string`);
+  }
+  
+  // Remove any potential command injection characters
+  const sanitized = binaryPath.trim().replace(/[;&|`$(){}[\]]/g, '');
+  
+  // Check for suspicious patterns
+  const suspiciousPatterns = [
+    /\.\./,  // directory traversal
+    /\s/,   // whitespace (could be used for command separation)
+    /[<>]/, // redirection
+  ];
+  
+  for (const pattern of suspiciousPatterns) {
+    if (pattern.test(sanitized)) {
+      throw new Error(`Invalid ${binaryName} binary path: contains suspicious characters`);
+    }
+  }
+  
+  // Use allowlist approach for maximum security
+  const allowedBinaries = {
+    'gh': ['gh', 'gh.exe', 'gh.cmd'],
+    'codex': ['codex', 'codex.exe', 'codex.cmd']
+  };
+  
+  const baseName = sanitized.split(/[\\\/]/).pop().toLowerCase();
+  if (!allowedBinaries[binaryName]?.includes(baseName)) {
+    // For Windows paths, allow full paths to standard locations
+    if (process.platform === 'win32') {
+      const allowedPatterns = [
+        /^[a-zA-Z]:\\[^;&|`$(){}[\]<>\s]*\.(cmd|exe)$/i,
+        /^[^;&|`$(){}[\]<>\s]*\.(cmd|exe)$/i,
+        /^[^;&|`$(){}[\]<>\s]*$/i
+      ];
+      
+      if (!allowedPatterns.some(pattern => pattern.test(sanitized))) {
+        throw new Error(`Invalid ${binaryName} binary path: not in allowlist`);
+      }
+    } else {
+      // Unix systems - more restrictive
+      if (!/^\/[^;&|`$(){}[\]<>\s]*$/.test(sanitized) && 
+          !/^[^;&|`$(){}[\]<>\s\/]*$/.test(sanitized)) {
+        throw new Error(`Invalid ${binaryName} binary path: not in allowlist`);
+      }
+    }
+  }
+  
+  return sanitized;
+}
+
 function spawnCodexProcess(args) {
   const env = buildCodexEnv();
+  const safeCodexBin = validateBinaryPath(codexBin, 'codex');
+  
   if (process.platform === 'win32') {
-    const lower = codexBin.toLowerCase();
+    const lower = safeCodexBin.toLowerCase();
     if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
-      return spawn('cmd.exe', ['/c', codexBin, ...args], {
+      return spawn('cmd.exe', ['/c', safeCodexBin, ...args], {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: env ?? process.env,
       });
     }
   }
-  return spawn(codexBin, args, {
+  return spawn(safeCodexBin, args, {
     stdio: ['pipe', 'pipe', 'pipe'],
     env: env ?? process.env,
   });
@@ -2301,16 +2364,18 @@ function spawnCodexProcess(args) {
 
 function spawnGhProcess(args) {
   const env = buildGhEnv();
+  const safeGhBin = validateBinaryPath(ghBin, 'gh');
+  
   if (process.platform === 'win32') {
-    const lower = ghBin.toLowerCase();
+    const lower = safeGhBin.toLowerCase();
     if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
-      return spawn('cmd.exe', ['/c', ghBin, ...args], {
+      return spawn('cmd.exe', ['/c', safeGhBin, ...args], {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: env ?? process.env,
       });
     }
   }
-  return spawn(ghBin, args, {
+  return spawn(safeGhBin, args, {
     stdio: ['pipe', 'pipe', 'pipe'],
     env: env ?? process.env,
   });
