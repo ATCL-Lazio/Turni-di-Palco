@@ -96,7 +96,7 @@ export function EarnedTitles({ badges, turnStats, onBack, onViewed }: EarnedTitl
                 key={badge.id}
                 className={`flex items-start gap-4 border ${
                   badge.unlocked ? 'border-[#f4bf4f]/20' : 'border-[#3d3a3b] opacity-80'
-                }`}
+                } ${badge.isHidden ? 'secret-badge-frame' : ''}`}
                 style={badge.unlocked ? undefined : { backgroundColor: '#161314' }}
               >
                 <div
@@ -110,12 +110,12 @@ export function EarnedTitles({ badges, turnStats, onBack, onViewed }: EarnedTitl
                     <span
                       className={`font-mono text-[16px] leading-none font-bold tracking-[-0.08em] ${
                         badge.unlocked ? 'text-[#0f0d0e]' : 'text-[#7a7577]'
-                      }`}
+                      } relative z-[1]`}
                     >
                       {glyph}
                     </span>
                   ) : (
-                    <Icon className={badge.unlocked ? 'text-[#0f0d0e]' : 'text-[#7a7577]'} size={24} />
+                    <Icon className={`${badge.unlocked ? 'text-[#0f0d0e]' : 'text-[#7a7577]'} relative z-[1]`} size={24} />
                   )}
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
@@ -134,7 +134,7 @@ export function EarnedTitles({ badges, turnStats, onBack, onViewed }: EarnedTitl
                     )}
                   </p>
                   {badge.isHidden ? (
-                    <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[#f4bf4f]">
+                    <p className="secret-badge-label text-[10px] font-medium uppercase tracking-[0.14em] text-[#f4bf4f]">
                       Badge segreto
                     </p>
                   ) : null}
