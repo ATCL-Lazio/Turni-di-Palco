@@ -70,8 +70,13 @@ function getBadgeProgressText(badge: GameBadge, turnStats: TurnStats) {
 
   if (current == null) return 'Da sbloccare';
 
-  const unit = badge.metric === 'unique_theatres' ? 'teatri' : 'turni';
-  return `In corso: ${current}/${badge.threshold} ${unit}`;
+  const unit =
+    badge.metric === 'unique_theatres'
+      ? 'teatri'
+      : badge.metric === 'turns_this_month'
+        ? 'turni questo mese'
+        : 'turni';
+  return `Obiettivo: ${current}/${badge.threshold} ${unit}`;
 }
 
 export function Career({
@@ -234,7 +239,7 @@ export function Career({
           </Card>
 
           <Card>
-            <h4 className="text-white mb-4">Traguardi carriera</h4>
+            <h4 className="text-white mb-4">Traguardi e obiettivi</h4>
 
             <div className="space-y-3">
               {milestones.length ? (
@@ -257,6 +262,9 @@ export function Career({
                       </div>
                       <div className="flex-1">
                         <p className="text-white text-sm">{milestone.title}</p>
+                        {milestone.description ? (
+                          <p className="text-xs text-[#9b9496]">{milestone.description}</p>
+                        ) : null}
                         <p className="text-xs text-[#b8b2b3]">
                           {getBadgeProgressText(milestone, turnStats)}
                         </p>
