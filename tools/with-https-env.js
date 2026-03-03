@@ -145,8 +145,12 @@ function forwardAndParse(stream, writeTo) {
   });
 }
 
+// Avoid using a shell to eliminate command injection risks. With `shell: false` (the default)
+// each argument is passed verbatim to the executable and special characters such as `;`
+// or `&&` are not interpreted by a shell.
+// The caller is still free to run any binary they choose, which is the intention of this
+// helper script – it simply ensures HTTPS and QR logic around the command.
 const child = spawn(command, commandArgs, {
-  shell: true,
   env: process.env,
   stdio: ['inherit', 'pipe', 'pipe'],
 });
