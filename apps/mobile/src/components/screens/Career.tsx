@@ -260,24 +260,24 @@ export function Career({
                       className={`flex items-center gap-3 p-3 rounded-lg ${unlocked
                           ? 'bg-[#52c41a]/10 border border-[#52c41a]/30'
                           : 'bg-[#241f20] border border-[#2d2728] opacity-60'
-                        }`}
+                        } ${milestone.isHidden ? 'secret-badge-frame' : ''}`}
                     >
                       <div
                         className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${unlocked ? 'bg-[#52c41a]' : 'bg-[#7a7577]'
                           } ${milestone.isHidden ? 'secret-badge-shimmer' : ''}`}
                       >
                         {glyph ? (
-                          <span className="font-mono text-[10px] leading-none font-bold tracking-[-0.08em] text-white">
+                          <span className="font-mono text-[10px] leading-none font-bold tracking-[-0.08em] text-white relative z-[1]">
                             {glyph}
                           </span>
                         ) : (
-                          <Icon className="text-white" size={16} />
+                          <Icon className="text-white relative z-[1]" size={16} />
                         )}
                       </div>
                       <div className="flex-1">
                         <p className="text-white text-sm">{milestone.title}</p>
                         {milestone.isHidden ? (
-                          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[#f4bf4f]">
+                          <p className="secret-badge-label text-[10px] font-medium uppercase tracking-[0.14em] text-[#f4bf4f]">
                             Traguardo segreto
                           </p>
                         ) : null}
