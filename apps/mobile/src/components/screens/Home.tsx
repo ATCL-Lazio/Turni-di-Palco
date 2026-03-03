@@ -125,54 +125,56 @@ export function Home({
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
     >
       <div className="w-full app-content px-6 pt-6 pb-8 space-y-6">
-        <header className="space-y-4 relative mobile-hero-reveal" style={{ marginBottom: '20px' }}>
-          <div className="absolute top-0 right-0">
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="flex items-center justify-center size-[44px] rounded-lg hover:bg-[#241f20] transition mobile-card-hover">
-                  <Bell size={20} className="text-[#f4bf4f]" />
-                  {hasNewBadges && (
-                    <span
-                      className={`absolute -top-1 -right-1 w-3 h-3 bg-[#f4bf4f] rounded-full ${
-                        animateBadges ? 'mobile-badge-pop' : ''
-                      }`}
-                    />
-                  )}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-80 bg-[#1a1617] border-[#3d3a3b] p-3">
-                {showBadge && hasNewBadges ? (
-                  <div className={`flex items-start gap-3 ${animateBadges ? 'mobile-badge-pop' : ''}`}>
-                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#f4bf4f] to-[#e6a23c] rounded-lg flex items-center justify-center mobile-pulse-once">
-                      <Award className="text-[#0f0d0e]" size={20} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-[#f4bf4f] mb-1 font-semibold">Nuovo titolo ottenuto</p>
-                      <p className="text-white text-sm">{newBadgeTitle ?? 'Hai sbloccato un nuovo badge'}</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setShowBadge(false);
-                        onDismissBadgeNotification?.();
-                      }}
-                      className="text-[#7a7577] p-1 hover:text-white flex-shrink-0 transition-colors"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ) : (
-                  <p className="text-[#b8b2b3] text-sm text-center py-4">Nessuna notifica</p>
-                )}
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div style={{ marginBottom: '10px' }}>
+        <header className="space-y-4 mobile-hero-reveal" style={{ marginBottom: '20px' }}>
+          <div className="min-w-0">
             <p className="text-sm text-[#b8b2b3]">Benvenuto,</p>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-2xl text-white font-semibold leading-tight">{userName || 'Profilo'}</h2>
+            <div className="mt-2 flex items-center gap-3">
+              <h2 className="min-w-0 flex-1 text-2xl text-white font-semibold leading-tight break-words">
+                {userName || 'Profilo'}
+              </h2>
+              <div className="flex shrink-0 items-center gap-2">
+                <Tag size="sm" className="max-w-[42vw] truncate">
+                  {userRole}
+                </Tag>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="relative flex items-center justify-center size-[44px] rounded-lg hover:bg-[#241f20] transition mobile-card-hover">
+                      <Bell size={20} className="text-[#f4bf4f]" />
+                      {hasNewBadges && (
+                        <span
+                          className={`absolute -top-1 -right-1 w-3 h-3 bg-[#f4bf4f] rounded-full ${
+                            animateBadges ? 'mobile-badge-pop' : ''
+                          }`}
+                        />
+                      )}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-80 bg-[#1a1617] border-[#3d3a3b] p-3">
+                    {showBadge && hasNewBadges ? (
+                      <div className={`flex items-start gap-3 ${animateBadges ? 'mobile-badge-pop' : ''}`}>
+                        <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#f4bf4f] to-[#e6a23c] rounded-lg flex items-center justify-center mobile-pulse-once">
+                          <Award className="text-[#0f0d0e]" size={20} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-[#f4bf4f] mb-1 font-semibold">Nuovo titolo ottenuto</p>
+                          <p className="text-white text-sm">{newBadgeTitle ?? 'Hai sbloccato un nuovo badge'}</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setShowBadge(false);
+                            onDismissBadgeNotification?.();
+                          }}
+                          className="text-[#7a7577] p-1 hover:text-white flex-shrink-0 transition-colors"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-[#b8b2b3] text-sm text-center py-4">Nessuna notifica</p>
+                    )}
+                  </PopoverContent>
+                </Popover>
               </div>
-              <Tag size="sm">{userRole}</Tag>
             </div>
           </div>
 

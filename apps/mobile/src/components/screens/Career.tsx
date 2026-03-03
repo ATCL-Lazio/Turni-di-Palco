@@ -55,6 +55,11 @@ const ROLE_STAT_LABELS: Record<keyof Role['stats'], string> = {
 
 const BADGE_ICONS: Record<string, LucideIcon> = { Award, MapPin, Theater, Calendar };
 
+function getBadgeGlyph(badge: GameBadge) {
+  if (badge.icon === 'Developer' || badge.icon === 'developer_prompt') return '>_';
+  return null;
+}
+
 function getBadgeProgressText(badge: GameBadge, turnStats: TurnStats) {
   if (badge.unlocked) return 'Completato';
   if (!badge.metric || badge.metric === 'manual' || badge.threshold == null) return 'Da sbloccare';
@@ -70,8 +75,13 @@ function getBadgeProgressText(badge: GameBadge, turnStats: TurnStats) {
 
   if (current == null) return 'Da sbloccare';
 
-  const unit = badge.metric === 'unique_theatres' ? 'teatri' : 'turni';
-  return `In corso: ${current}/${badge.threshold} ${unit}`;
+  const unit =
+    badge.metric === 'unique_theatres'
+      ? 'teatri'
+      : badge.metric === 'turns_this_month'
+        ? 'turni questo mese'
+        : 'turni';
+  return `Obiettivo: ${current}/${badge.threshold} ${unit}`;
 }
 
 export function Career({
@@ -95,12 +105,14 @@ export function Career({
   const resolveRoleName = (roleIdValue: RoleId) =>
     roles.find((role) => role.id === roleIdValue)?.name ?? 'Ruolo';
   const milestones = React.useMemo(() => {
-    return [...badges].sort(
-      (a, b) =>
-        Number(b.unlocked) - Number(a.unlocked) ||
-        (a.threshold ?? Number.POSITIVE_INFINITY) - (b.threshold ?? Number.POSITIVE_INFINITY) ||
-        a.title.localeCompare(b.title)
-    );
+    return [...badges]
+      .filter((badge) => badge.unlocked || !badge.isHidden)
+      .sort(
+        (a, b) =>
+          Number(b.unlocked) - Number(a.unlocked) ||
+          (a.threshold ?? Number.POSITIVE_INFINITY) - (b.threshold ?? Number.POSITIVE_INFINITY) ||
+          a.title.localeCompare(b.title)
+      );
   }, [badges]);
 
   return (
@@ -234,12 +246,13 @@ export function Career({
           </Card>
 
           <Card>
-            <h4 className="text-white mb-4">Traguardi carriera</h4>
+            <h4 className="text-white mb-4">Traguardi e obiettivi</h4>
 
             <div className="space-y-3">
               {milestones.length ? (
                 milestones.map((milestone) => {
-                  const Icon = BADGE_ICONS[milestone.icon] ?? Award;
+                  const glyph = getBadgeGlyph(milestone);
+                  const Icon = glyph ? null : BADGE_ICONS[milestone.icon] ?? Award;
                   const unlocked = milestone.unlocked;
                   return (
                     <div
@@ -247,16 +260,30 @@ export function Career({
                       className={`flex items-center gap-3 p-3 rounded-lg ${unlocked
                           ? 'bg-[#52c41a]/10 border border-[#52c41a]/30'
                           : 'bg-[#241f20] border border-[#2d2728] opacity-60'
-                        }`}
+                        } ${milestone.isHidden ? 'secret-badge-frame' : ''}`}
                     >
                       <div
                         className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${unlocked ? 'bg-[#52c41a]' : 'bg-[#7a7577]'
-                          }`}
+                          } ${milestone.isHidden ? 'secret-badge-shimmer' : ''}`}
                       >
-                        <Icon className="text-white" size={16} />
+                        {glyph ? (
+                          <span className="font-mono text-[10px] leading-none font-bold tracking-[-0.08em] text-white relative z-[1]">
+                            {glyph}
+                          </span>
+                        ) : (
+                          <Icon className="text-white relative z-[1]" size={16} />
+                        )}
                       </div>
                       <div className="flex-1">
                         <p className="text-white text-sm">{milestone.title}</p>
+                        {milestone.isHidden ? (
+                          <p className="secret-badge-label text-[10px] font-medium uppercase tracking-[0.14em] text-[#f4bf4f]">
+                            Traguardo segreto
+                          </p>
+                        ) : null}
+                        {milestone.description ? (
+                          <p className="text-xs text-[#9b9496]">{milestone.description}</p>
+                        ) : null}
                         <p className="text-xs text-[#b8b2b3]">
                           {getBadgeProgressText(milestone, turnStats)}
                         </p>

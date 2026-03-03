@@ -16,6 +16,7 @@ export type Screen =
     | 'activity-minigame'
     | 'activity-result'
     | 'profile'
+    | 'public-profile'
     | 'account-settings'
     | 'support'
     | 'change-password'

@@ -17,6 +17,7 @@ import { ActivityResult } from './components/screens/ActivityResult';
 import { Shop } from './components/screens/Shop';
 import { Leaderboard } from './components/screens/Leaderboard';
 import { Profile } from './components/screens/Profile';
+import { PublicProfile } from './components/screens/PublicProfile';
 import { AccountSettings } from './components/screens/AccountSettings';
 import { SupportChat } from './components/screens/SupportChat';
 import { ChangePassword } from './components/screens/ChangePassword';
@@ -27,8 +28,8 @@ import { PrivacyPolicy } from './components/screens/PrivacyPolicy';
 import { EarnedTitles } from './components/screens/EarnedTitles';
 import { TicketQrActivationPrototype } from './components/screens/TicketQrActivationPrototype';
 import { Card } from './components/ui/Card';
-import { Activity, GameEvent, GameStateProvider, Rewards, useGameState } from './state/store';
-import { isSupabaseConfigured } from './lib/supabase';
+import { Activity, GameEvent, GameStateProvider, LeaderboardEntry, Rewards, useGameState } from './state/store';
+import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { hasStoredAuthState, PUBLIC_SCREENS } from './lib/auth-storage';
 import { openInMaps, openEventsMap } from './lib/navigation-utils';
 import { uploadProfileImage } from './services/storage';
@@ -164,6 +165,9 @@ function AppShell() {
   const [activityOutcome, setActivityOutcome] = useState<MinigameOutcome | null>(null);
   const [activityCompletion, setActivityCompletion] = useState<{ activity: Activity; rewards: Rewards } | null>(null);
   const [activitiesSection, setActivitiesSection] = useState<ActivitiesHubSection>('activities');
+  const [selectedLeaderboardEntry, setSelectedLeaderboardEntry] = useState<LeaderboardEntry | null>(null);
+  const [publicProfileTheatres, setPublicProfileTheatres] = useState<Array<{ theatre: string; turnsCount: number }>>([]);
+  const [publicProfileTheatresLoading, setPublicProfileTheatresLoading] = useState(false);
 
   // Animation state for tab transitions
   const [screenAnimation, setScreenAnimation] = useState('');
@@ -200,6 +204,7 @@ function AppShell() {
       setActiveTab('home');
       setActivityOutcome(null);
       setActivityCompletion(null);
+      setSelectedLeaderboardEntry(null);
       setPendingTicketActivation(null);
       setConfirmationEventOverride(null);
       resetState();
@@ -280,6 +285,59 @@ function AppShell() {
     setActivitiesSection('turns');
     baseHandleTabChange('activities');
   }, [activeTab, baseHandleTabChange]);
+
+  useEffect(() => {
+    if (!selectedLeaderboardEntry || !supabase) {
+      setPublicProfileTheatres([]);
+      setPublicProfileTheatresLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    type PublicProfileTheatreRow = {
+      theatre: string | null;
+      turns_count: number | null;
+    };
+
+    const loadPublicProfileTheatres = async () => {
+      setPublicProfileTheatresLoading(true);
+
+      try {
+        const { data, error } = await supabase.rpc('get_public_profile_theatres', {
+          p_user_id: selectedLeaderboardEntry.id,
+        });
+        if (error) throw error;
+
+        if (cancelled) return;
+
+        const rows = (data as PublicProfileTheatreRow[]) ?? [];
+        setPublicProfileTheatres(
+          rows
+            .filter((row) => Boolean(row.theatre))
+            .map((row) => ({
+              theatre: row.theatre ?? 'Teatro',
+              turnsCount: row.turns_count ?? 0,
+            }))
+        );
+      } catch (error) {
+        console.warn('Supabase public profile theatres fetch failed', error);
+        if (!cancelled) {
+          setPublicProfileTheatres([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setPublicProfileTheatresLoading(false);
+        }
+      }
+    };
+
+    void loadPublicProfileTheatres();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedLeaderboardEntry]);
 
   useEffect(() => {
     if (PUBLIC_SCREENS.has(currentScreen)) return;
@@ -637,10 +695,27 @@ function AppShell() {
     setCurrentScreen('earned-titles');
   }, [setCurrentScreen, showFeatureDisabledAlert, tabFeatureFlags.earnedTitles]);
 
+  const openLeaderboardProfile = useCallback(
+    (entry: LeaderboardEntry, isCurrentUser: boolean) => {
+      if (isCurrentUser) {
+        setSelectedLeaderboardEntry(null);
+        handleTabChange('profile');
+        return;
+      }
+
+      setSelectedLeaderboardEntry(entry);
+      setCurrentScreen('public-profile');
+    },
+    [handleTabChange, setCurrentScreen]
+  );
+
   const renderScreen = () => {
     const selectedEvent = confirmationEventOverride ?? events.find(e => e.id === scannedEventId);
     const selectedRole = roles.find(r => r.id === state.profile.roleId);
     const currentActivity = activities.find(a => a.id === selectedActivityId);
+    const selectedLeaderboardRole = selectedLeaderboardEntry
+      ? roles.find((role) => role.id === selectedLeaderboardEntry.roleId)?.name ?? 'Ruolo'
+      : 'Ruolo';
 
     switch (currentScreen) {
       case 'welcome': return <Welcome onStart={() => setCurrentScreen('signup')} onLogin={() => setCurrentScreen('login')} />;
@@ -733,7 +808,7 @@ function AppShell() {
             }
           />
         );
-      case 'leaderboard': return <Leaderboard />;
+      case 'leaderboard': return <Leaderboard onSelectEntry={openLeaderboardProfile} />;
       case 'qr-scanner':
         if (!isFeatureEnabled('mobile.action.qr_scan')) {
           return (
@@ -853,13 +928,30 @@ function AppShell() {
           />
         );
       case 'profile': return <Profile userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} cachet={state.profile.cachet} tokenAtcl={state.profile.tokenAtcl} theatreReputation={theatreReputation.map(tr => ({ name: tr.theatre, reputation: tr.reputation }))} theatreReputationLoading={theatreReputationLoading} badgesUnlockedCount={unlockedBadges.length} newBadgesCount={newBadges.length} profileImage={state.profile.profileImage} onViewCarriera={openCareer} onViewTitoli={openEarnedTitles} onSettings={() => setCurrentScreen('account-settings')} onLogout={handleLogout} onUploadProfileImage={handleUploadImage} />;
+      case 'public-profile':
+        return selectedLeaderboardEntry ? (
+          <PublicProfile
+            userName={selectedLeaderboardEntry.name}
+            userRole={selectedLeaderboardRole}
+            xpTotal={selectedLeaderboardEntry.xpTotal}
+            reputation={selectedLeaderboardEntry.reputation}
+            cachet={selectedLeaderboardEntry.cachet}
+            turnsCount={selectedLeaderboardEntry.turnsCount}
+            theatres={publicProfileTheatres}
+            theatresLoading={publicProfileTheatresLoading}
+            profileImage={selectedLeaderboardEntry.profileImage}
+            onBack={() => setCurrentScreen('leaderboard')}
+          />
+        ) : (
+          <Leaderboard onSelectEntry={openLeaderboardProfile} />
+        );
       case 'account-settings': return <AccountSettings userName={state.profile.name} email={state.profile.email} onBack={() => setCurrentScreen('profile')} onViewTerms={() => openLegal('terms', 'account-settings')} onViewPrivacy={() => openLegal('privacy', 'account-settings')} onViewSupport={() => setCurrentScreen('support')} onViewTicketPrototype={() => setCurrentScreen('ticket-qr-prototype')} onChangePassword={() => { setIsPasswordRecovery(false); setCurrentScreen('change-password'); }} onResetProgress={async () => { await resetProgress(); handleTabChange('home'); setCurrentScreen('role-selection'); }} onLogout={handleLogout} />;
       case 'support': return <SupportChat userName={state.profile.name} onBack={() => setCurrentScreen('account-settings')} />;
       case 'change-password': return <ChangePassword email={state.profile.email} mode={isPasswordRecovery ? 'recovery' : 'change'} onBack={() => { setIsPasswordRecovery(false); setCurrentScreen(isPasswordRecovery ? 'home' : 'account-settings'); }} onChangePassword={(current, next) => changePassword(next, current)} onSendResetEmail={() => sendPasswordResetEmail(state.profile.email)} />;
       case 'career': return <Career userRole={selectedRole?.name ?? 'Ruolo'} roleId={state.profile.roleId} roleStats={selectedRole?.stats ?? { presence: 0, precision: 0, leadership: 0, creativity: 0 }} turnStats={turnStats} badges={badges} turns={state.turns} roles={roles} level={state.profile.level} xp={state.profile.xp} xpToNextLevel={state.profile.xpToNextLevel} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} onBack={() => setCurrentScreen('profile')} />;
       case 'terms': return <TermsAndConditions onBack={() => setCurrentScreen(legalReturnScreen)} />;
       case 'privacy': return <PrivacyPolicy onBack={() => setCurrentScreen(legalReturnScreen)} />;
-      case 'earned-titles': return <EarnedTitles badges={unlockedBadges} onBack={() => setCurrentScreen('profile')} onViewed={markBadgesSeen} />;
+      case 'earned-titles': return <EarnedTitles badges={badges} turnStats={turnStats} onBack={() => setCurrentScreen('profile')} onViewed={authReady && authUserId ? markBadgesSeen : undefined} />;
       case 'ticket-qr-prototype': return <TicketQrActivationPrototype userId={authUserId ?? state.profile.email ?? 'guest-user'} onBack={() => setCurrentScreen('account-settings')} />;
       default: return null;
     }
@@ -874,7 +966,7 @@ function AppShell() {
     return next;
   }, [tabFeatureFlags.activities, tabFeatureFlags.leaderboard, tabFeatureFlags.shop, tabFeatureFlags.turns]);
 
-  const showBottomNav = ['home', 'turns', 'leaderboard', 'activities', 'shop', 'profile', 'career', 'earned-titles'].includes(currentScreen);
+  const showBottomNav = ['home', 'turns', 'leaderboard', 'activities', 'shop', 'profile', 'public-profile', 'career', 'earned-titles'].includes(currentScreen);
   const normalizedError = useMemo(() => {
     if (!criticalError) return null;
     return {

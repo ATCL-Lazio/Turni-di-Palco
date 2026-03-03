@@ -3,10 +3,10 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "../../../shared/styles/main.css";
 
-// On the dev server (5173) keep SW caches out of the way to avoid stale bundles.
-const isDevServer = window.location.port === "5173";
+// On local hosts, keep stale SW caches out of the way across dev and preview sessions.
+const isLocalHost = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]).has(window.location.hostname);
 
-if ("serviceWorker" in navigator && isDevServer) {
+if ("serviceWorker" in navigator && isLocalHost) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {
     registrations.forEach((registration) => registration.unregister().catch(() => undefined));
   });

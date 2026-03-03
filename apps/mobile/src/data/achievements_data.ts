@@ -1,15 +1,21 @@
-import { Award, MapPin, Theater } from 'lucide-react';
+import { Award, Calendar, MapPin, Theater } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export type Achievement = {
   id: string;
   title: string;
   icon: LucideIcon;
+  isHidden?: boolean;
   isNew?: boolean;
 };
 
 export const achievements: Achievement[] = [
-  { id: '1', title: 'Ha lavorato in 3 teatri diversi', icon: MapPin, isNew: true },
-  { id: '2', title: 'Prima stagione completata', icon: Award, isNew: false },
-  { id: '3', title: '10 turni registrati', icon: Theater, isNew: false },
+  { id: 'first_turn', title: 'Primo sipario', icon: Award, isHidden: false, isNew: true },
+  { id: 'turns_this_month_3', title: 'Ritmo di scena', icon: Calendar, isHidden: false, isNew: true },
+  { id: 'unique_theatres_3', title: 'Teatri in tour', icon: MapPin, isHidden: false, isNew: true },
+  { id: 'total_turns_10', title: 'Presenza costante', icon: Theater, isHidden: false, isNew: false },
+  { id: 'turns_this_month_6', title: 'Settimana piena', icon: Calendar, isHidden: true, isNew: false },
+  { id: 'unique_theatres_5', title: 'Compagnia itinerante', icon: MapPin, isHidden: false, isNew: false },
+  { id: 'total_turns_25', title: 'Veterano di palco', icon: Award, isHidden: true, isNew: false },
+  { id: 'unique_theatres_8', title: 'Mappa completa', icon: MapPin, isHidden: true, isNew: false },
 ];
