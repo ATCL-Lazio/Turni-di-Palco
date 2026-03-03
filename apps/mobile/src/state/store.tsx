@@ -213,6 +213,7 @@ export type Badge = {
   icon: string;
   metric: BadgeMetric | null;
   threshold: number | null;
+  isHidden: boolean;
   unlocked: boolean;
   unlockedAt: number | null;
   seenAt: number | null;
@@ -1343,6 +1344,7 @@ const FALLBACK_BADGES: Array<Omit<Badge, 'unlocked' | 'unlockedAt' | 'seenAt'>> 
     icon: 'Award',
     metric: 'total_turns',
     threshold: 1,
+    isHidden: false,
   },
   {
     id: 'turns_this_month_3',
@@ -1351,6 +1353,7 @@ const FALLBACK_BADGES: Array<Omit<Badge, 'unlocked' | 'unlockedAt' | 'seenAt'>> 
     icon: 'Calendar',
     metric: 'turns_this_month',
     threshold: 3,
+    isHidden: false,
   },
   {
     id: 'unique_theatres_3',
@@ -1359,6 +1362,7 @@ const FALLBACK_BADGES: Array<Omit<Badge, 'unlocked' | 'unlockedAt' | 'seenAt'>> 
     icon: 'MapPin',
     metric: 'unique_theatres',
     threshold: 3,
+    isHidden: false,
   },
   {
     id: 'total_turns_10',
@@ -1367,6 +1371,7 @@ const FALLBACK_BADGES: Array<Omit<Badge, 'unlocked' | 'unlockedAt' | 'seenAt'>> 
     icon: 'Theater',
     metric: 'total_turns',
     threshold: 10,
+    isHidden: false,
   },
   {
     id: 'turns_this_month_6',
@@ -1375,6 +1380,7 @@ const FALLBACK_BADGES: Array<Omit<Badge, 'unlocked' | 'unlockedAt' | 'seenAt'>> 
     icon: 'Calendar',
     metric: 'turns_this_month',
     threshold: 6,
+    isHidden: true,
   },
   {
     id: 'unique_theatres_5',
@@ -1383,6 +1389,7 @@ const FALLBACK_BADGES: Array<Omit<Badge, 'unlocked' | 'unlockedAt' | 'seenAt'>> 
     icon: 'MapPin',
     metric: 'unique_theatres',
     threshold: 5,
+    isHidden: false,
   },
   {
     id: 'total_turns_25',
@@ -1391,6 +1398,7 @@ const FALLBACK_BADGES: Array<Omit<Badge, 'unlocked' | 'unlockedAt' | 'seenAt'>> 
     icon: 'Award',
     metric: 'total_turns',
     threshold: 25,
+    isHidden: true,
   },
   {
     id: 'unique_theatres_8',
@@ -1399,6 +1407,7 @@ const FALLBACK_BADGES: Array<Omit<Badge, 'unlocked' | 'unlockedAt' | 'seenAt'>> 
     icon: 'MapPin',
     metric: 'unique_theatres',
     threshold: 8,
+    isHidden: true,
   },
 ];
 
@@ -1645,7 +1654,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           await supabase!.rpc('evaluate_my_badges');
           const { data, error } = await supabase!
             .from('my_badges')
-            .select('id,title,description,icon,metric,threshold,unlocked_at,seen_at,unlocked');
+            .select('id,title,description,icon,metric,threshold,is_hidden,unlocked_at,seen_at,unlocked');
           if (!error && data) {
             const nextBadges: Badge[] = data.map((row: any) => ({
               id: row.id,
@@ -1654,6 +1663,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               icon: row.icon ?? 'Award',
               metric: (row.metric as BadgeMetric | null) ?? null,
               threshold: row.threshold != null ? Number(row.threshold) : null,
+              isHidden: Boolean(row.is_hidden),
               unlocked: Boolean(row.unlocked),
               unlockedAt: row.unlocked_at ? new Date(row.unlocked_at).getTime() : null,
               seenAt: row.seen_at ? new Date(row.seen_at).getTime() : null,
