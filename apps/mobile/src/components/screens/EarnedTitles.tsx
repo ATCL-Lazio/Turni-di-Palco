@@ -15,6 +15,11 @@ interface EarnedTitlesProps {
 
 const BADGE_ICONS: Record<string, LucideIcon> = { Award, MapPin, Theater, Calendar };
 
+function getBadgeGlyph(badge: Badge) {
+  if (badge.icon === 'Developer' || badge.icon === 'developer_prompt') return '>_';
+  return null;
+}
+
 function getBadgeProgressMeta(badge: Badge, turnStats: TurnStats) {
   if (!badge.metric || badge.metric === 'manual' || badge.threshold == null) return null;
 
@@ -53,10 +58,12 @@ export function EarnedTitles({ badges, turnStats, onBack, onViewed }: EarnedTitl
 
   const visibleBadges = React.useMemo(
     () =>
-      [...badges].sort(
-        (left, right) =>
-          Number(right.unlocked) - Number(left.unlocked) || left.title.localeCompare(right.title, 'it')
-      ),
+      [...badges]
+        .filter((badge) => badge.unlocked || !badge.isHidden)
+        .sort(
+          (left, right) =>
+            Number(right.unlocked) - Number(left.unlocked) || left.title.localeCompare(right.title, 'it')
+        ),
     [badges]
   );
 
@@ -81,7 +88,8 @@ export function EarnedTitles({ badges, turnStats, onBack, onViewed }: EarnedTitl
 
         <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
           {visibleBadges.map((badge) => {
-            const Icon = BADGE_ICONS[badge.icon] ?? Award;
+            const glyph = getBadgeGlyph(badge);
+            const Icon = glyph ? null : BADGE_ICONS[badge.icon] ?? Award;
             const progress = getBadgeProgressMeta(badge, turnStats);
             return (
               <Card
@@ -96,9 +104,19 @@ export function EarnedTitles({ badges, turnStats, onBack, onViewed }: EarnedTitl
                     badge.unlocked
                       ? 'bg-[#f4bf4f]'
                       : 'bg-[#2a2526]'
-                  }`}
+                  } ${badge.isHidden ? 'secret-badge-shimmer' : ''}`}
                 >
-                  <Icon className={badge.unlocked ? 'text-[#0f0d0e]' : 'text-[#7a7577]'} size={24} />
+                  {glyph ? (
+                    <span
+                      className={`font-mono text-[16px] leading-none font-bold tracking-[-0.08em] ${
+                        badge.unlocked ? 'text-[#0f0d0e]' : 'text-[#7a7577]'
+                      }`}
+                    >
+                      {glyph}
+                    </span>
+                  ) : (
+                    <Icon className={badge.unlocked ? 'text-[#0f0d0e]' : 'text-[#7a7577]'} size={24} />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className={`text-sm leading-snug ${badge.unlocked ? 'text-[#f7f3f4]' : 'text-[#b8b2b3]'}`}>
@@ -115,6 +133,11 @@ export function EarnedTitles({ badges, turnStats, onBack, onViewed }: EarnedTitl
                       </span>
                     )}
                   </p>
+                  {badge.isHidden ? (
+                    <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[#f4bf4f]">
+                      Badge segreto
+                    </p>
+                  ) : null}
                   {progress && !badge.unlocked ? (
                     <div className="pt-1 space-y-2">
                       <div className="flex items-center justify-between gap-3 text-[11px] text-[#b8b2b3]">
