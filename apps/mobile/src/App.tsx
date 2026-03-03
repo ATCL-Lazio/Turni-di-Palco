@@ -859,7 +859,7 @@ function AppShell() {
       case 'career': return <Career userRole={selectedRole?.name ?? 'Ruolo'} roleId={state.profile.roleId} roleStats={selectedRole?.stats ?? { presence: 0, precision: 0, leadership: 0, creativity: 0 }} turnStats={turnStats} badges={badges} turns={state.turns} roles={roles} level={state.profile.level} xp={state.profile.xp} xpToNextLevel={state.profile.xpToNextLevel} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} onBack={() => setCurrentScreen('profile')} />;
       case 'terms': return <TermsAndConditions onBack={() => setCurrentScreen(legalReturnScreen)} />;
       case 'privacy': return <PrivacyPolicy onBack={() => setCurrentScreen(legalReturnScreen)} />;
-      case 'earned-titles': return <EarnedTitles badges={badges} turnStats={turnStats} onBack={() => setCurrentScreen('profile')} onViewed={markBadgesSeen} />;
+      case 'earned-titles': return <EarnedTitles badges={badges} turnStats={turnStats} onBack={() => setCurrentScreen('profile')} onViewed={authReady && authUserId ? markBadgesSeen : undefined} />;
       case 'ticket-qr-prototype': return <TicketQrActivationPrototype userId={authUserId ?? state.profile.email ?? 'guest-user'} onBack={() => setCurrentScreen('account-settings')} />;
       default: return null;
     }
