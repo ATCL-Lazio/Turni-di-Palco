@@ -50,22 +50,38 @@ export function promptServiceWorkerUpdate(registration: ServiceWorkerRegistratio
 
   const toast = document.createElement("div");
   toast.className = "toast update-toast";
-  toast.innerHTML = `
-    <div>
-      <p class="eyebrow">Aggiornamento disponibile</p>
-      <p>È pronta una nuova versione offline. Ricarica per applicarla.</p>
-    </div>
-    <div class="toast-actions">
-      <button type="button" class="button ghost" data-action="dismiss-update">Più tardi</button>
-      <button type="button" class="button primary" data-action="apply-update">Ricarica ora</button>
-    </div>
-  `;
 
-  toast.querySelector<HTMLButtonElement>('[data-action="dismiss-update"]')?.addEventListener("click", () => {
+  const copy = document.createElement("div");
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "eyebrow";
+  eyebrow.textContent = "Aggiornamento disponibile";
+  const description = document.createElement("p");
+  description.textContent = "E' pronta una nuova versione offline. Ricarica per applicarla.";
+  copy.append(eyebrow, description);
+
+  const actions = document.createElement("div");
+  actions.className = "toast-actions";
+
+  const dismissButton = document.createElement("button");
+  dismissButton.type = "button";
+  dismissButton.className = "button ghost";
+  dismissButton.dataset.action = "dismiss-update";
+  dismissButton.textContent = "Piu' tardi";
+
+  const applyButton = document.createElement("button");
+  applyButton.type = "button";
+  applyButton.className = "button primary";
+  applyButton.dataset.action = "apply-update";
+  applyButton.textContent = "Ricarica ora";
+
+  actions.append(dismissButton, applyButton);
+  toast.append(copy, actions);
+
+  dismissButton.addEventListener("click", () => {
     dismissToast();
   });
 
-  toast.querySelector<HTMLButtonElement>('[data-action="apply-update"]')?.addEventListener("click", () => {
+  applyButton.addEventListener("click", () => {
     if (pendingRegistration) {
       applyServiceWorkerUpdate(pendingRegistration);
     }
