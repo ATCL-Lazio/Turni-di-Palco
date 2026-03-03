@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const http = require('node:http');
 const https = require('node:https');
+const crypto = require('node:crypto');
 const { spawn, spawnSync } = require('node:child_process');
 const os = require('node:os');
 const path = require('node:path');
@@ -485,20 +486,22 @@ function resolveCodexBin() {
         .split(/\r?\n/)
         .map((line) => line.trim())
         .filter(Boolean);
-      const cmdCandidate = candidates.find((line) => line.endsWith('.cmd'));
-      if (cmdCandidate) return cmdCandidate;
-      const exeCandidate = candidates.find((line) => line.endsWith('.exe'));
+      const exeCandidate = candidates.find((line) => line.toLowerCase().endsWith('.exe'));
       if (exeCandidate) return exeCandidate;
+      const cmdCandidate = candidates.find((line) => line.toLowerCase().endsWith('.cmd'));
+      if (cmdCandidate) return cmdCandidate;
       if (candidates[0]) {
         const base = candidates[0];
-        if (fs.existsSync(`${base}.cmd`)) return `${base}.cmd`;
         if (fs.existsSync(`${base}.exe`)) return `${base}.exe`;
+        if (fs.existsSync(`${base}.cmd`)) return `${base}.cmd`;
         return base;
       }
     }
 
     const appData = process.env.APPDATA;
     if (appData) {
+      const exeCandidate = path.join(appData, 'npm', 'codex.exe');
+      if (fs.existsSync(exeCandidate)) return exeCandidate;
       const candidate = path.join(appData, 'npm', 'codex.cmd');
       if (fs.existsSync(candidate)) return candidate;
     }
@@ -519,20 +522,22 @@ function resolveGhBin() {
         .split(/\r?\n/)
         .map((line) => line.trim())
         .filter(Boolean);
-      const cmdCandidate = candidates.find((line) => line.endsWith('.cmd'));
-      if (cmdCandidate) return cmdCandidate;
-      const exeCandidate = candidates.find((line) => line.endsWith('.exe'));
+      const exeCandidate = candidates.find((line) => line.toLowerCase().endsWith('.exe'));
       if (exeCandidate) return exeCandidate;
+      const cmdCandidate = candidates.find((line) => line.toLowerCase().endsWith('.cmd'));
+      if (cmdCandidate) return cmdCandidate;
       if (candidates[0]) {
         const base = candidates[0];
-        if (fs.existsSync(`${base}.cmd`)) return `${base}.cmd`;
         if (fs.existsSync(`${base}.exe`)) return `${base}.exe`;
+        if (fs.existsSync(`${base}.cmd`)) return `${base}.cmd`;
         return base;
       }
     }
 
     const appData = process.env.APPDATA;
     if (appData) {
+      const exeCandidate = path.join(appData, 'npm', 'gh.exe');
+      if (fs.existsSync(exeCandidate)) return exeCandidate;
       const candidate = path.join(appData, 'npm', 'gh.cmd');
       if (fs.existsSync(candidate)) return candidate;
     }
@@ -787,7 +792,7 @@ let ghLoginProcess = null;
 
 function spawnCodexSync(args) {
   const env = buildCodexEnv();
-  const safeCodexBin = validateBinaryPath(codexBin, 'codex');
+  const safeCodexBin = preferWindowsExecutable(validateBinaryPath(codexBin, 'codex'));
   
   if (process.platform === 'win32') {
     const lower = safeCodexBin.toLowerCase();
@@ -803,15 +808,14 @@ function spawnCodexSync(args) {
 
 function spawnGhSync(args) {
   const env = buildGhEnv();
-  const safeGhBin = validateBinaryPath(ghBin, 'gh');
+  const safeGhBin = preferWindowsExecutable(validateBinaryPath(ghBin, 'gh'));
   
   if (process.platform === 'win32') {
     const lower = safeGhBin.toLowerCase();
     if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
-      return spawnSync('cmd.exe', ['/c', safeGhBin, ...args], {
-        encoding: 'utf8',
-        env: env ?? process.env,
-      });
+      throw new Error(
+        'Refusing to execute GitHub CLI via a Windows batch shim. Configure AI_SUPPORT_GH_BIN to gh.exe.'
+      );
     }
   }
   return spawnSync(safeGhBin, args, { encoding: 'utf8', env: env ?? process.env });
@@ -819,7 +823,7 @@ function spawnGhSync(args) {
 
 function spawnCodexLoginProcess(args) {
   const env = buildCodexEnv();
-  const safeCodexBin = validateBinaryPath(codexBin, 'codex');
+  const safeCodexBin = preferWindowsExecutable(validateBinaryPath(codexBin, 'codex'));
   
   if (process.platform === 'win32') {
     const lower = safeCodexBin.toLowerCase();
@@ -838,15 +842,14 @@ function spawnCodexLoginProcess(args) {
 
 function spawnGhLoginProcess(args) {
   const env = buildGhEnv();
-  const safeGhBin = validateBinaryPath(ghBin, 'gh');
+  const safeGhBin = preferWindowsExecutable(validateBinaryPath(ghBin, 'gh'));
   
   if (process.platform === 'win32') {
     const lower = safeGhBin.toLowerCase();
     if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
-      return spawn('cmd.exe', ['/c', safeGhBin, ...args], {
-        stdio: ['ignore', 'pipe', 'pipe'],
-        env: env ?? process.env,
-      });
+      throw new Error(
+        'Refusing to execute GitHub CLI via a Windows batch shim. Configure AI_SUPPORT_GH_BIN to gh.exe.'
+      );
     }
   }
   return spawn(safeGhBin, args, {
@@ -971,7 +974,15 @@ function startGhLogin() {
   }
   
   // Try GitHub CLI but provide manual fallback if it fails
-  const child = spawnGhLoginProcess(['auth', 'login', '--device']);
+  let child;
+  try {
+    child = spawnGhLoginProcess(['auth', 'login', '--device']);
+  } catch (error) {
+    return Promise.resolve({
+      started: false,
+      reason: error instanceof Error ? error.message : String(error),
+    });
+  }
   ghLoginProcess = child;
   return trackLoginProcess({
     label: 'GitHub',
@@ -1044,7 +1055,12 @@ function checkGhAuth() {
     };
   }
 
-  const result = spawnGhSync(['auth', 'status']);
+  let result;
+  try {
+    result = spawnGhSync(['auth', 'status']);
+  } catch (error) {
+    result = { error: error instanceof Error ? error : new Error(String(error)) };
+  }
   if (result?.error) {
     return {
       hasToken: false,
@@ -1956,7 +1972,7 @@ function buildPrompt({ prompt, messages, context }) {
 }
 
 function buildTempReplyPath() {
-  const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const id = crypto.randomUUID().replace(/-/g, '');
   return path.join(os.tmpdir(), `codex-reply-${id}.txt`);
 }
 
@@ -2041,7 +2057,13 @@ function runGhIssueCreate({ title, body, labels }) {
         });
     }
 
-    const child = spawnGhProcess(args);
+    let child;
+    try {
+      child = spawnGhProcess(args);
+    } catch (error) {
+      reject(error);
+      return;
+    }
     let stdout = '';
     let stderr = '';
 
@@ -2078,7 +2100,13 @@ function runGhJson(args) {
     if (repo && !fullArgs.includes('--repo')) {
       fullArgs.push('--repo', repo);
     }
-    const child = spawnGhProcess(fullArgs);
+    let child;
+    try {
+      child = spawnGhProcess(fullArgs);
+    } catch (error) {
+      reject(error);
+      return;
+    }
     let stdout = '';
     let stderr = '';
 
@@ -2115,7 +2143,13 @@ function runGhIssueComment({ number, body }) {
     if (repo) {
       args.push('--repo', repo);
     }
-    const child = spawnGhProcess(args);
+    let child;
+    try {
+      child = spawnGhProcess(args);
+    } catch (error) {
+      reject(error);
+      return;
+    }
     let stderr = '';
 
     child.stderr.on('data', (chunk) => {
@@ -2150,7 +2184,13 @@ function runGhIssueAddLabels({ number, labels }) {
     if (repo) {
       args.push('--repo', repo);
     }
-    const child = spawnGhProcess(args);
+    let child;
+    try {
+      child = spawnGhProcess(args);
+    } catch (error) {
+      reject(error);
+      return;
+    }
     let stderr = '';
 
     child.stderr.on('data', (chunk) => {
@@ -2230,7 +2270,13 @@ async function ensureGhLabel(label) {
       if (repo) {
         args.push('--repo', repo);
       }
-      const child = spawnGhProcess(args);
+      let child;
+      try {
+        child = spawnGhProcess(args);
+      } catch {
+        resolve(false);
+        return;
+      }
       let stderr = '';
 
       child.stderr.on('data', (chunk) => {
@@ -2343,9 +2389,27 @@ function validateBinaryPath(binaryPath, binaryName) {
   return sanitized;
 }
 
+function preferWindowsExecutable(binaryPath) {
+  if (process.platform !== 'win32' || typeof binaryPath !== 'string') {
+    return binaryPath;
+  }
+
+  const trimmed = binaryPath.trim();
+  if (!trimmed) return trimmed;
+
+  if (/\.(cmd|bat)$/i.test(trimmed)) {
+    const exeCandidate = trimmed.replace(/\.(cmd|bat)$/i, '.exe');
+    if (fs.existsSync(exeCandidate)) {
+      return exeCandidate;
+    }
+  }
+
+  return trimmed;
+}
+
 function spawnCodexProcess(args) {
   const env = buildCodexEnv();
-  const safeCodexBin = validateBinaryPath(codexBin, 'codex');
+  const safeCodexBin = preferWindowsExecutable(validateBinaryPath(codexBin, 'codex'));
   
   if (process.platform === 'win32') {
     const lower = safeCodexBin.toLowerCase();
@@ -2364,15 +2428,14 @@ function spawnCodexProcess(args) {
 
 function spawnGhProcess(args) {
   const env = buildGhEnv();
-  const safeGhBin = validateBinaryPath(ghBin, 'gh');
+  const safeGhBin = preferWindowsExecutable(validateBinaryPath(ghBin, 'gh'));
   
   if (process.platform === 'win32') {
     const lower = safeGhBin.toLowerCase();
     if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
-      return spawn('cmd.exe', ['/c', safeGhBin, ...args], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        env: env ?? process.env,
-      });
+      throw new Error(
+        'Refusing to execute GitHub CLI via a Windows batch shim. Configure AI_SUPPORT_GH_BIN to gh.exe.'
+      );
     }
   }
   return spawn(safeGhBin, args, {

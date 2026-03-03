@@ -1,12 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const registerServiceWorker = vi.fn();
-
 describe("main shell", () => {
   beforeEach(() => {
     document.body.innerHTML = '<div id="app"></div>';
     vi.resetModules();
-    registerServiceWorker.mockClear();
   });
 
   it("renders landing page shell", async () => {
@@ -24,22 +21,17 @@ describe("main shell", () => {
       })),
     });
 
-    vi.doMock("../services/dev-gate", () => ({
-      isPublicMode: false,
-      requireDevAccess: vi.fn().mockResolvedValue(true),
-    }));
-
-    vi.doMock("../pwa/register-sw", () => ({
-      registerServiceWorker,
-    }));
-
     await import("../main");
 
     const heading = document.querySelector("h1");
-    const connectionStatus = document.querySelector("[data-connection]");
+    const systemHeading = Array.from(document.querySelectorAll("h2")).find(
+      (element) => element.textContent === "Stato sistema"
+    );
+    const actionLinks = document.querySelectorAll(".tdp-action-list .tdp-action-item a");
 
     expect(heading?.textContent).toContain("Dashboard PWA ricostruita");
-    expect(connectionStatus).not.toBeNull();
-    expect(registerServiceWorker).toHaveBeenCalledTimes(1);
+    expect(systemHeading).not.toBeNull();
+    expect(actionLinks).toHaveLength(3);
+    expect(actionLinks[0]?.getAttribute("href")).toContain("/control-plane.html?view=commands");
   });
 });
