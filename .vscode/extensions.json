@@ -2,6 +2,11 @@
     "recommendations": [
         "esbenp.prettier-vscode",
         "openai.chatgpt",
-        "github.vscode-github-actions"
+        "github.vscode-github-actions",
+        "github.codespaces",
+        "github.copilot-chat",
+        "github.github-vscode-theme",
+        "github.vscode-pull-request-github",
+        "ms-ceintl.vscode-language-pack-it"
     ]
 }
