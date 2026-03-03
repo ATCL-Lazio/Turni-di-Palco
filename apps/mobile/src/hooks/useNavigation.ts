@@ -8,7 +8,7 @@ const NAV_STATE_VERSION = 1 as const;
 const VALID_SCREENS = new Set<Screen>([
     'welcome', 'login', 'signup', 'install', 'role-selection',
     'home', 'turns', 'leaderboard', 'qr-scanner', 'event-confirmation',
-    'event-details', 'activities', 'shop', 'activity-detail', 'activity-minigame', 'activity-result', 'profile',
+    'event-details', 'activities', 'shop', 'activity-detail', 'activity-minigame', 'activity-result', 'profile', 'public-profile',
     'account-settings', 'support', 'change-password', 'career',
     'terms', 'privacy', 'earned-titles',
     'ticket-qr-prototype',
@@ -65,6 +65,9 @@ function writeNavState(state: PersistedNavState) {
 function getScreenToPersist(screen: Screen, activeTab: Tab): Screen {
     if (screen === 'install' || screen === 'qr-scanner') {
         return activeTab === 'home' ? 'home' : 'activities';
+    }
+    if (screen === 'public-profile') {
+        return 'leaderboard';
     }
     if (screen === 'activity-minigame' || screen === 'activity-result') {
         return 'activities';
