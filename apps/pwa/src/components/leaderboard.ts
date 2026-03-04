@@ -87,7 +87,7 @@ export function renderLeaderboard(options: LeaderboardComponentOptions): string 
 
       ${entries.length === 0 ? `
         <div class="leaderboard-empty">
-          <p class="muted">Nessun giocatore nella classifica.</p>
+          <p class="muted">Classifica vuota.</p>
         </div>
       ` : ""}
     </div>

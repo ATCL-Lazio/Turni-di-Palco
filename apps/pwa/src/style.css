@@ -134,13 +134,6 @@ body {
   gap: 0.15rem;
 }
 
-.tdp-flag-description {
-  margin: 0;
-  color: var(--tdp-muted);
-  font-size: 0.82rem;
-  line-height: 1.35;
-}
-
 .tdp-flag-on {
   color: var(--tdp-success);
   font-weight: 700;
