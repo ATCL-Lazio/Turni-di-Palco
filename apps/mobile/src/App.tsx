@@ -103,8 +103,10 @@ function AppShell() {
       if (screen === 'shop') return tabFeatureFlags.shop;
       if (screen === 'career') return tabFeatureFlags.career;
       if (screen === 'earned-titles') return tabFeatureFlags.earnedTitles;
+      if (screen === 'support') return isFeatureEnabled('mobile.action.ai_support');
       if (screen === 'qr-scanner') return isFeatureEnabled('mobile.action.qr_scan');
       if (screen === 'event-confirmation') return isFeatureEnabled('mobile.action.turn_submit');
+      if (screen === 'ticket-qr-prototype') return isFeatureEnabled('mobile.dev.ticket_qr_prototype');
       return true;
     },
     [isFeatureEnabled, tabFeatureFlags]
@@ -220,6 +222,8 @@ function AppShell() {
     if (!newBadges.length) return null;
     return [...newBadges].sort((a, b) => (b.unlockedAt ?? 0) - (a.unlockedAt ?? 0))[0];
   }, [newBadges]);
+  const canViewAiSupport = isFeatureEnabled('mobile.action.ai_support');
+  const canViewTicketQrPrototype = isFeatureEnabled('mobile.dev.ticket_qr_prototype');
 
   const hasValidEmail = Boolean(state.profile.email && state.profile.email.includes('@'));
   const isAuthValid = useMemo(() => {
@@ -663,6 +667,22 @@ function AppShell() {
     setCurrentScreen('qr-scanner');
   }, [isFeatureEnabled, setCurrentScreen, showFeatureDisabledAlert]);
 
+  const openSupport = useCallback(() => {
+    if (!canViewAiSupport) {
+      showFeatureDisabledAlert('Il Supporto AI');
+      return;
+    }
+    setCurrentScreen('support');
+  }, [canViewAiSupport, setCurrentScreen, showFeatureDisabledAlert]);
+
+  const openTicketQrPrototype = useCallback(() => {
+    if (!canViewTicketQrPrototype) {
+      showFeatureDisabledAlert('La generazione ticket QR');
+      return;
+    }
+    setCurrentScreen('ticket-qr-prototype');
+  }, [canViewTicketQrPrototype, setCurrentScreen, showFeatureDisabledAlert]);
+
   const openTurns = useCallback(() => {
     if (!tabFeatureFlags.turns) {
       showFeatureDisabledAlert('La sezione turni');
@@ -716,6 +736,29 @@ function AppShell() {
     const selectedLeaderboardRole = selectedLeaderboardEntry
       ? roles.find((role) => role.id === selectedLeaderboardEntry.roleId)?.name ?? 'Ruolo'
       : 'Ruolo';
+    const accountSettingsScreen = (
+      <AccountSettings
+        userName={state.profile.name}
+        email={state.profile.email}
+        showAiSupport={canViewAiSupport}
+        showTicketPrototype={canViewTicketQrPrototype}
+        onBack={() => setCurrentScreen('profile')}
+        onViewTerms={() => openLegal('terms', 'account-settings')}
+        onViewPrivacy={() => openLegal('privacy', 'account-settings')}
+        onViewSupport={openSupport}
+        onViewTicketPrototype={openTicketQrPrototype}
+        onChangePassword={() => {
+          setIsPasswordRecovery(false);
+          setCurrentScreen('change-password');
+        }}
+        onResetProgress={async () => {
+          await resetProgress();
+          handleTabChange('home');
+          setCurrentScreen('role-selection');
+        }}
+        onLogout={handleLogout}
+      />
+    );
 
     switch (currentScreen) {
       case 'welcome': return <Welcome onStart={() => setCurrentScreen('signup')} onLogin={() => setCurrentScreen('login')} />;
@@ -945,14 +988,20 @@ function AppShell() {
         ) : (
           <Leaderboard onSelectEntry={openLeaderboardProfile} />
         );
-      case 'account-settings': return <AccountSettings userName={state.profile.name} email={state.profile.email} onBack={() => setCurrentScreen('profile')} onViewTerms={() => openLegal('terms', 'account-settings')} onViewPrivacy={() => openLegal('privacy', 'account-settings')} onViewSupport={() => setCurrentScreen('support')} onViewTicketPrototype={() => setCurrentScreen('ticket-qr-prototype')} onChangePassword={() => { setIsPasswordRecovery(false); setCurrentScreen('change-password'); }} onResetProgress={async () => { await resetProgress(); handleTabChange('home'); setCurrentScreen('role-selection'); }} onLogout={handleLogout} />;
-      case 'support': return <SupportChat userName={state.profile.name} onBack={() => setCurrentScreen('account-settings')} />;
+      case 'account-settings': return accountSettingsScreen;
+      case 'support':
+        return canViewAiSupport
+          ? <SupportChat userName={state.profile.name} onBack={() => setCurrentScreen('account-settings')} />
+          : accountSettingsScreen;
       case 'change-password': return <ChangePassword email={state.profile.email} mode={isPasswordRecovery ? 'recovery' : 'change'} onBack={() => { setIsPasswordRecovery(false); setCurrentScreen(isPasswordRecovery ? 'home' : 'account-settings'); }} onChangePassword={(current, next) => changePassword(next, current)} onSendResetEmail={() => sendPasswordResetEmail(state.profile.email)} />;
       case 'career': return <Career userRole={selectedRole?.name ?? 'Ruolo'} roleId={state.profile.roleId} roleStats={selectedRole?.stats ?? { presence: 0, precision: 0, leadership: 0, creativity: 0 }} turnStats={turnStats} badges={badges} turns={state.turns} roles={roles} level={state.profile.level} xp={state.profile.xp} xpToNextLevel={state.profile.xpToNextLevel} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} onBack={() => setCurrentScreen('profile')} />;
       case 'terms': return <TermsAndConditions onBack={() => setCurrentScreen(legalReturnScreen)} />;
       case 'privacy': return <PrivacyPolicy onBack={() => setCurrentScreen(legalReturnScreen)} />;
       case 'earned-titles': return <EarnedTitles badges={badges} turnStats={turnStats} onBack={() => setCurrentScreen('profile')} onViewed={authReady && authUserId ? markBadgesSeen : undefined} />;
-      case 'ticket-qr-prototype': return <TicketQrActivationPrototype userId={authUserId ?? state.profile.email ?? 'guest-user'} onBack={() => setCurrentScreen('account-settings')} />;
+      case 'ticket-qr-prototype':
+        return canViewTicketQrPrototype
+          ? <TicketQrActivationPrototype userId={authUserId ?? state.profile.email ?? 'guest-user'} onBack={() => setCurrentScreen('account-settings')} />
+          : accountSettingsScreen;
       default: return null;
     }
   };
