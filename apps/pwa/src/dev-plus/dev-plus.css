@@ -224,10 +224,6 @@ button:disabled {
   gap: 0.2rem;
 }
 
-.cp-preset-button small {
-  color: var(--cp-muted);
-}
-
 .cp-review {
   margin-top: 0.75rem;
   border: 1px solid var(--cp-border);
@@ -260,13 +256,6 @@ button:disabled {
 
 .cp-flag-item p {
   margin: 0;
-}
-
-.cp-flag-description {
-  margin-top: 0.2rem !important;
-  color: var(--cp-muted);
-  font-size: 0.86rem;
-  line-height: 1.35;
 }
 
 .cp-feedback {

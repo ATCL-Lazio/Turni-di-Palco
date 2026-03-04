@@ -1,29 +1,25 @@
 ﻿import "../../../shared/styles/main.css";
-import { appConfig, getConfigWarnings, getFeatureFlagDescription, type FeatureFlag } from "./services/app-config";
+import { appConfig, getConfigWarnings, type FeatureFlag } from "./services/app-config";
 import { buildControlPlaneUrl } from "./services/ops-sdk";
 import { enforceDesktopOnly } from "./utils/desktop-only";
 
 type MainAction = {
   id: "commands" | "render" | "audit";
   label: string;
-  description: string;
 };
 
 const MAIN_ACTIONS: MainAction[] = [
   {
     id: "commands",
-    label: "Esegui comando guidato",
-    description: "Apri il flusso con controllo prima dell'esecuzione.",
+    label: "Apri comandi",
   },
   {
     id: "render",
     label: "Controlla rilasci",
-    description: "Verifica rapidamente lo stato dei servizi online.",
   },
   {
     id: "audit",
     label: "Apri registro operazioni",
-    description: "Vedi le azioni recenti e i relativi esiti.",
   },
 ];
 
@@ -33,7 +29,6 @@ function renderActions() {
     return `
       <li class="tdp-action-item">
         <a class="tdp-btn tdp-btn-primary" href="${href}">${action.label}</a>
-        <p>${action.description}</p>
       </li>
     `;
   }).join("");
@@ -46,7 +41,6 @@ function renderFeatureFlags() {
         `<li>
           <div class="tdp-flag-meta">
             <strong>${key}</strong>
-            <p class="tdp-flag-description">${getFeatureFlagDescription(key)}</p>
           </div>
           <span class="${enabled ? "tdp-flag-on" : "tdp-flag-off"}">${enabled ? "ON" : "OFF"}</span>
         </li>`
@@ -68,8 +62,7 @@ const start = () => {
     <main class="tdp-shell">
       <header class="tdp-hero">
         <p class="tdp-kicker">Turni di Palco</p>
-        <h1>Dashboard PWA ricostruita</h1>
-        <p>Interfaccia semplificata: poche azioni chiare e feature flags sempre visibili.</p>
+        <h1>Dashboard PWA</h1>
         <div class="tdp-hero-actions">
           <a class="tdp-btn tdp-btn-primary" href="/mobile/">Apri app mobile</a>
           <a class="tdp-btn tdp-btn-ghost" href="/control-plane.html?view=commands&source=home-hero">Apri dashboard comandi</a>
@@ -103,7 +96,7 @@ const start = () => {
             <li><strong>Supabase</strong><span>${appConfig.supabase.configured ? "OK" : "MANCANTE"}</span></li>
             <li><strong>Control plane</strong><span>${appConfig.controlPlane.baseUrl || "path locale"}</span></li>
           </ul>
-          ${configWarnings.length ? `<p class="tdp-warning">${configWarnings.join(" | ")}</p>` : '<p class="tdp-ok">Nessun warning critico.</p>'}
+          ${configWarnings.length ? `<p class="tdp-warning">${configWarnings.join(" | ")}</p>` : ""}
         </article>
       </section>
     </main>

@@ -4,8 +4,7 @@ export function renderPermissionsCard() {
     return `
       <article class="card" id="permissions">
         <h2>Permission check</h2>
-        <p>Richiedi i permessi comuni (notifiche, geolocalizzazione, fotocamera) e controlla l'esito in tempo reale.</p>
-        <p class="muted">Nota: su iOS/Safari le notifiche funzionano solo dopo l'installazione come PWA e su connessione sicura (HTTPS). Geolocalizzazione e fotocamera richiedono contesto sicuro.</p>
+        <p class="muted">Notifiche su iOS disponibili solo dopo l'installazione come PWA.</p>
         <div class="cta-row">
           <button class="button primary" type="button" data-action="notify-permission">
             Richiedi notifiche

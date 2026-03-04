@@ -10,7 +10,6 @@ import { registerServiceWorker } from "../pwa/register-sw";
 import { isSupabaseConfigured, supabase } from "../services/supabase";
 import {
   appConfig,
-  getFeatureFlagDescription,
   setStoredFeatureFlagOverride,
   type FeatureFlag,
   type FeatureFlagConfig,
@@ -53,7 +52,6 @@ type FeedbackMessage = {
 type CommandPreset = {
   id: string;
   label: string;
-  note: string;
   commandId: string;
   target?: string;
   reason: string;
@@ -132,7 +130,6 @@ const COMMAND_PRESETS: CommandPreset[] = [
   {
     id: "health-check",
     label: "Check servizi",
-    note: "Stato rapido servizi Render",
     commandId: "render.services.health",
     target: "all",
     reason: "Verifica salute servizi prima del controllo giornaliero.",
@@ -142,7 +139,6 @@ const COMMAND_PRESETS: CommandPreset[] = [
   {
     id: "deployments-last24h",
     label: "Ultimi rilasci",
-    note: "Rilasci ultime 24 ore",
     commandId: "render.deployments.list",
     target: "all",
     reason: "Verifica storico rilasci per controllo versioni online.",
@@ -152,7 +148,6 @@ const COMMAND_PRESETS: CommandPreset[] = [
   {
     id: "db-read-events",
     label: "Leggi eventi",
-    note: "Lettura tabella eventi",
     commandId: "supabase.db.read",
     target: "events",
     reason: "Controllo rapido record eventi da dashboard.",
@@ -162,7 +157,6 @@ const COMMAND_PRESETS: CommandPreset[] = [
   {
     id: "cleanup-preview",
     label: "Pulizia eventi (preview)",
-    note: "Simulazione pulizia dati storici",
     commandId: "supabase.events.cleanup",
     target: "events",
     reason: "Valutazione impatto pulizia eventi piu vecchi.",
@@ -737,8 +731,7 @@ function App() {
       <header className="cp-card cp-header">
         <div>
           <p className="cp-kicker">Turni di Palco</p>
-          <h1>Dashboard comandi semplice</h1>
-          <p className="cp-muted">Una pagina, flusso lineare, preset pronti.</p>
+          <h1>Dashboard comandi</h1>
         </div>
         <div className="cp-links">
           <a href="/">Dashboard</a>
@@ -814,7 +807,6 @@ function App() {
                   <p>
                     <strong>{flagKey}</strong>
                   </p>
-                  <p className="cp-flag-description">{getFeatureFlagDescription(flagKey)}</p>
                 </div>
                 <div className="cp-inline-actions">
                   <span className={enabled ? "cp-on" : "cp-off"}>{enabled ? "ON" : "OFF"}</span>
@@ -835,13 +827,11 @@ function App() {
             {roleActions.map((action) => (
               <button key={action.id} type="button" className="cp-preset-button" onClick={() => applyQuickAction(action)}>
                 <strong>{action.label}</strong>
-                <small>{action.note}</small>
               </button>
             ))}
             {COMMAND_PRESETS.map((preset) => (
               <button key={preset.id} type="button" className="cp-preset-button" onClick={() => applyCommandPreset(preset)}>
                 <strong>{preset.label}</strong>
-                <small>{preset.note}</small>
               </button>
             ))}
           </div>
@@ -852,8 +842,7 @@ function App() {
 
       {showCommandWizard ? (
       <section className="cp-card" id="section-commands">
-        <h2>Comando guidato</h2>
-        <p className="cp-muted">Compila i campi, poi usa Step 1 e Step 2.</p>
+        <h2>Comando</h2>
 
         <div className="cp-command-grid">
           <label>
@@ -956,7 +945,6 @@ function App() {
                   <p>
                     <strong>{flag.label}</strong>
                   </p>
-                  <p className="cp-flag-description">{flag.description || "Descrizione non disponibile."}</p>
                   <p className="cp-muted">
                     <code>{flag.key}</code>
                   </p>

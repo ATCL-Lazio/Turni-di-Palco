@@ -205,9 +205,7 @@ function renderGate(root: HTMLElement) {
         <div>
           <p class="eyebrow">Area riservata</p>
           <h1 class="heading-2">Accesso developer PWA</h1>
-          <p class="muted">
-            Per continuare devi autenticarti con un account abilitato su Supabase: le autorizzazioni sono verificate anche lato server.
-          </p>
+          <p class="muted">Accedi con un account abilitato.</p>
         </div>
         <form class="dev-gate-form" data-dev-gate-form>
           <label class="field">
@@ -242,9 +240,10 @@ function renderGate(root: HTMLElement) {
   }
 
   const rolesCopy = allowedRoles.length
-    ? `Ruoli abilitati: ${allowedRoles.join(", ")}.`
-    : "Nessun ruolo abilitato configurato.";
+    ? `Ruoli: ${allowedRoles.join(", ")}`
+    : "";
   rolesNote.textContent = rolesCopy;
+  rolesNote.hidden = !rolesCopy;
 
   return { root, form, message, emailInput, passwordInput, submitButton, signOutButton } satisfies DevGateState;
 }
