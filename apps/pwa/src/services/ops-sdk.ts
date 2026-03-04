@@ -16,7 +16,6 @@ export type ControlPlanePreset = {
 export type OpsQuickAction = {
   id: string;
   label: string;
-  note: string;
   minRole: OpsRole;
   preset: ControlPlanePreset;
 };
@@ -31,7 +30,6 @@ const QUICK_ACTIONS: OpsQuickAction[] = [
   {
     id: "qa-render-health",
     label: "Stato deploy",
-    note: "Controlla stato servizi Render",
     minRole: "dev_viewer",
     preset: {
       view: "render",
@@ -43,7 +41,6 @@ const QUICK_ACTIONS: OpsQuickAction[] = [
   {
     id: "qa-audit-last",
     label: "Audit recente",
-    note: "Apri cronologia operativa",
     minRole: "dev_viewer",
     preset: {
       view: "audit",
@@ -53,7 +50,6 @@ const QUICK_ACTIONS: OpsQuickAction[] = [
   {
     id: "qa-render-trigger",
     label: "Prepara deploy",
-    note: "Preset comando deploy in dry-run",
     minRole: "dev_operator",
     preset: {
       view: "commands",
@@ -67,7 +63,6 @@ const QUICK_ACTIONS: OpsQuickAction[] = [
   {
     id: "qa-db-read",
     label: "Controllo DB",
-    note: "Preset query readonly",
     minRole: "dev_operator",
     preset: {
       view: "commands",
@@ -81,7 +76,6 @@ const QUICK_ACTIONS: OpsQuickAction[] = [
   {
     id: "qa-mobile-flags",
     label: "Feature flags",
-    note: "Gestione flag mobile runtime",
     minRole: "dev_admin",
     preset: {
       view: "mobile-flags",
