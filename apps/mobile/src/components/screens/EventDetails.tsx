@@ -144,7 +144,7 @@ function parseEventDateTime(dateValue: string, timeValue: string) {
     .replace(/\s+/g, ' ')
     .trim();
 
-  const matchIso = normalized.match(/(\d{4})[\/-](\d{2})[\/-](\d{2})/);
+  const matchIso = normalized.match(/(\d{4})[/-](\d{2})[/-](\d{2})/);
   if (matchIso) {
     return new Date(
       Number(matchIso[1]),
@@ -157,7 +157,7 @@ function parseEventDateTime(dateValue: string, timeValue: string) {
     );
   }
 
-  const matchNumeric = normalized.match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/);
+  const matchNumeric = normalized.match(/(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/);
   if (matchNumeric) {
     return new Date(
       Number(matchNumeric[3]),
