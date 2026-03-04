@@ -19,7 +19,6 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
-  DrawerDescription,
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
@@ -627,9 +626,6 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
             <DrawerTitle className="text-left text-[18px] text-white">
               Cronologia chat
             </DrawerTitle>
-            <DrawerDescription className="text-left text-[#b8b2b3]">
-              Riprendi una conversazione oppure apri una nuova sessione.
-            </DrawerDescription>
             {isLoading ? (
               <p className="mt-2 text-left text-[12px] text-[#f4bf4f]">
                 Attendi la risposta di Maxwell prima di cambiare sessione.

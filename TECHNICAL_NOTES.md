@@ -3,7 +3,7 @@
 ## Struttura repo (high level)
 
 - `apps/pwa`: PWA Vite multipage (entry HTML nella root del package). Asset statici in `apps/pwa/public/` (incl. `public/sw.js` e `public/mobile/`).
-- `apps/mobile`: Mobile UI (React/Vite). Build in `apps/mobile/build`, copiato in `apps/pwa/public/mobile/` tramite script di sync (`build:mobile`, `sync:mobile`).
+- `apps/mobile`: App mobile React/Vite.
 - `shared/`: stili e utilità condivise.
 - `tools/`: script di automazione build/copy/cache.
   - `tools/serve-dist.js` serve `apps/pwa/dist` e risolve le richieste `/mobile/*` su `apps/pwa/dist/public/mobile/*`.
@@ -16,10 +16,11 @@
   - Build: `npm run build:pwa`
   - Preview: `npm run preview:pwa`
 - Mobile:
-  - Dev/build: `npm --workspace apps/mobile run dev|build`
+  - Dev: `npm run dev:mobile`
+  - Build: `npm run build:mobile`
+  - Sync only: `npm run sync:mobile`
   - AI support server (local): `npm run ai:support` (default port 8787)
   - Dev + AI support together: `npm --workspace apps/mobile run dev:with-ai`
-  - Build+sync in PWA: `npm run build:mobile`
   - Allowlist host Vite (dev/preview): `VITE_ALLOWED_HOSTS` (comma-separated)
 
 ## AI support (mobile)
@@ -51,7 +52,7 @@
 
 ## Routing `/mobile` (produzione)
 
-- La Mobile UI ha `base: /mobile/` e viene copiata in `apps/pwa/public/mobile/` prima della build PWA.
+- L'app mobile usa `base: /mobile/`.
 - In produzione, `tools/serve-dist.js` risolve `/mobile/*` su `apps/pwa/dist/public/mobile/*`.
 - Se si usa hosting statico esterno, garantire che `/mobile` punti a `dist/public/mobile` (o aggiungere rewrite equivalente), altrimenti `/mobile` va in 404.
 
@@ -86,7 +87,7 @@ Flusso proposto:
 
 ## QR: scansione in app (stato attuale)
 
-- UI/Camera scan: `apps/mobile/src/components/screens/QRScanner.tsx`
+- Camera scan: `apps/mobile/src/components/screens/QRScanner.tsx`
   - Usa `navigator.mediaDevices.getUserMedia` + decoding con `jsqr`.
   - La fotocamera funziona solo in **secure context** (HTTPS o `localhost`).
 
