@@ -26,7 +26,6 @@ const start = () => {
       <section class="tdp-privacy-card">
         <p class="tdp-kicker">Turni di Palco</p>
         <h1>Privacy</h1>
-        <p>Informativa ufficiale pubblicata tramite Iubenda.</p>
         <div class="tdp-privacy-actions">
           <a class="tdp-btn tdp-btn-primary" href="/">Torna alla dashboard</a>
           <a class="tdp-btn tdp-btn-ghost" href="/mobile/">Apri app mobile</a>
