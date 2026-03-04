@@ -29,7 +29,7 @@ describe("main shell", () => {
     );
     const actionLinks = document.querySelectorAll(".tdp-action-list .tdp-action-item a");
 
-    expect(heading?.textContent).toContain("Dashboard PWA ricostruita");
+    expect(heading?.textContent).toContain("Dashboard PWA");
     expect(systemHeading).not.toBeNull();
     expect(actionLinks).toHaveLength(3);
     expect(actionLinks[0]?.getAttribute("href")).toContain("/control-plane.html?view=commands");

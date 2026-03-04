@@ -127,7 +127,6 @@ export function Home({
       <div className="w-full app-content px-6 pt-6 pb-8 space-y-6">
         <header className="space-y-4 mobile-hero-reveal" style={{ marginBottom: '20px' }}>
           <div className="min-w-0">
-            <p className="text-sm text-[#b8b2b3]">Benvenuto,</p>
             <div className="mt-2 flex items-center gap-3">
               <h2 className="min-w-0 flex-1 text-2xl text-white font-semibold leading-tight break-words">
                 {userName || 'Profilo'}
@@ -190,7 +189,6 @@ export function Home({
             <MetricTile
               label="Reputazione ATCL"
               value={reputation}
-              helper="Su 100"
               progress={{ value: reputation, max: 100, color: 'burgundy' }}
             />
           </div>
@@ -206,7 +204,6 @@ export function Home({
                   <Coins size={14} className="text-[#f4bf4f]" />
                 </div>
                 <p className="text-white text-lg font-semibold mt-1">{cachet}</p>
-                <p className="text-[11px] text-[#7a7577] mt-1">Valuta base attivita e turni</p>
               </div>
               <div className="rounded-xl bg-[#241f20] border border-[#3d3a3b] p-3">
                 <div className="flex items-center justify-between gap-2">
@@ -214,7 +211,6 @@ export function Home({
                   <Zap size={14} className="text-[#f4bf4f]" />
                 </div>
                 <p className="text-[#f4bf4f] text-lg font-semibold mt-1">{tokenAtcl}</p>
-                <p className="text-[11px] text-[#7a7577] mt-1">Boost e futuri riscatti reali</p>
               </div>
             </div>
           </Card>
@@ -394,7 +390,6 @@ export function Home({
               </div>
               <div className="flex-1">
                 <h4 className="text-white mb-1">{activitiesCount} attività disponibili</h4>
-                <p className="text-sm text-[#b8b2b3]">Guadagna XP e migliora le tue skill</p>
               </div>
               <ChevronRight className="text-[#7a7577]" size={20} />
             </div>
