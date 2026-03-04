@@ -28,6 +28,8 @@ import { checkAiSupportAvailability } from '../../services/ai';
 interface AccountSettingsProps {
   userName: string;
   email: string;
+  showAiSupport: boolean;
+  showTicketPrototype: boolean;
   onBack: () => void;
   onViewTerms: () => void;
   onViewPrivacy: () => void;
@@ -75,6 +77,8 @@ function formatPermissionStatus(status: PermissionStatus) {
 export function AccountSettings({
   userName,
   email,
+  showAiSupport,
+  showTicketPrototype,
   onBack,
   onViewTerms,
   onViewPrivacy,
@@ -164,6 +168,11 @@ export function AccountSettings({
     let mounted = true;
 
     const checkSupport = async () => {
+      if (!showAiSupport) {
+        if (!mounted) return;
+        setSupportStatus('unavailable');
+        return;
+      }
       const availability = await checkAiSupportAvailability();
       if (!mounted) return;
       setSupportStatus(availability);
@@ -174,7 +183,7 @@ export function AccountSettings({
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [showAiSupport]);
 
   useEffect(() => {
     let mounted = true;
@@ -572,61 +581,67 @@ export function AccountSettings({
           ) : null}
         </div>
 
-        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[8px]">
-          <button
-            type="button"
-            onClick={onViewSupport}
-            disabled={supportUnavailable || supportChecking}
-            className="h-[51px] flex items-center justify-between disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <div className="flex items-center gap-[12px]">
-              <MessageCircle className="text-[#f4bf4f]" size={24} />
-              <div className="text-left">
-                <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
-                  Supporto
+        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col gap-[14px]">
+          {showAiSupport ? (
+            <>
+              <button
+                type="button"
+                onClick={onViewSupport}
+                disabled={supportUnavailable || supportChecking}
+                className="min-h-[56px] py-[2px] flex items-center justify-between disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-center gap-[12px]">
+                  <MessageCircle className="text-[#f4bf4f]" size={24} />
+                  <div className="text-left">
+                    <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
+                      Supporto
+                    </p>
+                    <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                      Chat con Maxwell
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="text-[#7a7577]" size={20} />
+              </button>
+              {supportUnavailable ? (
+                <p className="text-[14px] leading-[20px] text-[#ff4d4f]">
+                  Supporto AI attualmente non disponibile.
                 </p>
-                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
-                  Chat con Maxwell
+              ) : null}
+              {supportUnknown ? (
+                <p className="text-[14px] leading-[20px] text-[#f4bf4f]">
+                  Stato del supporto non verificabile. Puoi comunque provare ad aprire la chat.
                 </p>
-              </div>
-            </div>
-            <ChevronRight className="text-[#7a7577]" size={20} />
-          </button>
-          {supportUnavailable ? (
-            <p className="text-[14px] leading-[20px] text-[#ff4d4f]">
-              Supporto AI attualmente non disponibile.
-            </p>
-          ) : null}
-          {supportUnknown ? (
-            <p className="text-[14px] leading-[20px] text-[#f4bf4f]">
-              Stato del supporto non verificabile. Puoi comunque provare ad aprire la chat.
-            </p>
+              ) : null}
+            </>
           ) : null}
 
 
-          <button
-            type="button"
-            onClick={onViewTicketPrototype}
-            className="h-[51px] flex items-center justify-between"
-          >
-            <div className="flex items-center gap-[12px]">
-              <QrCode className="text-[#f4bf4f]" size={24} />
-              <div className="text-left">
-                <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
-                  Prototipo ticket QR
-                </p>
-                <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
-                  Generazione hash e attivazione one-shot
-                </p>
+          {showTicketPrototype ? (
+            <button
+              type="button"
+              onClick={onViewTicketPrototype}
+              className="min-h-[56px] py-[2px] flex items-center justify-between"
+            >
+              <div className="flex items-center gap-[12px]">
+                <QrCode className="text-[#f4bf4f]" size={24} />
+                <div className="text-left">
+                  <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">
+                    Prototipo ticket QR
+                  </p>
+                  <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">
+                    Generazione hash e attivazione one-shot
+                  </p>
+                </div>
               </div>
-            </div>
-            <ChevronRight className="text-[#7a7577]" size={20} />
-          </button>
+              <ChevronRight className="text-[#7a7577]" size={20} />
+            </button>
+          ) : null}
 
           <button
             type="button"
             onClick={onViewTerms}
-            className="h-[51px] flex items-center justify-between"
+            className="min-h-[56px] py-[2px] flex items-center justify-between"
           >
             <div className="flex items-center gap-[12px]">
               <FileText className="text-[#f4bf4f]" size={24} />
@@ -645,7 +660,7 @@ export function AccountSettings({
           <button
             type="button"
             onClick={onViewPrivacy}
-            className="h-[51px] flex items-center justify-between"
+            className="min-h-[56px] py-[2px] flex items-center justify-between"
           >
             <div className="flex items-center gap-[12px]">
               <Shield className="text-[#f4bf4f]" size={24} />
