@@ -157,3 +157,23 @@ python ticket_qr_generator.py
 oppure aprire il file `ticket_qr_generator_ui.py` con un editor di testo e eseguirlo.
 
 ![Screenshot dell'app](<assets/images/Screenshot 2026-02-27 121448.png>)
+
+# Licenza
+
+<a href="https://atcllazio.it">
+    <img src="assets/images/atcl.png" alt="logo ATCL" width="100">
+</a>
+
+Copyright © 2025 A.T.C.L. Associazione Teatrale fra i Comuni del Lazio.
+
+All rights reserved.
+
+This software is proprietary and confidential to ATCL.
+Unauthorized copying, distribution, modification, or use
+of this software is strictly prohibited.
+
+This software may not be reproduced, modified, or redistributed
+without the express written permission of ATCL.
+
+Any violation of this copyright notice will be prosecuted
+to the fullest extent of the law.
