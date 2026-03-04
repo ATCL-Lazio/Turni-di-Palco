@@ -265,7 +265,7 @@ function AppShell() {
     const currentIndex = tabOrder.indexOf(activeTab);
     const previousIndex = tabOrder.indexOf(previousTabRef.current);
 
-    let animation = '';
+    let animation: string;
     if (currentIndex === -1 || previousIndex === -1) {
       animation = 'tab-fade-in';
     } else if (currentIndex > previousIndex) {

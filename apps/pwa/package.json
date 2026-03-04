@@ -9,9 +9,10 @@
     "build": "vite build",
     "preview": "node ../../tools/with-https-env.js node ../../tools/serve-dist.js",
     "preview:https": "npm run preview",
-    "test": "vitest run --passWithNoTests --coverage",
-    "test:watch": "vitest --passWithNoTests",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
     "lint": "eslint . --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
     "format": "prettier . --write"
   },
   "devDependencies": {
