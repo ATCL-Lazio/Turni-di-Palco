@@ -12,8 +12,19 @@ const IUBENDA_SCRIPT_SRC = 'https://cdn.iubenda.com/iubenda.js';
 const IUBENDA_ANCHOR_CLASSES =
   'iubenda-nostyle no-brand iubenda-noiframe iubenda-embed iubenda-noiframe iub-body-embed';
 
+function ensureIubendaGlobal() {
+  if (typeof window === 'undefined') return;
+
+  const iubendaWindow = window as Window & { _iub?: unknown[] };
+  if (!Array.isArray(iubendaWindow._iub)) {
+    iubendaWindow._iub = [];
+  }
+}
+
 function ensureIubendaScript() {
   if (typeof document === 'undefined') return;
+
+  ensureIubendaGlobal();
 
   const existing = document.querySelector<HTMLScriptElement>(`script[src="${IUBENDA_SCRIPT_SRC}"]`);
   if (existing) return;
