@@ -178,12 +178,14 @@ const MOBILE_FLAG_DEFAULTS: MobileFeatureFlagEntry[] = [
   { key: "mobile.section.shop", enabled: true, label: "Sezione Shop", description: "Mostra sezione shop e tab.", category: "section" },
   { key: "mobile.section.career", enabled: true, label: "Sezione Carriera", description: "Abilita schermata carriera.", category: "section" },
   { key: "mobile.section.earned_titles", enabled: true, label: "Sezione Titoli", description: "Abilita schermata titoli sbloccati.", category: "section" },
+  { key: "mobile.action.ai_support", enabled: true, label: "Supporto AI", description: "Abilita accesso al Supporto AI nelle impostazioni account.", category: "action" },
   { key: "mobile.action.qr_scan", enabled: true, label: "Azione Scansione QR", description: "Abilita scanner QR mobile.", category: "action" },
   { key: "mobile.action.turn_submit", enabled: true, label: "Azione Conferma Turno", description: "Abilita registrazione turni.", category: "action" },
   { key: "mobile.action.turn_boost", enabled: true, label: "Azione Boost Turno", description: "Abilita boost token su turno.", category: "action" },
   { key: "mobile.action.activity_start", enabled: true, label: "Azione Avvio Attivita", description: "Abilita avvio attivita.", category: "action" },
   { key: "mobile.action.activity_complete", enabled: true, label: "Azione Completamento Attivita", description: "Abilita completamento attivita.", category: "action" },
   { key: "mobile.action.shop_purchase", enabled: true, label: "Azione Acquisto Shop", description: "Abilita acquisti shop.", category: "action" },
+  { key: "mobile.dev.ticket_qr_prototype", enabled: false, label: "Prototipo ticket QR (dev)", description: "Abilita il prototipo developer per generazione e attivazione ticket QR.", category: "action" },
 ];
 
 const MOBILE_FLAG_FALLBACK_ENTRIES: MobileFeatureFlagEntry[] = MOBILE_FLAG_DEFAULTS.map((entry) => ({
