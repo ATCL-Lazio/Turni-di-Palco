@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Screen } from '../ui/Screen';
+import { CopyrightNotice } from '../ui/CopyrightNotice';
 
 interface TermsAndConditionsProps {
   onBack: () => void;
@@ -82,6 +83,8 @@ export function TermsAndConditions({ onBack }: TermsAndConditionsProps) {
             </div>
           </div>
         </div>
+
+        <CopyrightNotice />
       </div>
     </Screen>
   );
