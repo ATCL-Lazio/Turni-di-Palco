@@ -55,9 +55,7 @@ export function promptServiceWorkerUpdate(registration: ServiceWorkerRegistratio
   const eyebrow = document.createElement("p");
   eyebrow.className = "eyebrow";
   eyebrow.textContent = "Aggiornamento disponibile";
-  const description = document.createElement("p");
-  description.textContent = "E' pronta una nuova versione offline. Ricarica per applicarla.";
-  copy.append(eyebrow, description);
+  copy.append(eyebrow);
 
   const actions = document.createElement("div");
   actions.className = "toast-actions";

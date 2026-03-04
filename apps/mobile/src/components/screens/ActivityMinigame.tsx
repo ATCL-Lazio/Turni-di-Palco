@@ -30,7 +30,6 @@ interface ActivityMinigameProps {
 
 interface MinigameShellProps {
   title: string;
-  subtitle: string;
   activityTitle: string;
   roundLabel: string;
   icon: React.ReactNode;
@@ -40,7 +39,6 @@ interface MinigameShellProps {
 
 function MinigameShell({
   title,
-  subtitle,
   activityTitle,
   roundLabel,
   icon,
@@ -70,7 +68,6 @@ function MinigameShell({
           </div>
           <div>
             <h2 className="text-white">{title}</h2>
-            <p className="text-sm text-[#b8b2b3]">{subtitle}</p>
           </div>
         </div>
 
@@ -201,7 +198,6 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
   return (
     <MinigameShell
       title={config.title}
-      subtitle={config.subtitle}
       activityTitle={activityTitle}
       roundLabel={roundLabel}
       icon={<Timer className="text-[#f4bf4f]" size={24} />}
@@ -217,7 +213,6 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-white font-semibold">{round.label}</p>
-            <p className="text-xs text-[#7a7577]">Blocca il cursore sul target</p>
           </div>
           <Tag size="sm" variant="outline">
             Target {round.target}%
@@ -264,14 +259,6 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
           </div>
         ) : null}
       </Card>
-
-      {phase === 'intro' ? (
-        <Card className="border border-[#f4bf4f]/20">
-          <p className="text-sm text-[#b8b2b3]">
-            Segui il cursore e premi "Blocca" (o tocca il pannello) quando raggiunge il target.
-          </p>
-        </Card>
-      ) : null}
 
       <div className="space-y-3">
         {phase === 'intro' ? (
@@ -366,7 +353,6 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
   return (
     <MinigameShell
       title={config.title}
-      subtitle={config.subtitle}
       activityTitle={activityTitle}
       roundLabel={roundLabel}
       icon={<SlidersHorizontal className="text-[#f4bf4f]" size={22} />}
@@ -376,7 +362,6 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-white font-semibold">{round.label}</p>
-            <p className="text-xs text-[#7a7577]">Regola il livello richiesto</p>
           </div>
           <Tag size="sm" variant="outline">
             Target {round.target}%
@@ -446,14 +431,6 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
           </div>
         ) : null}
       </Card>
-
-      {phase === 'intro' ? (
-        <Card className="border border-[#f4bf4f]/20">
-          <p className="text-sm text-[#b8b2b3]">
-            Usa lo slider o i pulsanti +/- per allineare il livello al target indicato.
-          </p>
-        </Card>
-      ) : null}
 
       <div className="space-y-3">
         {phase === 'intro' ? (

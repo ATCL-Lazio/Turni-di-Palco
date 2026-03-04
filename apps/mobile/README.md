@@ -1,7 +1,5 @@
 
-# Mobile UI for Turni di Palco
-
-Code bundle for the Turni di Palco mobile experience.
+# Mobile app for Turni di Palco
 
 ## Running the code
 

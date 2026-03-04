@@ -173,7 +173,6 @@ export function EventConfirmation({
       <div className="app-content px-6 space-y-6 pt-6">
         <div>
           <h2 className="text-white mb-2">Conferma turno</h2>
-          <p className="text-[#b8b2b3]">Verifica i dettagli dell&apos;evento</p>
         </div>
 
         <Card>
