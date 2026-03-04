@@ -12,7 +12,7 @@
     {
       "name": "Scansiona QR",
       "short_name": "QR",
-      "description": "Apri lo scanner QR",
+      "description": "Scanner QR",
       "url": "/mobile/index.html?shortcut=qr",
       "icons": [
         {
@@ -25,7 +25,7 @@
     {
       "name": "Turni ATCL",
       "short_name": "Turni",
-      "description": "Apri la lista eventi",
+      "description": "Eventi",
       "url": "/mobile/index.html?shortcut=turni",
       "icons": [
         {
