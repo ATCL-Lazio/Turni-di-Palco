@@ -6,7 +6,7 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - `apps/pwa`: Vite PWA multipage (`src/` TypeScript shell, `public/` static assets incl. `public/mobile/`, `public/sw.js`, manifest/icons; HTML entry points in package root).
 
-- `UI` (submodule): Mobile UI React/Vite source; build output va copiato in `apps/pwa/public/mobile/`.
+- `apps/mobile`: App mobile React/Vite.
 
 - `apps/reactbricks`: CMS sources (da ripulire; integrare come workspace separato).
 
@@ -19,7 +19,7 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - PWA: `npm run dev:pwa` / `npm run dev:pwa:https`, build `npm run build:pwa`, preview `npm run preview:pwa`, test `npm run test:pwa` (setup in `apps/pwa/src/test/setup.ts`).
 
-- Mobile UI (submodule `UI`): `npm --prefix UI run dev|build`; `npm run build:mobile` esegue build+copy in `apps/pwa/public/mobile/` (solo copia: `npm run sync:mobile`).
+- Mobile (`apps/mobile`): `npm run dev:mobile`, `npm run build:mobile`, `npm run sync:mobile`.
 
 - Keep lockfiles committed. Prefer deterministic scripts (fixed seeds, headless-friendly).
 
@@ -35,7 +35,7 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - Aim for fast unit coverage on gameplay logic and smoke tests on critical flows. Document manual verification steps for interactive features.
 
-- If adding integration/UI tests, ensure they are headless-friendly for CI.
+- If adding integration tests for the interface, ensure they are headless-friendly for CI.
 
 ## Commit & Pull Request Guidelines
 
@@ -52,7 +52,6 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - Never delete branches (no `--delete-branch` on merges) unless explicitly instructed.
 
-- You should always commits submodules **before** the main repository
 
 - **Merge policy (MANDATORY for all agents): unless explicitly specified otherwise by the user, the merge target is ALWAYS `main`.**
   - If the target branch is not written clearly in the request, assume `main`.
