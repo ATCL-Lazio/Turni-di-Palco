@@ -12,7 +12,7 @@ import { formatErrorDetails, reportCriticalError } from '../services/error-handl
 import { withMobileWatchdog } from '../services/mobile-watchdog';
 import {
   applyMobileFeatureFlagOverrides,
-  MOBILE_FEATURE_FLAGS_ALL_ON,
+  MOBILE_FEATURE_FLAGS_DEFAULTS,
   readVercelMobileFeatureFlagOverrides,
   type MobileFeatureFlagKey,
   type MobileFeatureFlagsSource,
@@ -1530,7 +1530,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [remoteBadges, setRemoteBadges] = useState<Badge[]>([]);
   const [badgesLoading, setBadgesLoading] = useState(false);
   const [featureFlags, setFeatureFlags] = useState<MobileFeatureFlagsState>(() => (
-    { ...MOBILE_FEATURE_FLAGS_ALL_ON }
+    { ...MOBILE_FEATURE_FLAGS_DEFAULTS }
   ));
   const [featureFlagsReady, setFeatureFlagsReady] = useState(true);
   const [featureFlagsSource, setFeatureFlagsSource] = useState<MobileFeatureFlagsSource>('default');
@@ -2505,7 +2505,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
     if (!isSupabaseConfigured || !supabase) {
       applyFeatureFlagsSnapshot(
-        applyRuntimeOverrides(MOBILE_FEATURE_FLAGS_ALL_ON),
+        applyRuntimeOverrides(MOBILE_FEATURE_FLAGS_DEFAULTS),
         sourceWithVercel('default')
       );
       return;
@@ -2521,7 +2521,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       applyFeatureFlagsSnapshot(
-        applyRuntimeOverrides(MOBILE_FEATURE_FLAGS_ALL_ON),
+        applyRuntimeOverrides(MOBILE_FEATURE_FLAGS_DEFAULTS),
         sourceWithVercel('default')
       );
       return;
@@ -2531,7 +2531,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       setFeatureFlags(applyRuntimeOverrides(cachedFlags));
       setFeatureFlagsSource(sourceWithVercel('cache'));
     } else {
-      setFeatureFlags(applyRuntimeOverrides(MOBILE_FEATURE_FLAGS_ALL_ON));
+      setFeatureFlags(applyRuntimeOverrides(MOBILE_FEATURE_FLAGS_DEFAULTS));
       setFeatureFlagsSource(sourceWithVercel('default'));
     }
     setFeatureFlagsReady(false);
@@ -2551,7 +2551,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             return;
           }
           applyFeatureFlagsSnapshot(
-            applyRuntimeOverrides(MOBILE_FEATURE_FLAGS_ALL_ON),
+            applyRuntimeOverrides(MOBILE_FEATURE_FLAGS_DEFAULTS),
             sourceWithVercel('default')
           );
           return;
@@ -2567,7 +2567,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             return;
           }
           applyFeatureFlagsSnapshot(
-            applyRuntimeOverrides(MOBILE_FEATURE_FLAGS_ALL_ON),
+            applyRuntimeOverrides(MOBILE_FEATURE_FLAGS_DEFAULTS),
             sourceWithVercel('default')
           );
           return;
@@ -2595,7 +2595,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       applyFeatureFlagsSnapshot(
-        applyRuntimeOverrides(MOBILE_FEATURE_FLAGS_ALL_ON),
+        applyRuntimeOverrides(MOBILE_FEATURE_FLAGS_DEFAULTS),
         sourceWithVercel('default')
       );
     });
@@ -3845,7 +3845,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     setState(next);
     setPendingBoostRequests(0);
     setTurnSyncFeedback(null);
-    setFeatureFlags({ ...MOBILE_FEATURE_FLAGS_ALL_ON });
+    setFeatureFlags({ ...MOBILE_FEATURE_FLAGS_DEFAULTS });
     setFeatureFlagsSource('default');
     setFeatureFlagsReady(true);
     const totalSlots = 3 + next.profile.extraActivitySlots;
