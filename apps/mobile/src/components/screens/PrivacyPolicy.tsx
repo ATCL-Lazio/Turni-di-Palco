@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Screen } from '../ui/Screen';
+import { CopyrightNotice } from '../ui/CopyrightNotice';
 
 interface PrivacyPolicyProps {
   onBack: () => void;
@@ -66,6 +67,8 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
             Nota: è necessaria una connessione internet per caricare il documento.
           </p>
         </div>
+
+        <CopyrightNotice />
       </div>
     </Screen>
   );
