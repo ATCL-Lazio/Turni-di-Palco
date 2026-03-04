@@ -23,6 +23,10 @@ const buildFlagState = (value: boolean): MobileFeatureFlagsState =>
 
 export const MOBILE_FEATURE_FLAGS_FAIL_CLOSED = buildFlagState(false);
 export const MOBILE_FEATURE_FLAGS_ALL_ON = buildFlagState(true);
+export const MOBILE_FEATURE_FLAGS_DEFAULTS: MobileFeatureFlagsState = {
+  ...MOBILE_FEATURE_FLAGS_ALL_ON,
+  "mobile.dev.ticket_qr_prototype": false,
+};
 
 export type MobileFeatureFlagRow = {
   key: string;
@@ -36,7 +40,7 @@ export function isMobileFeatureFlagKey(value: string): value is MobileFeatureFla
 export function normalizeMobileFeatureFlags(rows: unknown): MobileFeatureFlagsState | null {
   if (!Array.isArray(rows)) return null;
 
-  const next: MobileFeatureFlagsState = { ...MOBILE_FEATURE_FLAGS_ALL_ON };
+  const next: MobileFeatureFlagsState = { ...MOBILE_FEATURE_FLAGS_DEFAULTS };
   let hasKnownKey = false;
 
   for (const row of rows) {

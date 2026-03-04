@@ -38,12 +38,14 @@ export const MOBILE_FEATURE_FLAG_KEYS = [
   "mobile.section.shop",
   "mobile.section.career",
   "mobile.section.earned_titles",
+  "mobile.action.ai_support",
   "mobile.action.qr_scan",
   "mobile.action.turn_submit",
   "mobile.action.turn_boost",
   "mobile.action.activity_start",
   "mobile.action.activity_complete",
   "mobile.action.shop_purchase",
+  "mobile.dev.ticket_qr_prototype",
 ] as const;
 export type MobileFeatureFlagKey = (typeof MOBILE_FEATURE_FLAG_KEYS)[number];
 
@@ -54,12 +56,15 @@ export const MOBILE_FEATURE_FLAG_DESCRIPTIONS: Record<MobileFeatureFlagKey, stri
   "mobile.section.shop": "Mostra la sezione Shop nell'app mobile.",
   "mobile.section.career": "Mostra la sezione Carriera nell'app mobile.",
   "mobile.section.earned_titles": "Mostra la sezione Titoli ottenuti nell'app mobile.",
+  "mobile.action.ai_support": "Abilita l'accesso al Supporto AI nelle impostazioni account dell'app mobile.",
   "mobile.action.qr_scan": "Abilita la scansione QR nell'app mobile.",
   "mobile.action.turn_submit": "Abilita la registrazione turni nell'app mobile.",
   "mobile.action.turn_boost": "Abilita il boost turno nell'app mobile.",
   "mobile.action.activity_start": "Abilita l'avvio attivita simulate nell'app mobile.",
   "mobile.action.activity_complete": "Abilita il completamento attivita simulate nell'app mobile.",
   "mobile.action.shop_purchase": "Abilita gli acquisti nello shop mobile.",
+  "mobile.dev.ticket_qr_prototype":
+    "Abilita il prototipo developer per generazione e attivazione ticket QR nelle impostazioni account.",
 };
 
 type FlagOption = {
