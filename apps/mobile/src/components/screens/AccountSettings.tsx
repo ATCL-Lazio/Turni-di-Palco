@@ -24,6 +24,7 @@ import {
   type NotificationPermissionState,
 } from '../../lib/notifications';
 import { checkAiSupportAvailability } from '../../services/ai';
+import { CopyrightNotice } from '../ui/CopyrightNotice';
 
 interface AccountSettingsProps {
   userName: string;
@@ -719,7 +720,9 @@ export function AccountSettings({
           </button>
         </div>
 
-        <div className="mt-auto">
+        <div className="mt-auto flex flex-col gap-4">
+          <CopyrightNotice />
+
           <button
             type="button"
             onClick={onLogout}
