@@ -168,12 +168,5 @@ Copyright © 2025 A.T.C.L. Associazione Teatrale fra i Comuni del Lazio.
 
 All rights reserved.
 
-This software is proprietary and confidential to ATCL.
-Unauthorized copying, distribution, modification, or use
-of this software is strictly prohibited.
-
-This software may not be reproduced, modified, or redistributed
-without the express written permission of ATCL.
-
-Any violation of this copyright notice will be prosecuted
-to the fullest extent of the law.
+This project is proprietary and confidential to ATCL.
+See [LICENSE](LICENSE) for the full notice.
