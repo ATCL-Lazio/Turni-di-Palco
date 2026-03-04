@@ -20,7 +20,7 @@ Use private disclosure only.
 
 1. Open a private report from this repository's **Security** tab using **Report a vulnerability**.
 2. Include:
-   - affected component (for example `apps/pwa`, `UI`, `supabase/functions`, `tools/*`)
+   - affected component (for example `apps/pwa`, `apps/mobile`, `supabase/functions`, `tools/*`)
    - reproducible steps and prerequisites
    - impact and attack scenario
    - proof of concept and logs/screenshots when available

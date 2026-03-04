@@ -15,7 +15,6 @@ export function renderStatusCard() {
           <dd data-sw-status>Waiting for registration...</dd>
         </div>
       </dl>
-      <p class="muted">Toggle rete per test offline. Se c'e un update SW usa il pulsante reload.</p>
       <div class="status-log" data-sw-error-box hidden>
         <p class="eyebrow">Log SW</p>
         <ul class="status-log-list" data-sw-errors></ul>

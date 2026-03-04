@@ -36,7 +36,6 @@ export function ActivityDetail({ activity, onStart, onClose }: ActivityDetailPro
         </div>
 
         <Card>
-          <h4 className="text-white mb-2">Descrizione</h4>
           <p className="text-[#b8b2b3]">{activity.description}</p>
         </Card>
 
@@ -64,12 +63,7 @@ export function ActivityDetail({ activity, onStart, onClose }: ActivityDetailPro
         <Card className="border border-[#f4bf4f]/30">
           <div className="flex gap-3">
             <AlertCircle className="text-[#f4bf4f] flex-shrink-0" size={20} />
-            <div className="space-y-1">
-              <p className="text-sm text-[#b8b2b3]">
-                Minigioco disponibile: <span className="text-white">{minigame.title}</span>
-              </p>
-              <p className="text-xs text-[#7a7577]">{minigame.subtitle}</p>
-            </div>
+            <p className="text-sm text-white">{minigame.title}</p>
           </div>
         </Card>
 
