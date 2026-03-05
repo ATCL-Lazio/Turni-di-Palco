@@ -36,8 +36,10 @@ export function Leaderboard({ onSelectEntry }: LeaderboardProps) {
   }, [refreshLeaderboard]);
 
   const sorted = useMemo(() => {
-    return [...leaderboard].sort((a, b) => b.xpTotal - a.xpTotal);
-  }, [leaderboard]);
+    return [...leaderboard]
+      .sort((a, b) => b.xpTotal - a.xpTotal)
+      .filter((entry) => entry.xpTotal > 0 || entry.id === authUserId);
+  }, [leaderboard, authUserId]);
 
   const getPodiumCardClass = (position: number, isMe: boolean) => {
     const podiumClasses = [
