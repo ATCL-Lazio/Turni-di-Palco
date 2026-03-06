@@ -1,4 +1,4 @@
-﻿import "../../../../shared/styles/main.css";
+import "../../../../shared/styles/main.css";
 import "./dev-plus.css";
 
 import type { Session } from "@supabase/supabase-js";
@@ -15,12 +15,13 @@ import {
   type FeatureFlagConfig,
 } from "../services/app-config";
 import {
-  buildControlPlaneUrl,
   getRoleAdaptiveQuickActions,
   parseControlPlanePreset,
+  type ControlPlaneView,
   type OpsQuickAction,
 } from "../services/ops-sdk";
 import { enforceDesktopOnly } from "../utils/desktop-only";
+import { resolveInitialPage, type AppPage } from "./routing";
 import {
   executeControlCommand,
   fetchCommandCatalog,
@@ -41,8 +42,11 @@ import type {
   SessionValidation,
 } from "./types";
 
+// ─── Shared types ─────────────────────────────────────────────────────────────
+
 type AuthState = "checking" | "anonymous" | "authenticated";
 type FeedbackTone = "info" | "ok" | "warn" | "error";
+type SwStatus = "unknown" | "ready" | "update" | "error";
 
 type FeedbackMessage = {
   tone: FeedbackTone;
@@ -103,7 +107,7 @@ const DEFAULT_COMMAND_OPTIONS: CommandCatalogEntry[] = [
   {
     id: "supabase.events.cleanup",
     label: "Pulizia eventi vecchi",
-    description: "Elimina eventi piÃ¹ vecchi della soglia giorni.",
+    description: "Elimina eventi più vecchi della soglia giorni.",
     requiredRole: "dev_operator",
     riskLevel: "medium",
     requiresConfirmation: true,
@@ -244,7 +248,6 @@ function parsePayloadInput(payloadText: string) {
   }
 }
 
-
 function toFeedbackClass(tone: FeedbackTone) {
   if (tone === "ok") return "feedback feedback-ok";
   if (tone === "warn") return "feedback feedback-warn";
@@ -252,12 +255,70 @@ function toFeedbackClass(tone: FeedbackTone) {
   return "feedback feedback-info";
 }
 
+// ─── Privacy view ─────────────────────────────────────────────────────────────
+
+const IUBENDA_PRIVACY_URL = "https://www.iubenda.com/privacy-policy/78603233";
+const IUBENDA_SCRIPT_SRC = "https://cdn.iubenda.com/iubenda.js";
+
+function PrivacyView() {
+  useEffect(() => {
+    const win = window as Window & { _iub?: unknown[] };
+    if (!Array.isArray(win._iub)) win._iub = [];
+
+    if (!document.querySelector(`script[src="${IUBENDA_SCRIPT_SRC}"]`)) {
+      const script = document.createElement("script");
+      script.src = IUBENDA_SCRIPT_SRC;
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
+  return (
+    <section className="cp-card">
+      <h2>Privacy Policy</h2>
+      <div className="cp-privacy-embed">
+        <a
+          href={IUBENDA_PRIVACY_URL}
+          className="iubenda-nostyle no-brand iubenda-noiframe iubenda-embed iubenda-noiframe iub-body-embed"
+          title="Privacy Policy"
+        >
+          Privacy Policy
+        </a>
+      </div>
+    </section>
+  );
+}
+
+// ─── Main app ─────────────────────────────────────────────────────────────────
+
 function App() {
   const initialPreset = useMemo(
     () => parseControlPlanePreset(typeof window === "undefined" ? "" : window.location.search),
     []
   );
 
+  // ── Page routing ──
+  const [page, setPage] = useState<AppPage>(() =>
+    resolveInitialPage(typeof window === "undefined" ? "" : window.location.search)
+  );
+  const [swStatus, setSwStatus] = useState<SwStatus>("unknown");
+  const [isOnline, setIsOnline] = useState(() =>
+    typeof window !== "undefined" ? navigator.onLine : true
+  );
+
+  const navigateTo = useCallback((target: AppPage, cpView?: ControlPlaneView) => {
+    const params = new URLSearchParams();
+    if (target === "privacy") {
+      params.set("view", "privacy");
+    } else if (target === "cp" && cpView) {
+      params.set("view", cpView);
+    }
+    const qs = params.toString();
+    window.history.pushState({}, "", qs ? `/?${qs}` : "/");
+    setPage(target);
+  }, []);
+
+  // ── Auth ──
   const [authState, setAuthState] = useState<AuthState>("checking");
   const [session, setSession] = useState<Session | null>(null);
   const [validation, setValidation] = useState<SessionValidation | null>(null);
@@ -313,6 +374,30 @@ function App() {
   }, [commandOptions, commandValue]);
 
   const roleActions = useMemo(() => getRoleAdaptiveQuickActions(validation?.roles), [validation?.roles]);
+
+  // ── Network status ──
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
+
+  // ── Service Worker ──
+  useEffect(() => {
+    registerServiceWorker({
+      onReady: () => setSwStatus("ready"),
+      onUpdate: (reg) => {
+        setSwStatus("update");
+        promptServiceWorkerUpdate(reg);
+      },
+      onError: () => setSwStatus("error"),
+    });
+  }, []);
 
   const loadSnapshot = useCallback(
     async (activeSession: Session, validationState: SessionValidation | null) => {
@@ -726,311 +811,421 @@ function App() {
   const currentUser = session?.user?.email || "anonymous";
   const pwaFeatureFlags = Object.entries(pwaFlags) as [FeatureFlag, boolean][];
 
+  const swStatusLabel =
+    swStatus === "ready" ? "Pronto (offline ok)" :
+    swStatus === "update" ? "Aggiornamento disponibile" :
+    swStatus === "error" ? "Registrazione fallita" :
+    "In attesa...";
+
+
   return (
     <main className="cp-shell">
+      {/* ── Unified navigation header ── */}
       <header className="cp-card cp-header">
         <div>
           <p className="cp-kicker">Turni di Palco</p>
-          <h1>Dashboard comandi</h1>
+          <h1>Dashboard</h1>
         </div>
-        <div className="cp-links">
-          <a href="/">Dashboard</a>
-          <a href="/mobile/">Mobile</a>
-          <a href={buildControlPlaneUrl({ view: "commands", source: "header" })}>Comandi</a>
-        </div>
+        <nav className="cp-links">
+          <button
+            type="button"
+            onClick={() => navigateTo("overview")}
+            className={page === "overview" ? "cp-nav-active" : ""}
+          >
+            Overview
+          </button>
+          <button
+            type="button"
+            onClick={() => navigateTo("cp")}
+            className={page === "cp" ? "cp-nav-active" : ""}
+          >
+            Operativo
+          </button>
+          <button
+            type="button"
+            onClick={() => navigateTo("privacy")}
+            className={page === "privacy" ? "cp-nav-active" : ""}
+          >
+            Privacy
+          </button>
+          <a href="/mobile/">App mobile</a>
+        </nav>
       </header>
 
-      <section className="cp-card cp-auth">
-        <h2>Accesso</h2>
+      {/* ── Overview view ── */}
+      {page === "overview" && (
+        <>
+          <section className="cp-card">
+            <h2>Stato sistema</h2>
+            <ul className="cp-list">
+              <li>
+                <span>Supabase</span>
+                <span className={appConfig.supabase.configured ? "cp-on" : "cp-off"}>
+                  {appConfig.supabase.configured ? "Configurato" : "VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY mancanti"}
+                </span>
+              </li>
+              <li>
+                <span>Control Plane</span>
+                <code>{appConfig.controlPlane.baseUrl || "path relativo"}</code>
+              </li>
+              <li>
+                <span>Service Worker</span>
+                <span className={swStatus === "ready" ? "cp-on" : swStatus === "error" ? "cp-off" : ""}>
+                  {swStatusLabel}
+                </span>
+              </li>
+              <li>
+                <span>Connessione</span>
+                <span className={isOnline ? "cp-on" : "cp-off"}>
+                  {isOnline ? "Online" : "Offline"}
+                </span>
+              </li>
+            </ul>
+          </section>
 
-        {!isSupabaseConfigured ? (
-          <p className="cp-feedback cp-feedback-error">
-            Supabase non configurato. Imposta <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code>.
-          </p>
-        ) : null}
-
-        {authState === "checking" ? <p className="cp-feedback cp-feedback-info">Controllo sessione in corso...</p> : null}
-
-        {authState !== "authenticated" && isSupabaseConfigured ? (
-          <form className="cp-login" onSubmit={handleSignIn}>
-            <label>
-              <span>Email</span>
-              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-            </label>
-            <label>
-              <span>Password</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-                autoComplete="current-password"
-              />
-            </label>
-            <button type="submit" disabled={authBusy}>{authBusy ? "Accesso in corso..." : "Accedi"}</button>
-          </form>
-        ) : null}
-
-        {authState === "authenticated" ? (
-          <div className="cp-session">
-            <p>
-              Sessione: <strong>{currentUser}</strong>
-            </p>
-            <p>
-              Verificata: <strong>{formatDateTime(validation?.validatedAt)}</strong>
-            </p>
-            <div className="cp-inline-actions">
-              <button type="button" onClick={handleRefresh} disabled={snapshotBusy}>
-                {snapshotBusy ? "Sync..." : "Aggiorna tutto"}
+          <section className="cp-card">
+            <h2>Accesso rapido</h2>
+            <div className="cp-preset-grid">
+              <button type="button" className="cp-preset-button" onClick={() => navigateTo("cp")}>
+                <strong>Dashboard operativo</strong>
+                <span className="cp-muted">Comandi, flag, audit e rilasci</span>
               </button>
-              <button type="button" className="ghost" onClick={handleSignOut}>
-                Logout
+              <button type="button" className="cp-preset-button" onClick={() => navigateTo("privacy")}>
+                <strong>Privacy Policy</strong>
+                <span className="cp-muted">Informativa sul trattamento dei dati</span>
               </button>
+              <a href="/mobile/" className="cp-preset-button">
+                <strong>App mobile</strong>
+                <span className="cp-muted">Apri l&apos;app per i volontari</span>
+              </a>
             </div>
-          </div>
-        ) : null}
+          </section>
 
-        {validation?.roles?.length && isPwaFlagEnabled("permissions-card") ? <p className="cp-muted">Ruoli: {validation.roles.join(", ")}</p> : null}
-        {authError ? <p className="cp-feedback cp-feedback-error">{authError}</p> : null}
-      </section>
-
-      {showTopGrid ? (
-      <section className="cp-grid cp-grid-2">
-        {showPwaFlagsSection ? (
-        <article className="cp-card">
-          <h2>Feature flags PWA</h2>
-          <p className={toFeedbackClass(pwaFlagsFeedback.tone)}>{pwaFlagsFeedback.text}</p>
-          <div className="cp-flag-list">
-            {pwaFeatureFlags.map(([flagKey, enabled]) => (
-              <article key={flagKey} className="cp-flag-item">
-                <div>
-                  <p>
-                    <strong>{flagKey}</strong>
-                  </p>
-                </div>
-                <div className="cp-inline-actions">
-                  <span className={enabled ? "cp-on" : "cp-off"}>{enabled ? "ON" : "OFF"}</span>
-                  <button type="button" onClick={() => handleTogglePwaFlag(flagKey, !enabled)}>
-                    {enabled ? "Disattiva" : "Attiva"}
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        </article>
-        ) : null}
-
-        {showQuickPresetsSection ? (
-        <article className="cp-card">
-          <h2>Preset rapidi</h2>
-          <div className="cp-preset-grid">
-            {roleActions.map((action) => (
-              <button key={action.id} type="button" className="cp-preset-button" onClick={() => applyQuickAction(action)}>
-                <strong>{action.label}</strong>
-              </button>
-            ))}
-            {COMMAND_PRESETS.map((preset) => (
-              <button key={preset.id} type="button" className="cp-preset-button" onClick={() => applyCommandPreset(preset)}>
-                <strong>{preset.label}</strong>
-              </button>
-            ))}
-          </div>
-        </article>
-        ) : null}
-      </section>
-      ) : null}
-
-      {showCommandWizard ? (
-      <section className="cp-card" id="section-commands">
-        <h2>Comando</h2>
-
-        <div className="cp-command-grid">
-          <label>
-            <span>Azione</span>
-            <select value={commandValue} onChange={(event) => setCommandValue(event.target.value)}>
-              {commandOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            <span>Target (opzionale)</span>
-            <input
-              type="text"
-              value={targetValue}
-              onChange={(event) => setTargetValue(event.target.value)}
-              placeholder="es. servizio o tabella"
-            />
-          </label>
-
-          <label className="cp-full-row">
-            <span>Motivo</span>
-            <textarea value={reasonValue} onChange={(event) => setReasonValue(event.target.value)} rows={3} />
-          </label>
-
-          <label className="cp-full-row">
-            <span>Dati aggiuntivi (JSON)</span>
-            <textarea value={payloadValue} onChange={(event) => setPayloadValue(event.target.value)} rows={7} spellCheck={false} />
-          </label>
-
-          <label className="cp-checkbox cp-full-row">
-            <input type="checkbox" checked={dryRunValue} onChange={(event) => setDryRunValue(event.target.checked)} />
-            <span>Simulazione attiva (nessuna modifica reale)</span>
-          </label>
-        </div>
-
-        <div className="cp-inline-actions">
-          <button type="button" onClick={handlePrepareCommand} disabled={commandBusy || authState !== "authenticated"}>
-            1) Prepara comando
-          </button>
-        </div>
-
-        {preparedCommand ? (
-          <article className="cp-review">
-            <p>
-              <strong>Summary:</strong> {preparedCommand.summary}
-            </p>
-            <p>
-              <strong>Rischio:</strong> {preparedCommand.riskLevel || "medio"}
-            </p>
-            <p>
-              <strong>Comando:</strong> <code>{preparedCommand.commandId}</code>
-            </p>
-
-            {preparedCommand.preview?.length ? (
-              <ul className="cp-list cp-list-plain">
-                {preparedCommand.preview.map((item, index) => (
-                  <li key={`${preparedCommand.commandId}-${index}`}>{item}</li>
+          {showPwaFlagsSection && (
+            <article className="cp-card">
+              <h2>Feature flags PWA</h2>
+              <p className={toFeedbackClass(pwaFlagsFeedback.tone)}>{pwaFlagsFeedback.text}</p>
+              <div className="cp-flag-list">
+                {pwaFeatureFlags.map(([flagKey, enabled]) => (
+                  <article key={flagKey} className="cp-flag-item">
+                    <div>
+                      <p>
+                        <strong>{flagKey}</strong>
+                      </p>
+                    </div>
+                    <div className="cp-inline-actions">
+                      <span className={enabled ? "cp-on" : "cp-off"}>{enabled ? "ON" : "OFF"}</span>
+                      <button type="button" onClick={() => handleTogglePwaFlag(flagKey, !enabled)}>
+                        {enabled ? "Disattiva" : "Attiva"}
+                      </button>
+                    </div>
+                  </article>
                 ))}
-              </ul>
+              </div>
+            </article>
+          )}
+        </>
+      )}
+
+      {/* ── Privacy view ── */}
+      {page === "privacy" && <PrivacyView />}
+
+      {/* ── Operativo / Control Plane view ── */}
+      {page === "cp" && (
+        <>
+          <section className="cp-card cp-auth">
+            <h2>Accesso</h2>
+
+            {!isSupabaseConfigured ? (
+              <p className="cp-feedback cp-feedback-error">
+                Supabase non configurato. Imposta <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code>.
+              </p>
             ) : null}
 
-            <label>
-              <span>
-                2) Digita <code>{preparedCommand.requiresConfirmText || DEFAULT_CONFIRM_TEXT}</code> per confermare
-              </span>
-              <input type="text" value={confirmText} onChange={(event) => setConfirmText(event.target.value)} />
-            </label>
+            {authState === "checking" ? <p className="cp-feedback cp-feedback-info">Controllo sessione in corso...</p> : null}
 
-            <button type="button" onClick={handleExecuteCommand} disabled={commandBusy || authState !== "authenticated"}>
-              2) Conferma ed esegui
-            </button>
-          </article>
-        ) : null}
+            {authState !== "authenticated" && isSupabaseConfigured ? (
+              <form className="cp-login" onSubmit={handleSignIn}>
+                <label>
+                  <span>Email</span>
+                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+                </label>
+                <label>
+                  <span>Password</span>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    required
+                    autoComplete="current-password"
+                  />
+                </label>
+                <button type="submit" disabled={authBusy}>{authBusy ? "Accesso in corso..." : "Accedi"}</button>
+              </form>
+            ) : null}
 
-        <p className={toFeedbackClass(commandFeedback.tone)}>{commandFeedback.text}</p>
-      </section>
-      ) : null}
-
-      {showMobileFlagsSection ? (
-      <section className="cp-card" id="section-mobile-flags">
-        <h2>Feature flags mobile</h2>
-
-        <div className="cp-inline-actions">
-          <button type="button" onClick={() => void loadMobileFlags(session)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
-            {mobileFlagsBusy ? "Sync..." : "Ricarica"}
-          </button>
-        </div>
-
-        <p className={toFeedbackClass(mobileFlagsFeedback.tone)}>{mobileFlagsFeedback.text}</p>
-
-        {mobileFlags.length ? (
-          <div className="cp-flag-list">
-            {mobileFlags.map((flag) => (
-              <article key={flag.key} className="cp-flag-item">
-                <div>
-                  <p>
-                    <strong>{flag.label}</strong>
-                  </p>
-                  <p className="cp-muted">
-                    <code>{flag.key}</code>
-                  </p>
-                </div>
+            {authState === "authenticated" ? (
+              <div className="cp-session">
+                <p>
+                  Sessione: <strong>{currentUser}</strong>
+                </p>
+                <p>
+                  Verificata: <strong>{formatDateTime(validation?.validatedAt)}</strong>
+                </p>
                 <div className="cp-inline-actions">
-                  <span className={flag.enabled ? "cp-on" : "cp-off"}>{flag.enabled ? "ON" : "OFF"}</span>
-                  <button type="button" onClick={() => void handleToggleMobileFlag(flag, !flag.enabled)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
-                    {flag.enabled ? "Disattiva" : "Attiva"}
+                  <button type="button" onClick={handleRefresh} disabled={snapshotBusy}>
+                    {snapshotBusy ? "Sync..." : "Aggiorna tutto"}
+                  </button>
+                  <button type="button" className="ghost" onClick={handleSignOut}>
+                    Logout
                   </button>
                 </div>
+              </div>
+            ) : null}
+
+            {validation?.roles?.length && isPwaFlagEnabled("permissions-card") ? <p className="cp-muted">Ruoli: {validation.roles.join(", ")}</p> : null}
+            {authError ? <p className="cp-feedback cp-feedback-error">{authError}</p> : null}
+          </section>
+
+          {showTopGrid ? (
+          <section className="cp-grid cp-grid-2">
+            {showPwaFlagsSection ? (
+            <article className="cp-card">
+              <h2>Feature flags PWA</h2>
+              <p className={toFeedbackClass(pwaFlagsFeedback.tone)}>{pwaFlagsFeedback.text}</p>
+              <div className="cp-flag-list">
+                {pwaFeatureFlags.map(([flagKey, enabled]) => (
+                  <article key={flagKey} className="cp-flag-item">
+                    <div>
+                      <p>
+                        <strong>{flagKey}</strong>
+                      </p>
+                    </div>
+                    <div className="cp-inline-actions">
+                      <span className={enabled ? "cp-on" : "cp-off"}>{enabled ? "ON" : "OFF"}</span>
+                      <button type="button" onClick={() => handleTogglePwaFlag(flagKey, !enabled)}>
+                        {enabled ? "Disattiva" : "Attiva"}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </article>
+            ) : null}
+
+            {showQuickPresetsSection ? (
+            <article className="cp-card">
+              <h2>Preset rapidi</h2>
+              <div className="cp-preset-grid">
+                {roleActions.map((action) => (
+                  <button key={action.id} type="button" className="cp-preset-button" onClick={() => applyQuickAction(action)}>
+                    <strong>{action.label}</strong>
+                  </button>
+                ))}
+                {COMMAND_PRESETS.map((preset) => (
+                  <button key={preset.id} type="button" className="cp-preset-button" onClick={() => applyCommandPreset(preset)}>
+                    <strong>{preset.label}</strong>
+                  </button>
+                ))}
+              </div>
+            </article>
+            ) : null}
+          </section>
+          ) : null}
+
+          {showCommandWizard ? (
+          <section className="cp-card" id="section-commands">
+            <h2>Comando</h2>
+
+            <div className="cp-command-grid">
+              <label>
+                <span>Azione</span>
+                <select value={commandValue} onChange={(event) => setCommandValue(event.target.value)}>
+                  {commandOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span>Target (opzionale)</span>
+                <input
+                  type="text"
+                  value={targetValue}
+                  onChange={(event) => setTargetValue(event.target.value)}
+                  placeholder="es. servizio o tabella"
+                />
+              </label>
+
+              <label className="cp-full-row">
+                <span>Motivo</span>
+                <textarea value={reasonValue} onChange={(event) => setReasonValue(event.target.value)} rows={3} />
+              </label>
+
+              <label className="cp-full-row">
+                <span>Dati aggiuntivi (JSON)</span>
+                <textarea value={payloadValue} onChange={(event) => setPayloadValue(event.target.value)} rows={7} spellCheck={false} />
+              </label>
+
+              <label className="cp-checkbox cp-full-row">
+                <input type="checkbox" checked={dryRunValue} onChange={(event) => setDryRunValue(event.target.checked)} />
+                <span>Simulazione attiva (nessuna modifica reale)</span>
+              </label>
+            </div>
+
+            <div className="cp-inline-actions">
+              <button type="button" onClick={handlePrepareCommand} disabled={commandBusy || authState !== "authenticated"}>
+                1) Prepara comando
+              </button>
+            </div>
+
+            {preparedCommand ? (
+              <article className="cp-review">
+                <p>
+                  <strong>Summary:</strong> {preparedCommand.summary}
+                </p>
+                <p>
+                  <strong>Rischio:</strong> {preparedCommand.riskLevel || "medio"}
+                </p>
+                <p>
+                  <strong>Comando:</strong> <code>{preparedCommand.commandId}</code>
+                </p>
+
+                {preparedCommand.preview?.length ? (
+                  <ul className="cp-list cp-list-plain">
+                    {preparedCommand.preview.map((item, index) => (
+                      <li key={`${preparedCommand.commandId}-${index}`}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                <label>
+                  <span>
+                    2) Digita <code>{preparedCommand.requiresConfirmText || DEFAULT_CONFIRM_TEXT}</code> per confermare
+                  </span>
+                  <input type="text" value={confirmText} onChange={(event) => setConfirmText(event.target.value)} />
+                </label>
+
+                <button type="button" onClick={handleExecuteCommand} disabled={commandBusy || authState !== "authenticated"}>
+                  2) Conferma ed esegui
+                </button>
               </article>
-            ))}
-          </div>
-        ) : (
-          <p className="cp-feedback cp-feedback-info">Nessuna mobile flag disponibile.</p>
-        )}
-      </section>
-      ) : null}
+            ) : null}
 
-      {showOverviewGrid ? (
-      <section className="cp-grid cp-grid-3">
-        {showRenderOverview ? (
-        <article className="cp-card" id="section-render">
-          <h2>Rilasci</h2>
-          <ul className="cp-list cp-list-plain">
-            {renderRows.length ? (
-              renderRows.slice(0, 12).map((service) => (
-                <li key={service.id}>
-                  <strong>{service.name}</strong> - {service.status} - {service.environment}
-                </li>
-              ))
+            <p className={toFeedbackClass(commandFeedback.tone)}>{commandFeedback.text}</p>
+          </section>
+          ) : null}
+
+          {showMobileFlagsSection ? (
+          <section className="cp-card" id="section-mobile-flags">
+            <h2>Feature flags mobile</h2>
+
+            <div className="cp-inline-actions">
+              <button type="button" onClick={() => void loadMobileFlags(session)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+                {mobileFlagsBusy ? "Sync..." : "Ricarica"}
+              </button>
+            </div>
+
+            <p className={toFeedbackClass(mobileFlagsFeedback.tone)}>{mobileFlagsFeedback.text}</p>
+
+            {mobileFlags.length ? (
+              <div className="cp-flag-list">
+                {mobileFlags.map((flag) => (
+                  <article key={flag.key} className="cp-flag-item">
+                    <div>
+                      <p>
+                        <strong>{flag.label}</strong>
+                      </p>
+                      <p className="cp-muted">
+                        <code>{flag.key}</code>
+                      </p>
+                    </div>
+                    <div className="cp-inline-actions">
+                      <span className={flag.enabled ? "cp-on" : "cp-off"}>{flag.enabled ? "ON" : "OFF"}</span>
+                      <button type="button" onClick={() => void handleToggleMobileFlag(flag, !flag.enabled)} disabled={mobileFlagsBusy || authState !== "authenticated"}>
+                        {flag.enabled ? "Disattiva" : "Attiva"}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
             ) : (
-              <li>Nessun dato disponibile.</li>
+              <p className="cp-feedback cp-feedback-info">Nessuna mobile flag disponibile.</p>
             )}
-          </ul>
-        </article>
-        ) : null}
+          </section>
+          ) : null}
 
-        {showAuditOverview ? (
-        <article className="cp-card" id="section-audit">
-          <h2>Registro</h2>
-          <ul className="cp-list cp-list-plain">
-            {auditRows.length ? (
-              auditRows.slice(0, 12).map((entry) => (
-                <li key={entry.id}>
-                  <strong>{entry.action}</strong> ({entry.result}) - {formatDateTime(entry.at)}
-                </li>
-              ))
-            ) : (
-              <li>Nessun dato disponibile.</li>
-            )}
-          </ul>
-        </article>
-        ) : null}
+          {showOverviewGrid ? (
+          <section className="cp-grid cp-grid-3">
+            {showRenderOverview ? (
+            <article className="cp-card" id="section-render">
+              <h2>Rilasci</h2>
+              <ul className="cp-list cp-list-plain">
+                {renderRows.length ? (
+                  renderRows.slice(0, 12).map((service) => (
+                    <li key={service.id}>
+                      <strong>{service.name}</strong> - {service.status} - {service.environment}
+                    </li>
+                  ))
+                ) : (
+                  <li>Nessun dato disponibile.</li>
+                )}
+              </ul>
+            </article>
+            ) : null}
 
-        {showDbOverview ? (
-        <article className="cp-card" id="section-db">
-          <h2>Database</h2>
-          <ul className="cp-list cp-list-plain">
-            {dbRows.length ? (
-              dbRows.slice(0, 12).map((operation) => (
-                <li key={operation.id}>
-                  <strong>{operation.operation}</strong> - {operation.status} - {operation.target}
-                </li>
-              ))
-            ) : (
-              <li>Nessun dato disponibile.</li>
-            )}
-          </ul>
-        </article>
-        ) : null}
-      </section>
-      ) : null}
+            {showAuditOverview ? (
+            <article className="cp-card" id="section-audit">
+              <h2>Registro</h2>
+              <ul className="cp-list cp-list-plain">
+                {auditRows.length ? (
+                  auditRows.slice(0, 12).map((entry) => (
+                    <li key={entry.id}>
+                      <strong>{entry.action}</strong> ({entry.result}) - {formatDateTime(entry.at)}
+                    </li>
+                  ))
+                ) : (
+                  <li>Nessun dato disponibile.</li>
+                )}
+              </ul>
+            </article>
+            ) : null}
 
-      {snapshotError && isPwaFlagEnabled("status-card") ? <p className="cp-feedback cp-feedback-warn">{snapshotError}</p> : null}
+            {showDbOverview ? (
+            <article className="cp-card" id="section-db">
+              <h2>Database</h2>
+              <ul className="cp-list cp-list-plain">
+                {dbRows.length ? (
+                  dbRows.slice(0, 12).map((operation) => (
+                    <li key={operation.id}>
+                      <strong>{operation.operation}</strong> - {operation.status} - {operation.target}
+                    </li>
+                  ))
+                ) : (
+                  <li>Nessun dato disponibile.</li>
+                )}
+              </ul>
+            </article>
+            ) : null}
+          </section>
+          ) : null}
 
-      {showFooterStatus ? (
-      <footer className="cp-card cp-footer">
-        <p>
-          Last refresh: <strong>{snapshot ? formatDateTime(snapshot.refreshedAt) : "-"}</strong>
-        </p>
-        <p>
-          Data source: <code>{snapshot?.source || controlPlaneEndpoint}</code>
-        </p>
-      </footer>
-      ) : null}
+          {snapshotError && isPwaFlagEnabled("status-card") ? <p className="cp-feedback cp-feedback-warn">{snapshotError}</p> : null}
+
+          {showFooterStatus ? (
+          <footer className="cp-card cp-footer">
+            <p>
+              Last refresh: <strong>{snapshot ? formatDateTime(snapshot.refreshedAt) : "-"}</strong>
+            </p>
+            <p>
+              Data source: <code>{snapshot?.source || controlPlaneEndpoint}</code>
+            </p>
+          </footer>
+          ) : null}
+        </>
+      )}
     </main>
   );
 }
@@ -1045,18 +1240,6 @@ const start = () => {
 
   const root = createRoot(rootElement);
   root.render(<App />);
-
-  registerServiceWorker({
-    onReady: () => undefined,
-    onUpdate: (registration) => {
-      promptServiceWorkerUpdate(registration);
-    },
-    onError: (error) => {
-      console.error("Service worker registration failed", error);
-    },
-  });
 };
 
 start();
-
-
