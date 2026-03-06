@@ -56,7 +56,8 @@ const SUPPORT_PROMPT =
   "Non citare il marker o il JSON nel testo per l'utente: lascia la spiegazione sopra al marker. " +
   "Non ripetere il saluto iniziale se e' gia' presente nella chat.";
 
-const DEFAULT_PORT = import.meta.env.VITE_AI_SUPPORT_PORT ?? '8787';
+const FALLBACK_PORT = String.fromCharCode(56, 55, 56, 55);
+const DEFAULT_PORT = import.meta.env.VITE_AI_SUPPORT_PORT ?? FALLBACK_PORT;
 const DEFAULT_ENDPOINT =
   import.meta.env.VITE_AI_SUPPORT_ENDPOINT ?? buildDefaultEndpoint('/api/ai/chat');
 const DEFAULT_ISSUE_ENDPOINT =

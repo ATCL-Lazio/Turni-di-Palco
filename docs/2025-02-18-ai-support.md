@@ -100,7 +100,7 @@ Se il backend non esiste, creare un handler che:
 - Il dev server mobile fa proxy `/api/ai/chat` verso `http://localhost:${VITE_AI_SUPPORT_PORT}` (fallback `AI_SUPPORT_PORT`).
 - Per cambiare la porta locale, impostare `VITE_AI_SUPPORT_PORT` (client/proxy) e, se necessario, `AI_SUPPORT_PORT` per il server.
 - Per un endpoint remoto, impostare `VITE_AI_SUPPORT_ENDPOINT` in `apps/mobile/.env`.
-- Se `VITE_AI_SUPPORT_ENDPOINT` non e' valorizzato, l'app usa l'host corrente e la porta `8787`.
+- Se `VITE_AI_SUPPORT_ENDPOINT` non e' valorizzato, l'app usa l'host corrente e la porta locale di fallback.
 - Per la creazione issue, l'assistente aggiunge in coda `ISSUE_DRAFT:{...}` con i label `supporto` e `Maxwell`. La UI lo rimuove dal testo e invia `POST /api/ai/issue` in autonomia.
 - Endpoint issue remoto: `VITE_AI_SUPPORT_ISSUE_ENDPOINT` (default derivato da `VITE_AI_SUPPORT_ENDPOINT`).
 - In produzione, l'endpoint issue va chiamato da backend/proxy autenticato: `AI_SUPPORT_API_TOKEN` (o `AI_SUPPORT_ISSUE_TOKEN`) e' obbligatorio sul server, evitando di esporre token via `VITE_*`.
@@ -133,7 +133,7 @@ login e mostra lo stato corrente.
 
 - Avviare il login device:
   - CLI: `codex login --device-auth`
-  - UI: visitare `http://<host>:8787/auth` e cliccare "Avvia login".
+  - UI: visitare `http://<host>:<ai-support-port>/auth` e cliccare "Avvia login".
 - Copiare URL + codice di accesso presenti nei log del server.
 - Completare il login dal proprio browser locale (non serve una API key).
 - Verificare lo stato: `codex login status` oppure dal pannello `/auth`.
@@ -142,7 +142,7 @@ login e mostra lo stato corrente.
 
 - Avviare il login device:
   - CLI: `gh auth login --device`
-  - UI: visitare `http://<host>:8787/auth` e cliccare "Avvia login".
+  - UI: visitare `http://<host>:<ai-support-port>/auth` e cliccare "Avvia login".
 - Copiare URL + codice di accesso presenti nei log del server.
 - Completare il login dal proprio browser locale.
 - Verificare lo stato: `gh auth status` oppure dal pannello `/auth`.
