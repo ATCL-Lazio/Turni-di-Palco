@@ -19,7 +19,16 @@ L’obiettivo è semplice: vivere il teatro in modo più attivo, scoprendo non s
 
 ![Icona app](apps/pwa/public/icons/badge.png)
 
-## Cos'è
+## Stato dei Deploy
+
+| Piattaforma | Stato | URL |
+|-------------|-------|-----|
+| Render | [![Render](https://turni-di-palco-badges.onrender.com/website?url=https%3A%2F%2Fturni-di-palco-fq85.onrender.com&label=stato&logo=render&logoColor=white&up_message=online&down_message=offline&up_color=brightgreen&down_color=red)](https://turni-di-palco-fq85.onrender.com) | [turni-di-palco-fq85.onrender.com](https://turni-di-palco-fq85.onrender.com) |
+| Railway | [![Railway](https://turni-di-palco-badges.onrender.com/website?url=https%3A%2F%2Fturni-di-palco-production.up.railway.app&label=stato&logo=railway&logoColor=white&up_message=online&down_message=offline&up_color=brightgreen&down_color=red)](https://turni-di-palco-production.up.railway.app) | [turni-di-palco-production.up.railway.app](https://turni-di-palco-production.up.railway.app) |
+| Vercel | [![Vercel](https://turni-di-palco-badges.onrender.com/website?url=https%3A%2F%2Fturni-di-palco.vercel.app&label=stato&logo=vercel&logoColor=white&up_message=online&down_message=offline&up_color=brightgreen&down_color=red)](https://turni-di-palco.vercel.app) | [turni-di-palco.vercel.app](https://turni-di-palco.vercel.app) |
+| Netlify | [![Netlify](https://turni-di-palco-badges.onrender.com/website?url=https%3A%2F%2Fturni-di-palco.netlify.app&label=stato&logo=netlify&logoColor=white&up_message=online&down_message=offline&up_color=brightgreen&down_color=red)](https://turni-di-palco.netlify.app) | [turni-di-palco.netlify.app](https://turni-di-palco.netlify.app) |
+
+## Cos’è
 
 Turni di Palco è una app in cui l’utente costruisce una carriera teatrale virtuale.
 La progressione non dipende solo dal gioco: cresce davvero quando si partecipa agli eventi reali del circuito.
