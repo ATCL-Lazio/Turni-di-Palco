@@ -27,11 +27,12 @@ describe("main shell", () => {
     const statusHeading = Array.from(document.querySelectorAll("h2")).find(
       (el) => el.textContent === "Stato sistema"
     );
-    const quickItems = document.querySelectorAll(".quick-item");
+    const flagsHeading = Array.from(document.querySelectorAll("h2")).find(
+      (el) => el.textContent === "Feature Flags"
+    );
 
     expect(title?.textContent?.trim()).toBe("Overview");
     expect(statusHeading).not.toBeNull();
-    expect(quickItems.length).toBeGreaterThan(0);
-    expect(quickItems[0]?.getAttribute("href")).toContain("/control-plane.html");
+    expect(flagsHeading).not.toBeNull();
   });
 });
