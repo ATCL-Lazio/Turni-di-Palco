@@ -22,14 +22,19 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Turni di Palco" />
     <script>
-      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+      if (!window.va) {
+        window.va = (...args) => { 
+          if (!window.vaq) window.vaq = [];
+          window.vaq.push(...args); 
+        };
+      }
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
   </head>
   <body data-theme="dark">
     <div id="app"></div>
     <script>
-      (function () {
+      (() => {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         if (isMobile && !location.pathname.startsWith("/mobile")) {
           const target = "/mobile/";
@@ -44,6 +49,6 @@
         }
       })();
     </script>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/dev-plus/main.tsx"></script>
   </body>
 </html>
