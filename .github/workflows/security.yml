@@ -41,7 +41,7 @@ jobs:
           cache-dependency-path: ${{ matrix.lockfile }}
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
         working-directory: ${{ matrix.path }}
 
       - name: Generate npm audit report
