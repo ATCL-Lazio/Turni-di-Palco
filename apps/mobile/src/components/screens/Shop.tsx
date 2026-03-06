@@ -74,11 +74,11 @@ export function Shop({
         type: 'error',
         message:
           result.rejectionReason === 'insufficient_cachet'
-            ? 'Cachet insufficiente per completare l acquisto.'
+            ? "Cachet insufficiente per completare l'acquisto."
             : result.rejectionReason === 'max_purchase_reached'
               ? 'Hai raggiunto il limite massimo per questo elemento.'
               : result.rejectionReason === 'theatre_not_eligible'
-                ? 'Puoi acquistare questo pack solo su teatri giÃ  giocati.'
+                ? 'Puoi acquistare questo pack solo su teatri già giocati.'
                 : result.error,
       });
     } finally {
