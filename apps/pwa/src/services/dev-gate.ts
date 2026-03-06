@@ -200,31 +200,31 @@ async function verifyServerAccess() {
 
 function renderGate(root: HTMLElement) {
   root.innerHTML = `
-    <main class="dev-gate">
-      <section class="dev-gate-card">
+    <div class="gate">
+      <section class="gate-card">
         <div>
-          <p class="eyebrow">Area riservata</p>
-          <h1 class="heading-2">Accesso developer PWA</h1>
-          <p class="muted">Accedi con un account abilitato.</p>
+          <p class="gate-eyebrow">Area riservata</p>
+          <h1 class="gate-heading">Accesso developer PWA</h1>
+          <p class="gate-muted">Accedi con un account abilitato.</p>
         </div>
-        <form class="dev-gate-form" data-dev-gate-form>
-          <label class="field">
-            <span class="field-label">Email</span>
-            <input class="input" name="email" type="email" autocomplete="email" required />
+        <form class="gate-form" data-dev-gate-form>
+          <label class="form-field">
+            <span class="form-label">Email</span>
+            <input class="form-input" name="email" type="email" autocomplete="email" required />
           </label>
-          <label class="field">
-            <span class="field-label">Password</span>
-            <input class="input" name="password" type="password" autocomplete="current-password" required />
+          <label class="form-field">
+            <span class="form-label">Password</span>
+            <input class="form-input" name="password" type="password" autocomplete="current-password" required />
           </label>
-          <button class="button primary" type="submit" data-dev-gate-submit>Accedi</button>
+          <button class="btn btn-primary" type="submit" data-dev-gate-submit>Accedi</button>
         </form>
-        <div class="dev-gate-actions">
-          <button class="button ghost" type="button" data-dev-gate-signout>Esci</button>
-          <p class="muted" data-dev-gate-roles></p>
+        <div class="gate-footer">
+          <button class="btn btn-ghost" type="button" data-dev-gate-signout>Esci</button>
+          <p class="gate-roles" data-dev-gate-roles></p>
         </div>
-        <p class="dev-gate-message" data-dev-gate-message aria-live="polite"></p>
+        <p class="gate-message" data-dev-gate-message aria-live="polite"></p>
       </section>
-    </main>
+    </div>
   `;
 
   const form = root.querySelector<HTMLFormElement>("[data-dev-gate-form]");
@@ -300,7 +300,7 @@ export async function requireDevAccess() {
 
   if (!isSupabaseConfigured || !supabase) {
     const state = renderGate(root);
-    state.form.classList.add("is-disabled");
+    state.form.classList.add("form--disabled");
     setGateMessage(state, "Supabase non configurato: accesso developer non disponibile.", "error");
     state.signOutButton.addEventListener("click", () => {
       exitDevGate(state);
