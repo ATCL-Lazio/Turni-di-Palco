@@ -6,7 +6,7 @@ describe("main shell", () => {
     vi.resetModules();
   });
 
-  it("renders landing page shell", async () => {
+  it("renders developer dashboard", async () => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query) => ({
@@ -23,15 +23,15 @@ describe("main shell", () => {
 
     await import("../main");
 
-    const heading = document.querySelector("h1");
-    const systemHeading = Array.from(document.querySelectorAll("h2")).find(
-      (element) => element.textContent === "Stato sistema"
+    const title = document.querySelector("h1");
+    const statusHeading = Array.from(document.querySelectorAll("h2")).find(
+      (el) => el.textContent === "Stato sistema"
     );
-    const actionLinks = document.querySelectorAll(".tdp-action-list .tdp-action-item a");
+    const quickItems = document.querySelectorAll(".quick-item");
 
-    expect(heading?.textContent).toContain("Dashboard PWA");
-    expect(systemHeading).not.toBeNull();
-    expect(actionLinks).toHaveLength(3);
-    expect(actionLinks[0]?.getAttribute("href")).toContain("/control-plane.html?view=commands");
+    expect(title?.textContent?.trim()).toBe("Overview");
+    expect(statusHeading).not.toBeNull();
+    expect(quickItems.length).toBeGreaterThan(0);
+    expect(quickItems[0]?.getAttribute("href")).toContain("/control-plane.html");
   });
 });
