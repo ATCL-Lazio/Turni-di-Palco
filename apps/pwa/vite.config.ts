@@ -60,33 +60,15 @@ function resolveAllowedHosts(env: Record<string, string>) {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const httpsOption = resolveHttps();
-  const publicModeValue = env.VITE_PUBLIC_MODE || process.env.VITE_PUBLIC_MODE;
-  const isPublicMode = publicModeValue === "true" || publicModeValue === "1";
   const allowedHosts = resolveAllowedHosts(env);
 
-  const buildInputs: Record<string, string> = {
-    main: path.resolve(__dirname, "index.html"),
-    mobileOps: path.resolve(__dirname, "mobile-ops.html"),
-    mobileInfrastructure: path.resolve(__dirname, "mobile-infrastructure.html"),
-    mobileAccess: path.resolve(__dirname, "mobile-access.html"),
-    mobileRuntime: path.resolve(__dirname, "mobile-runtime.html"),
-    privacy: path.resolve(__dirname, "privacy.html"),
-    mobileReleases: path.resolve(__dirname, "mobile-releases.html"),
-    mobileDataOps: path.resolve(__dirname, "mobile-data-ops.html"),
-    mobileAudit: path.resolve(__dirname, "mobile-audit.html"),
-  };
-
-  if (!isPublicMode) {
-    buildInputs.devPlayground = path.resolve(__dirname, "dev-playground.html");
-    buildInputs.controlPlane = path.resolve(__dirname, "control-plane.html");
-  }
-
   return {
-    appType: "mpa",
     plugins: [tailwindcss()],
     build: {
       rollupOptions: {
-        input: buildInputs,
+        input: {
+          main: path.resolve(__dirname, "index.html"),
+        },
       },
     },
     server: {

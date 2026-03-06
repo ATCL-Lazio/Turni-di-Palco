@@ -1,38 +1,47 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
+import { buildControlPlaneUrl, CONTROL_PLANE_VIEWS, parseControlPlanePreset } from "../services/ops-sdk";
+import { resolveInitialPage } from "../dev-plus/routing";
 
-describe("main shell", () => {
-  beforeEach(() => {
-    document.body.innerHTML = '<div id="app"></div>';
-    vi.resetModules();
+describe("SPA shell navigation", () => {
+  it("defaults to overview when no view param", () => {
+    expect(resolveInitialPage("")).toBe("overview");
+    expect(resolveInitialPage("?")).toBe("overview");
+    expect(resolveInitialPage("?view=overview")).toBe("overview");
   });
 
-  it("renders developer dashboard", async () => {
-    Object.defineProperty(window, "matchMedia", {
-      writable: true,
-      value: vi.fn().mockImplementation((query) => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    });
+  it("routes to cp for any control plane view", () => {
+    expect(resolveInitialPage("?view=commands")).toBe("cp");
+    expect(resolveInitialPage("?view=render")).toBe("cp");
+    expect(resolveInitialPage("?view=audit")).toBe("cp");
+    expect(resolveInitialPage("?view=db")).toBe("cp");
+    expect(resolveInitialPage("?view=mobile-flags")).toBe("cp");
+  });
 
-    await import("../main");
+  it("routes to privacy view", () => {
+    expect(resolveInitialPage("?view=privacy")).toBe("privacy");
+  });
 
-    const title = document.querySelector("h1");
-    const statusHeading = Array.from(document.querySelectorAll("h2")).find(
-      (el) => el.textContent === "Stato sistema"
-    );
-    const flagsHeading = Array.from(document.querySelectorAll("h2")).find(
-      (el) => el.textContent === "Feature Flags"
-    );
+  it("buildControlPlaneUrl generates root-relative URLs", () => {
+    const url = buildControlPlaneUrl({ view: "commands" });
+    expect(url).toBe("/?view=commands");
+  });
 
-    expect(title?.textContent?.trim()).toBe("Overview");
-    expect(statusHeading).not.toBeNull();
-    expect(flagsHeading).not.toBeNull();
+  it("buildControlPlaneUrl uses custom basePath when provided", () => {
+    const url = buildControlPlaneUrl({ view: "audit" }, "/custom");
+    expect(url).toBe("/custom?view=audit");
+  });
+
+  it("parseControlPlanePreset reads view from query string", () => {
+    const preset = parseControlPlanePreset("?view=render&command=render.services.health");
+    expect(preset.view).toBe("render");
+    expect(preset.commandId).toBe("render.services.health");
+  });
+
+  it("CONTROL_PLANE_VIEWS contains all expected views", () => {
+    expect(CONTROL_PLANE_VIEWS).toContain("commands");
+    expect(CONTROL_PLANE_VIEWS).toContain("render");
+    expect(CONTROL_PLANE_VIEWS).toContain("audit");
+    expect(CONTROL_PLANE_VIEWS).toContain("db");
+    expect(CONTROL_PLANE_VIEWS).toContain("mobile-flags");
   });
 });

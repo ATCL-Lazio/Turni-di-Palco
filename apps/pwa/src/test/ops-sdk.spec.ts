@@ -17,7 +17,7 @@ describe("ops-sdk", () => {
       source: "test",
     });
 
-    expect(url.startsWith("/control-plane.html?")).toBe(true);
+    expect(url.startsWith("/?")).toBe(true);
 
     const search = url.split("?")[1] ?? "";
     const parsed = parseControlPlanePreset(search);
