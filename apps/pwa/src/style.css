@@ -330,61 +330,6 @@ p { margin: 0; }
 .dot--warn    { background: var(--warn); box-shadow: 0 0 5px var(--warn); }
 .dot--unknown { background: var(--text-3); box-shadow: none; }
 
-/* ═══ Quick actions ══════════════════════════════════════════════════════════ */
-
-.quick-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.45rem;
-}
-
-.quick-item {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.7rem 0.8rem;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  transition: border-color 140ms, background 140ms, transform 140ms;
-}
-
-.quick-item:hover  { background: var(--surface-3); border-color: var(--border-hi); transform: translateY(-1px); }
-.quick-item:active { transform: translateY(0); }
-
-.quick-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: var(--accent-dim);
-  color: var(--accent);
-  flex-shrink: 0;
-}
-
-.quick-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  flex: 1;
-  min-width: 0;
-}
-
-.quick-label { font-size: 0.8rem; font-weight: 600; }
-.quick-desc  { font-size: 0.7rem; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.quick-arrow {
-  color: var(--text-3);
-  flex-shrink: 0;
-  opacity: 0;
-  transform: translateX(-4px);
-  transition: opacity 140ms, transform 140ms;
-}
-
-.quick-item:hover .quick-arrow { opacity: 1; transform: translateX(0); }
-
 /* ═══ Feature Flags ══════════════════════════════════════════════════════════ */
 
 .flag-list {
@@ -729,7 +674,6 @@ p { margin: 0; }
 
 @media (max-width: 900px) {
   .dev-grid   { grid-template-columns: 1fr; }
-  .quick-grid { grid-template-columns: 1fr; }
   .dev-card--wide { grid-column: auto; }
 }
 
@@ -743,10 +687,7 @@ p { margin: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .dev-card, .toast, .flag-row--flash { animation: none; }
-  .quick-item, .quick-arrow, .toggle-thumb, .toggle, .dot { transition: none; }
-  .quick-item:hover  { transform: none; }
-  .quick-item:active { transform: none; }
-  .quick-arrow { opacity: 1; transform: none; }
+  .toggle-thumb, .toggle, .dot { transition: none; }
 }
 
 /* ═══ Scrollbar ═══════════════════════════════════════════════════════════════ */
