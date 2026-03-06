@@ -70,7 +70,7 @@ export function ActivitiesHub({
             >
               <span className="inline-flex items-center gap-2 justify-center w-full">
                 <ListChecks size={16} />
-                Attivita
+                Attività
               </span>
             </button>
           </div>

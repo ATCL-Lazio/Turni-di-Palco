@@ -203,7 +203,7 @@ export function Shop({
                       : !canPurchase
                         ? 'Acquisti temporaneamente disattivati'
                       : insufficientCachet
-                        ? 'Saldo insufficiente'
+                        ? `Ti mancano ${item.costCachet - cachet} cachet`
                         : theatreRequiredMissing
                           ? 'Seleziona un teatro valido'
                           : 'Disponibile'}
