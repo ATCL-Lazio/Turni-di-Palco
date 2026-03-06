@@ -3,7 +3,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const ts = require('typescript');
-const { JSDOM } = require('jsdom');
 
 const repoRoot = path.resolve(__dirname, '..');
 const outputPath = path.join(repoRoot, '.temp', 'ci', 'ui-copy.txt');
@@ -69,6 +68,22 @@ const uiPropertyNames = new Set([
   'buttontext',
   'emptytitle',
   'emptydescription',
+]);
+
+const htmlUiAttributeNames = new Set([
+  'alt',
+  'title',
+  'placeholder',
+  'aria-label',
+  'aria-description',
+]);
+
+const htmlMetaIdentityNames = new Set([
+  'description',
+  'og:title',
+  'og:description',
+  'twitter:title',
+  'twitter:description',
 ]);
 
 function collectSourceFiles(dirPath) {
@@ -294,60 +309,73 @@ function extractFromCodeFile(filePath) {
 function extractFromHtml(filePath) {
   if (!fs.existsSync(filePath)) return;
   const source = fs.readFileSync(filePath, 'utf8');
+  let index = 0;
+  let insideScript = false;
+  let insideStyle = false;
 
-  const dom = new JSDOM(source);
-  const document = dom.window.document;
+  while (index < source.length) {
+    if (source.startsWith('<!--', index)) {
+      const commentEnd = source.indexOf('-->', index + 4);
+      index = commentEnd === -1 ? source.length : commentEnd + 3;
+      continue;
+    }
 
-  // Remove script and style elements before extracting text/attributes
-  const removableElements = document.querySelectorAll('script, style');
-  removableElements.forEach((el) => el.remove());
+    if (source[index] === '<') {
+      const tagEnd = source.indexOf('>', index + 1);
+      if (tagEnd === -1) break;
 
-  // Extract text nodes
-  (function traverse(node) {
-    for (const child of node.childNodes) {
-      if (child.nodeType === child.TEXT_NODE) {
-        const text = child.textContent;
-        if (text && text.trim()) {
-          addText(decodeHtmlEntities(text));
+      const tagBody = source.slice(index + 1, tagEnd);
+      const trimmedTagBody = tagBody.trim();
+      const isClosingTag = trimmedTagBody.startsWith('/');
+      const isSelfClosingTag = /\/\s*$/.test(trimmedTagBody);
+      const tagNameMatch = /^\/?\s*([a-z0-9:-]+)/i.exec(trimmedTagBody);
+      const tagName = tagNameMatch ? tagNameMatch[1].toLowerCase() : '';
+
+      if (!isClosingTag && !insideScript && !insideStyle && tagName) {
+        const attrs = parseTagAttributes(tagBody);
+        for (const attrName of htmlUiAttributeNames) {
+          if (attrs.has(attrName)) addText(attrs.get(attrName));
         }
-      } else {
-        traverse(child);
-      }
-    }
-  })(document.body || document);
 
-  // Extract attributes similar to the previous regex-based approach
-  const attrElements = document.querySelectorAll('[alt],[title],[placeholder],[aria-label],[aria-description]');
-  attrElements.forEach((el) => {
-    const attrs = ['alt', 'title', 'placeholder', 'aria-label', 'aria-description'];
-    attrs.forEach((name) => {
-      const value = el.getAttribute(name);
-      if (value && value.trim()) {
-        addText(decodeHtmlEntities(value));
+        if (tagName === 'meta') {
+          const identity = (attrs.get('name') || attrs.get('property') || '').toLowerCase();
+          if (htmlMetaIdentityNames.has(identity) && attrs.has('content')) {
+            addText(attrs.get('content'));
+          }
+        }
       }
-    });
-  });
 
-  // Extract meta description-like content
-  const metaSelectors = [
-    'meta[name="description"]',
-    'meta[name="og:title"]',
-    'meta[name="og:description"]',
-    'meta[name="twitter:title"]',
-    'meta[name="twitter:description"]',
-    'meta[property="description"]',
-    'meta[property="og:title"]',
-    'meta[property="og:description"]',
-    'meta[property="twitter:title"]',
-    'meta[property="twitter:description"]',
-  ];
-  const metaElements = document.querySelectorAll(metaSelectors.join(','));
-  metaElements.forEach((meta) => {
-    const content = meta.getAttribute('content');
-    if (content && content.trim()) {
-      addText(decodeHtmlEntities(content));
+      if (tagName === 'script') {
+        insideScript = !isClosingTag && !isSelfClosingTag;
+      } else if (tagName === 'style') {
+        insideStyle = !isClosingTag && !isSelfClosingTag;
+      }
+
+      index = tagEnd + 1;
+      continue;
     }
-  });
+
+    const nextTag = source.indexOf('<', index);
+    const textEnd = nextTag === -1 ? source.length : nextTag;
+    if (!insideScript && !insideStyle) {
+      addText(source.slice(index, textEnd));
+    }
+    index = textEnd;
+  }
+}
+
+function parseTagAttributes(tagBody) {
+  const attrs = new Map();
+  const attrPattern = /([^\s"'=<>`]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+  let match;
+
+  while ((match = attrPattern.exec(tagBody)) !== null) {
+    const name = match[1].toLowerCase();
+    const value = match[2] ?? match[3] ?? match[4] ?? '';
+    attrs.set(name, value);
+  }
+
+  return attrs;
 }
 
 function main() {
