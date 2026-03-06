@@ -74,22 +74,21 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
     } finally {
       if (!shouldResume) {
         setIsHandlingScan(false);
-        return;
-      }
-
-      if (resumeTimeoutRef.current != null) {
-        window.clearTimeout(resumeTimeoutRef.current);
-        resumeTimeoutRef.current = null;
-      }
-
-      resumeTimeoutRef.current = window.setTimeout(() => {
-        setIsHandlingScan(false);
-        if (isScanningRef.current) {
-          setScanError(null);
-          hasHandledScanRef.current = false;
-          resumeScanRef.current?.();
+      } else {
+        if (resumeTimeoutRef.current != null) {
+          window.clearTimeout(resumeTimeoutRef.current);
+          resumeTimeoutRef.current = null;
         }
-      }, 1200);
+
+        resumeTimeoutRef.current = window.setTimeout(() => {
+          setIsHandlingScan(false);
+          if (isScanningRef.current) {
+            setScanError(null);
+            hasHandledScanRef.current = false;
+            resumeScanRef.current?.();
+          }
+        }, 1200);
+      }
     }
   };
 
