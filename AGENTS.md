@@ -85,7 +85,7 @@ Template developed by [Heartran](https://github.com/heartran)
 
 | Agent | GIT_COMMITTER_NAME / GIT_AUTHOR_NAME | GIT_COMMITTER_EMAIL / GIT_AUTHOR_EMAIL |
 | --- | :---: | --- |
-| Codex | Codex | [codex@users.noreply.github.com](mailto:codex@users.noreply.github.com) |
-| Gemini | Gemini | [gemini-code-assist@users.noreply.github.com](mailto:gemini-code-assist@users.noreply.github.com) |
+| Codex | Codex | [199175422+chatgpt-codex-connector[bot]@users.noreply.github.com](mailto:199175422+chatgpt-codex-connector[bot]@users.noreply.github.com) |
+| Gemini | Gemini | [176961590+gemini-code-assist[bot]@users.noreply.github.com](mailto:176961590+gemini-code-assist[bot]@users.noreply.github.com) |
 | Cascade | Cascade | [cascade@users.noreply.github.com](mailto:cascade@users.noreply.github.com) |
-| GitHub Copilot | GitHub Copilot | [github-copilot@users.noreply.github.com](mailto:github-copilot@users.noreply.github.com) |
+| GitHub Copilot | Copilot[bot] | [198982749+Copilot[bot]@users.noreply.github.com](mailto:198982749+Copilot[bot]@users.noreply.github.com) |
