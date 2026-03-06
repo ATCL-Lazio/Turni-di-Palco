@@ -176,12 +176,12 @@ function addText(rawText) {
 function decodeHtmlEntities(text) {
   return text
     .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
     .replace(/&quot;/gi, '"')
     .replace(/&apos;/gi, "'")
     .replace(/&#39;/g, "'")
     .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>');
+    .replace(/&gt;/gi, '>')
+    .replace(/&amp;/gi, '&');
 }
 
 function normalizedTemplateExpressionText(node) {
