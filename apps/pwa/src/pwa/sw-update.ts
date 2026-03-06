@@ -49,31 +49,27 @@ export function promptServiceWorkerUpdate(registration: ServiceWorkerRegistratio
   }
 
   const toast = document.createElement("div");
-  toast.className = "toast update-toast";
+  toast.className = "toast";
 
-  const copy = document.createElement("div");
-  const eyebrow = document.createElement("p");
-  eyebrow.className = "eyebrow";
-  eyebrow.textContent = "Aggiornamento disponibile";
-  copy.append(eyebrow);
+  const label = document.createElement("p");
+  label.className = "toast-label";
+  label.textContent = "Aggiornamento disponibile";
 
   const actions = document.createElement("div");
   actions.className = "toast-actions";
 
   const dismissButton = document.createElement("button");
   dismissButton.type = "button";
-  dismissButton.className = "button ghost";
-  dismissButton.dataset.action = "dismiss-update";
-  dismissButton.textContent = "Piu' tardi";
+  dismissButton.className = "btn btn-ghost";
+  dismissButton.textContent = "Più tardi";
 
   const applyButton = document.createElement("button");
   applyButton.type = "button";
-  applyButton.className = "button primary";
-  applyButton.dataset.action = "apply-update";
+  applyButton.className = "btn btn-primary";
   applyButton.textContent = "Ricarica ora";
 
   actions.append(dismissButton, applyButton);
-  toast.append(copy, actions);
+  toast.append(label, actions);
 
   dismissButton.addEventListener("click", () => {
     dismissToast();
