@@ -248,6 +248,7 @@ function resolveCacheControl(distDir, filePath) {
 function createHandler(distDir) {
   return (req, res) => {
     const requestUrl = req.url || '/';
+    const requestMethod = (req.method || 'GET').toUpperCase();
     const parsedPath = (() => {
       try {
         return new URL(requestUrl, 'http://localhost').pathname;
@@ -262,19 +263,25 @@ function createHandler(distDir) {
     }
 
     // Health check endpoint per keep-alive incrociato
-    if (req.url === '/health' && req.method === 'GET') {
-      res.statusCode = 200;
-      res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({
+    if (parsedPath === '/health' && (requestMethod === 'GET' || requestMethod === 'HEAD')) {
+      const payload = JSON.stringify({
         status: 'ok',
         service: 'turni-di-palco',
         timestamp: new Date().toISOString(),
         uptime: process.uptime()
-      }));
+      });
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Cache-Control', 'no-store');
+      if (requestMethod === 'HEAD') {
+        res.end();
+        return;
+      }
+      res.end(payload);
       return;
     }
 
-    if (!req.url || req.method !== 'GET') {
+    if (!req.url || (requestMethod !== 'GET' && requestMethod !== 'HEAD')) {
       res.statusCode = 405;
       res.end('Method Not Allowed');
       return;
@@ -291,6 +298,10 @@ function createHandler(distDir) {
     res.statusCode = 200;
     res.setHeader('Content-Type', getMimeType(filePath));
     res.setHeader('Cache-Control', resolveCacheControl(distDir, filePath));
+    if (requestMethod === 'HEAD') {
+      res.end();
+      return;
+    }
 
     const stream = fs.createReadStream(filePath);
     stream.on('error', () => {
