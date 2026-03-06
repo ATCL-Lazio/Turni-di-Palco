@@ -125,7 +125,7 @@ export function Home({
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
     >
       <div className="w-full app-content px-6 pt-6 pb-8 space-y-6">
-        <header className="space-y-4 mobile-hero-reveal" style={{ marginBottom: '20px' }}>
+        <header className="space-y-4 mobile-hero-reveal">
           <div className="min-w-0">
             <div className="mt-2 flex items-center gap-3">
               <h2 className="min-w-0 flex-1 text-2xl text-white font-semibold leading-tight break-words">
@@ -189,7 +189,7 @@ export function Home({
             <MetricTile
               label="Reputazione ATCL"
               value={reputation}
-              progress={{ value: reputation, max: 100, color: 'burgundy' }}
+              progress={{ value: reputation, max: 100, color: 'gold' }}
             />
           </div>
 
@@ -208,9 +208,9 @@ export function Home({
               <div className="rounded-xl bg-[#241f20] border border-[#3d3a3b] p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs text-[#b8b2b3]">Token ATCL</p>
-                  <Zap size={14} className="text-[#f4bf4f]" />
+                  <Zap size={14} className={tokenAtcl === 0 ? 'text-[#7a7577]' : 'text-[#f4bf4f]'} />
                 </div>
-                <p className="text-[#f4bf4f] text-lg font-semibold mt-1">{tokenAtcl}</p>
+                <p className={`text-lg font-semibold mt-1 ${tokenAtcl === 0 ? 'text-[#7a7577]' : 'text-[#f4bf4f]'}`}>{tokenAtcl}</p>
               </div>
             </div>
           </Card>
@@ -253,7 +253,7 @@ export function Home({
           ) : null}
         </header>
 
-        {allowScanQr ? <ScanQRCard onScanQR={onScanQR} className="mt-5" /> : null}
+        {allowScanQr ? <ScanQRCard onScanQR={onScanQR} /> : null}
         {showHomeTicker ? (
           <AtclNewsTicker items={homeTickerItems} />
         ) : homePromotion ? (
@@ -373,7 +373,7 @@ export function Home({
             ) : (
               <div className="grid grid-cols-3 gap-3">
                 <MetricTile label="Totale turni" value={totalTurns} onClick={onViewTurni} />
-                <MetricTile label="Questo mese" value={turnsThisMonth} onClick={onViewTurni} />
+                <MetricTile label="Mese" value={turnsThisMonth} onClick={onViewTurni} />
                 <MetricTile label="Teatri diversi" value={uniqueTheatres} onClick={onViewTurni} />
               </div>
             )}
