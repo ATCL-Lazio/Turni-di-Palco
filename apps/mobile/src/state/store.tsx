@@ -225,9 +225,87 @@ type CatalogState = {
   activities: Activity[];
 };
 
+// DB row types — shape returned by Supabase queries
+type DbEventRow = {
+  id: string;
+  name: string;
+  theatre: string;
+  event_date: string;
+  event_time: string;
+  genre: string;
+  base_rewards?: { xp?: number; reputation?: number; cachet?: number } | null;
+  focus_role?: string | null;
+};
+
+type DbRoleRow = {
+  id: string;
+  name: string;
+  focus: string;
+  stats?: { presence?: number; precision?: number; leadership?: number; creativity?: number } | null;
+};
+
+type DbActivityRow = {
+  id: string;
+  title: string;
+  description: string;
+  duration: string;
+  xp_reward: number;
+  cachet_reward: number;
+  difficulty: string;
+};
+
+type DbTurnRow = {
+  id: string;
+  event_id?: string | null;
+  event_name?: string | null;
+  theatre?: string | null;
+  event_date?: string | null;
+  event_time?: string | null;
+  role_id?: string | null;
+  rewards?: { xp?: number; reputation?: number; cachet?: number } | null;
+  created_at?: string | null;
+};
+
+type DbProfileRow = {
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+  role_id?: string | null;
+  level?: number | null;
+  xp?: number | null;
+  xp_to_next_level?: number | null;
+  xp_total?: number | null;
+  xp_field?: number | null;
+  reputation?: number | null;
+  cachet?: number | null;
+  token_atcl?: number | null;
+  extra_activity_slots?: number | null;
+  profile_image?: string | null;
+  last_activity_at?: string | null;
+};
+
+type DbBadgeRow = {
+  id: string;
+  title: string;
+  description?: string | null;
+  icon?: string | null;
+  metric?: string | null;
+  threshold?: number | null;
+  is_hidden?: boolean | null;
+  unlocked?: boolean | null;
+  unlocked_at?: string | null;
+  seen_at?: string | null;
+};
+
+type DbTheatreReputationRow = {
+  theatre?: string | null;
+  reputation?: number | null;
+  total_turns?: number | null;
+};
+
 type FollowedEventRow = {
   event_id: string;
-  events?: any;
+  events?: DbEventRow | DbEventRow[] | null;
 };
 
 export const roles: Role[] = [
@@ -1617,8 +1695,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             .from('my_theatre_reputation')
             .select('theatre,reputation,total_turns');
           if (!error && data) {
-            const nextReputation: TheatreReputation[] = data
-              .map((row: any) => ({
+            const nextReputation: TheatreReputation[] = (data as DbTheatreReputationRow[])
+              .map((row) => ({
                 theatre: (row.theatre ?? '').toString(),
                 reputation: Number(row.reputation ?? 0),
                 totalTurns: Number(row.total_turns ?? 0),
@@ -1656,7 +1734,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             .from('my_badges')
             .select('id,title,description,icon,metric,threshold,is_hidden,unlocked_at,seen_at,unlocked');
           if (!error && data) {
-            const nextBadges: Badge[] = data.map((row: any) => ({
+            const nextBadges: Badge[] = (data as DbBadgeRow[]).map((row) => ({
               id: row.id,
               title: row.title,
               description: row.description ?? null,
@@ -2362,7 +2440,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               .select('event_id, events:events(id,name,theatre,event_date,event_time,genre,base_rewards,focus_role)')
               .eq('user_id', authUserId);
             if (!error && data) {
-              const mapped = (data as any[])
+              const mapped = (data as FollowedEventRow[])
                 .map((row) => {
                   const eventData = Array.isArray(row.events) ? row.events[0] : row.events;
                   if (!eventData) return null;
@@ -2778,7 +2856,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           const nextRoles =
             rolesRes.error || !rolesRes.data?.length
               ? roles
-              : rolesRes.data.map((role: any) => ({
+              : (rolesRes.data as DbRoleRow[]).map((role) => ({
                 id: role.id as RoleId,
                 name: role.name,
                 focus: role.focus,
@@ -2793,7 +2871,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           const nextEvents =
             eventsRes.error || !eventsRes.data?.length
               ? (isSupabaseConfigured ? [] : import.meta.env.DEV ? events : [])
-              : eventsRes.data.map((event: any) => ({
+              : (eventsRes.data as DbEventRow[]).map((event) => ({
                 id: event.id,
                 name: normalizeText(event.name),
                 theatre: normalizeText(event.theatre),
@@ -2811,7 +2889,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           const nextActivities =
             activitiesRes.error || !activitiesRes.data?.length
               ? import.meta.env.DEV ? activities : []
-              : activitiesRes.data.map((activity: any) => ({
+              : (activitiesRes.data as DbActivityRow[]).map((activity) => ({
                 id: activity.id,
                 title: activity.title,
                 description: activity.description,
@@ -2867,7 +2945,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             ]);
           }
 
-          let profileRow: any = profileRes.data;
+          let profileRow: DbProfileRow | null = profileRes.data as DbProfileRow | null;
 
           if (!profileRow && userRes.data?.user?.email) {
             const user = userRes.data.user;
@@ -2896,7 +2974,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           if (!isMounted) return;
 
           const remoteTurns = Array.isArray(turnsRes.data)
-            ? turnsRes.data.map((turn: any) => ({
+            ? (turnsRes.data as DbTurnRow[]).map((turn) => ({
               id: turn.id,
               eventId: turn.event_id ?? '',
               eventName: normalizeText(turn.event_name),
@@ -2996,7 +3074,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !authUserId) return;
 
-    const mapTurnRow = (turn: any): TurnRecord => ({
+    const mapTurnRow = (turn: DbTurnRow): TurnRecord => ({
       id: turn.id,
       eventId: turn.event_id ?? '',
       eventName: normalizeText(turn.event_name),
@@ -3019,7 +3097,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${authUserId}` },
         (payload) => {
           if (!payload.new) return;
-          const profile = payload.new as any;
+          const profile = payload.new as DbProfileRow;
           setState((prev: GameState) => ({
             ...prev,
             profile: {
@@ -3074,7 +3152,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           }
 
           if (payload.eventType === 'DELETE' && payload.old) {
-            const deletedId = (payload.old as any).id as string | undefined;
+            const deletedId = (payload.old as { id?: string }).id;
             if (!deletedId) return;
             setState((prev: GameState) => ({
               ...prev,
