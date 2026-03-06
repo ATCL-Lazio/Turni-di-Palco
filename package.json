@@ -17,7 +17,11 @@
     "preview:pwa": "npm --workspace apps/pwa run preview",
     "start:control-plane": "npm --workspace apps/control-plane run start",
     "test:pwa": "npm --workspace apps/pwa run test",
-    "lint": "npm --workspace apps/pwa run lint",
+    "lint": "npm --workspace apps/pwa run lint && npm --workspace apps/mobile run lint",
+    "lint:pwa": "npm --workspace apps/pwa run lint",
+    "lint:mobile": "npm --workspace apps/mobile run lint",
+    "typecheck": "npm --workspace apps/pwa run typecheck 2>/dev/null; npm --workspace apps/mobile run typecheck",
+    "prepare": "husky",
     "format": "npm --workspace apps/pwa run format",
     "dev:mobile": "npm --workspace apps/mobile run dev",
     "build:mobile": "npm --workspace apps/mobile run build && npm run sync:mobile",
@@ -31,8 +35,14 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
     "@eslint/js": "^10.0.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
     "qrcode": "^1.5.4",
     "qrcode-terminal": "^0.12.0"
+  },
+  "lint-staged": {
+    "apps/pwa/**/*.{ts,tsx}": "eslint --fix",
+    "apps/mobile/**/*.{ts,tsx}": "eslint --fix"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
