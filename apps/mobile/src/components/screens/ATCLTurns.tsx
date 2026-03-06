@@ -188,7 +188,7 @@ export function ATCLTurns({
             </div>
             <h4 className="text-white mb-2">Nessun evento disponibile</h4>
             <p className="text-[#b8b2b3] mb-6 max-w-xs mx-auto">
-              Torna piu tardi o aggiorna la lista eventi.
+              Torna più tardi o aggiorna la lista eventi.
             </p>
             {canScanQr ? (
               <Button variant="primary" onClick={onScanQR}>
