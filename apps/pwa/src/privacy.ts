@@ -22,24 +22,24 @@ const start = () => {
   if (!root) throw new Error("Root container missing");
 
   root.innerHTML = `
-    <main class="tdp-privacy">
-      <section class="tdp-privacy-card">
-        <p class="tdp-kicker">Turni di Palco</p>
+    <div class="privacy-page">
+      <div class="privacy-card">
+        <p class="privacy-eyebrow">Turni di Palco</p>
         <h1>Privacy</h1>
-        <div class="tdp-privacy-actions">
-          <a class="tdp-btn tdp-btn-primary" href="/">Torna alla dashboard</a>
-          <a class="tdp-btn tdp-btn-ghost" href="/mobile/">Apri app mobile</a>
+        <div class="privacy-actions">
+          <a class="btn btn-primary" href="/">Torna alla dashboard</a>
+          <a class="btn btn-ghost" href="/mobile/">Apri app mobile</a>
         </div>
-      </section>
+      </div>
 
-      <section class="tdp-privacy-card">
+      <div class="privacy-card">
         <div class="legal-embed" data-legal-embed>
           <a href="${IUBENDA_PRIVACY_POLICY_URL}" class="${IUBENDA_ANCHOR_CLASSES}" title="Privacy Policy">
             Privacy Policy
           </a>
         </div>
-      </section>
-    </main>
+      </div>
+    </div>
   `;
 
   ensureIubendaScript();
