@@ -1,5 +1,5 @@
 ﻿import React, { useRef, useState } from 'react';
-import { Award, BarChart3, Camera, ChevronRight, LogOut, Settings, Theater, User } from 'lucide-react';
+import { Award, BarChart3, Camera, ChevronRight, Info, LogOut, Settings, Theater, User } from 'lucide-react';
 import { ProgressBar } from '../ui/ProgressBar';
 
 interface TheatreReputation {
@@ -22,6 +22,7 @@ interface ProfileProps {
   badgesUnlockedCount: number;
   newBadgesCount: number;
   profileImage?: string;
+  showCarriera?: boolean;
   onViewCarriera: () => void;
   onViewTitoli: () => void;
   onSettings: () => void;
@@ -44,6 +45,7 @@ export function Profile({
   badgesUnlockedCount,
   newBadgesCount,
   profileImage,
+  showCarriera = true,
   onViewCarriera,
   onViewTitoli,
   onSettings,
@@ -55,6 +57,7 @@ export function Profile({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showTokenInfo, setShowTokenInfo] = useState(false);
 
   const handleImageSelect = () => {
     fileInputRef.current?.click();
@@ -132,22 +135,24 @@ export function Profile({
           </div>
         </div>
 
-        <div className="flex flex-col gap-[12px] px-[25px]">
-          <button
-            type="button"
-            onClick={onViewCarriera}
-            className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] flex items-center h-[48px] overflow-hidden"
-          >
-            <div className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-[16.4px] size-[48px] flex items-center justify-center">
-              <BarChart3 className="text-[#f4bf4f]" size={24} />
-            </div>
-            <div className="flex-1 relative h-full">
-              <p className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[16px] leading-[25.6px] text-white !m-0">
-                Carriera
-              </p>
-            </div>
-          </button>
-        </div>
+        {showCarriera ? (
+          <div className="flex flex-col gap-[12px] px-[25px]">
+            <button
+              type="button"
+              onClick={onViewCarriera}
+              className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] flex items-center h-[48px] overflow-hidden"
+            >
+              <div className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-[16.4px] size-[48px] flex items-center justify-center">
+                <BarChart3 className="text-[#f4bf4f]" size={24} />
+              </div>
+              <div className="flex-1 relative h-full">
+                <p className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[16px] leading-[25.6px] text-white !m-0">
+                  Carriera
+                </p>
+              </div>
+            </button>
+          </div>
+        ) : null}
 
         <div className="flex flex-col gap-[20px] px-[25px]">
           <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[5px] py-[2px] flex flex-col gap-[8px]">
@@ -167,12 +172,24 @@ export function Profile({
               <span className="text-white">{cachet}</span>
             </div>
             <div className="flex items-center justify-between px-[5px] text-[14px] leading-[20px] text-[#b8b2b3]">
-              <span>Token ATCL (premium)</span>
+              <span className="flex items-center gap-[6px]">
+                Token ATCL (premium)
+                <button
+                  type="button"
+                  onClick={() => setShowTokenInfo((v) => !v)}
+                  className="text-[#7a7577] hover:text-[#b8b2b3] transition-colors"
+                  aria-label="Informazioni valute"
+                >
+                  <Info size={13} />
+                </button>
+              </span>
               <span className="text-[#f4bf4f]">{tokenAtcl}</span>
             </div>
-            <p className="px-[5px] text-[12px] leading-[16px] text-[#7a7577]">
-              Cachet = valuta base di gioco. Token ATCL = boost e futuri riscatti.
-            </p>
+            {showTokenInfo ? (
+              <p className="px-[5px] text-[12px] leading-[16px] text-[#b8b2b3] bg-[#241f20] rounded-lg py-[8px]">
+                Cachet = valuta base di gioco. Token ATCL = boost e futuri riscatti.
+              </p>
+            ) : null}
             <div className="flex flex-col gap-[4px] px-[5px]">
               <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
                 <span className="flex items-center gap-[8px]">
