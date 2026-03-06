@@ -135,7 +135,7 @@ body {
 }
 
 .cp-checkbox {
-  display: flex !important;
+  display: flex;
   align-items: center;
   gap: 0.55rem;
 }

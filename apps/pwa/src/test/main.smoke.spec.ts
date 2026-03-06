@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildControlPlaneUrl, CONTROL_PLANE_VIEWS, parseControlPlanePreset } from "../services/ops-sdk";
 import { resolveInitialPage } from "../dev-plus/routing";
+import { buildControlPlaneUrl, CONTROL_PLANE_VIEWS, parseControlPlanePreset } from "../services/ops-sdk";
 
 describe("SPA shell navigation", () => {
   it("defaults to overview when no view param", () => {
