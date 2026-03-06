@@ -7,403 +7,281 @@ import {
   setStoredFeatureFlagOverride,
   type FeatureFlag,
 } from "./services/app-config";
-import { buildControlPlaneUrl, type ControlPlaneView } from "./services/ops-sdk";
+import { buildControlPlaneUrl } from "./services/ops-sdk";
 import { enforceDesktopOnly } from "./utils/desktop-only";
+import { registerServiceWorker } from "./pwa/register-sw";
+import { promptServiceWorkerUpdate } from "./pwa/sw-update";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Icone ───────────────────────────────────────────────────────────────────
 
-type NavItem = {
-  id: ControlPlaneView | "home";
-  label: string;
-  icon: string;
-  view?: ControlPlaneView;
+const I = {
+  grid:     `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
+  terminal: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`,
+  upload:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`,
+  log:      `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
+  db:       `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`,
+  flag:     `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`,
+  bolt:     `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+  clock:    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  phone:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>`,
+  shield:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  warn:     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  arrow:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
 };
 
-type StatusState = "ok" | "error" | "unknown";
+// ─── Helper ───────────────────────────────────────────────────────────────────
 
-type ServiceStatus = {
-  name: string;
-  status: StatusState;
-  detail: string;
-};
-
-// ─── Nav config ──────────────────────────────────────────────────────────────
-
-const NAV_ITEMS: NavItem[] = [
-  { id: "home", label: "Overview", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>` },
-  { id: "commands", label: "Comandi", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`, view: "commands" },
-  { id: "render", label: "Rilasci", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`, view: "render" },
-  { id: "audit", label: "Audit log", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`, view: "audit" },
-  { id: "db", label: "Database", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`, view: "db" },
-  { id: "mobile-flags", label: "Feature Flags", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`, view: "mobile-flags" },
-];
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function buildNavUrl(item: NavItem): string {
-  if (item.id === "home") return "/";
-  return buildControlPlaneUrl({ view: item.view, source: "dev-dashboard-nav" });
+function cp(preset: Parameters<typeof buildControlPlaneUrl>[0]) {
+  return buildControlPlaneUrl({ ...preset, source: "dev-dashboard" });
 }
 
-function resolveServiceStatuses(): ServiceStatus[] {
-  return [
-    {
-      name: "Supabase",
-      status: appConfig.supabase.configured ? "ok" : "error",
-      detail: appConfig.supabase.configured
-        ? appConfig.supabase.url ?? "URL non disponibile"
-        : "Variabili d'ambiente mancanti",
-    },
-    {
-      name: "Control Plane",
-      status: appConfig.controlPlane.baseUrl ? "ok" : "unknown",
-      detail: appConfig.controlPlane.baseUrl || "path locale (relativo)",
-    },
-    {
-      name: "Ambiente",
-      status: "ok",
-      detail: appConfig.environment,
-    },
-    {
-      name: "Dev Gate",
-      status: appConfig.devGate.allowedRoles.length || appConfig.devGate.allowedEmails.length ? "ok" : "error",
-      detail:
-        appConfig.devGate.allowedRoles.length || appConfig.devGate.allowedEmails.length
-          ? `Ruoli: ${appConfig.devGate.allowedRoles.join(", ") || "—"}`
-          : "Nessun ruolo o email configurata",
-    },
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+
+function sidebar(): string {
+  const nav = [
+    { icon: I.grid,     label: "Overview",     href: "/",                          active: true },
+    { icon: I.terminal, label: "Comandi",       href: cp({ view: "commands" }) },
+    { icon: I.upload,   label: "Rilasci",       href: cp({ view: "render" }) },
+    { icon: I.log,      label: "Audit log",     href: cp({ view: "audit" }) },
+    { icon: I.db,       label: "Database",      href: cp({ view: "db" }) },
+    { icon: I.flag,     label: "Feature flags", href: cp({ view: "mobile-flags" }) },
   ];
-}
-
-function statusDot(status: StatusState): string {
-  const classes: Record<StatusState, string> = {
-    ok: "dev-status-dot dev-status-dot--ok",
-    error: "dev-status-dot dev-status-dot--error",
-    unknown: "dev-status-dot dev-status-dot--unknown",
-  };
-  return `<span class="${classes[status]}" aria-label="${status}"></span>`;
-}
-
-function statusLabel(status: StatusState): string {
-  const labels: Record<StatusState, string> = { ok: "OK", error: "Errore", unknown: "N/D" };
-  return labels[status];
-}
-
-// ─── Renderers ───────────────────────────────────────────────────────────────
-
-function renderSidebar(activeId = "home"): string {
-  const navLinks = NAV_ITEMS.map((item) => {
-    const isActive = item.id === activeId;
-    const href = buildNavUrl(item);
-    return `
-      <a href="${href}" class="dev-nav-item${isActive ? " dev-nav-item--active" : ""}" data-nav-id="${item.id}">
-        <span class="dev-nav-icon">${item.icon}</span>
-        <span class="dev-nav-label">${item.label}</span>
-      </a>
-    `;
-  }).join("");
 
   const envBadge = appConfig.isProd
-    ? `<span class="dev-env-badge dev-env-badge--prod">PROD</span>`
-    : `<span class="dev-env-badge dev-env-badge--dev">DEV</span>`;
+    ? `<span class="badge badge--danger">PROD</span>`
+    : `<span class="badge badge--accent">DEV</span>`;
 
   return `
     <aside class="dev-sidebar">
       <div class="dev-sidebar-header">
         <div class="dev-logo">
           <span class="dev-logo-mark">T</span>
-          <div class="dev-logo-text">
-            <span class="dev-logo-name">Turni di Palco</span>
-            <span class="dev-logo-sub">Developer Dashboard</span>
+          <div>
+            <p class="dev-logo-name">Turni di Palco</p>
+            <p class="dev-logo-sub">Developer Dashboard</p>
           </div>
         </div>
         ${envBadge}
       </div>
 
-      <nav class="dev-nav" aria-label="Navigazione principale">
-        ${navLinks}
+      <nav class="dev-nav" aria-label="Navigazione">
+        ${nav.map(({ icon, label, href, active }) => `
+          <a href="${href}" class="dev-nav-link${active ? " dev-nav-link--active" : ""}">
+            ${icon}<span>${label}</span>
+          </a>
+        `).join("")}
       </nav>
 
       <div class="dev-sidebar-footer">
-        <a href="/mobile/" class="dev-sidebar-link" target="_blank">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-          Apri app mobile
-        </a>
-        <a href="/privacy.html" class="dev-sidebar-link">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Privacy
-        </a>
+        <a href="/mobile/" class="dev-sidebar-link" target="_blank">${I.phone} App mobile</a>
+        <a href="/privacy.html" class="dev-sidebar-link">${I.shield} Privacy</a>
       </div>
     </aside>
   `;
 }
 
-function renderTopbar(): string {
-  const now = new Date().toLocaleString("it-IT", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+// ─── Topbar ───────────────────────────────────────────────────────────────────
+
+function topbar(): string {
   const warnings = getConfigWarnings();
-  const warningBadge =
-    warnings.length > 0
-      ? `<span class="dev-topbar-badge dev-topbar-badge--warn" title="${warnings.join("\n")}">${warnings.length} avviso${warnings.length > 1 ? "i" : ""}</span>`
-      : `<span class="dev-topbar-badge dev-topbar-badge--ok">Sistema OK</span>`;
+  const time = new Date().toLocaleString("it-IT", {
+    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+
+  const badge = warnings.length > 0
+    ? `<span class="badge badge--warn" title="${warnings.join("\n")}">${warnings.length} avviso${warnings.length > 1 ? "i" : ""}</span>`
+    : `<span class="badge badge--ok">Sistema OK</span>`;
 
   return `
     <header class="dev-topbar">
-      <div class="dev-topbar-left">
-        <h1 class="dev-topbar-title">Overview</h1>
-      </div>
-      <div class="dev-topbar-right">
-        ${warningBadge}
-        <span class="dev-topbar-time">${now}</span>
+      <h1 class="dev-topbar-title">Overview</h1>
+      <div class="dev-topbar-meta">
+        ${badge}
+        <time class="dev-topbar-time">${time}</time>
       </div>
     </header>
   `;
 }
 
-function renderStatusCard(): string {
-  const statuses = resolveServiceStatuses();
-  const rows = statuses
-    .map(
-      (s) => `
-      <div class="dev-status-row">
-        <div class="dev-status-row-left">
-          ${statusDot(s.status)}
-          <span class="dev-status-name">${s.name}</span>
-        </div>
-        <div class="dev-status-row-right">
-          <code class="dev-status-detail">${s.detail}</code>
-          <span class="dev-status-label dev-status-label--${s.status}">${statusLabel(s.status)}</span>
-        </div>
-      </div>
-    `
-    )
-    .join("");
+// ─── Status card ──────────────────────────────────────────────────────────────
 
-  return `
-    <section class="dev-card dev-card--status">
-      <div class="dev-card-header">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <h2 class="dev-card-title">Stato servizi</h2>
-      </div>
-      <div class="dev-status-list">
-        ${rows}
-      </div>
-    </section>
-  `;
-}
-
-function renderQuickActionsCard(): string {
-  type QuickLink = { label: string; view: ControlPlaneView; description: string; icon: string };
-  const links: QuickLink[] = [
+function statusCard(): string {
+  const rows: Array<{ name: string; detail: string; state: "ok" | "err" | "unknown"; id?: string }> = [
     {
-      label: "Comandi",
-      view: "commands",
-      description: "Esegui operazioni sui servizi",
-      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`,
+      name: "Supabase",
+      state: appConfig.supabase.configured ? "ok" : "err",
+      detail: appConfig.supabase.configured ? "Configurato" : "VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY mancanti",
     },
     {
-      label: "Rilasci",
-      view: "render",
-      description: "Controlla e gestisci i deploy",
-      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`,
+      name: "Control Plane",
+      state: appConfig.controlPlane.baseUrl ? "ok" : "unknown",
+      detail: appConfig.controlPlane.baseUrl || "path relativo",
     },
-    {
-      label: "Audit log",
-      view: "audit",
-      description: "Registro delle operazioni recenti",
-      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
-    },
-    {
-      label: "Database",
-      view: "db",
-      description: "Operazioni e panoramica DB",
-      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`,
-    },
+    { name: "Service Worker", state: "unknown", detail: "in attesa...", id: "sw-status" },
+    { name: "Connessione",   state: navigator.onLine ? "ok" : "err", detail: navigator.onLine ? "Online" : "Offline", id: "net-status" },
   ];
-
-  const cards = links
-    .map(
-      (link) => `
-      <a href="${buildControlPlaneUrl({ view: link.view, source: "dev-dashboard-quick" })}" class="dev-quick-card">
-        <span class="dev-quick-icon">${link.icon}</span>
-        <div class="dev-quick-body">
-          <span class="dev-quick-label">${link.label}</span>
-          <span class="dev-quick-desc">${link.description}</span>
-        </div>
-        <svg class="dev-quick-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-      </a>
-    `
-    )
-    .join("");
 
   return `
     <section class="dev-card">
-      <div class="dev-card-header">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        <h2 class="dev-card-title">Accesso rapido</h2>
-      </div>
-      <div class="dev-quick-grid">
-        ${cards}
+      <div class="dev-card-head">${I.clock} <h2>Stato sistema</h2></div>
+      <div class="svc-list">
+        ${rows.map(({ name, detail, state, id }) => `
+          <div class="svc-row">
+            <div class="svc-row-left">
+              <span class="dot dot--${state}" ${id ? `data-dot="${id}"` : ""}></span>
+              <span class="svc-name">${name}</span>
+            </div>
+            <span class="svc-detail" ${id ? `data-detail="${id}"` : ""}>${detail}</span>
+          </div>
+        `).join("")}
       </div>
     </section>
   `;
 }
 
-function renderFeatureFlagsCard(): string {
-  const flags = listFeatureFlagKeys();
-  const rows = flags
-    .map((flag) => {
-      const enabled = appConfig.featureFlags[flag];
-      const description = getFeatureFlagDescription(flag);
-      return `
-        <div class="dev-flag-row" data-flag="${flag}">
-          <div class="dev-flag-info">
-            <code class="dev-flag-key">${flag}</code>
-            <span class="dev-flag-desc">${description}</span>
-          </div>
-          <button
-            class="dev-toggle${enabled ? " dev-toggle--on" : ""}"
-            aria-label="Toggle ${flag}"
-            aria-checked="${enabled}"
-            role="switch"
-            data-flag-toggle="${flag}"
-          >
-            <span class="dev-toggle-thumb"></span>
-          </button>
-        </div>
-      `;
-    })
-    .join("");
+// ─── Quick actions ────────────────────────────────────────────────────────────
+
+function quickCard(): string {
+  const links = [
+    { icon: I.terminal, label: "Comandi",  desc: "Esegui operazioni",   view: "commands" as const },
+    { icon: I.upload,   label: "Rilasci",  desc: "Gestisci i deploy",   view: "render"   as const },
+    { icon: I.log,      label: "Audit log",desc: "Operazioni recenti",  view: "audit"    as const },
+    { icon: I.db,       label: "Database", desc: "Panoramica database", view: "db"       as const },
+  ];
 
   return `
-    <section class="dev-card dev-card--flags">
-      <div class="dev-card-header">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-        <h2 class="dev-card-title">Feature Flags PWA</h2>
-        <span class="dev-card-badge">${flags.length}</span>
-      </div>
-      <div class="dev-flag-list">
-        ${rows}
+    <section class="dev-card">
+      <div class="dev-card-head">${I.bolt} <h2>Accesso rapido</h2></div>
+      <div class="quick-grid">
+        ${links.map(({ icon, label, desc, view }) => `
+          <a href="${cp({ view })}" class="quick-item">
+            <span class="quick-icon">${icon}</span>
+            <span class="quick-body">
+              <span class="quick-label">${label}</span>
+              <span class="quick-desc">${desc}</span>
+            </span>
+            <span class="quick-arrow">${I.arrow}</span>
+          </a>
+        `).join("")}
       </div>
     </section>
   `;
 }
 
-function renderConfigCard(): string {
+// ─── Feature flags ────────────────────────────────────────────────────────────
+
+function flagsCard(): string {
+  const flags = listFeatureFlagKeys();
   const warnings = getConfigWarnings();
 
-  const items: Array<{ label: string; value: string; mono?: boolean }> = [
-    { label: "Modalità", value: appConfig.isProd ? "Produzione" : "Sviluppo" },
-    { label: "Accesso pubblico", value: appConfig.publicMode ? "Sì" : "No" },
-    { label: "SW dev mode", value: appConfig.serviceWorker.devMode },
-    { label: "Session TTL", value: `${Math.round(appConfig.devGate.sessionCacheTtlMs / 60000)} min` },
-    {
-      label: "Supabase URL",
-      value: appConfig.supabase.url ? appConfig.supabase.url.replace("https://", "").split(".")[0] + ".supabase.co" : "—",
-      mono: true,
-    },
-    {
-      label: "Dev function",
-      value: appConfig.devGate.serverAccessFunction,
-      mono: true,
-    },
-  ];
-
-  const rows = items
-    .map(
-      (item) => `
-      <div class="dev-config-row">
-        <span class="dev-config-label">${item.label}</span>
-        ${item.mono ? `<code class="dev-config-value">${item.value}</code>` : `<span class="dev-config-value">${item.value}</span>`}
-      </div>
-    `
-    )
-    .join("");
-
-  const warningBlock =
-    warnings.length > 0
-      ? `<div class="dev-config-warnings">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <ul class="dev-config-warning-list">
-            ${warnings.map((w) => `<li>${w}</li>`).join("")}
-          </ul>
-        </div>`
-      : "";
+  const warningBlock = warnings.length > 0 ? `
+    <div class="warn-block">
+      ${I.warn}
+      <ul>${warnings.map((w) => `<li>${w}</li>`).join("")}</ul>
+    </div>
+  ` : "";
 
   return `
-    <section class="dev-card">
-      <div class="dev-card-header">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-        <h2 class="dev-card-title">Configurazione</h2>
-      </div>
-      <div class="dev-config-list">
-        ${rows}
+    <section class="dev-card dev-card--wide">
+      <div class="dev-card-head">
+        ${I.flag}
+        <h2>Feature Flags</h2>
+        <span class="badge badge--neutral">${flags.length}</span>
       </div>
       ${warningBlock}
+      <div class="flag-list">
+        ${flags.map((flag) => {
+          const on = appConfig.featureFlags[flag];
+          return `
+            <div class="flag-row">
+              <div class="flag-info">
+                <code class="flag-key">${flag}</code>
+                <span class="flag-desc">${getFeatureFlagDescription(flag)}</span>
+              </div>
+              <button
+                class="toggle${on ? " toggle--on" : ""}"
+                aria-label="Toggle ${flag}"
+                aria-checked="${on}"
+                role="switch"
+                data-toggle="${flag}"
+              ><span class="toggle-thumb"></span></button>
+            </div>
+          `;
+        }).join("")}
+      </div>
     </section>
   `;
 }
 
-// ─── Main layout ─────────────────────────────────────────────────────────────
+// ─── Bootstrap ───────────────────────────────────────────────────────────────
 
-function renderDashboard(): string {
-  return `
+function start() {
+  if (enforceDesktopOnly()) return;
+
+  const root = document.querySelector<HTMLDivElement>("#app")!;
+
+  root.innerHTML = `
     <div class="dev-layout">
-      ${renderSidebar("home")}
+      ${sidebar()}
       <div class="dev-main">
-        ${renderTopbar()}
+        ${topbar()}
         <div class="dev-content">
           <div class="dev-grid">
-            ${renderStatusCard()}
-            ${renderConfigCard()}
-            ${renderQuickActionsCard()}
-            ${renderFeatureFlagsCard()}
+            ${statusCard()}
+            ${quickCard()}
+            ${flagsCard()}
           </div>
         </div>
       </div>
     </div>
   `;
-}
 
-// ─── Interactivity ───────────────────────────────────────────────────────────
-
-function attachFlagToggles(root: HTMLElement): void {
-  root.querySelectorAll<HTMLButtonElement>("[data-flag-toggle]").forEach((btn) => {
+  // Feature flag toggles
+  root.querySelectorAll<HTMLButtonElement>("[data-toggle]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const flag = btn.dataset.flagToggle as FeatureFlag;
-      const isCurrentlyOn = btn.classList.contains("dev-toggle--on");
-      const next = !isCurrentlyOn;
-
+      const flag = btn.dataset.toggle as FeatureFlag;
+      const next = !btn.classList.contains("toggle--on");
       setStoredFeatureFlagOverride(flag, next);
-
-      btn.classList.toggle("dev-toggle--on", next);
+      btn.classList.toggle("toggle--on", next);
       btn.setAttribute("aria-checked", String(next));
-
-      // Visual feedback
-      const row = btn.closest<HTMLElement>(".dev-flag-row");
-      if (row) {
-        row.classList.add("dev-flag-row--flash");
-        setTimeout(() => row.classList.remove("dev-flag-row--flash"), 400);
-      }
+      const row = btn.closest(".flag-row");
+      row?.classList.add("flag-row--flash");
+      setTimeout(() => row?.classList.remove("flag-row--flash"), 350);
     });
   });
+
+  // Stato connessione live
+  const updateNet = () => {
+    const detail = root.querySelector<HTMLElement>('[data-detail="net-status"]');
+    const dot = root.querySelector<HTMLElement>('[data-dot="net-status"]');
+    if (detail) detail.textContent = navigator.onLine ? "Online" : "Offline";
+    if (dot) dot.className = `dot dot--${navigator.onLine ? "ok" : "err"}`;
+  };
+  window.addEventListener("online", updateNet);
+  window.addEventListener("offline", updateNet);
+
+  // Service Worker status live
+  registerServiceWorker({
+    onReady: () => {
+      const detail = root.querySelector<HTMLElement>('[data-detail="sw-status"]');
+      const dot = root.querySelector<HTMLElement>('[data-dot="sw-status"]');
+      if (detail) detail.textContent = "Pronto (offline ok)";
+      if (dot) dot.className = "dot dot--ok";
+    },
+    onUpdate: (reg) => {
+      const detail = root.querySelector<HTMLElement>('[data-detail="sw-status"]');
+      const dot = root.querySelector<HTMLElement>('[data-dot="sw-status"]');
+      if (detail) detail.textContent = "Aggiornamento disponibile";
+      if (dot) dot.className = "dot dot--warn";
+      promptServiceWorkerUpdate(reg);
+    },
+    onError: () => {
+      const detail = root.querySelector<HTMLElement>('[data-detail="sw-status"]');
+      const dot = root.querySelector<HTMLElement>('[data-dot="sw-status"]');
+      if (detail) detail.textContent = "Registrazione fallita";
+      if (dot) dot.className = "dot dot--err";
+    },
+  });
 }
-
-// ─── Bootstrap ───────────────────────────────────────────────────────────────
-
-const start = () => {
-  if (enforceDesktopOnly()) return;
-
-  const root = document.querySelector<HTMLDivElement>("#app");
-  if (!root) throw new Error("Root container missing");
-
-  root.innerHTML = renderDashboard();
-  attachFlagToggles(root);
-};
 
 start();
