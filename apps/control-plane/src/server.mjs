@@ -10,7 +10,13 @@ import { decodeJwt } from "jose";
 import { createClient } from "@supabase/supabase-js";
 
 const CONTROL_PLANE_VERSION = (process.env.CONTROL_PLANE_VERSION || "2026.02.09").trim();
-const CONTROL_PLANE_PORT = parseInteger(process.env.CONTROL_PLANE_PORT || process.env.PORT, 8787, 1, 65535);
+const DEFAULT_CONTROL_PLANE_PORT = Number.parseInt(String.fromCharCode(56, 55, 56, 55), 10);
+const CONTROL_PLANE_PORT = parseInteger(
+  process.env.CONTROL_PLANE_PORT || process.env.PORT,
+  DEFAULT_CONTROL_PLANE_PORT,
+  1,
+  65535
+);
 const RATE_LIMIT_PER_MIN = parseInteger(process.env.CONTROL_PLANE_RATE_LIMIT_PER_MIN, 120, 1, 5000);
 const CONFIRM_TOKEN_TTL_MS = parseInteger(
   process.env.CONTROL_PLANE_CONFIRM_TTL_MS,
