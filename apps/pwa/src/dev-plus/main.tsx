@@ -1,26 +1,27 @@
 import "../../../../shared/styles/main.css";
 import "./dev-plus.css";
 
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 
+import { isSupabaseConfigured, supabase } from "../services/supabase";
 import { promptServiceWorkerUpdate } from "../pwa/sw-update";
 import { registerServiceWorker } from "../pwa/register-sw";
-import { isSupabaseConfigured, supabase } from "../services/supabase";
 import {
   appConfig,
   setStoredFeatureFlagOverride,
   type FeatureFlag,
   type FeatureFlagConfig,
 } from "../services/app-config";
+import { enforceDesktopOnly } from "../utils/desktop-only";
 import {
   getRoleAdaptiveQuickActions,
   parseControlPlanePreset,
   type ControlPlaneView,
   type OpsQuickAction,
 } from "../services/ops-sdk";
-import { enforceDesktopOnly } from "../utils/desktop-only";
 import { resolveInitialPage, type AppPage } from "./routing";
 import {
   executeControlCommand,
@@ -493,6 +494,12 @@ function App() {
       setAuthState("checking");
       setAuthError("");
 
+      if (!supabase || !isSupabaseConfigured) {
+        setAuthState("anonymous");
+        setAuthError("Supabase non configurato: imposta VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.");
+        return;
+      }
+
       const { data, error } = await supabase.auth.getSession();
       if (cancelled) return;
 
@@ -511,7 +518,9 @@ function App() {
       if (cancelled) return;
 
       if (!validationResult.valid) {
-        await supabase.auth.signOut();
+        if (supabase && isSupabaseConfigured) {
+          await supabase.auth.signOut();
+        }
         setAuthState("anonymous");
         setValidation(validationResult);
         setAuthError(validationResult.reason || "Sessione non autorizzata dal control-plane.");
@@ -651,7 +660,7 @@ function App() {
   useEffect(() => {
     setPreparedCommand(null);
     setConfirmText("");
-  }, [commandValue, dryRunValue, payloadValue, reasonValue, targetValue]);
+  }, []);
 
   const buildDraft = useCallback((): { draft?: CommandDraft; error?: string } => {
     if (reasonValue.trim().length < 8) {
