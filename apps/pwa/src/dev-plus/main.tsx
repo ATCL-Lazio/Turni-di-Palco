@@ -518,9 +518,7 @@ function App() {
       if (cancelled) return;
 
       if (!validationResult.valid) {
-        if (supabase && isSupabaseConfigured) {
-          await supabase.auth.signOut();
-        }
+        await supabase.auth.signOut();
         setAuthState("anonymous");
         setValidation(validationResult);
         setAuthError(validationResult.reason || "Sessione non autorizzata dal control-plane.");
