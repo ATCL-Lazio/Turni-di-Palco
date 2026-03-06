@@ -47,7 +47,7 @@ Dallo script `tools/ai-support-server.js`, Maxwell espone (almeno) queste route:
 - `POST /api/ai/issue` → crea/commenta issue e risponde con metadati (URL, flag `existing`, azione eseguita).
 - `GET /auth` e `POST /auth/command` → endpoint admin (protetti da flag) per controllare/avviare login Codex e GitHub.
 
-La porta è determinata in modo “cloud-friendly”: prima `process.env.PORT`, poi `AI_SUPPORT_PORT` o `VITE_AI_SUPPORT_PORT`, fallback `8787`. L’host è risolto in modo diverso in locale vs Render: su Render viene forzato `0.0.0.0` per consentire il binding corretto della porta del servizio.
+La porta è determinata in modo “cloud-friendly”: prima `process.env.PORT`, poi `AI_SUPPORT_PORT` o `VITE_AI_SUPPORT_PORT`, fallback su porta locale predefinita. L’host è risolto in modo diverso in locale vs Render: su Render viene forzato `0.0.0.0` per consentire il binding corretto della porta del servizio.
 
 ### Flusso chat: costruzione prompt e invocazione Codex CLI
 

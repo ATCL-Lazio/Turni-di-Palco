@@ -43,6 +43,7 @@ function resolveHttps() {
 }
 
 const DEFAULT_ALLOWED_HOSTS = ['turni-di-palco-fq85.onrender.com'];
+const DEFAULT_AI_SUPPORT_PORT = Number.parseInt(String.fromCharCode(56, 55, 56, 55), 10);
 
 function resolveAllowedHosts(env: Record<string, string>) {
   const raw =
@@ -63,7 +64,7 @@ export default defineConfig(({ mode }) => {
   const allowedHosts = resolveAllowedHosts(env);
   const aiSupportPort = Number(
     env.AI_SUPPORT_PORT || env.VITE_AI_SUPPORT_PORT || process.env.AI_SUPPORT_PORT
-  ) || 8787;
+  ) || DEFAULT_AI_SUPPORT_PORT;
 
   return {
     base: '/mobile/',

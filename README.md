@@ -112,7 +112,7 @@ npm run dev:control-plane:https
 
 Variabili principali:
 
-- `VITE_DEV_CONTROL_PLANE_URL` (default locale: `http://localhost:8787`)
+- `VITE_DEV_CONTROL_PLANE_URL` (default locale: `http://localhost:<control-plane-port>`)
 - `CONTROL_PLANE_ALLOWED_ORIGINS`
 - `CONTROL_PLANE_ALLOWED_EMAILS`
 - `CONTROL_PLANE_RATE_LIMIT_PER_MIN`

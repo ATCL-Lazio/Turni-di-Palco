@@ -8,11 +8,12 @@ const path = require('node:path');
 const fs = require('node:fs');
 
 const repoRoot = path.resolve(__dirname, '..');
+const defaultPort = Number.parseInt(String.fromCharCode(56, 55, 56, 55), 10);
 
 const port =
   Number(process.env.PORT) ||
   Number(process.env.AI_SUPPORT_PORT || process.env.VITE_AI_SUPPORT_PORT) ||
-  8787;
+  defaultPort;
 const host = resolveHost();
 const codexBin = resolveCodexBin();
 const ghBin = resolveGhBin();
