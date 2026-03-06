@@ -265,7 +265,7 @@ function AppShell() {
     const currentIndex = tabOrder.indexOf(activeTab);
     const previousIndex = tabOrder.indexOf(previousTabRef.current);
 
-    let animation = '';
+    let animation: string;
     if (currentIndex === -1 || previousIndex === -1) {
       animation = 'tab-fade-in';
     } else if (currentIndex > previousIndex) {
@@ -970,7 +970,7 @@ function AppShell() {
             }}
           />
         );
-      case 'profile': return <Profile userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} cachet={state.profile.cachet} tokenAtcl={state.profile.tokenAtcl} theatreReputation={theatreReputation.map(tr => ({ name: tr.theatre, reputation: tr.reputation }))} theatreReputationLoading={theatreReputationLoading} badgesUnlockedCount={unlockedBadges.length} newBadgesCount={newBadges.length} profileImage={state.profile.profileImage} onViewCarriera={openCareer} onViewTitoli={openEarnedTitles} onSettings={() => setCurrentScreen('account-settings')} onLogout={handleLogout} onUploadProfileImage={handleUploadImage} />;
+      case 'profile': return <Profile userName={state.profile.name} userRole={selectedRole?.name ?? 'Ruolo'} level={state.profile.level} xp={state.profile.xp} xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField} reputationGlobal={state.profile.reputation} cachet={state.profile.cachet} tokenAtcl={state.profile.tokenAtcl} theatreReputation={theatreReputation.map(tr => ({ name: tr.theatre, reputation: tr.reputation }))} theatreReputationLoading={theatreReputationLoading} badgesUnlockedCount={unlockedBadges.length} newBadgesCount={newBadges.length} profileImage={state.profile.profileImage} showCarriera={tabFeatureFlags.career} onViewCarriera={openCareer} onViewTitoli={openEarnedTitles} onSettings={() => setCurrentScreen('account-settings')} onLogout={handleLogout} onUploadProfileImage={handleUploadImage} />;
       case 'public-profile':
         return selectedLeaderboardEntry ? (
           <PublicProfile
