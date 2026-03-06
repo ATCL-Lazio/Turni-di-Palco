@@ -113,7 +113,7 @@ function getRoleRank(role: string): number {
   return 0;
 }
 
-export function buildControlPlaneUrl(preset: ControlPlanePreset, basePath = "/control-plane.html"): string {
+export function buildControlPlaneUrl(preset: ControlPlanePreset, basePath = "/"): string {
   const params = new URLSearchParams();
   if (preset.view) params.set("view", preset.view);
   if (preset.commandId) params.set("command", preset.commandId);
