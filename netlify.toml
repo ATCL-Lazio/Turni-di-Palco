@@ -1,6 +1,6 @@
 [build]
   base = "/"
-  command = "npm ci && npm run build:pwa"
+  command = "git clean -fdX && npm ci && npm run build:pwa"
   publish = "apps/pwa/dist"
 
 [build.environment]
@@ -23,10 +23,10 @@
   status = 200
 
 [context.production]
-  command = "npm ci && npm run build:pwa"
+  command = "git clean -fdX && npm ci && npm run build:pwa"
 
 [context.deploy-preview]
-  command = "npm ci && npm run build:pwa"
+  command = "git clean -fdX && npm ci && npm run build:pwa"
 
 [[headers]]
   for = "/*"

@@ -19,7 +19,7 @@
   - Dev: `npm run dev:mobile`
   - Build: `npm run build:mobile`
   - Sync only: `npm run sync:mobile`
-  - AI support server (local): `npm run ai:support` (default port 8787)
+  - AI support server (local): `npm run ai:support` (default local port)
   - Dev + AI support together: `npm --workspace apps/mobile run dev:with-ai`
   - Allowlist host Vite (dev/preview): `VITE_ALLOWED_HOSTS` (comma-separated)
 
@@ -29,8 +29,8 @@
 - Availability check uses `GET /health` (proxy in `apps/mobile/vite.config.ts`).
 - Local server: `tools/ai-support-server.js` uses `codex exec`.
 - Optional env:
-  - `AI_SUPPORT_PORT` (server port, default 8787)
-  - `VITE_AI_SUPPORT_PORT` (client/proxy port, default 8787)
+  - `AI_SUPPORT_PORT` (server port, default local fallback)
+  - `VITE_AI_SUPPORT_PORT` (client/proxy port, default local fallback)
   - `AI_SUPPORT_ALLOWED_ORIGINS` (comma-separated allowlist; default deny if unset)
   - `AI_SUPPORT_API_KEY` (opzionale ma consigliata: se presente, protegge `/api/ai/chat` e `/api/ai/issue`; inviare `Authorization: Bearer ...` o `X-AI-SUPPORT-TOKEN`)
   - `AI_SUPPORT_RATE_LIMIT_MAX` (rate limit requests per window, default 60)
