@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const ts = require('typescript');
+const { JSDOM } = require('jsdom');
 
 const repoRoot = path.resolve(__dirname, '..');
 const outputPath = path.join(repoRoot, '.temp', 'ci', 'ui-copy.txt');
@@ -294,21 +295,59 @@ function extractFromHtml(filePath) {
   if (!fs.existsSync(filePath)) return;
   const source = fs.readFileSync(filePath, 'utf8');
 
-  const withoutScripts = source
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<!--[\s\S]*?-->/g, ' ');
+  const dom = new JSDOM(source);
+  const document = dom.window.document;
 
-  const textNodeMatches = withoutScripts.matchAll(/>([^<]+)</g);
-  for (const match of textNodeMatches) addText(decodeHtmlEntities(match[1]));
+  // Remove script and style elements before extracting text/attributes
+  const removableElements = document.querySelectorAll('script, style');
+  removableElements.forEach((el) => el.remove());
 
-  const attrMatches = withoutScripts.matchAll(/\b(?:alt|title|placeholder|aria-label|aria-description)\s*=\s*["']([^"']+)["']/gi);
-  for (const match of attrMatches) addText(decodeHtmlEntities(match[1]));
+  // Extract text nodes
+  (function traverse(node) {
+    for (const child of node.childNodes) {
+      if (child.nodeType === child.TEXT_NODE) {
+        const text = child.textContent;
+        if (text && text.trim()) {
+          addText(decodeHtmlEntities(text));
+        }
+      } else {
+        traverse(child);
+      }
+    }
+  })(document.body || document);
 
-  const metaContentMatches = withoutScripts.matchAll(
-    /<meta[^>]+(?:name|property)\s*=\s*["'](?:description|og:title|og:description|twitter:title|twitter:description)["'][^>]+content\s*=\s*["']([^"']+)["']/gi
-  );
-  for (const match of metaContentMatches) addText(decodeHtmlEntities(match[1]));
+  // Extract attributes similar to the previous regex-based approach
+  const attrElements = document.querySelectorAll('[alt],[title],[placeholder],[aria-label],[aria-description]');
+  attrElements.forEach((el) => {
+    const attrs = ['alt', 'title', 'placeholder', 'aria-label', 'aria-description'];
+    attrs.forEach((name) => {
+      const value = el.getAttribute(name);
+      if (value && value.trim()) {
+        addText(decodeHtmlEntities(value));
+      }
+    });
+  });
+
+  // Extract meta description-like content
+  const metaSelectors = [
+    'meta[name="description"]',
+    'meta[name="og:title"]',
+    'meta[name="og:description"]',
+    'meta[name="twitter:title"]',
+    'meta[name="twitter:description"]',
+    'meta[property="description"]',
+    'meta[property="og:title"]',
+    'meta[property="og:description"]',
+    'meta[property="twitter:title"]',
+    'meta[property="twitter:description"]',
+  ];
+  const metaElements = document.querySelectorAll(metaSelectors.join(','));
+  metaElements.forEach((meta) => {
+    const content = meta.getAttribute('content');
+    if (content && content.trim()) {
+      addText(decodeHtmlEntities(content));
+    }
+  });
 }
 
 function main() {
