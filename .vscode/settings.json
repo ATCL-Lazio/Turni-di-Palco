@@ -242,5 +242,8 @@
     },
     "markdown.preview.allowUnsafeHtml": true,
     "markdown.preview.openMarkdownLinks": "inPreview",
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "[github-actions-workflow]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    }
 }
