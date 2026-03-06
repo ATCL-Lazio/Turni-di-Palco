@@ -241,5 +241,6 @@
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "markdown.preview.allowUnsafeHtml": true,
-    "markdown.preview.openMarkdownLinks": "inPreview"
+    "markdown.preview.openMarkdownLinks": "inPreview",
+    "git.ignoreLimitWarning": true
 }
