@@ -46,3 +46,34 @@ jobs:
 
       - name: Run tests
         run: npm run test:pwa
+
+  italian-proofreading:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Extract UI copy
+        run: node tools/extract-ui-copy.js
+
+      - name: Run Italian spelling and grammar check
+        uses: reviewdog/action-languagetool@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-check
+          language: it
+          patterns: "**/*.md **/*.txt **/*.html .temp/ci/ui-copy.txt"
+          disabled_categories: "CASING,PUNCTUATION"
+          fail_level: error
