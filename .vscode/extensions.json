@@ -8,6 +8,6 @@
         "github.github-vscode-theme",
         "github.vscode-pull-request-github",
         "ms-ceintl.vscode-language-pack-it",
-        "anthropic.claude-dev"
+        "anthropic.claude-code"
     ]
 }
