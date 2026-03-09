@@ -76,4 +76,4 @@ jobs:
           language: it
           patterns: "**/*.md **/*.txt **/*.html .temp/ci/ui-copy.txt"
           disabled_categories: "CASING,PUNCTUATION"
-          fail_level: error
+          level: error
