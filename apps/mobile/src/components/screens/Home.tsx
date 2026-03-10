@@ -232,7 +232,9 @@ export function Home({
                       ? 'Boost confermato'
                       : turnSyncFeedback.syncStatus === 'failed_boost_fallback'
                         ? 'Boost non applicato (fallback base)'
-                        : 'Richiesta boost in verifica'}
+                        : turnSyncFeedback.syncStatus === 'synced_duplicate'
+                          ? 'Turno già sincronizzato'
+                          : 'Richiesta boost in verifica'}
                   </p>
                   <p className="text-xs text-[#b8b2b3]">
                     {turnSyncFeedback.eventName}
