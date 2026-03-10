@@ -536,7 +536,7 @@ function AppShell() {
   }): Promise<
     | {
       ok: true;
-      syncStatus: 'pending' | 'synced' | 'failed_boost_fallback';
+      syncStatus: 'pending' | 'synced' | 'synced_duplicate' | 'failed_boost_fallback';
       boostRequested: boolean;
       boostApplied: boolean;
       boostRejectionReason: string | null;
@@ -1056,4 +1056,3 @@ export default function App() {
     </GameStateProvider>
   );
 }
-
