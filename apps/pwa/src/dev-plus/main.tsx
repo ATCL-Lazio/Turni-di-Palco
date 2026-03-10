@@ -180,6 +180,7 @@ const MOBILE_FLAG_DEFAULTS: MobileFeatureFlagEntry[] = [
   { key: "mobile.action.ai_support", enabled: true, label: "Supporto AI", description: "Abilita accesso al Supporto AI nelle impostazioni account.", category: "action" },
   { key: "mobile.action.qr_scan", enabled: true, label: "Azione Scansione QR", description: "Abilita scanner QR mobile.", category: "action" },
   { key: "mobile.action.turn_submit", enabled: true, label: "Azione Conferma Turno", description: "Abilita registrazione turni.", category: "action" },
+  { key: "mobile.action.turn_geofence", enabled: true, label: "Azione Geofence Turno", description: "Abilita validazione geofence in conferma turno.", category: "action" },
   { key: "mobile.action.turn_boost", enabled: true, label: "Azione Boost Turno", description: "Abilita boost token su turno.", category: "action" },
   { key: "mobile.action.activity_start", enabled: true, label: "Azione Avvio Attivita", description: "Abilita avvio attivita.", category: "action" },
   { key: "mobile.action.activity_complete", enabled: true, label: "Azione Completamento Attivita", description: "Abilita completamento attivita.", category: "action" },
