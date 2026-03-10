@@ -2477,6 +2477,20 @@ const requestHandler = (req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && req.url === '/favicon.ico') {
+    const faviconPath = path.join(__dirname, 'favicon.ico');
+    fs.readFile(faviconPath, (err, data) => {
+      if (err) {
+        res.writeHead(404);
+        res.end();
+      } else {
+        res.writeHead(200, { 'Content-Type': 'image/x-icon', 'Cache-Control': 'public, max-age=86400' });
+        res.end(data);
+      }
+    });
+    return;
+  }
+
   if (req.method === 'GET' && req.url === '/') {
     const protocol = httpsOptions ? 'https' : 'http';
     const html = buildDashboardHtml({ protocol });
