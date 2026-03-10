@@ -513,6 +513,15 @@ type TurnRegisterPayload = {
   role_id: RoleId;
   boost_requested: boolean;
   sync_status: TurnSyncStatus;
+  checkin_latitude?: number | null;
+  checkin_longitude?: number | null;
+  checkin_accuracy_m?: number | null;
+};
+
+type TurnGeolocationSnapshot = {
+  latitude: number;
+  longitude: number;
+  accuracyM: number;
 };
 
 type ActivityInsertPayload = {
@@ -799,6 +808,30 @@ function createOfflineMutationId() {
   return `offline-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+async function readTurnGeolocationSnapshot(): Promise<TurnGeolocationSnapshot | null> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    return null;
+  }
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracyM: position.coords.accuracy,
+        });
+      },
+      () => resolve(null),
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
+  });
+}
+
 function summarizeQueuedMutation(
   mutation:
     | QueuedSupabaseMutation
@@ -1046,6 +1079,48 @@ function formatSyncError(error: unknown) {
   } catch {
     return String(error);
   }
+}
+
+const TURN_REGISTRATION_ERROR_MESSAGES: Array<{ token: string; message: string }> = [
+  {
+    token: 'geolocation_required',
+    message: 'Geolocalizzazione obbligatoria per confermare il turno. Abilita il GPS e riprova.',
+  },
+  {
+    token: 'outside_geofence',
+    message: "Sei fuori dal raggio del teatro. Avvicinati al luogo dell'evento e riprova.",
+  },
+  {
+    token: 'invalid_checkin_latitude',
+    message: 'Coordinate GPS non valide (latitudine). Riprova dopo aver aggiornato la posizione.',
+  },
+  {
+    token: 'invalid_checkin_longitude',
+    message: 'Coordinate GPS non valide (longitudine). Riprova dopo aver aggiornato la posizione.',
+  },
+  {
+    token: 'theatre_geofence_not_configured',
+    message: 'Geofence non configurato per questo teatro. Contatta il supporto ATCL.',
+  },
+  {
+    token: 'theatres_table_not_found',
+    message: 'Configurazione teatri assente sul server. Contatta il supporto ATCL.',
+  },
+  {
+    token: 'theatres_geodata_columns_missing',
+    message: 'Configurazione coordinate teatri incompleta sul server. Contatta il supporto ATCL.',
+  },
+];
+
+export function localizeTurnRegistrationError(error: unknown): string {
+  const raw = formatSyncError(error);
+  const normalized = raw.toLowerCase();
+  for (const entry of TURN_REGISTRATION_ERROR_MESSAGES) {
+    if (normalized.includes(entry.token)) {
+      return entry.message;
+    }
+  }
+  return raw;
 }
 
 function getSyncErrorStatus(error: unknown): number | null {
@@ -1975,11 +2050,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             p_role_id: mutation.payload.role_id,
             p_client_action_id: mutation.payload.id,
             p_boost_requested: mutation.payload.boost_requested,
+            p_checkin_latitude: mutation.payload.checkin_latitude ?? null,
+            p_checkin_longitude: mutation.payload.checkin_longitude ?? null,
+            p_checkin_accuracy_m: mutation.payload.checkin_accuracy_m ?? null,
           });
           if (error) {
             return shouldRetrySyncError(error)
               ? { status: 'retry', error }
-              : { status: 'discard', error };
+              : { status: 'discard', error: new Error(localizeTurnRegistrationError(error)) };
           }
           const rpcRow = parseTurnRegistrationRpcRow(data);
           if (!rpcRow) {
@@ -3342,6 +3420,22 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           ? globalThis.crypto.randomUUID()
           : `turn-${Date.now()}`;
 
+      const geofenceValidationEnabled = featureFlags['mobile.action.turn_geofence'];
+      const requiresServerGeolocation = geofenceValidationEnabled
+        && isSupabaseConfigured
+        && Boolean(supabase)
+        && Boolean(authUserId);
+      const geolocationSnapshot = requiresServerGeolocation
+        ? await readTurnGeolocationSnapshot()
+        : null;
+
+      if (requiresServerGeolocation && !geolocationSnapshot) {
+        return {
+          ok: false,
+          error: 'Geolocalizzazione non disponibile. Abilita il GPS e riprova vicino al teatro.',
+        };
+      }
+
       const turnRegisterPayload: TurnRegisterPayload = {
         id: turnId,
         user_id: authUserId ?? '',
@@ -3353,6 +3447,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         role_id: roleId,
         boost_requested: Boolean(boostRequested),
         sync_status: 'pending',
+        checkin_latitude: geolocationSnapshot?.latitude ?? null,
+        checkin_longitude: geolocationSnapshot?.longitude ?? null,
+        checkin_accuracy_m: geolocationSnapshot?.accuracyM ?? null,
       };
 
       const pendingTurnRecord = buildTurnRecordFromPayload(
@@ -3469,6 +3566,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               p_role_id: roleId,
               p_client_action_id: turnId,
               p_boost_requested: boostRequested,
+              p_checkin_latitude: geolocationSnapshot?.latitude ?? null,
+              p_checkin_longitude: geolocationSnapshot?.longitude ?? null,
+              p_checkin_accuracy_m: geolocationSnapshot?.accuracyM ?? null,
             });
             if (error) throw error;
             const rpcRow = parseTurnRegistrationRpcRow(data);
@@ -3509,7 +3609,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           ),
         };
       } catch (error) {
-        const errorMessage = formatSyncError(error);
+        const errorMessage = localizeTurnRegistrationError(error);
         if (!shouldRetrySyncError(error)) {
           logOfflineSync('registerTurn failed with non-retryable error', {
             turnId,
