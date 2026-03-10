@@ -1,4 +1,14 @@
 {
+  "terminal.integrated.defaultProfile.windows": "PowerShell Bypass",
+  "terminal.integrated.profiles.windows": {
+    "Git Bash": {
+      "path": "C:\\Users\\fede_\\AppData\\Local\\Programs\\Git\\bin\\bash.exe"
+    },
+    "PowerShell Bypass": {
+      "path": "powershell.exe",
+      "args": ["-ExecutionPolicy", "Bypass"]
+    }
+  },
     "cSpell.language": "it,en",
     "workbench.colorTheme": "Default Dark Modern",
     "workbench.editorAssociations": {
