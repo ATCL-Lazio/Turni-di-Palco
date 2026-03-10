@@ -544,7 +544,8 @@ type QueuedSupabaseMutation =
   | (QueueBase & { kind: 'mark_badges_seen'; payload: { user_id: string } })
   | (QueueBase & { kind: 'reset_progress'; payload: { user_id: string } });
 
-type QueuedSupabaseMutationInput = Omit<
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+type QueuedSupabaseMutationInput = DistributiveOmit<
   QueuedSupabaseMutation,
   'id' | 'createdAt' | 'attempts' | 'lastError'
 >;
@@ -1237,7 +1238,7 @@ function parseShopCatalogRows(data: unknown): ShopCatalogItem[] {
         metadata: isRecord(entry.metadata) ? entry.metadata : {},
       } satisfies ShopCatalogItem;
     })
-    .filter((entry): entry is ShopCatalogItem => Boolean(entry) && entry.code.trim().length > 0);
+    .filter((entry) => entry !== null && entry.code.trim().length > 0) as ShopCatalogItem[];
 
   if (!parsed.length) return DEFAULT_SHOP_CATALOG;
   return parsed;
@@ -1780,7 +1781,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         setLeaderboardLoading(true);
 
         try {
-          const { data, error } = await supabase.rpc('get_leaderboard', { p_limit: 50 });
+          const { data, error } = await supabase!.rpc('get_leaderboard', { p_limit: 50 });
           if (error) throw error;
 
           const rows = (data as LeaderboardRow[]) ?? [];
@@ -2260,7 +2261,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
     await withMobileWatchdog(
       async () => {
-        const { error } = await supabase.rpc('mark_my_badges_seen');
+        const { error } = await supabase!.rpc('mark_my_badges_seen');
         if (error) {
           console.warn('Supabase mark badges seen failed', error);
           logOfflineSync('markBadgesSeen immediate sync failed, falling back to queue', {
@@ -2435,7 +2436,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         async () => {
           setFollowedEventsLoading(true);
           try {
-            const { data, error } = await supabase
+            const { data, error } = await supabase!
               .from('followed_events')
               .select('event_id, events:events(id,name,theatre,event_date,event_time,genre,base_rewards,focus_role)')
               .eq('user_id', authUserId);
@@ -2487,7 +2488,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       async () => {
         setShopCatalogLoading(true);
         try {
-          const { data, error } = await supabase
+          const { data, error } = await supabase!
             .from('shop_catalog')
             .select('code,title,description,category,cost_cachet,effect_value,max_purchases_per_user,active,metadata')
             .eq('active', true)
@@ -2526,7 +2527,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       async () => {
         setActivitySlotsLoading(true);
         try {
-          const { data, error } = await supabase.rpc('get_activity_slots_status');
+          const { data, error } = await supabase!.rpc('get_activity_slots_status');
           if (error) {
             console.warn('Supabase activity slots status fetch failed', error);
             return;
@@ -2616,7 +2617,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
     await withMobileWatchdog(
       async () => {
-        const { data, error } = await supabase
+        const { data, error } = await supabase!
           .from('mobile_feature_flags')
           .select('key,enabled');
         if (error) {
@@ -2715,7 +2716,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       await withMobileWatchdog(
         async () => {
-          const { error } = await supabase
+          const { error } = await supabase!
             .from('followed_events')
             .insert(queuedMutation.payload);
           if (error && !isDuplicateSyncError(error)) {
@@ -2774,7 +2775,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       await withMobileWatchdog(
         async () => {
-          const { error } = await supabase
+          const { error } = await supabase!
             .from('followed_events')
             .delete()
             .eq('user_id', authUserId)
@@ -2883,7 +2884,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                   reputation: Number(event.base_rewards?.reputation ?? 0),
                   cachet: Number(event.base_rewards?.cachet ?? 0),
                 },
-                focusRole: event.focus_role ?? undefined,
+                focusRole: (event.focus_role ?? undefined) as RoleId | undefined,
               }));
 
           const nextActivities =
@@ -3131,7 +3132,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         { event: '*', schema: 'public', table: 'turns', filter: `user_id=eq.${authUserId}` },
         (payload) => {
           if (payload.eventType === 'INSERT' && payload.new) {
-            const nextTurn = mapTurnRow(payload.new);
+            const nextTurn = mapTurnRow(payload.new as DbTurnRow);
             setState((prev: GameState) => {
               if (prev.turns.some((turn: TurnRecord) => turn.id === nextTurn.id)) {
                 return prev;
@@ -3142,7 +3143,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           }
 
           if (payload.eventType === 'UPDATE' && payload.new) {
-            const nextTurn = mapTurnRow(payload.new);
+            const nextTurn = mapTurnRow(payload.new as DbTurnRow);
             setState((prev: GameState) => ({
               ...prev,
               turns: prev.turns
@@ -3246,7 +3247,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       void withMobileWatchdog(
         async () => {
-          const { error } = await supabase
+          const { error } = await supabase!
             .from('profiles')
             .upsert(payload, { onConflict: 'id' });
           if (error) {
@@ -3459,7 +3460,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       try {
         const rpcResponse = await withMobileWatchdog(
           async () => {
-            const { data, error } = await supabase.rpc('register_turn_with_token_boost', {
+            const { data, error } = await supabase!.rpc('register_turn_with_token_boost', {
               p_event_id: event.id,
               p_role_id: roleId,
               p_client_action_id: turnId,
@@ -3588,7 +3589,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       try {
         const rpcResponse = await withMobileWatchdog(
           async () => {
-            const { data, error } = await supabase.rpc('purchase_shop_item', {
+            const { data, error } = await supabase!.rpc('purchase_shop_item', {
               p_item_code: itemCode,
               p_client_action_id: actionId,
               p_target_theatre: targetTheatre ?? null,
@@ -3679,7 +3680,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       try {
         const rpcResponse = await withMobileWatchdog(
           async () => {
-            const { data, error } = await supabase.rpc('complete_activity_with_slots', {
+            const { data, error } = await supabase!.rpc('complete_activity_with_slots', {
               p_activity_id: activity.id,
               p_client_action_id: completionId,
             });
