@@ -15,7 +15,7 @@ type DevGateState = {
 
 // NOTE: Simple symmetric encryption helpers for dev gate session persistence.
 // This is not meant as a full security boundary, but prevents clear-text storage.
-const DEV_GATE_SECRET = "pwa-dev-gate-session-secret-v1";
+const DEV_GATE_SECRET = "pwa-dev-gate-session-secret-v1!!";
 
 async function getDevGateCryptoKey(): Promise<CryptoKey> {
   if (typeof window === "undefined" || !window.crypto || !window.crypto.subtle) {
@@ -32,62 +32,27 @@ async function getDevGateCryptoKey(): Promise<CryptoKey> {
   );
 }
 
-function devGateToBase64(bytes: Uint8Array): string {
-  if (typeof window === "undefined" || typeof window.btoa !== "function") {
-    throw new Error("Base64 encoding not available");
-  }
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return window.btoa(binary);
-}
-
-function devGateFromBase64(value: string): Uint8Array {
-  if (typeof window === "undefined" || typeof window.atob !== "function") {
-    throw new Error("Base64 decoding not available");
-  }
-  const binary = window.atob(value);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
-
 async function encryptDevGateSessionPayload(plaintext: string): Promise<string> {
   const key = await getDevGateCryptoKey();
-  const enc = new TextEncoder();
-  const data = enc.encode(plaintext);
-  const iv = window.crypto.getRandomValues(new Uint8Array(12));
-  const ciphertext = new Uint8Array(
-    await window.crypto.subtle.encrypt(
-      { name: "AES-GCM", iv },
-      key,
-      data,
-    ),
-  );
+  const data = new TextEncoder().encode(plaintext);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data));
   const combined = new Uint8Array(iv.byteLength + ciphertext.byteLength);
   combined.set(iv, 0);
   combined.set(ciphertext, iv.byteLength);
-  return devGateToBase64(combined);
+  return btoa(String.fromCharCode(...combined));
 }
 
 async function decryptDevGateSessionPayload(payload: string): Promise<string> {
   const key = await getDevGateCryptoKey();
-  const combined = devGateFromBase64(payload);
-  if (combined.byteLength < 13) {
-    throw new Error("Encrypted payload too short");
-  }
-  const iv = combined.slice(0, 12);
-  const ciphertext = combined.slice(12);
-  const decrypted = await window.crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
+  const combined = Uint8Array.from(atob(payload), (c) => c.charCodeAt(0));
+  if (combined.byteLength < 13) throw new Error("Encrypted payload too short");
+  const decrypted = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: combined.slice(0, 12) },
     key,
-    ciphertext,
+    combined.slice(12),
   );
-  const dec = new TextDecoder();
-  return dec.decode(decrypted);
+  return new TextDecoder().decode(decrypted);
 }
 
 const { allowedRoles, allowedEmails, serverAccessFunction } = appConfig.devGate;
@@ -162,7 +127,14 @@ async function readDevGateSession(): Promise<DevGateSession | null> {
         const decrypted = await decryptDevGateSessionPayload(raw);
         return parseDevGateSession(decrypted);
       } catch {
-        return parseDevGateSession(raw);
+        // Legacy plaintext fallback — migrate to encrypted on the fly.
+        const session = parseDevGateSession(raw);
+        if (session) {
+          encryptDevGateSessionPayload(raw)
+            .then((enc) => window.localStorage.setItem(DEV_GATE_SESSION_KEY, enc))
+            .catch(() => { /* best-effort migration */ });
+        }
+        return session;
       }
     }
 
@@ -173,8 +145,8 @@ async function readDevGateSession(): Promise<DevGateSession | null> {
 }
 
 
-function persistDevGateSession(user: User) {
-  if (typeof window === "undefined") return;
+function persistDevGateSession(user: User): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
   const now = Date.now();
   const payload: DevGateSession = {
     userId: user.id,
@@ -182,18 +154,13 @@ function persistDevGateSession(user: User) {
     grantedAt: now,
     expiresAt: now + sessionCacheTtlMs,
   };
-  (async () => {
-    try {
-      if (!window.crypto || !window.crypto.subtle) {
-        // Fallback: do not persist session if we cannot encrypt it safely.
-        return;
-      }
-      const encrypted = await encryptDevGateSessionPayload(JSON.stringify(payload));
-      window.localStorage.setItem(DEV_GATE_SESSION_KEY, encrypted);
-    } catch (error) {
-      console.warn("Failed to persist dev gate session", error);
-    }
-  })();
+  return (async () => {
+    if (!window.crypto?.subtle) return;
+    const encrypted = await encryptDevGateSessionPayload(JSON.stringify(payload));
+    window.localStorage.setItem(DEV_GATE_SESSION_KEY, encrypted);
+  })().catch((error) => {
+    console.warn("Failed to persist dev gate session", error);
+  });
 }
 
 function clearDevGateSession() {
@@ -419,7 +386,7 @@ export async function requireDevAccess() {
     }
     serverCheck = await verifyServerAccess();
     if (serverCheck.allowed) {
-      persistDevGateSession(currentUser);
+      await persistDevGateSession(currentUser);
       return true;
     }
     if (hasGraceCachedSession(currentUser, cachedSession)) {
@@ -471,7 +438,7 @@ export async function requireDevAccess() {
       }
 
       if (freshUser) {
-        persistDevGateSession(freshUser);
+        await persistDevGateSession(freshUser);
       }
       setGateMessage(state, "Accesso autorizzato.", "success");
       resolve(true);
