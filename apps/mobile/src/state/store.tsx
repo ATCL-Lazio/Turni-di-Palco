@@ -22,7 +22,7 @@ import {
   writeMobileFeatureFlagsCache,
 } from '../services/feature-flags';
 
-export type RoleId = 'attore' | 'luci' | 'fonico' | 'attrezzista' | 'palco';
+export type RoleId = 'attore' | 'luci' | 'fonico' | 'attrezzista' | 'palco' | 'rspp';
 export type Rewards = { xp: number; reputation: number; cachet: number };
 export type TurnSyncStatus = 'pending' | 'synced' | 'failed_boost_fallback';
 
@@ -314,6 +314,7 @@ export const roles: Role[] = [
   { id: 'fonico', name: 'Fonico', focus: 'Pulizia audio', stats: { presence: 45, precision: 90, leadership: 60, creativity: 70 } },
   { id: 'attrezzista', name: 'Attrezzista / Scenografo', focus: 'Allestimento rapido', stats: { presence: 55, precision: 85, leadership: 70, creativity: 90 } },
   { id: 'palco', name: 'Assistente di Palco', focus: 'Coordinamento', stats: { presence: 60, precision: 88, leadership: 85, creativity: 65 } },
+  { id: 'rspp', name: 'RSPP', focus: 'Sicurezza e prevenzione', stats: { presence: 65, precision: 92, leadership: 88, creativity: 58 } },
 ];
 
 export const events: GameEvent[] = [
@@ -1787,7 +1788,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           const rows = (data as LeaderboardRow[]) ?? [];
           const nextLeaderboard: LeaderboardEntry[] = rows.map((row) => {
             const roleCandidate = row.role_id ?? 'attore';
-            const roleId: RoleId = (roleCandidate === 'attore' || roleCandidate === 'luci' || roleCandidate === 'fonico' || roleCandidate === 'attrezzista' || roleCandidate === 'palco')
+            const roleId: RoleId = (roleCandidate === 'attore' || roleCandidate === 'luci' || roleCandidate === 'fonico' || roleCandidate === 'attrezzista' || roleCandidate === 'palco' || roleCandidate === 'rspp')
               ? (roleCandidate as RoleId)
               : 'attore';
             const lastActivityAt = row.last_activity_at ? new Date(row.last_activity_at).getTime() : undefined;

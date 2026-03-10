@@ -14,6 +14,7 @@ import {
   Volume2,
   Package,
   Clipboard,
+  ShieldCheck,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Screen } from '../ui/Screen';
@@ -42,6 +43,7 @@ const ROLE_ICONS: Record<RoleId, React.ElementType> = {
   fonico: Volume2,
   attrezzista: Package,
   palco: Clipboard,
+  rspp: ShieldCheck,
 };
 
 const ROLE_STAT_KEYS = ['presence', 'precision', 'leadership', 'creativity'] as const;
