@@ -144,7 +144,6 @@ function readDevGateSession(): DevGateSession | null {
     if (!raw) return null;
     // Decrypt the stored session payload before parsing.
     // If decryption fails, treat as missing/invalid session.
-    let json: string;
     if (!window.crypto || !window.crypto.subtle) {
       // Cannot decrypt without Web Crypto, consider session invalid.
       return null;
@@ -155,29 +154,6 @@ function readDevGateSession(): DevGateSession | null {
   }
 }
 
-async function readDevGateSessionDecrypted(): Promise<DevGateSession | null> {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(DEV_GATE_SESSION_KEY);
-    if (!raw) return null;
-    if (!window.crypto || !window.crypto.subtle) {
-      return null;
-    }
-    const json = await decryptDevGateSessionPayload(raw);
-    const parsed = JSON.parse(json) as Partial<DevGateSession>;
-    if (!parsed || typeof parsed !== "object") return null;
-    if (!parsed.userId || typeof parsed.userId !== "string") return null;
-    if (!Number.isFinite(parsed.grantedAt) || !Number.isFinite(parsed.expiresAt)) return null;
-    return {
-      userId: parsed.userId,
-      email: typeof parsed.email === "string" ? parsed.email : null,
-      grantedAt: parsed.grantedAt,
-      expiresAt: parsed.expiresAt,
-    };
-  } catch {
-    return null;
-  }
-}
 
 function persistDevGateSession(user: User) {
   if (typeof window === "undefined") return;
