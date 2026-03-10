@@ -3,7 +3,7 @@ const isMobileDevice = () => {
 
   const userAgent = navigator.userAgent.toLowerCase();
   const isMobileUserAgent = /android|iphone|ipad|ipod|windows phone|mobile/.test(userAgent);
-  const isMobileUserAgentData = navigator.userAgentData?.mobile ?? false;
+  const isMobileUserAgentData = (navigator as unknown as { userAgentData?: { mobile: boolean } }).userAgentData?.mobile ?? false;
   const isCoarsePointer = window.matchMedia?.("(pointer: coarse)").matches ?? false;
   const isNarrowViewport = window.matchMedia?.("(max-width: 768px)").matches ?? false;
 

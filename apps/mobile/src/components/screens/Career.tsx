@@ -270,9 +270,9 @@ export function Career({
                           <span className="font-mono text-[10px] leading-none font-bold tracking-[-0.08em] text-white relative z-[1]">
                             {glyph}
                           </span>
-                        ) : (
+                        ) : Icon ? (
                           <Icon className="text-white relative z-[1]" size={16} />
-                        )}
+                        ) : null}
                       </div>
                       <div className="flex-1">
                         <p className="text-white text-sm">{milestone.title}</p>
