@@ -13,6 +13,83 @@ type DevGateState = {
   signOutButton: HTMLButtonElement;
 };
 
+// NOTE: Simple symmetric encryption helpers for dev gate session persistence.
+// This is not meant as a full security boundary, but prevents clear-text storage.
+const DEV_GATE_SECRET = "pwa-dev-gate-session-secret-v1";
+
+async function getDevGateCryptoKey(): Promise<CryptoKey> {
+  if (typeof window === "undefined" || !window.crypto || !window.crypto.subtle) {
+    throw new Error("Web Crypto API is not available");
+  }
+  const enc = new TextEncoder();
+  const rawKey = enc.encode(DEV_GATE_SECRET);
+  return window.crypto.subtle.importKey(
+    "raw",
+    rawKey,
+    { name: "AES-GCM" },
+    false,
+    ["encrypt", "decrypt"],
+  );
+}
+
+function devGateToBase64(bytes: Uint8Array): string {
+  if (typeof window === "undefined" || typeof window.btoa !== "function") {
+    throw new Error("Base64 encoding not available");
+  }
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window.btoa(binary);
+}
+
+function devGateFromBase64(value: string): Uint8Array {
+  if (typeof window === "undefined" || typeof window.atob !== "function") {
+    throw new Error("Base64 decoding not available");
+  }
+  const binary = window.atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function encryptDevGateSessionPayload(plaintext: string): Promise<string> {
+  const key = await getDevGateCryptoKey();
+  const enc = new TextEncoder();
+  const data = enc.encode(plaintext);
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext = new Uint8Array(
+    await window.crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      key,
+      data,
+    ),
+  );
+  const combined = new Uint8Array(iv.byteLength + ciphertext.byteLength);
+  combined.set(iv, 0);
+  combined.set(ciphertext, iv.byteLength);
+  return devGateToBase64(combined);
+}
+
+async function decryptDevGateSessionPayload(payload: string): Promise<string> {
+  const key = await getDevGateCryptoKey();
+  const combined = devGateFromBase64(payload);
+  if (combined.byteLength < 13) {
+    throw new Error("Encrypted payload too short");
+  }
+  const iv = combined.slice(0, 12);
+  const ciphertext = combined.slice(12);
+  const decrypted = await window.crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    key,
+    ciphertext,
+  );
+  const dec = new TextDecoder();
+  return dec.decode(decrypted);
+}
+
 const { allowedRoles, allowedEmails, serverAccessFunction } = appConfig.devGate;
 export const isPublicMode = appConfig.publicMode;
 const DEV_GATE_SESSION_KEY = "tdp-dev-gate-session-v1";
@@ -65,7 +142,29 @@ function readDevGateSession(): DevGateSession | null {
   try {
     const raw = window.localStorage.getItem(DEV_GATE_SESSION_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<DevGateSession>;
+    // Decrypt the stored session payload before parsing.
+    // If decryption fails, treat as missing/invalid session.
+    let json: string;
+    if (!window.crypto || !window.crypto.subtle) {
+      // Cannot decrypt without Web Crypto, consider session invalid.
+      return null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function readDevGateSessionDecrypted(): Promise<DevGateSession | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(DEV_GATE_SESSION_KEY);
+    if (!raw) return null;
+    if (!window.crypto || !window.crypto.subtle) {
+      return null;
+    }
+    const json = await decryptDevGateSessionPayload(raw);
+    const parsed = JSON.parse(json) as Partial<DevGateSession>;
     if (!parsed || typeof parsed !== "object") return null;
     if (!parsed.userId || typeof parsed.userId !== "string") return null;
     if (!Number.isFinite(parsed.grantedAt) || !Number.isFinite(parsed.expiresAt)) return null;
@@ -89,11 +188,18 @@ function persistDevGateSession(user: User) {
     grantedAt: now,
     expiresAt: now + sessionCacheTtlMs,
   };
-  try {
-    window.localStorage.setItem(DEV_GATE_SESSION_KEY, JSON.stringify(payload));
-  } catch (error) {
-    console.warn("Failed to persist dev gate session", error);
-  }
+  (async () => {
+    try {
+      if (!window.crypto || !window.crypto.subtle) {
+        // Fallback: do not persist session if we cannot encrypt it safely.
+        return;
+      }
+      const encrypted = await encryptDevGateSessionPayload(JSON.stringify(payload));
+      window.localStorage.setItem(DEV_GATE_SESSION_KEY, encrypted);
+    } catch (error) {
+      console.warn("Failed to persist dev gate session", error);
+    }
+  })();
 }
 
 function clearDevGateSession() {
