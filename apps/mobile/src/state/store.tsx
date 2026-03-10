@@ -24,7 +24,7 @@ import {
 
 export type RoleId = 'attore' | 'luci' | 'fonico' | 'attrezzista' | 'palco' | 'rspp';
 export type Rewards = { xp: number; reputation: number; cachet: number };
-export type TurnSyncStatus = 'pending' | 'synced' | 'failed_boost_fallback';
+export type TurnSyncStatus = 'pending' | 'synced' | 'synced_duplicate' | 'failed_boost_fallback';
 
 export type Role = {
   id: RoleId;
@@ -1116,6 +1116,12 @@ type TurnRegistrationRpcRow = {
   token_balance_after: number | null;
 };
 
+export function resolveTurnSyncStatusFromRpc(rpcRow: Pick<TurnRegistrationRpcRow, 'turn_registered' | 'boost_requested' | 'boost_applied'>): TurnSyncStatus {
+  if (!rpcRow.turn_registered) return 'synced_duplicate';
+  if (rpcRow.boost_requested && !rpcRow.boost_applied) return 'failed_boost_fallback';
+  return 'synced';
+}
+
 function normalizeRewardsPayload(value: unknown): Rewards {
   if (!isRecord(value)) return { xp: 0, reputation: 0, cachet: 0 };
   return {
@@ -1979,10 +1985,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           if (!rpcRow) {
             return { status: 'retry', error: new Error('Risposta RPC non valida') };
           }
-          const syncStatus: TurnSyncStatus =
-            rpcRow.boost_requested && !rpcRow.boost_applied
-              ? 'failed_boost_fallback'
-              : 'synced';
+          const syncStatus = resolveTurnSyncStatusFromRpc(rpcRow);
           applyTurnRegistrationResult(mutation.payload, rpcRow, syncStatus);
           return { status: 'applied' };
         }
@@ -3480,10 +3483,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           }
         );
 
-        const syncStatus: TurnSyncStatus =
-          rpcResponse.boost_requested && !rpcResponse.boost_applied
-            ? 'failed_boost_fallback'
-            : 'synced';
+        const syncStatus = resolveTurnSyncStatusFromRpc(rpcResponse);
         applyTurnRegistrationResult(turnRegisterPayload, rpcResponse, syncStatus);
         logOfflineSync('registerTurn synced immediately via RPC', {
           turnId,

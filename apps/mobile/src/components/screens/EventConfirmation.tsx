@@ -76,6 +76,9 @@ export function EventConfirmation({
         ? 'Boost in verifica'
         : 'Turno in attesa di sincronizzazione';
     }
+    if (confirmResult.syncStatus === 'synced_duplicate') {
+      return 'Turno già sincronizzato';
+    }
     if (confirmResult.boostRequested && confirmResult.boostApplied) return 'Boost applicato';
     if (confirmResult.boostRequested && !confirmResult.boostApplied) return 'Boost non applicato';
     return 'Turno registrato';
@@ -87,6 +90,9 @@ export function EventConfirmation({
       return confirmResult.boostRequested
         ? 'Richiesta boost salvata in coda: verrà verificata online.'
         : 'Turno salvato in coda: sarà sincronizzato appena torni online.';
+    }
+    if (confirmResult.syncStatus === 'synced_duplicate') {
+      return 'Questo turno risulta già registrato: nessuna ricompensa aggiuntiva è stata applicata.';
     }
     if (confirmResult.boostRequested && confirmResult.boostApplied) {
       return 'Verifica completata: +10% XP e +10% Cachet applicati.';
