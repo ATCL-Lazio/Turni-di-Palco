@@ -7,16 +7,24 @@ interface CardProps {
   onClick?: () => void;
   hoverable?: boolean;
   style?: React.CSSProperties;
-  animateOnMount?: boolean; // New prop for entrance animation
+  animateOnMount?: boolean;
+  onPointerDown?: React.PointerEventHandler<HTMLDivElement>;
+  role?: React.AriaRole;
+  'aria-label'?: string;
+  'aria-disabled'?: boolean;
 }
 
-export function Card({ 
-  children, 
-  className = '', 
-  onClick, 
-  hoverable = false, 
+export function Card({
+  children,
+  className = '',
+  onClick,
+  hoverable = false,
   style,
-  animateOnMount = false 
+  animateOnMount = false,
+  onPointerDown,
+  role,
+  'aria-label': ariaLabel,
+  'aria-disabled': ariaDisabled,
 }: CardProps) {
   const hoverClass = hoverable || onClick ? 'mobile-card-hover cursor-pointer' : '';
   const animationClass = animateOnMount ? 'mobile-hero-reveal' : '';
@@ -34,6 +42,10 @@ export function Card({
     <div
       className={cn('relative transition-all duration-200 p-4', hoverClass, animationClass, className)}
       onClick={onClick}
+      onPointerDown={onPointerDown}
+      role={role}
+      aria-label={ariaLabel}
+      aria-disabled={ariaDisabled}
       style={defaultStyles}
     >
       {children}
