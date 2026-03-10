@@ -205,15 +205,15 @@ export function AccountSettings({
         navigator.permissions
           .query({ name: 'notifications' as PermissionName })
           .then((result) => normalizePermissionState(result.state))
-          .catch(() => 'unsupported'),
+          .catch((): PermissionStatus => 'unsupported'),
         navigator.permissions
           .query({ name: 'camera' as PermissionName })
           .then((result) => normalizePermissionState(result.state))
-          .catch(() => 'unsupported'),
+          .catch((): PermissionStatus => 'unsupported'),
         navigator.permissions
           .query({ name: 'geolocation' as PermissionName })
           .then((result) => normalizePermissionState(result.state))
-          .catch(() => 'unsupported'),
+          .catch((): PermissionStatus => 'unsupported'),
       ]);
 
       if (!mounted) return;
@@ -238,15 +238,15 @@ export function AccountSettings({
       navigator.permissions
         .query({ name: 'notifications' as PermissionName })
         .then((result) => normalizePermissionState(result.state))
-        .catch(() => 'unsupported'),
+        .catch((): PermissionStatus => 'unsupported'),
       navigator.permissions
         .query({ name: 'camera' as PermissionName })
         .then((result) => normalizePermissionState(result.state))
-        .catch(() => 'unsupported'),
+        .catch((): PermissionStatus => 'unsupported'),
       navigator.permissions
         .query({ name: 'geolocation' as PermissionName })
         .then((result) => normalizePermissionState(result.state))
-        .catch(() => 'unsupported'),
+        .catch((): PermissionStatus => 'unsupported'),
     ]);
 
     setPermissionStatuses({

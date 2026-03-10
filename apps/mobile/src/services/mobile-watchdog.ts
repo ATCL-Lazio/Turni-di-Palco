@@ -18,7 +18,7 @@ function scheduleWatchdogTimeout(handler: () => void, timeoutMs: number) {
   return window.setTimeout(handler, timeoutMs);
 }
 
-function clearWatchdogTimeout(timeoutId: ReturnType<typeof setTimeout>) {
+function clearWatchdogTimeout(timeoutId: ReturnType<typeof setTimeout> | number) {
   if (typeof window === 'undefined') {
     clearTimeout(timeoutId);
     return;

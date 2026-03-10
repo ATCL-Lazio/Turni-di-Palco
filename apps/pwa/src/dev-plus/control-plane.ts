@@ -154,7 +154,7 @@ function parseMetrics(payload: unknown): MetricCard[] {
         trend,
       } satisfies MetricCard;
     })
-    .filter((entry): entry is MetricCard => Boolean(entry));
+    .filter((entry) => entry !== null) as MetricCard[];
 }
 
 function parseAudit(payload: unknown): AuditEntry[] {
@@ -177,7 +177,7 @@ function parseAudit(payload: unknown): AuditEntry[] {
         dryRun: asBoolean(item.dryRun, false),
       } satisfies AuditEntry;
     })
-    .filter((entry): entry is AuditEntry => Boolean(entry));
+    .filter((entry) => entry !== null) as AuditEntry[];
 }
 
 function parseRenderServices(payload: unknown): RenderServiceStatus[] {
@@ -199,7 +199,7 @@ function parseRenderServices(payload: unknown): RenderServiceStatus[] {
         updatedAt: asString(item.updatedAt),
       } satisfies RenderServiceStatus;
     })
-    .filter((entry): entry is RenderServiceStatus => Boolean(entry));
+    .filter((entry) => entry !== null) as RenderServiceStatus[];
 }
 
 function parseDbOps(payload: unknown): DbOperationStatus[] {
@@ -220,7 +220,7 @@ function parseDbOps(payload: unknown): DbOperationStatus[] {
         nextRunAt: asString(item.nextRunAt),
       } satisfies DbOperationStatus;
     })
-    .filter((entry): entry is DbOperationStatus => Boolean(entry));
+    .filter((entry) => entry !== null) as DbOperationStatus[];
 }
 
 function fallbackMetrics(validation?: SessionValidation): MetricCard[] {
@@ -319,7 +319,7 @@ export async function fetchCommandCatalog(
         available: asBoolean(item.available, false),
       } satisfies CommandCatalogEntry;
     })
-    .filter((entry): entry is CommandCatalogEntry => Boolean(entry) && Boolean(entry.id));
+    .filter((entry) => entry !== null && Boolean(entry.id)) as CommandCatalogEntry[];
 
   return { commands };
 }

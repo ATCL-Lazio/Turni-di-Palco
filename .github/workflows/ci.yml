@@ -38,11 +38,10 @@ jobs:
       - name: Run lint (Mobile)
         run: npm run lint:mobile
 
-      # TODO: enable once pre-existing type errors are resolved
-      # - name: Run type check (PWA)
-      #   run: npm --workspace apps/pwa run typecheck
-      # - name: Run type check (Mobile)
-      #   run: npm --workspace apps/mobile run typecheck
+      - name: Run type check (PWA)
+        run: npm --workspace apps/pwa run typecheck
+      - name: Run type check (Mobile)
+        run: npm --workspace apps/mobile run typecheck
 
       - name: Run tests
         run: npm run test:pwa
