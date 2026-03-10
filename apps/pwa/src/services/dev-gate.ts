@@ -72,8 +72,8 @@ function readDevGateSession(): DevGateSession | null {
     return {
       userId: parsed.userId,
       email: typeof parsed.email === "string" ? parsed.email : null,
-      grantedAt: parsed.grantedAt,
-      expiresAt: parsed.expiresAt,
+      grantedAt: parsed.grantedAt!,
+      expiresAt: parsed.expiresAt!,
     };
   } catch {
     return null;
@@ -348,7 +348,7 @@ export async function requireDevAccess() {
       setGateBusy(state, true);
       setGateMessage(state, "Verifico le credenziali...", "info");
 
-      const { data: signInData, error } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error } = await supabase!.auth.signInWithPassword({
         email: state.emailInput.value.trim(),
         password: state.passwordInput.value,
       });
@@ -359,10 +359,10 @@ export async function requireDevAccess() {
         return;
       }
 
-      const freshUser = signInData.user ?? (await supabase.auth.getSession()).data.session?.user ?? null;
+      const freshUser = signInData.user ?? (await supabase!.auth.getSession()).data.session?.user ?? null;
       const serverCheck = await verifyServerAccess();
       if (!isUserAllowed(freshUser) || !serverCheck.allowed) {
-        await supabase.auth.signOut();
+        await supabase!.auth.signOut();
         clearDevGateSession();
         setGateBusy(state, false);
         const message = serverCheck.reason ?? "Utente non autorizzato per la PWA.";

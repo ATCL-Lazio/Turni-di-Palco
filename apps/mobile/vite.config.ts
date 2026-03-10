@@ -1,14 +1,15 @@
 
 import fs from 'fs';
+import type { ServerOptions } from 'https';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 
-function resolveHttps() {
+function resolveHttps(): ServerOptions | undefined {
   const httpsEnv = process.env.HTTPS;
   if (httpsEnv === 'false' || httpsEnv === '0') {
-    return false;
+    return undefined;
   }
 
   const flag = httpsEnv === 'true' || httpsEnv === '1';
@@ -19,7 +20,7 @@ function resolveHttps() {
     return {
       cert: fs.readFileSync(path.resolve(certPath)),
       key: fs.readFileSync(path.resolve(keyPath)),
-    };
+    } as ServerOptions;
   }
 
   const repoRoot = path.resolve(__dirname, '..', '..');
@@ -34,12 +35,12 @@ function resolveHttps() {
         return {
           cert: fs.readFileSync(certFile),
           key: fs.readFileSync(keyFilePath),
-        };
+        } as ServerOptions;
       }
     }
   }
 
-  return flag || true;
+  return flag ? ({} as ServerOptions) : ({} as ServerOptions);
 }
 
 const DEFAULT_ALLOWED_HOSTS = ['turni-di-palco-fq85.onrender.com'];
