@@ -223,16 +223,15 @@
         ".github/workflows/sync-deploy-branches.yml",
         ".github/workflows/security.yml"
     ],
-    "files.autoSave": "off",
+    "files.autoSave": "onFocusChange",
     "editor.aiStats.enabled": true,
     "editor.autoIndentOnPaste": true,
-    "git.allowForcePush": true,
-    "git.autofetch": "all",
+    "git.allowForcePush": false,
+    "git.autofetch": true,
     "git.branchProtection": [
         "main",
-        "render/preview"
+        "*/preview"
     ],
-    "editor.defaultFormatter": "vscode.markdown-language-features",
     "deno.enablePaths": [
         "supabase/functions"
     ],
@@ -250,7 +249,7 @@
     "[javascript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
-    "markdown.preview.allowUnsafeHtml": true,
+    "markdown.preview.allowUnsafeHtml": false,
     "markdown.preview.openMarkdownLinks": "inPreview",
     "git.ignoreLimitWarning": true,
     "[github-actions-workflow]": {
