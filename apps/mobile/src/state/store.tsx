@@ -513,6 +513,15 @@ type TurnRegisterPayload = {
   role_id: RoleId;
   boost_requested: boolean;
   sync_status: TurnSyncStatus;
+  checkin_latitude?: number | null;
+  checkin_longitude?: number | null;
+  checkin_accuracy_m?: number | null;
+};
+
+type TurnGeolocationSnapshot = {
+  latitude: number;
+  longitude: number;
+  accuracyM: number;
 };
 
 type ActivityInsertPayload = {
@@ -797,6 +806,30 @@ function shouldMirrorOfflineSyncLogsToServer() {
 function createOfflineMutationId() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
   return `offline-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+async function readTurnGeolocationSnapshot(): Promise<TurnGeolocationSnapshot | null> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    return null;
+  }
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracyM: position.coords.accuracy,
+        });
+      },
+      () => resolve(null),
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
+  });
 }
 
 function summarizeQueuedMutation(
@@ -1975,6 +2008,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             p_role_id: mutation.payload.role_id,
             p_client_action_id: mutation.payload.id,
             p_boost_requested: mutation.payload.boost_requested,
+            p_checkin_latitude: mutation.payload.checkin_latitude ?? null,
+            p_checkin_longitude: mutation.payload.checkin_longitude ?? null,
+            p_checkin_accuracy_m: mutation.payload.checkin_accuracy_m ?? null,
           });
           if (error) {
             return shouldRetrySyncError(error)
@@ -3342,6 +3378,15 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           ? globalThis.crypto.randomUUID()
           : `turn-${Date.now()}`;
 
+      const geolocationSnapshot = await readTurnGeolocationSnapshot();
+
+      if (isSupabaseConfigured && supabase && authUserId && !geolocationSnapshot) {
+        return {
+          ok: false,
+          error: 'Geolocalizzazione non disponibile. Abilita il GPS e riprova vicino al teatro.',
+        };
+      }
+
       const turnRegisterPayload: TurnRegisterPayload = {
         id: turnId,
         user_id: authUserId ?? '',
@@ -3353,6 +3398,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         role_id: roleId,
         boost_requested: Boolean(boostRequested),
         sync_status: 'pending',
+        checkin_latitude: geolocationSnapshot?.latitude ?? null,
+        checkin_longitude: geolocationSnapshot?.longitude ?? null,
+        checkin_accuracy_m: geolocationSnapshot?.accuracyM ?? null,
       };
 
       const pendingTurnRecord = buildTurnRecordFromPayload(
@@ -3469,6 +3517,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               p_role_id: roleId,
               p_client_action_id: turnId,
               p_boost_requested: boostRequested,
+              p_checkin_latitude: geolocationSnapshot?.latitude ?? null,
+              p_checkin_longitude: geolocationSnapshot?.longitude ?? null,
+              p_checkin_accuracy_m: geolocationSnapshot?.accuracyM ?? null,
             });
             if (error) throw error;
             const rpcRow = parseTurnRegistrationRpcRow(data);
