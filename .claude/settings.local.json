@@ -1,22 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gh issue list --state open --limit 100 --json number,title,body,labels)",
-      "Read(//c/Users/fede_/AppData/Local/GitHubDesktop/bin/**)",
-      "Read(//c/Users/fede_/AppData/Local/GitHubDesktop/bin//**)",
-      "Bash(git remote get-url origin)",
-      "WebFetch(domain:api.github.com)",
-      "Bash(grep -r \"role\\\\|Role\" /c/Users/fede_/repo/Turni-di-Palco/supabase/migrations/*.sql)",
-      "Bash(xargs cat)",
-      "Bash(where gh)",
-      "Read(//c/Users/fede_/**)",
-      "Bash(curl --version)",
-      "Bash(winget install --id GitHub.cli -e --source winget)",
-      "Bash(export PATH=\"$PATH:/c/Program Files/GitHub CLI\")",
-      "Bash(gh --version)",
-      "Bash(gh auth status)",
-      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" auth status)",
-      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" auth login --web)"
+      "*"
     ]
   }
 }
