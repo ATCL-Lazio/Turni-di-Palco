@@ -308,7 +308,7 @@ function AppShell() {
       setPublicProfileTheatresLoading(true);
 
       try {
-        const { data, error } = await supabase.rpc('get_public_profile_theatres', {
+        const { data, error } = await supabase!.rpc('get_public_profile_theatres', {
           p_user_id: selectedLeaderboardEntry.id,
         });
         if (error) throw error;
