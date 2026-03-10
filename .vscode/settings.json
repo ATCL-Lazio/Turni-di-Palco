@@ -230,7 +230,7 @@
     "git.autofetch": true,
     "git.branchProtection": [
         "main",
-        "render/preview"
+        "*/preview"
     ],
     "deno.enablePaths": [
         "supabase/functions"
