@@ -344,8 +344,6 @@ export function Home({
                     <CalendarPlus size={16} />
                     Aggiungi
                   </Button>
-            )}
-          </Card>
         </section>
         ) : null}
 
