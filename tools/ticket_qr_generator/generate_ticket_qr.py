@@ -207,7 +207,7 @@ def resolve_payload_from_calendar(
 ) -> TicketPayload:
     normalized_id = event_id.strip()
     if not normalized_id:
-        raise ValueError("event_id mancante.")
+        raise ValueError("Missing event_id.")
     events = fetch_calendar_events(supabase_url=supabase_url, api_key=api_key)
     selected = next((event for event in events if event.event_id.lower() == normalized_id.lower()), None)
     if not selected:
