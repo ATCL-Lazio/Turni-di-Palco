@@ -61,7 +61,7 @@ export function useAuth(
         setAuthError(null);
         if (!isSupabaseConfigured || !supabase) {
             updateProfile({ name, email });
-            onAuthChange('welcome'); // or role-selection?
+            onAuthChange('welcome'); // Flow will continue to role-selection
             return;
         }
 
