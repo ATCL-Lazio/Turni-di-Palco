@@ -2886,15 +2886,25 @@ function startKeepAlive() {
 }
 
 // Watchdog integrato
+function getWatchdogServices() {
+  return [
+    {
+      name: 'Maxwell-AI-Support',
+      url: process.env.WATCHDOG_SERVICE_MAXWELL_URL || 'https://maxwell-ai-support.onrender.com/health'
+    },
+    {
+      name: 'Turni-di-Palco',
+      url: process.env.WATCHDOG_SERVICE_TURNI_URL || 'https://turni-di-palco-fq85.onrender.com/health'
+    }
+  ];
+}
+
 function performWatchdogCheck() {
   return new Promise((resolve) => {
     logLine('🐕 Starting watchdog scan...');
     
     // 1. Check servizi Render
-    const services = [
-      { name: 'Maxwell-AI-Support', url: 'https://maxwell-ai-support.onrender.com/health' },
-      { name: 'Turni-di-Palco', url: 'https://turni-di-palco-fq85.onrender.com/health' }
-    ];
+    const services = getWatchdogServices();
     
     let problems = [];
     let completed = 0;
