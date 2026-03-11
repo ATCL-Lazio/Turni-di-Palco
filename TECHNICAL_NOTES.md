@@ -133,3 +133,88 @@ Nota: attualmente l’elenco eventi è mock (`apps/mobile/src/state/store.tsx`, 
 - iOS: usa `maps://?q=...` per Apple Maps (nessun fallback web per evitare doppio launch).
 - Android: usa `geo:0,0?q=...`.
 - Desktop: fallback su Google Maps web.
+
+## Valutazione integrazione nuovo ruolo (badge + minigiochi + personalizzazione)
+
+Obiettivo: introdurre un nuovo ruolo di gioco con esperienza dedicata senza frammentare la codebase, mantenendo una pipeline unica per configurazione, progressione e rollout progressivo.
+
+### 1) Modello dati e configurazione (base unica)
+
+- Estendere la definizione dei ruoli in DB (`public.roles`) con metadata configurabili per esperienza dedicata:
+  - `role_code` stabile (es. `dramaturg`, `tech_lead`, ...),
+  - copy/UI (titolo, descrizione breve, tone of voice),
+  - mapping verso badge consigliati,
+  - mapping verso minigiochi abilitati.
+- Evitare logica hardcoded lato client: i mapping vanno caricati da config (`role_profile`) così da poter fare tuning senza rebuild completo.
+- Mantenere retrocompatibilità: se il profilo ruolo non è disponibile, fallback su esperienza standard.
+
+### 2) Badge dedicati al ruolo
+
+- Strategia badge consigliata:
+  - badge trasversali (già esistenti) restano invariati,
+  - badge specifici del nuovo ruolo aggiunti in `public.badges` con naming coerente (`role_<role_code>_<milestone>`),
+  - visibilità iniziale controllata (es. `hidden`/`secret`) per reveal progressivo.
+- Evoluzione raccomandata di `evaluate_badges_for_user`:
+  - includere regole basate su `profiles.role_id` + metriche minigioco,
+  - separare regole “globali” da regole “role-specific” (CTE/moduli SQL distinti) per mantenibilità.
+- Trigger di assegnazione: conservare il modello attuale event-driven, estendendo gli eventi che possono assegnare badge (esito minigioco, streak, missioni).
+
+### 3) Minigiochi dedicati
+
+- Basare l'integrazione sul catalogo già esistente lato mobile (`apps/mobile/src/gameplay/minigames.ts`) introducendo:
+  - `allowedRoles` per minigioco,
+  - difficulty/scoring profile opzionale per ruolo,
+  - reward mapping (token/reputation/badge progress).
+- Aggiungere telemetria minima per minigioco:
+  - tentativi,
+  - completamenti,
+  - best score,
+  - tempo medio.
+- Usare questa telemetria sia per progressione utente sia per tuning live delle soglie badge.
+
+### 4) Personalizzazione UX per ruolo
+
+- Onboarding: dopo `role-selection`, mostrare una “role journey card” con:
+  - obiettivi iniziali,
+  - primo minigioco consigliato,
+  - badge di avvio ottenibili.
+- Home: ordinare widget e CTA in base al ruolo (senza duplicare schermate intere).
+- Notifiche: priorità ai messaggi in linea col ruolo (nuovo badge di ruolo, sfida giornaliera, evento coerente col focus role).
+- Progressione: introdurre missioni settimanali a tema ruolo come layer sopra il sistema reputazione già esistente.
+
+### 5) Piano di rollout (sicuro)
+
+1. **Schema/config readiness**
+   - aggiunta metadata ruolo e mapping badge/minigiochi,
+   - feature flag dedicata (mobile + backend).
+2. **Badge role-specific (dark launch)**
+   - regole deployate ma non visibili globalmente,
+   - verifica metriche in ambiente controllato.
+3. **Minigiochi role-gated**
+   - abilitazione solo per utenti del nuovo ruolo,
+   - tuning di scoring e reward.
+4. **UX personalization**
+   - onboarding e home contestuale,
+   - notifiche dedicate.
+5. **A/B o progressive rollout**
+   - monitorare retention D1/D7, completion minigiochi, unlock badge,
+   - espansione graduale ad altri ruoli se KPI positivi.
+
+### 6) KPI minimi per validazione
+
+- Activation del ruolo: % utenti che completano onboarding dedicato.
+- Engagement: sessioni medie con almeno 1 interazione role-specific.
+- Minigiochi: completion rate e retry rate.
+- Badge: tempo medio al primo badge ruolo e numero badge ruolo/utente.
+- Retention: confronto D1/D7 tra utenti con e senza personalizzazione ruolo.
+
+### 7) Rischi e mitigazioni
+
+- **Rischio:** esplosione complessità per ruolo.
+  - **Mitigazione:** config-driven architecture, componenti UI riusabili, no fork per ruolo.
+- **Rischio:** badge troppo facili/difficili.
+  - **Mitigazione:** soglie tunabili server-side + osservabilità settimanale.
+- **Rischio:** minigiochi non coerenti col ruolo.
+  - **Mitigazione:** playlist per ruolo con gating progressivo e test qualitativi rapidi.
+- **Rischio:** regressioni su utenti attuali.
+  - **Mitigazione:** feature flags + fallback default + rollout progressivo.

@@ -49,7 +49,6 @@ ITALIAN_MONTHS = {
     "febbraio": 2,
     "mar": 3,
     "marzo": 3,
-    "apr": 4,
     "aprile": 4,
     "mag": 5,
     "maggio": 5,
@@ -84,8 +83,6 @@ ITALIAN_MONTHS = {
     "september": 9,
     "oct": 10,
     "october": 10,
-    "nov": 11,
-    "november": 11,
     "dec": 12,
     "december": 12,
 }
@@ -165,7 +162,7 @@ def fetch_calendar_events(*, supabase_url: str, api_key: str, timeout_s: int = 1
     response.raise_for_status()
     rows = response.json()
     if not isinstance(rows, list):
-        raise ValueError("Formato risposta calendario non valido.")
+        raise ValueError("Invalid calendar response format.")
 
     events: list[CalendarEvent] = []
     for row in rows:
@@ -209,7 +206,7 @@ def resolve_payload_from_calendar(
 ) -> TicketPayload:
     normalized_id = event_id.strip()
     if not normalized_id:
-        raise ValueError("event_id mancante.")
+        raise ValueError("Missing event_id.")
     events = fetch_calendar_events(supabase_url=supabase_url, api_key=api_key)
     selected = next((event for event in events if event.event_id.lower() == normalized_id.lower()), None)
     if not selected:

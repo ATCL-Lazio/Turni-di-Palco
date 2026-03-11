@@ -374,7 +374,7 @@ function AppShell() {
       setPublicProfileTheatresLoading(true);
 
       try {
-        const { data, error } = await supabase.rpc('get_public_profile_theatres', {
+        const { data, error } = await supabase!.rpc('get_public_profile_theatres', {
           p_user_id: selectedLeaderboardEntry.id,
         });
         if (error) throw error;
@@ -602,7 +602,7 @@ function AppShell() {
   }): Promise<
     | {
       ok: true;
-      syncStatus: 'pending' | 'synced' | 'failed_boost_fallback';
+      syncStatus: 'pending' | 'synced' | 'synced_duplicate' | 'failed_boost_fallback';
       boostRequested: boolean;
       boostApplied: boolean;
       boostRejectionReason: string | null;
@@ -1142,4 +1142,3 @@ export default function App() {
     </GameStateProvider>
   );
 }
-

@@ -8,6 +8,9 @@
         "github.github-vscode-theme",
         "github.vscode-pull-request-github",
         "ms-ceintl.vscode-language-pack-it",
-        "anthropic.claude-code"
+        "anthropic.claude-code",
+        "ms-python.python",
+        "ms-python.debugpy",
+        "ms-python.vscode-python-envs"
     ]
 }

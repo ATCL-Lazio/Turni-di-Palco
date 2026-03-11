@@ -16,7 +16,7 @@ const ICON_MAP: Record<AvatarIcon, string> = {
 };
 
 function normalizeHue(value: number | undefined, fallback = DEFAULT_HUE) {
-  if (!Number.isFinite(value)) return fallback;
+  if (value === undefined || !Number.isFinite(value)) return fallback;
   return Math.max(0, Math.min(360, Math.round(value)));
 }
 

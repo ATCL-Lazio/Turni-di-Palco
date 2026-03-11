@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Users, Lightbulb, Volume2, Package, Clipboard, ChevronRight, Star, ArrowLeft, BookOpen } from 'lucide-react';
+import { Users, Lightbulb, Volume2, Package, Clipboard, ChevronRight, Star, ArrowLeft, BookOpen, ShieldCheck } from 'lucide-react';
 import { Role } from '../../state/store';
 import { Screen, ScreenHeader } from '../ui/Screen';
 
@@ -11,6 +11,7 @@ const roleIcons: Record<string, React.ElementType> = {
   fonico: Volume2,
   attrezzista: Package,
   palco: Clipboard,
+  rspp: ShieldCheck,
   dramaturg: BookOpen,
 };
 

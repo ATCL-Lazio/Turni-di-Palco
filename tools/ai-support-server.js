@@ -8,7 +8,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 
 const repoRoot = path.resolve(__dirname, '..');
-const defaultPort = Number.parseInt(String.fromCharCode(56, 55, 56, 55), 10);
+const defaultPort = 8787;
 
 const port =
   Number(process.env.PORT) ||
@@ -89,7 +89,7 @@ function readEnvFileValue(filePath, key) {
 }
 
 function writeEnvFileValue(filePath, key, value) {
-  if (!filePath || !key) return false;
+  if (String(filePath).trim() === '' || String(key).trim() === '') return false;
   const output = `${key}=${JSON.stringify(String(value))}`;
   const exists = fs.existsSync(filePath);
   const lines = exists ? fs.readFileSync(filePath, 'utf8').split(/\r?\n/) : [];
@@ -992,16 +992,6 @@ function startGhLogin() {
       ghLoginProcess = null;
     },
   });
-}
-
-function generateDeviceCode() {
-  // Generate a random 8-character device code (GitHub format)
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let code = '';
-  for (let i = 0; i < 8; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
 }
 
 function checkCodexAuth() {
@@ -2308,6 +2298,10 @@ async function ensureGhLabel(label) {
   }
 }
 
+function escapeGhSearchTitle(title) {
+  return String(title).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
 async function findExistingIssueByTitle(title) {
   try {
     const data = await runGhJson([
@@ -2318,7 +2312,7 @@ async function findExistingIssueByTitle(title) {
       '--limit',
       '50',
       '--search',
-      `in:title "${title.replace(/"/g, '\\"')}"`,
+      `in:title "${escapeGhSearchTitle(title)}"`,
       '--json',
       'number,title,url',
     ]);
@@ -2349,7 +2343,6 @@ function validateBinaryPath(binaryPath, binaryName) {
   // Check for suspicious patterns
   const suspiciousPatterns = [
     /\.\./,  // directory traversal
-    /\s/,   // whitespace (could be used for command separation)
     /[<>]/, // redirection
   ];
   
@@ -2474,6 +2467,20 @@ const requestHandler = (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
+    return;
+  }
+
+  if (req.method === 'GET' && req.url === '/favicon.ico') {
+    const faviconPath = path.join(__dirname, 'favicon.ico');
+    fs.readFile(faviconPath, (err, data) => {
+      if (err) {
+        res.writeHead(404);
+        res.end();
+      } else {
+        res.writeHead(200, { 'Content-Type': 'image/x-icon', 'Cache-Control': 'public, max-age=86400' });
+        res.end(data);
+      }
+    });
     return;
   }
 
@@ -2802,7 +2809,8 @@ const requestHandler = (req, res) => {
 };
 
 // Keep-alive reciproco integrato
-const TURNI_DI_PALCO_URL = 'https://turni-di-palco-fq85.onrender.com';
+const TURNI_DI_PALCO_URL =
+  process.env.KEEP_ALIVE_TARGET_URL || 'https://turni-di-palco-fq85.onrender.com';
 const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // 10 minuti
 const KEEP_ALIVE_JITTER = 60000; // 1 minuto di jitter
 
@@ -2878,15 +2886,25 @@ function startKeepAlive() {
 }
 
 // Watchdog integrato
+function getWatchdogServices() {
+  return [
+    {
+      name: 'Maxwell-AI-Support',
+      url: process.env.WATCHDOG_SERVICE_MAXWELL_URL || 'https://maxwell-ai-support.onrender.com/health'
+    },
+    {
+      name: 'Turni-di-Palco',
+      url: process.env.WATCHDOG_SERVICE_TURNI_URL || 'https://turni-di-palco-fq85.onrender.com/health'
+    }
+  ];
+}
+
 function performWatchdogCheck() {
   return new Promise((resolve) => {
     logLine('🐕 Starting watchdog scan...');
     
     // 1. Check servizi Render
-    const services = [
-      { name: 'Maxwell-AI-Support', url: 'https://maxwell-ai-support.onrender.com/health' },
-      { name: 'Turni-di-Palco', url: 'https://turni-di-palco-fq85.onrender.com/health' }
-    ];
+    const services = getWatchdogServices();
     
     let problems = [];
     let completed = 0;
