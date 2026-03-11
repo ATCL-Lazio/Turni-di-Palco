@@ -130,6 +130,7 @@ class TicketQrGeneratorUI:
         try:
             style.theme_use("clam")
         except tk.TclError:
+            # If the "clam" theme is not available, silently fall back to the default Tk theme.
             pass
 
         self.root.configure(bg=COLOR_APP_BG)
