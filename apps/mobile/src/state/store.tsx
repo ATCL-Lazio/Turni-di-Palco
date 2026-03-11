@@ -803,9 +803,22 @@ function shouldMirrorOfflineSyncLogsToServer() {
   return !OFFLINE_SYNC_SERVER_LOG_PREVIEW_HOST_RE.test(window.location.hostname);
 }
 
+let offlineMutationIdFallbackCounter = 0;
+
 function createOfflineMutationId() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
-  return `offline-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+  if (globalThis.crypto?.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    globalThis.crypto.getRandomValues(bytes);
+    // Format as a UUID-like hex string to keep IDs readable and unique enough
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    return `offline-${Date.now()}-${hex.slice(0, 16)}`;
+  }
+
+  // Last-resort fallback without using Math.random (not cryptographically secure)
+  offlineMutationIdFallbackCounter += 1;
+  return `offline-${Date.now()}-${offlineMutationIdFallbackCounter}`;
 }
 
 async function readTurnGeolocationSnapshot(): Promise<TurnGeolocationSnapshot | null> {
