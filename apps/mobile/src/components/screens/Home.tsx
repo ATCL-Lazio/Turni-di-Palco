@@ -306,11 +306,9 @@ export function Home({
                       Scansiona QR
                     </Button>
                   ) : null}
-                  {allowTurnsSection ? (
-                    <Button variant="ghost" size="sm" onClick={onViewTurni}>
-                      Vedi turni
-                    </Button>
-                  ) : null}
+                  <Button variant="ghost" size="sm" onClick={onViewTurni}>
+                    Vedi turni
+                  </Button>
                 </div>
               </div>
             ) : (
