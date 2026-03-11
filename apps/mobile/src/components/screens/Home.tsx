@@ -309,8 +309,6 @@ export function Home({
                   <Button variant="ghost" size="sm" onClick={onViewTurni}>
                     Vedi turni
                   </Button>
-                </div>
-              </div>
             ) : (
               <div className="space-y-2">
                 <div className="flex items-start gap-3" style={{ marginBottom: '20px' }}>
