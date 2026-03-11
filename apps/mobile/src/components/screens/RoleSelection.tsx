@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Users, Lightbulb, Volume2, Package, Clipboard, ChevronRight, Star, ArrowLeft } from 'lucide-react';
+import { Users, Lightbulb, Volume2, Package, Clipboard, ChevronRight, Star, ArrowLeft, BookOpen } from 'lucide-react';
 import { Role } from '../../state/store';
 import { Screen, ScreenHeader } from '../ui/Screen';
 
@@ -11,14 +11,16 @@ const roleIcons: Record<string, React.ElementType> = {
   fonico: Volume2,
   attrezzista: Package,
   palco: Clipboard,
+  dramaturg: BookOpen,
 };
 
 interface RoleSelectionProps {
   roles: Role[];
+  showRoleJourney?: boolean;
   onComplete: (role: Role) => void;
 }
 
-export function RoleSelection({ roles, onComplete }: RoleSelectionProps) {
+export function RoleSelection({ roles, showRoleJourney = true, onComplete }: RoleSelectionProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
 
@@ -112,6 +114,43 @@ export function RoleSelection({ roles, onComplete }: RoleSelectionProps) {
               ))}
             </div>
           </Card>
+
+          {showRoleJourney && selectedRole.profile?.journey ? (
+            <Card className="mb-4 border border-[#f4bf4f]/20 bg-[#1a1617]">
+              <div className="space-y-3">
+                {selectedRole.profile.journey.eyebrow ? (
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f4bf4f]">
+                    {selectedRole.profile.journey.eyebrow}
+                  </p>
+                ) : null}
+                <div>
+                  <h4 className="text-white">{selectedRole.profile.journey.headline}</h4>
+                  <p className="mt-1 text-sm text-[#b8b2b3]">{selectedRole.profile.journey.summary}</p>
+                </div>
+                {(selectedRole.profile.journey.objectives ?? []).length ? (
+                  <div className="space-y-2">
+                    {(selectedRole.profile.journey.objectives ?? []).slice(0, 3).map((objective) => (
+                      <p key={objective} className="text-sm text-[#f7f3f4]">
+                        • {objective}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+                {(selectedRole.profile.journey.starterBadgeLabels ?? []).length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {(selectedRole.profile.journey.starterBadgeLabels ?? []).map((badgeLabel) => (
+                      <span
+                        key={badgeLabel}
+                        className="rounded-full border border-[#f4bf4f]/20 bg-[#241f20] px-3 py-1 text-xs text-[#f4bf4f]"
+                      >
+                        {badgeLabel}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </Card>
+          ) : null}
 
           <Button variant="primary" size="lg" fullWidth onClick={() => onComplete(selectedRole)}>
             Conferma ruolo e continua

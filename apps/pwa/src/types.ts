@@ -1,4 +1,4 @@
-export type RoleId = "attore" | "luci" | "fonico" | "attrezzista" | "palco";
+export type RoleId = "attore" | "luci" | "fonico" | "attrezzista" | "palco" | "dramaturg";
 export type Rewards = { xp: number; cachet: number; reputation: number };
 export type Role = { id: RoleId; name: string; focus: string; stats: string[] };
 export type AvatarIcon = "mask" | "spot" | "gear" | "note";

@@ -48,6 +48,16 @@ interface HomeProps {
   onDismissBadgeNotification?: () => void;
   upcomingEvent?: GameEvent;
   activitiesCount: number;
+  roleJourney?: {
+    eyebrow?: string;
+    headline: string;
+    summary: string;
+    recommendedActivityTitle?: string;
+    starterBadgeLabels?: string[];
+    objectives?: string[];
+    homeMessage?: string;
+    ctaLabel?: string;
+  } | null;
   eventLoading?: boolean;
   eventError?: boolean;
   statsLoading?: boolean;
@@ -56,6 +66,7 @@ interface HomeProps {
   allowActivitiesSection?: boolean;
   onScanQR: () => void;
   onViewActivities: () => void;
+  onOpenRoleJourney?: () => void;
   onViewTurni: () => void;
   onViewEventDetails: () => void;
   onNavigateToEvent: () => void;
@@ -81,6 +92,7 @@ export function Home({
   onDismissBadgeNotification,
   upcomingEvent,
   activitiesCount,
+  roleJourney = null,
   eventLoading = false,
   eventError = false,
   statsLoading = false,
@@ -89,6 +101,7 @@ export function Home({
   allowActivitiesSection = true,
   onScanQR,
   onViewActivities,
+  onOpenRoleJourney,
   onViewTurni,
   onViewEventDetails,
   onNavigateToEvent,
@@ -252,6 +265,49 @@ export function Home({
             </Card>
           ) : null}
         </header>
+
+        {roleJourney ? (
+          <Card className="border border-[#f4bf4f]/30 bg-gradient-to-br from-[#201819] via-[#251b1d] to-[#171314]">
+            <div className="space-y-3">
+              {roleJourney.eyebrow ? (
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f4bf4f]">
+                  {roleJourney.eyebrow}
+                </p>
+              ) : null}
+              <div className="space-y-1">
+                <h3 className="text-white text-lg font-semibold">{roleJourney.headline}</h3>
+                <p className="text-sm text-[#b8b2b3]">{roleJourney.summary}</p>
+                {roleJourney.homeMessage ? (
+                  <p className="text-xs text-[#f4bf4f]">{roleJourney.homeMessage}</p>
+                ) : null}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {roleJourney.recommendedActivityTitle ? (
+                  <Tag size="sm" variant="success">
+                    Missione chiave: {roleJourney.recommendedActivityTitle}
+                  </Tag>
+                ) : null}
+                {(roleJourney.starterBadgeLabels ?? []).map((badgeLabel) => (
+                  <Tag key={badgeLabel} size="sm" variant="outline">
+                    {badgeLabel}
+                  </Tag>
+                ))}
+              </div>
+              {(roleJourney.objectives ?? []).length ? (
+                <div className="space-y-2">
+                  {(roleJourney.objectives ?? []).slice(0, 3).map((objective) => (
+                    <p key={objective} className="text-sm text-[#f7f3f4]">
+                      • {objective}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+              <Button variant="secondary" size="sm" onClick={onOpenRoleJourney ?? onViewActivities}>
+                {roleJourney.ctaLabel ?? 'Apri il percorso'}
+              </Button>
+            </div>
+          </Card>
+        ) : null}
 
         {allowScanQr ? <ScanQRCard onScanQR={onScanQR} /> : null}
         {showHomeTicker ? (

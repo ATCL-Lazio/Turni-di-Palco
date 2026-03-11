@@ -4,15 +4,17 @@ import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Tag } from '../ui/Tag';
 import { ProgressBar } from '../ui/ProgressBar';
-import { Activity, ActivitySlotsStatus } from '../../state/store';
+import { Activity, ActivitySlotsStatus, Role, computeActivityRewards, getRoleActivityOverride } from '../../state/store';
 
 interface ActivitiesProps {
   activities: Activity[];
+  activeRole?: Role;
   slotsStatus: ActivitySlotsStatus;
   slotsLoading?: boolean;
   isOnline?: boolean;
   canStartActivities?: boolean;
   embedded?: boolean;
+  recommendedActivityId?: string;
   onStartActivity: (activityId: string) => void;
 }
 
@@ -24,11 +26,13 @@ const difficultyLabels: Record<Activity['difficulty'], string> = {
 
 export function Activities({
   activities,
+  activeRole,
   slotsStatus,
   slotsLoading = false,
   isOnline = true,
   canStartActivities = true,
   embedded = false,
+  recommendedActivityId,
   onStartActivity,
 }: ActivitiesProps) {
   const totalActivities = activities.length;
@@ -92,6 +96,8 @@ export function Activities({
             {activities.map((activity, index) => {
               const difficultyLabel = difficultyLabels[activity.difficulty] ?? activity.difficulty;
               const canStart = canStartActivities && isOnline && remainingSlots > 0;
+              const rewardPreview = computeActivityRewards(activity, activeRole);
+              const roleHighlight = getRoleActivityOverride(activeRole, activity.id)?.highlightLabel;
               return (
                 <Card
                   key={activity.id}
@@ -124,15 +130,25 @@ export function Activities({
                         <Badge variant="outline" size="sm">
                           {difficultyLabel}
                         </Badge>
+                        {recommendedActivityId === activity.id ? (
+                          <Tag size="sm" variant="success">
+                            Consigliata per {activeRole?.name ?? 'il tuo ruolo'}
+                          </Tag>
+                        ) : null}
+                        {roleHighlight ? (
+                          <Tag size="sm" variant="outline">
+                            {roleHighlight}
+                          </Tag>
+                        ) : null}
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/90 backdrop-blur">
                           <TrendingUp size={12} className="text-[#f4bf4f]" />
-                          +{activity.xpReward} XP
+                          +{rewardPreview.xp} XP
                         </span>
                         <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/90 backdrop-blur">
                           <Coins size={12} className="text-[#f4bf4f]" />
-                          +{activity.cachetReward}
+                          +{rewardPreview.cachet}
                         </span>
                       </div>
                       {!canStart ? (

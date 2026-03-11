@@ -10,6 +10,7 @@ export const roles: Role[] = [
   { id: "fonico", name: "Fonico", focus: "Pulizia audio", stats: ["Ascolto", "Reattivita", "Problem solving"] },
   { id: "attrezzista", name: "Attrezzista / Scenografo", focus: "Allestimento rapido", stats: ["Creativita", "Manualita", "Organizzazione"] },
   { id: "palco", name: "Assistente di palco", focus: "Coordinamento", stats: ["Coordinazione", "Leadership", "Sangue freddo"] },
+  { id: "dramaturg", name: "Dramaturg", focus: "Analisi del testo e ritmo di scena", stats: ["Analisi", "Sottotesto", "Continuita"] },
 ];
 
 export const avatarIcons: { id: AvatarIcon; label: string; symbol: string }[] = [
