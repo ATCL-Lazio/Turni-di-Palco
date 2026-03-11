@@ -279,7 +279,7 @@ export function Home({
 
           <Card 
             hoverable={eventState === 'ready' && allowTurnsSection}
-            onClick={eventState === 'ready' && allowTurnsSection ? onViewTurni : undefined}
+            onClick={eventState === 'ready' ? onViewTurni : undefined}
             animateOnMount
           >
             {eventState === 'loading' ? (
