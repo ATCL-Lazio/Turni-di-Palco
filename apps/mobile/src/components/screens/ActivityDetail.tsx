@@ -3,17 +3,20 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Play, Clock, TrendingUp, Coins, X, AlertCircle } from 'lucide-react';
-import { Activity } from '../../state/store';
+import { Activity, Role, computeActivityRewards, getRoleActivityOverride } from '../../state/store';
 import { getMinigameConfig } from '../../gameplay/minigames';
 
 interface ActivityDetailProps {
   activity: Activity;
+  role?: Role;
   onStart: () => void;
   onClose: () => void;
 }
 
-export function ActivityDetail({ activity, onStart, onClose }: ActivityDetailProps) {
-  const minigame = getMinigameConfig(activity.id);
+export function ActivityDetail({ activity, role, onStart, onClose }: ActivityDetailProps) {
+  const minigame = getMinigameConfig(activity.id, role?.id);
+  const rewards = computeActivityRewards(activity, role);
+  const roleHighlight = getRoleActivityOverride(role, activity.id);
   return (
     <div className="fixed inset-0 app-gradient z-50 overflow-y-auto pb-24">
       <div className="sticky top-0 bg-[#1a1617] border-b border-[#2d2728] p-4 flex items-center justify-between z-10">
@@ -46,7 +49,7 @@ export function ActivityDetail({ activity, onStart, onClose }: ActivityDetailPro
               <div className="w-12 h-12 bg-gradient-to-br from-[#e6a23c] to-[#f4bf4f] rounded-lg flex items-center justify-center mx-auto mb-2">
                 <TrendingUp className="text-[#0f0d0e]" size={24} />
               </div>
-              <p className="text-2xl text-white mb-1">+{activity.xpReward}</p>
+              <p className="text-2xl text-white mb-1">+{rewards.xp}</p>
               <p className="text-xs text-[#b8b2b3]">XP</p>
             </div>
 
@@ -54,7 +57,7 @@ export function ActivityDetail({ activity, onStart, onClose }: ActivityDetailPro
               <div className="w-12 h-12 bg-[#241f20] rounded-lg flex items-center justify-center mx-auto mb-2">
                 <Coins className="text-[#f4bf4f]" size={24} />
               </div>
-              <p className="text-2xl text-white mb-1">+{activity.cachetReward}</p>
+              <p className="text-2xl text-white mb-1">+{rewards.cachet}</p>
               <p className="text-xs text-[#b8b2b3]">Cachet</p>
             </div>
           </div>
@@ -63,7 +66,16 @@ export function ActivityDetail({ activity, onStart, onClose }: ActivityDetailPro
         <Card className="border border-[#f4bf4f]/30">
           <div className="flex gap-3">
             <AlertCircle className="text-[#f4bf4f] flex-shrink-0" size={20} />
-            <p className="text-sm text-white">{minigame.title}</p>
+            <div className="space-y-1">
+              <p className="text-sm text-white">{minigame.title}</p>
+              <p className="text-xs text-[#b8b2b3]">{minigame.subtitle}</p>
+              {roleHighlight?.highlightLabel ? (
+                <p className="text-xs text-[#f4bf4f]">{roleHighlight.highlightLabel}</p>
+              ) : null}
+              {roleHighlight?.homeNote ? (
+                <p className="text-xs text-[#9b9496]">{roleHighlight.homeNote}</p>
+              ) : null}
+            </div>
           </div>
         </Card>
 

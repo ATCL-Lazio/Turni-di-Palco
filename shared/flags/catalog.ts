@@ -38,6 +38,7 @@ export const MOBILE_FEATURE_FLAG_KEYS = [
   "mobile.section.shop",
   "mobile.section.career",
   "mobile.section.earned_titles",
+  "mobile.section.role_journey",
   "mobile.action.ai_support",
   "mobile.action.qr_scan",
   "mobile.action.turn_submit",
@@ -56,6 +57,8 @@ export const MOBILE_FEATURE_FLAG_DESCRIPTIONS: Record<MobileFeatureFlagKey, stri
   "mobile.section.shop": "Mostra la sezione Shop nell'app mobile.",
   "mobile.section.career": "Mostra la sezione Carriera nell'app mobile.",
   "mobile.section.earned_titles": "Mostra la sezione Titoli ottenuti nell'app mobile.",
+  "mobile.section.role_journey":
+    "Abilita il percorso ruolo con onboarding, ordinamento attivita e card dedicate nell'app mobile.",
   "mobile.action.ai_support": "Abilita l'accesso al Supporto AI nelle impostazioni account dell'app mobile.",
   "mobile.action.qr_scan": "Abilita la scansione QR nell'app mobile.",
   "mobile.action.turn_submit": "Abilita la registrazione turni nell'app mobile.",

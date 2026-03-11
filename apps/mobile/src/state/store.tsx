@@ -22,15 +22,43 @@ import {
   writeMobileFeatureFlagsCache,
 } from '../services/feature-flags';
 
-export type RoleId = 'attore' | 'luci' | 'fonico' | 'attrezzista' | 'palco';
+export const ROLE_IDS = ['attore', 'luci', 'fonico', 'attrezzista', 'palco', 'dramaturg'] as const;
+export type RoleId = (typeof ROLE_IDS)[number];
 export type Rewards = { xp: number; reputation: number; cachet: number };
 export type TurnSyncStatus = 'pending' | 'synced' | 'failed_boost_fallback';
+
+export type RoleJourney = {
+  eyebrow?: string;
+  headline: string;
+  summary: string;
+  recommendedActivityId?: string;
+  starterBadgeLabels?: string[];
+  objectives?: string[];
+  homeCtaLabel?: string;
+};
+
+export type RoleActivityOverride = {
+  xpMultiplier?: number;
+  cachetMultiplier?: number;
+  reputationBonus?: number;
+  highlightLabel?: string;
+  homeNote?: string;
+};
+
+export type RoleProfile = {
+  allowedActivityIds?: string[];
+  activityOrder?: string[];
+  homeMessage?: string;
+  journey?: RoleJourney;
+  activityOverrides?: Record<string, RoleActivityOverride>;
+};
 
 export type Role = {
   id: RoleId;
   name: string;
   focus: string;
   stats: { presence: number; precision: number; leadership: number; creativity: number };
+  profile?: RoleProfile;
 };
 
 export type GameEvent = {
@@ -72,6 +100,13 @@ export type ActivitySlotsStatus = {
   usedToday: number;
   totalSlots: number;
   remainingSlots: number;
+};
+
+export type ActivityTelemetryInput = {
+  score: number;
+  rating: string;
+  attempts?: number;
+  durationMs?: number;
 };
 
 export type CompleteActivityResult =
@@ -242,6 +277,7 @@ type DbRoleRow = {
   name: string;
   focus: string;
   stats?: { presence?: number; precision?: number; leadership?: number; creativity?: number } | null;
+  role_profile?: unknown;
 };
 
 type DbActivityRow = {
@@ -308,12 +344,53 @@ type FollowedEventRow = {
   events?: DbEventRow | DbEventRow[] | null;
 };
 
+// TODO: spostare i profili ruolo nel catalogo remoto per evitare duplicazione tra client e seed SQL.
+const DRAMATURG_PROFILE: RoleProfile = {
+  allowedActivityIds: ['copione', 'recitazione', 'ritardo'],
+  activityOrder: ['copione', 'recitazione', 'ritardo'],
+  homeMessage: 'Oggi il focus e rifinire ritmo, sottotesto e continuita di scena.',
+  journey: {
+    eyebrow: 'Percorso ruolo',
+    headline: 'Costruisci il battito della scena prima dell ingresso in palco.',
+    summary: 'Parti da Revisione copione, consolida il sottotesto e sblocca i primi badge di ruolo.',
+    recommendedActivityId: 'copione',
+    starterBadgeLabels: ['Primo briefing drammaturgico', 'Occhio sul testo'],
+    objectives: [
+      'Avvia Revisione copione e completa il primo briefing',
+      'Mantieni almeno 80/100 in tre sessioni sul testo',
+      'Usa Recitazione per validare ritmo e ingressi',
+    ],
+    homeCtaLabel: 'Apri percorso dramaturg',
+  },
+  activityOverrides: {
+    copione: {
+      xpMultiplier: 1.2,
+      cachetMultiplier: 1.1,
+      reputationBonus: 4,
+      highlightLabel: 'Missione dramaturg',
+      homeNote: 'Perfetta per sbloccare i badge dedicati al testo.',
+    },
+    recitazione: {
+      xpMultiplier: 1.08,
+      reputationBonus: 2,
+      highlightLabel: 'Analisi sottotesto',
+    },
+  },
+};
+
 export const roles: Role[] = [
   { id: 'attore', name: 'Attore / Attrice', focus: 'Presenza scenica', stats: { presence: 90, precision: 70, leadership: 60, creativity: 85 } },
   { id: 'luci', name: 'Tecnico Luci', focus: 'Precisione cue', stats: { presence: 50, precision: 95, leadership: 65, creativity: 75 } },
   { id: 'fonico', name: 'Fonico', focus: 'Pulizia audio', stats: { presence: 45, precision: 90, leadership: 60, creativity: 70 } },
   { id: 'attrezzista', name: 'Attrezzista / Scenografo', focus: 'Allestimento rapido', stats: { presence: 55, precision: 85, leadership: 70, creativity: 90 } },
   { id: 'palco', name: 'Assistente di Palco', focus: 'Coordinamento', stats: { presence: 60, precision: 88, leadership: 85, creativity: 65 } },
+  {
+    id: 'dramaturg',
+    name: 'Dramaturg',
+    focus: 'Analisi del testo e ritmo di scena',
+    stats: { presence: 70, precision: 82, leadership: 78, creativity: 92 },
+    profile: DRAMATURG_PROFILE,
+  },
 ];
 
 export const events: GameEvent[] = [
@@ -385,6 +462,15 @@ export const activities: Activity[] = [
     xpReward: 45,
     cachetReward: 18,
     difficulty: 'Facile',
+  },
+  {
+    id: 'copione',
+    title: 'Revisione copione',
+    description: 'Analizza le transizioni del testo e blocca i passaggi critici nel punto giusto.',
+    duration: '5 min',
+    xpReward: 58,
+    cachetReward: 24,
+    difficulty: 'Medio',
   },
 ];
 
@@ -764,6 +850,117 @@ function persistStoredSession(session: Session | null) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function isRoleId(value: unknown): value is RoleId {
+  return typeof value === 'string' && (ROLE_IDS as readonly string[]).includes(value);
+}
+
+function normalizeStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const next = value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  return next.length ? next : undefined;
+}
+
+function normalizeRoleJourney(value: unknown): RoleJourney | undefined {
+  if (!isRecord(value)) return undefined;
+  const headline = typeof value.headline === 'string' ? value.headline.trim() : '';
+  const summary = typeof value.summary === 'string' ? value.summary.trim() : '';
+  if (!headline || !summary) return undefined;
+  const eyebrow = typeof value.eyebrow === 'string' && value.eyebrow.trim()
+    ? value.eyebrow.trim()
+    : undefined;
+  const recommendedActivityId =
+    typeof value.recommendedActivityId === 'string' && value.recommendedActivityId.trim()
+      ? value.recommendedActivityId.trim()
+      : undefined;
+  const starterBadgeLabels = normalizeStringArray(value.starterBadgeLabels);
+  const objectives = normalizeStringArray(value.objectives);
+  const homeCtaLabel = typeof value.homeCtaLabel === 'string' && value.homeCtaLabel.trim()
+    ? value.homeCtaLabel.trim()
+    : undefined;
+
+  return {
+    eyebrow,
+    headline,
+    summary,
+    recommendedActivityId,
+    starterBadgeLabels,
+    objectives,
+    homeCtaLabel,
+  };
+}
+
+function normalizeRoleActivityOverride(value: unknown): RoleActivityOverride | undefined {
+  if (!isRecord(value)) return undefined;
+  const xpMultiplier = Number(value.xpMultiplier);
+  const cachetMultiplier = Number(value.cachetMultiplier);
+  const reputationBonus = Number(value.reputationBonus);
+  const highlightLabel = typeof value.highlightLabel === 'string' && value.highlightLabel.trim()
+    ? value.highlightLabel.trim()
+    : undefined;
+  const homeNote = typeof value.homeNote === 'string' && value.homeNote.trim()
+    ? value.homeNote.trim()
+    : undefined;
+
+  const next: RoleActivityOverride = {};
+  if (Number.isFinite(xpMultiplier) && xpMultiplier > 0) next.xpMultiplier = xpMultiplier;
+  if (Number.isFinite(cachetMultiplier) && cachetMultiplier > 0) next.cachetMultiplier = cachetMultiplier;
+  if (Number.isFinite(reputationBonus)) next.reputationBonus = Math.round(reputationBonus);
+  if (highlightLabel) next.highlightLabel = highlightLabel;
+  if (homeNote) next.homeNote = homeNote;
+  return Object.keys(next).length ? next : undefined;
+}
+
+function normalizeRoleProfile(value: unknown): RoleProfile | undefined {
+  if (!isRecord(value)) return undefined;
+  const allowedActivityIds = normalizeStringArray(value.allowedActivityIds);
+  const activityOrder = normalizeStringArray(value.activityOrder);
+  const homeMessage = typeof value.homeMessage === 'string' && value.homeMessage.trim()
+    ? value.homeMessage.trim()
+    : undefined;
+  const journey = normalizeRoleJourney(value.journey);
+  const activityOverrides = isRecord(value.activityOverrides)
+    ? Object.fromEntries(
+      Object.entries(value.activityOverrides)
+        .map(([activityId, override]) => [activityId, normalizeRoleActivityOverride(override)])
+        .filter((entry): entry is [string, RoleActivityOverride] => Boolean(entry[1]))
+    )
+    : undefined;
+
+  const next: RoleProfile = {};
+  if (allowedActivityIds?.length) next.allowedActivityIds = allowedActivityIds;
+  if (activityOrder?.length) next.activityOrder = activityOrder;
+  if (homeMessage) next.homeMessage = homeMessage;
+  if (journey) next.journey = journey;
+  if (activityOverrides && Object.keys(activityOverrides).length) next.activityOverrides = activityOverrides;
+  return Object.keys(next).length ? next : undefined;
+}
+
+export function getRoleActivityOverride(
+  role: Role | null | undefined,
+  activityId: string
+): RoleActivityOverride | undefined {
+  return role?.profile?.activityOverrides?.[activityId];
+}
+
+export function computeActivityRewards(
+  activity: Activity,
+  role: Role | null | undefined
+): Rewards {
+  const override = getRoleActivityOverride(role, activity.id);
+  const xpMultiplier = override?.xpMultiplier ?? 1;
+  const cachetMultiplier = override?.cachetMultiplier ?? 1;
+  const reputationBonus = override?.reputationBonus ?? 0;
+
+  return {
+    xp: Math.max(0, Math.round(activity.xpReward * xpMultiplier)),
+    cachet: Math.max(0, Math.round(activity.cachetReward * cachetMultiplier)),
+    reputation: Math.max(0, 5 + reputationBonus),
+  };
 }
 
 function isQueuedMutationKind(value: unknown): value is QueuedMutationKind {
@@ -1348,7 +1545,7 @@ function loadState(): GameState {
     if (!raw) return createDefaultState();
     const parsed = JSON.parse(raw) as GameState;
     if (!parsed.profile) return createDefaultState();
-    const safeRole = roles.some((role) => role.id === parsed.profile.roleId) ? parsed.profile.roleId : createDefaultState().profile.roleId;
+    const safeRole = isRoleId(parsed.profile.roleId) ? parsed.profile.roleId : createDefaultState().profile.roleId;
     return {
       profile: {
         ...createDefaultState().profile,
@@ -1575,7 +1772,10 @@ type GameContextValue = {
   pendingBoostRequests: number;
   turnSyncFeedback: TurnSyncFeedback | null;
   clearTurnSyncFeedback: () => void;
-  completeActivity: (activityId: string) => Promise<CompleteActivityResult>;
+  completeActivity: (
+    activityId: string,
+    telemetry?: ActivityTelemetryInput
+  ) => Promise<CompleteActivityResult>;
   resetProgress: () => Promise<void>;
   changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
@@ -1786,9 +1986,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           const rows = (data as LeaderboardRow[]) ?? [];
           const nextLeaderboard: LeaderboardEntry[] = rows.map((row) => {
             const roleCandidate = row.role_id ?? 'attore';
-            const roleId: RoleId = (roleCandidate === 'attore' || roleCandidate === 'luci' || roleCandidate === 'fonico' || roleCandidate === 'attrezzista' || roleCandidate === 'palco')
-              ? (roleCandidate as RoleId)
-              : 'attore';
+            const roleId: RoleId = isRoleId(roleCandidate) ? roleCandidate : 'attore';
             const lastActivityAt = row.last_activity_at ? new Date(row.last_activity_at).getTime() : undefined;
             return {
               id: row.id,
@@ -2842,7 +3040,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       await withMobileWatchdog(
         async () => {
           const [rolesRes, eventsRes, activitiesRes] = await Promise.all([
-            supabase!.from('roles').select('id,name,focus,stats'),
+            supabase!.from('roles').select('id,name,focus,stats,role_profile'),
             supabase!
               .from('events')
               .select('id,name,theatre,event_date,event_time,genre,base_rewards,focus_role'),
@@ -2857,7 +3055,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             rolesRes.error || !rolesRes.data?.length
               ? roles
               : (rolesRes.data as DbRoleRow[]).map((role) => ({
-                id: role.id as RoleId,
+                id: isRoleId(role.id) ? role.id : 'attore',
                 name: role.name,
                 focus: role.focus,
                 stats: {
@@ -2866,6 +3064,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                   leadership: Number(role.stats?.leadership ?? 0),
                   creativity: Number(role.stats?.creativity ?? 0),
                 },
+                profile: normalizeRoleProfile(role.role_profile),
               }));
 
           const nextEvents =
@@ -2981,7 +3180,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               theatre: normalizeText(turn.theatre),
               date: normalizeText(turn.event_date),
               time: normalizeText(turn.event_time),
-              roleId: (turn.role_id as RoleId) ?? 'attore',
+              roleId: isRoleId(turn.role_id) ? turn.role_id : 'attore',
               rewards: {
                 xp: Number(turn.rewards?.xp ?? 0),
                 reputation: Number(turn.rewards?.reputation ?? 0),
@@ -3004,7 +3203,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                   fallback: prev.profile.name,
                 }),
                 email: profileRow.email ?? prev.profile.email,
-                roleId: (profileRow.role_id as RoleId) ?? prev.profile.roleId,
+                roleId: isRoleId(profileRow.role_id) ? profileRow.role_id : prev.profile.roleId,
                 level: profileRow.level ?? prev.profile.level,
                 xp: profileRow.xp ?? prev.profile.xp,
                 xpToNextLevel: profileRow.xp_to_next_level ?? prev.profile.xpToNextLevel,
@@ -3081,7 +3280,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       theatre: normalizeText(turn.theatre),
       date: normalizeText(turn.event_date),
       time: normalizeText(turn.event_time),
-      roleId: (turn.role_id as RoleId) ?? 'attore',
+      roleId: isRoleId(turn.role_id) ? turn.role_id : 'attore',
       rewards: {
         xp: Number(turn.rewards?.xp ?? 0),
         reputation: Number(turn.rewards?.reputation ?? 0),
@@ -3108,7 +3307,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 fallback: prev.profile.name,
               }),
               email: profile.email ?? prev.profile.email,
-              roleId: (profile.role_id as RoleId) ?? prev.profile.roleId,
+              roleId: isRoleId(profile.role_id) ? profile.role_id : prev.profile.roleId,
               level: profile.level ?? prev.profile.level,
               xp: profile.xp ?? prev.profile.xp,
               xpToNextLevel: profile.xp_to_next_level ?? prev.profile.xpToNextLevel,
@@ -3653,7 +3852,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const completeActivity = useCallback(
-    async (activityId: string): Promise<CompleteActivityResult> => {
+    async (
+      activityId: string,
+      telemetry?: ActivityTelemetryInput
+    ): Promise<CompleteActivityResult> => {
       if (!featureFlags['mobile.action.activity_complete']) {
         return { ok: false, error: 'Completamento attivita temporaneamente disattivato.' };
       }
@@ -3671,7 +3873,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         return { ok: false, error: 'Connessione assente: sincronizzazione attività non disponibile.' };
       }
 
-      logOfflineSync('Action completeActivity', { activityId });
+      logOfflineSync('Action completeActivity', { activityId, telemetry });
       const completionId = globalThis.crypto?.randomUUID
         ? globalThis.crypto.randomUUID()
         : `activity-${Date.now()}`;
@@ -3682,6 +3884,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             const { data, error } = await supabase.rpc('complete_activity_with_slots', {
               p_activity_id: activity.id,
               p_client_action_id: completionId,
+              p_score: telemetry?.score ?? null,
+              p_rating: telemetry?.rating ?? null,
+              p_attempts: telemetry?.attempts ?? 1,
+              p_duration_ms: telemetry?.durationMs ?? null,
             });
             if (error) throw error;
             const row = parseActivityCompletionRpcRow(data);
@@ -3735,6 +3941,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           };
         });
 
+        void refreshBadges();
+
         return {
           ok: true,
           activity,
@@ -3752,7 +3960,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         };
       }
     },
-    [authUserId, catalog.activities, featureFlags]
+    [authUserId, catalog.activities, featureFlags, refreshBadges]
   );
 
   const resetProgress = useCallback(async () => {
