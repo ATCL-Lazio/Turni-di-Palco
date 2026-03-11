@@ -231,7 +231,7 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
 
           const result = jsQR(imageData.data, scaledWidth, scaledHeight, {
             inversionAttempts: 'attemptBoth',
-          }); 
+          });
 
           if (result?.data) {
             hasHandledScanRef.current = true;
