@@ -803,6 +803,8 @@ function shouldMirrorOfflineSyncLogsToServer() {
   return !OFFLINE_SYNC_SERVER_LOG_PREVIEW_HOST_RE.test(window.location.hostname);
 }
 
+let offlineMutationIdFallbackCounter = 0;
+
 function createOfflineMutationId() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
 
@@ -815,11 +817,8 @@ function createOfflineMutationId() {
   }
 
   // Last-resort fallback without using Math.random (not cryptographically secure)
-  if (!createOfflineMutationId._counter) {
-    (createOfflineMutationId as any)._counter = 0;
-  }
-  (createOfflineMutationId as any)._counter += 1;
-  return `offline-${Date.now()}-${(createOfflineMutationId as any)._counter}`;
+  offlineMutationIdFallbackCounter += 1;
+  return `offline-${Date.now()}-${offlineMutationIdFallbackCounter}`;
 }
 
 async function readTurnGeolocationSnapshot(): Promise<TurnGeolocationSnapshot | null> {
