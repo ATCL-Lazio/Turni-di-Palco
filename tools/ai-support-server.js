@@ -2343,7 +2343,6 @@ function validateBinaryPath(binaryPath, binaryName) {
   // Check for suspicious patterns
   const suspiciousPatterns = [
     /\.\./,  // directory traversal
-    /\s/,   // whitespace (could be used for command separation)
     /[<>]/, // redirection
   ];
   
