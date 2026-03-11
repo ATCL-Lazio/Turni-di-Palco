@@ -8,7 +8,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 
 const repoRoot = path.resolve(__dirname, '..');
-const defaultPort = Number.parseInt(String.fromCharCode(56, 55, 56, 55), 10);
+const defaultPort = 8787;
 
 const port =
   Number(process.env.PORT) ||
