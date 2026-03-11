@@ -267,7 +267,10 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
       return;
     }
     // Proviamo a costruire un payload finto o chiamiamo direttamente onScan 
-    // col formato speciale che App.tsx capirà
+    // col formato speciale che App.tsx capirà.
+    // Formato manual ticket: "manual-ticket:{eventId}:{ticketNumber}".
+    // Questo string payload viene poi interpretato dall'handler onScan (in App.tsx),
+    // che lo riconosce tramite il prefisso "manual-ticket" e fa lo split sui ":".
     await handleScanAttempt(`manual-ticket:${manualEventId}:${manualTicket}`);
   };
 
