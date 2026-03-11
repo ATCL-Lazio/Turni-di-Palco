@@ -8,7 +8,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 
 const repoRoot = path.resolve(__dirname, '..');
-const defaultPort = Number.parseInt(String.fromCharCode(56, 55, 56, 55), 10);
+const defaultPort = 8787;
 
 const port =
   Number(process.env.PORT) ||
@@ -2343,7 +2343,6 @@ function validateBinaryPath(binaryPath, binaryName) {
   // Check for suspicious patterns
   const suspiciousPatterns = [
     /\.\./,  // directory traversal
-    /\s/,   // whitespace (could be used for command separation)
     /[<>]/, // redirection
   ];
   
@@ -2810,7 +2809,8 @@ const requestHandler = (req, res) => {
 };
 
 // Keep-alive reciproco integrato
-const TURNI_DI_PALCO_URL = 'https://turni-di-palco-fq85.onrender.com';
+const TURNI_DI_PALCO_URL =
+  process.env.KEEP_ALIVE_TARGET_URL || 'https://turni-di-palco-fq85.onrender.com';
 const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // 10 minuti
 const KEEP_ALIVE_JITTER = 60000; // 1 minuto di jitter
 
@@ -2886,15 +2886,25 @@ function startKeepAlive() {
 }
 
 // Watchdog integrato
+function getWatchdogServices() {
+  return [
+    {
+      name: 'Maxwell-AI-Support',
+      url: process.env.WATCHDOG_SERVICE_MAXWELL_URL || 'https://maxwell-ai-support.onrender.com/health'
+    },
+    {
+      name: 'Turni-di-Palco',
+      url: process.env.WATCHDOG_SERVICE_TURNI_URL || 'https://turni-di-palco-fq85.onrender.com/health'
+    }
+  ];
+}
+
 function performWatchdogCheck() {
   return new Promise((resolve) => {
     logLine('🐕 Starting watchdog scan...');
     
     // 1. Check servizi Render
-    const services = [
-      { name: 'Maxwell-AI-Support', url: 'https://maxwell-ai-support.onrender.com/health' },
-      { name: 'Turni-di-Palco', url: 'https://turni-di-palco-fq85.onrender.com/health' }
-    ];
+    const services = getWatchdogServices();
     
     let problems = [];
     let completed = 0;
