@@ -272,15 +272,23 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
   };
 
   return (
-    <div className="fixed inset-0 app-gradient z-50 flex flex-col">
+    <div
+      className="fixed inset-0 app-gradient z-50 flex flex-col"
+      style={{
+        // Local color tokens for QRScanner; update here to change the header theme.
+        '--qrscanner-header-bg': '#1a1617',
+        '--qrscanner-header-hover-bg': '#241f20',
+        '--qrscanner-accent': '#f4bf4f',
+      } as React.CSSProperties}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-[#1a1617]">      
+      <div className="flex items-center justify-between p-4 bg-[color:var(--qrscanner-header-bg)]">      
         <h3 className="text-white">Scansiona QR</h3>
         <button
           onClick={onClose}
-          className="flex items-center justify-center size-[44px] hover:bg-[#241f20] rounded-lg transition-colors"
+          className="flex items-center justify-center size-[44px] hover:bg-[color:var(--qrscanner-header-hover-bg)] rounded-lg transition-colors"
         >
-          <X className="text-[#f4bf4f]" size={24} />
+          <X className="text-[color:var(--qrscanner-accent)]" size={24} />
         </button>
       </div>
       
