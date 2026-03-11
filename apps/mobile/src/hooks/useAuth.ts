@@ -61,7 +61,7 @@ export function useAuth(
         setAuthError(null);
         if (!isSupabaseConfigured || !supabase) {
             updateProfile({ name, email });
-            onAuthChange('welcome'); // or role-selection?
+            onAuthChange('welcome'); // Flow will continue to role-selection
             return;
         }
 
@@ -96,6 +96,37 @@ export function useAuth(
         onLogout();
     }, [onLogout]);
 
+    const applyUserProfileFromAuth = useCallback(
+        (
+            user: { email: string | null; user_metadata?: Record<string, unknown> } | null | undefined,
+            options?: {
+                fallbackName?: string;
+                navigateTo?: 'home' | 'change-password';
+                navigateReplace?: boolean;
+            },
+        ) => {
+            if (!user) {
+                return;
+            }
+
+            const email = user.email ?? profile.email;
+            const displayName = resolveDisplayName({
+                name: (user.user_metadata as any)?.name,
+                metadata: user.user_metadata,
+                email,
+                fallback: options?.fallbackName ?? profile.name,
+            });
+
+            const shouldSetName = shouldUpdateName(profile.name, email, displayName);
+            updateProfile(shouldSetName ? { name: displayName, email } : { email });
+
+            if (options?.navigateTo) {
+                onAuthChange(options.navigateTo, options.navigateReplace);
+            }
+        },
+        [profile.name, profile.email, updateProfile, onAuthChange],
+    );
+
     useEffect(() => {
         if (!supabase) return;
         let mounted = true;
@@ -103,17 +134,9 @@ export function useAuth(
         supabase.auth.getSession().then(({ data, error }) => {
             if (!mounted || error) return;
             if (data.session?.user) {
-                const user = data.session.user;
-                const displayName = resolveDisplayName({
-                    name: user.user_metadata?.name,
-                    metadata: user.user_metadata,
-                    email: user.email ?? profile.email,
-                    fallback: profile.name,
+                applyUserProfileFromAuth(data.session.user, {
+                    navigateTo: 'home',
                 });
-                const email = user.email ?? profile.email;
-                const shouldSetName = shouldUpdateName(profile.name, email, displayName);
-                updateProfile(shouldSetName ? { name: displayName, email } : { email });
-                onAuthChange('home');
             }
         });
 
@@ -124,31 +147,16 @@ export function useAuth(
                 return;
             }
             if (event === 'PASSWORD_RECOVERY') {
-                if (session?.user) {
-                    const displayName = resolveDisplayName({
-                        name: session.user.user_metadata?.name,
-                        metadata: session.user.user_metadata,
-                        email: session.user.email ?? profile.email,
-                        fallback: profile.name,
-                    });
-                    const email = session.user.email ?? profile.email;
-                    const shouldSetName = shouldUpdateName(profile.name, email, displayName);
-                    updateProfile(shouldSetName ? { name: displayName, email } : { email });
-                }
-                onAuthChange('change-password', true);
+                applyUserProfileFromAuth(session?.user, {
+                    navigateTo: 'change-password',
+                    navigateReplace: true,
+                });
                 return;
             }
             if (session?.user) {
-                const displayName = resolveDisplayName({
-                    name: session.user.user_metadata?.name,
-                    metadata: session.user.user_metadata,
-                    email: session.user.email ?? profile.email,
-                    fallback: profile.name,
+                applyUserProfileFromAuth(session.user, {
+                    navigateTo: 'home',
                 });
-                const email = session.user.email ?? profile.email;
-                const shouldSetName = shouldUpdateName(profile.name, email, displayName);
-                updateProfile(shouldSetName ? { name: displayName, email } : { email });
-                onAuthChange('home');
             }
         });
 
@@ -156,7 +164,7 @@ export function useAuth(
             mounted = false;
             authListener?.subscription.unsubscribe();
         };
-    }, [profile.name, profile.email, updateProfile, onAuthChange, onLogout]);
+    }, [supabase, applyUserProfileFromAuth, onLogout]);
 
     return {
         authError,
