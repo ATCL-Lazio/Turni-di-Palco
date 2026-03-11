@@ -219,7 +219,7 @@ function extractIssueDraft(reply: string) {
       return { text: before || reply.trim(), draft: null };
     }
     const labels = Array.isArray(parsed.labels)
-      ? parsed.labels.map((label) => String(label))
+      ? parsed.labels.map((label: unknown) => String(label))
       : undefined;
     const text = before || 'Ok, ci penso io!';
     return {

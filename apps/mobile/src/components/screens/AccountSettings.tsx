@@ -205,15 +205,15 @@ export function AccountSettings({
         navigator.permissions
           .query({ name: 'notifications' as PermissionName })
           .then((result) => normalizePermissionState(result.state))
-          .catch(() => 'unsupported'),
+          .catch((): PermissionStatus => 'unsupported'),
         navigator.permissions
           .query({ name: 'camera' as PermissionName })
           .then((result) => normalizePermissionState(result.state))
-          .catch(() => 'unsupported'),
+          .catch((): PermissionStatus => 'unsupported'),
         navigator.permissions
           .query({ name: 'geolocation' as PermissionName })
           .then((result) => normalizePermissionState(result.state))
-          .catch(() => 'unsupported'),
+          .catch((): PermissionStatus => 'unsupported'),
       ]);
 
       if (!mounted) return;
@@ -238,15 +238,15 @@ export function AccountSettings({
       navigator.permissions
         .query({ name: 'notifications' as PermissionName })
         .then((result) => normalizePermissionState(result.state))
-        .catch(() => 'unsupported'),
+        .catch((): PermissionStatus => 'unsupported'),
       navigator.permissions
         .query({ name: 'camera' as PermissionName })
         .then((result) => normalizePermissionState(result.state))
-        .catch(() => 'unsupported'),
+        .catch((): PermissionStatus => 'unsupported'),
       navigator.permissions
         .query({ name: 'geolocation' as PermissionName })
         .then((result) => normalizePermissionState(result.state))
-        .catch(() => 'unsupported'),
+        .catch((): PermissionStatus => 'unsupported'),
     ]);
 
     setPermissionStatuses({
@@ -588,7 +588,7 @@ export function AccountSettings({
               <button
                 type="button"
                 onClick={onViewSupport}
-                disabled={supportUnavailable || supportChecking}
+                disabled={supportUnavailable || supportChecking || supportUnknown}
                 className="min-h-[56px] py-[2px] flex items-center justify-between disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <div className="flex items-center gap-[12px]">
@@ -607,11 +607,6 @@ export function AccountSettings({
               {supportUnavailable ? (
                 <p className="text-[14px] leading-[20px] text-[#ff4d4f]">
                   Supporto AI attualmente non disponibile.
-                </p>
-              ) : null}
-              {supportUnknown ? (
-                <p className="text-[14px] leading-[20px] text-[#f4bf4f]">
-                  Stato del supporto non verificabile. Puoi comunque provare ad aprire la chat.
                 </p>
               ) : null}
             </>

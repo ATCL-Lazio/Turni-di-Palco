@@ -22,10 +22,10 @@ import {
   writeMobileFeatureFlagsCache,
 } from '../services/feature-flags';
 
-export const ROLE_IDS = ['attore', 'luci', 'fonico', 'attrezzista', 'palco', 'dramaturg'] as const;
+export const ROLE_IDS = ['attore', 'luci', 'fonico', 'attrezzista', 'palco', 'rspp', 'dramaturg'] as const;
 export type RoleId = (typeof ROLE_IDS)[number];
 export type Rewards = { xp: number; reputation: number; cachet: number };
-export type TurnSyncStatus = 'pending' | 'synced' | 'failed_boost_fallback';
+export type TurnSyncStatus = 'pending' | 'synced' | 'synced_duplicate' | 'failed_boost_fallback';
 
 export type RoleJourney = {
   eyebrow?: string;
@@ -384,6 +384,7 @@ export const roles: Role[] = [
   { id: 'fonico', name: 'Fonico', focus: 'Pulizia audio', stats: { presence: 45, precision: 90, leadership: 60, creativity: 70 } },
   { id: 'attrezzista', name: 'Attrezzista / Scenografo', focus: 'Allestimento rapido', stats: { presence: 55, precision: 85, leadership: 70, creativity: 90 } },
   { id: 'palco', name: 'Assistente di Palco', focus: 'Coordinamento', stats: { presence: 60, precision: 88, leadership: 85, creativity: 65 } },
+  { id: 'rspp', name: 'RSPP', focus: 'Sicurezza e prevenzione', stats: { presence: 65, precision: 92, leadership: 88, creativity: 58 } },
   {
     id: 'dramaturg',
     name: 'Dramaturg',
@@ -598,6 +599,15 @@ type TurnRegisterPayload = {
   role_id: RoleId;
   boost_requested: boolean;
   sync_status: TurnSyncStatus;
+  checkin_latitude?: number | null;
+  checkin_longitude?: number | null;
+  checkin_accuracy_m?: number | null;
+};
+
+type TurnGeolocationSnapshot = {
+  latitude: number;
+  longitude: number;
+  accuracyM: number;
 };
 
 type ActivityInsertPayload = {
@@ -630,7 +640,8 @@ type QueuedSupabaseMutation =
   | (QueueBase & { kind: 'mark_badges_seen'; payload: { user_id: string } })
   | (QueueBase & { kind: 'reset_progress'; payload: { user_id: string } });
 
-type QueuedSupabaseMutationInput = Omit<
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+type QueuedSupabaseMutationInput = DistributiveOmit<
   QueuedSupabaseMutation,
   'id' | 'createdAt' | 'attempts' | 'lastError'
 >;
@@ -989,9 +1000,46 @@ function shouldMirrorOfflineSyncLogsToServer() {
   return !OFFLINE_SYNC_SERVER_LOG_PREVIEW_HOST_RE.test(window.location.hostname);
 }
 
+let offlineMutationIdFallbackCounter = 0;
+
 function createOfflineMutationId() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
-  return `offline-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+  if (globalThis.crypto?.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    globalThis.crypto.getRandomValues(bytes);
+    // Format as a UUID-like hex string to keep IDs readable and unique enough
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    return `offline-${Date.now()}-${hex.slice(0, 16)}`;
+  }
+
+  // Last-resort fallback without using Math.random (not cryptographically secure)
+  offlineMutationIdFallbackCounter += 1;
+  return `offline-${Date.now()}-${offlineMutationIdFallbackCounter}`;
+}
+
+async function readTurnGeolocationSnapshot(): Promise<TurnGeolocationSnapshot | null> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    return null;
+  }
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracyM: position.coords.accuracy,
+        });
+      },
+      () => resolve(null),
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
+  });
 }
 
 function summarizeQueuedMutation(
@@ -1243,6 +1291,48 @@ function formatSyncError(error: unknown) {
   }
 }
 
+const TURN_REGISTRATION_ERROR_MESSAGES: Array<{ token: string; message: string }> = [
+  {
+    token: 'geolocation_required',
+    message: 'Geolocalizzazione obbligatoria per confermare il turno. Abilita il GPS e riprova.',
+  },
+  {
+    token: 'outside_geofence',
+    message: "Sei fuori dal raggio del teatro. Avvicinati al luogo dell'evento e riprova.",
+  },
+  {
+    token: 'invalid_checkin_latitude',
+    message: 'Coordinate GPS non valide (latitudine). Riprova dopo aver aggiornato la posizione.',
+  },
+  {
+    token: 'invalid_checkin_longitude',
+    message: 'Coordinate GPS non valide (longitudine). Riprova dopo aver aggiornato la posizione.',
+  },
+  {
+    token: 'theatre_geofence_not_configured',
+    message: 'Geofence non configurato per questo teatro. Contatta il supporto ATCL.',
+  },
+  {
+    token: 'theatres_table_not_found',
+    message: 'Configurazione teatri assente sul server. Contatta il supporto ATCL.',
+  },
+  {
+    token: 'theatres_geodata_columns_missing',
+    message: 'Configurazione coordinate teatri incompleta sul server. Contatta il supporto ATCL.',
+  },
+];
+
+export function localizeTurnRegistrationError(error: unknown): string {
+  const raw = formatSyncError(error);
+  const normalized = raw.toLowerCase();
+  for (const entry of TURN_REGISTRATION_ERROR_MESSAGES) {
+    if (normalized.includes(entry.token)) {
+      return entry.message;
+    }
+  }
+  return raw;
+}
+
 function getSyncErrorStatus(error: unknown): number | null {
   if (!isRecord(error)) return null;
   const status = error.status;
@@ -1310,6 +1400,12 @@ type TurnRegistrationRpcRow = {
   rewards_applied: Rewards;
   token_balance_after: number | null;
 };
+
+export function resolveTurnSyncStatusFromRpc(rpcRow: Pick<TurnRegistrationRpcRow, 'turn_registered' | 'boost_requested' | 'boost_applied'>): TurnSyncStatus {
+  if (!rpcRow.turn_registered) return 'synced_duplicate';
+  if (rpcRow.boost_requested && !rpcRow.boost_applied) return 'failed_boost_fallback';
+  return 'synced';
+}
 
 function normalizeRewardsPayload(value: unknown): Rewards {
   if (!isRecord(value)) return { xp: 0, reputation: 0, cachet: 0 };
@@ -1434,7 +1530,7 @@ function parseShopCatalogRows(data: unknown): ShopCatalogItem[] {
         metadata: isRecord(entry.metadata) ? entry.metadata : {},
       } satisfies ShopCatalogItem;
     })
-    .filter((entry): entry is ShopCatalogItem => Boolean(entry) && entry.code.trim().length > 0);
+    .filter((entry) => entry !== null && entry.code.trim().length > 0) as ShopCatalogItem[];
 
   if (!parsed.length) return DEFAULT_SHOP_CATALOG;
   return parsed;
@@ -1980,7 +2076,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         setLeaderboardLoading(true);
 
         try {
-          const { data, error } = await supabase.rpc('get_leaderboard', { p_limit: 50 });
+          const { data, error } = await supabase!.rpc('get_leaderboard', { p_limit: 50 });
           if (error) throw error;
 
           const rows = (data as LeaderboardRow[]) ?? [];
@@ -2165,20 +2261,20 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             p_role_id: mutation.payload.role_id,
             p_client_action_id: mutation.payload.id,
             p_boost_requested: mutation.payload.boost_requested,
+            p_checkin_latitude: mutation.payload.checkin_latitude ?? null,
+            p_checkin_longitude: mutation.payload.checkin_longitude ?? null,
+            p_checkin_accuracy_m: mutation.payload.checkin_accuracy_m ?? null,
           });
           if (error) {
             return shouldRetrySyncError(error)
               ? { status: 'retry', error }
-              : { status: 'discard', error };
+              : { status: 'discard', error: new Error(localizeTurnRegistrationError(error)) };
           }
           const rpcRow = parseTurnRegistrationRpcRow(data);
           if (!rpcRow) {
             return { status: 'retry', error: new Error('Risposta RPC non valida') };
           }
-          const syncStatus: TurnSyncStatus =
-            rpcRow.boost_requested && !rpcRow.boost_applied
-              ? 'failed_boost_fallback'
-              : 'synced';
+          const syncStatus = resolveTurnSyncStatusFromRpc(rpcRow);
           applyTurnRegistrationResult(mutation.payload, rpcRow, syncStatus);
           return { status: 'applied' };
         }
@@ -2458,7 +2554,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
     await withMobileWatchdog(
       async () => {
-        const { error } = await supabase.rpc('mark_my_badges_seen');
+        const { error } = await supabase!.rpc('mark_my_badges_seen');
         if (error) {
           console.warn('Supabase mark badges seen failed', error);
           logOfflineSync('markBadgesSeen immediate sync failed, falling back to queue', {
@@ -2633,7 +2729,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         async () => {
           setFollowedEventsLoading(true);
           try {
-            const { data, error } = await supabase
+            const { data, error } = await supabase!
               .from('followed_events')
               .select('event_id, events:events(id,name,theatre,event_date,event_time,genre,base_rewards,focus_role)')
               .eq('user_id', authUserId);
@@ -2685,7 +2781,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       async () => {
         setShopCatalogLoading(true);
         try {
-          const { data, error } = await supabase
+          const { data, error } = await supabase!
             .from('shop_catalog')
             .select('code,title,description,category,cost_cachet,effect_value,max_purchases_per_user,active,metadata')
             .eq('active', true)
@@ -2724,7 +2820,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       async () => {
         setActivitySlotsLoading(true);
         try {
-          const { data, error } = await supabase.rpc('get_activity_slots_status');
+          const { data, error } = await supabase!.rpc('get_activity_slots_status');
           if (error) {
             console.warn('Supabase activity slots status fetch failed', error);
             return;
@@ -2814,7 +2910,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
     await withMobileWatchdog(
       async () => {
-        const { data, error } = await supabase
+        const { data, error } = await supabase!
           .from('mobile_feature_flags')
           .select('key,enabled');
         if (error) {
@@ -2913,7 +3009,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       await withMobileWatchdog(
         async () => {
-          const { error } = await supabase
+          const { error } = await supabase!
             .from('followed_events')
             .insert(queuedMutation.payload);
           if (error && !isDuplicateSyncError(error)) {
@@ -2972,7 +3068,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       await withMobileWatchdog(
         async () => {
-          const { error } = await supabase
+          const { error } = await supabase!
             .from('followed_events')
             .delete()
             .eq('user_id', authUserId)
@@ -3082,7 +3178,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                   reputation: Number(event.base_rewards?.reputation ?? 0),
                   cachet: Number(event.base_rewards?.cachet ?? 0),
                 },
-                focusRole: event.focus_role ?? undefined,
+                focusRole: (event.focus_role ?? undefined) as RoleId | undefined,
               }));
 
           const nextActivities =
@@ -3330,7 +3426,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         { event: '*', schema: 'public', table: 'turns', filter: `user_id=eq.${authUserId}` },
         (payload) => {
           if (payload.eventType === 'INSERT' && payload.new) {
-            const nextTurn = mapTurnRow(payload.new);
+            const nextTurn = mapTurnRow(payload.new as DbTurnRow);
             setState((prev: GameState) => {
               if (prev.turns.some((turn: TurnRecord) => turn.id === nextTurn.id)) {
                 return prev;
@@ -3341,7 +3437,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           }
 
           if (payload.eventType === 'UPDATE' && payload.new) {
-            const nextTurn = mapTurnRow(payload.new);
+            const nextTurn = mapTurnRow(payload.new as DbTurnRow);
             setState((prev: GameState) => ({
               ...prev,
               turns: prev.turns
@@ -3445,7 +3541,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       void withMobileWatchdog(
         async () => {
-          const { error } = await supabase
+          const { error } = await supabase!
             .from('profiles')
             .upsert(payload, { onConflict: 'id' });
           if (error) {
@@ -3536,6 +3632,22 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           ? globalThis.crypto.randomUUID()
           : `turn-${Date.now()}`;
 
+      const geofenceValidationEnabled = featureFlags['mobile.action.turn_geofence'];
+      const requiresServerGeolocation = geofenceValidationEnabled
+        && isSupabaseConfigured
+        && Boolean(supabase)
+        && Boolean(authUserId);
+      const geolocationSnapshot = requiresServerGeolocation
+        ? await readTurnGeolocationSnapshot()
+        : null;
+
+      if (requiresServerGeolocation && !geolocationSnapshot) {
+        return {
+          ok: false,
+          error: 'Geolocalizzazione non disponibile. Abilita il GPS e riprova vicino al teatro.',
+        };
+      }
+
       const turnRegisterPayload: TurnRegisterPayload = {
         id: turnId,
         user_id: authUserId ?? '',
@@ -3547,6 +3659,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         role_id: roleId,
         boost_requested: Boolean(boostRequested),
         sync_status: 'pending',
+        checkin_latitude: geolocationSnapshot?.latitude ?? null,
+        checkin_longitude: geolocationSnapshot?.longitude ?? null,
+        checkin_accuracy_m: geolocationSnapshot?.accuracyM ?? null,
       };
 
       const pendingTurnRecord = buildTurnRecordFromPayload(
@@ -3658,11 +3773,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       try {
         const rpcResponse = await withMobileWatchdog(
           async () => {
-            const { data, error } = await supabase.rpc('register_turn_with_token_boost', {
+            const { data, error } = await supabase!.rpc('register_turn_with_token_boost', {
               p_event_id: event.id,
               p_role_id: roleId,
               p_client_action_id: turnId,
               p_boost_requested: boostRequested,
+              p_checkin_latitude: geolocationSnapshot?.latitude ?? null,
+              p_checkin_longitude: geolocationSnapshot?.longitude ?? null,
+              p_checkin_accuracy_m: geolocationSnapshot?.accuracyM ?? null,
             });
             if (error) throw error;
             const rpcRow = parseTurnRegistrationRpcRow(data);
@@ -3677,10 +3795,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           }
         );
 
-        const syncStatus: TurnSyncStatus =
-          rpcResponse.boost_requested && !rpcResponse.boost_applied
-            ? 'failed_boost_fallback'
-            : 'synced';
+        const syncStatus = resolveTurnSyncStatusFromRpc(rpcResponse);
         applyTurnRegistrationResult(turnRegisterPayload, rpcResponse, syncStatus);
         logOfflineSync('registerTurn synced immediately via RPC', {
           turnId,
@@ -3706,7 +3821,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           ),
         };
       } catch (error) {
-        const errorMessage = formatSyncError(error);
+        const errorMessage = localizeTurnRegistrationError(error);
         if (!shouldRetrySyncError(error)) {
           logOfflineSync('registerTurn failed with non-retryable error', {
             turnId,
@@ -3787,7 +3902,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       try {
         const rpcResponse = await withMobileWatchdog(
           async () => {
-            const { data, error } = await supabase.rpc('purchase_shop_item', {
+            const { data, error } = await supabase!.rpc('purchase_shop_item', {
               p_item_code: itemCode,
               p_client_action_id: actionId,
               p_target_theatre: targetTheatre ?? null,
@@ -3881,7 +3996,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       try {
         const rpcResponse = await withMobileWatchdog(
           async () => {
-            const { data, error } = await supabase.rpc('complete_activity_with_slots', {
+            const { data, error } = await supabase!.rpc('complete_activity_with_slots', {
               p_activity_id: activity.id,
               p_client_action_id: completionId,
               p_score: telemetry?.score ?? null,

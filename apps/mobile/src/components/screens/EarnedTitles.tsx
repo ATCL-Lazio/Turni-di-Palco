@@ -114,9 +114,9 @@ export function EarnedTitles({ badges, turnStats, onBack, onViewed }: EarnedTitl
                     >
                       {glyph}
                     </span>
-                  ) : (
+                  ) : Icon ? (
                     <Icon className={`${badge.unlocked ? 'text-[#0f0d0e]' : 'text-[#7a7577]'} relative z-[1]`} size={24} />
-                  )}
+                  ) : null}
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className={`text-sm leading-snug ${badge.unlocked ? 'text-[#f7f3f4]' : 'text-[#b8b2b3]'}`}>

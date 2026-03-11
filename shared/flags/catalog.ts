@@ -42,6 +42,7 @@ export const MOBILE_FEATURE_FLAG_KEYS = [
   "mobile.action.ai_support",
   "mobile.action.qr_scan",
   "mobile.action.turn_submit",
+  "mobile.action.turn_geofence",
   "mobile.action.turn_boost",
   "mobile.action.activity_start",
   "mobile.action.activity_complete",
@@ -62,6 +63,8 @@ export const MOBILE_FEATURE_FLAG_DESCRIPTIONS: Record<MobileFeatureFlagKey, stri
   "mobile.action.ai_support": "Abilita l'accesso al Supporto AI nelle impostazioni account dell'app mobile.",
   "mobile.action.qr_scan": "Abilita la scansione QR nell'app mobile.",
   "mobile.action.turn_submit": "Abilita la registrazione turni nell'app mobile.",
+  "mobile.action.turn_geofence":
+    "Abilita la validazione geofence in registrazione turno (coordinate + raggio teatro).",
   "mobile.action.turn_boost": "Abilita il boost turno nell'app mobile.",
   "mobile.action.activity_start": "Abilita l'avvio attivita simulate nell'app mobile.",
   "mobile.action.activity_complete": "Abilita il completamento attivita simulate nell'app mobile.",

@@ -245,7 +245,9 @@ export function Home({
                       ? 'Boost confermato'
                       : turnSyncFeedback.syncStatus === 'failed_boost_fallback'
                         ? 'Boost non applicato (fallback base)'
-                        : 'Richiesta boost in verifica'}
+                        : turnSyncFeedback.syncStatus === 'synced_duplicate'
+                          ? 'Turno già sincronizzato'
+                          : 'Richiesta boost in verifica'}
                   </p>
                   <p className="text-xs text-[#b8b2b3]">
                     {turnSyncFeedback.eventName}
@@ -320,7 +322,7 @@ export function Home({
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>Prossimo evento</h3>
-            {eventState === 'ready' && allowTurnsSection ? (
+            {eventState === 'ready' ? (
               <button
                 onClick={onViewEventDetails}
                 className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
@@ -332,8 +334,8 @@ export function Home({
           </div>
 
           <Card 
-            hoverable={eventState === 'ready' && allowTurnsSection}
-            onClick={eventState === 'ready' && allowTurnsSection ? onViewTurni : undefined}
+            hoverable={eventState === 'ready'}
+            onClick={eventState === 'ready' ? onViewTurni : undefined}
             animateOnMount
           >
             {eventState === 'loading' ? (
@@ -360,11 +362,9 @@ export function Home({
                       Scansiona QR
                     </Button>
                   ) : null}
-                  {allowTurnsSection ? (
-                    <Button variant="ghost" size="sm" onClick={onViewTurni}>
-                      Vedi turni
-                    </Button>
-                  ) : null}
+                  <Button variant="ghost" size="sm" onClick={onViewTurni}>
+                    Vedi turni
+                  </Button>
                 </div>
               </div>
             ) : (

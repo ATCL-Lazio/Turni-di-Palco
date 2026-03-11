@@ -13,6 +13,48 @@ type DevGateState = {
   signOutButton: HTMLButtonElement;
 };
 
+// NOTE: Simple symmetric encryption helpers for dev gate session persistence.
+// This is not meant as a full security boundary, but prevents clear-text storage.
+const DEV_GATE_SECRET = "pwa-dev-gate-session-secret-v1!!";
+
+async function getDevGateCryptoKey(): Promise<CryptoKey> {
+  if (typeof window === "undefined" || !window.crypto || !window.crypto.subtle) {
+    throw new Error("Web Crypto API is not available");
+  }
+  const enc = new TextEncoder();
+  const rawKey = enc.encode(DEV_GATE_SECRET);
+  return window.crypto.subtle.importKey(
+    "raw",
+    rawKey,
+    { name: "AES-GCM" },
+    false,
+    ["encrypt", "decrypt"],
+  );
+}
+
+async function encryptDevGateSessionPayload(plaintext: string): Promise<string> {
+  const key = await getDevGateCryptoKey();
+  const data = new TextEncoder().encode(plaintext);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data));
+  const combined = new Uint8Array(iv.byteLength + ciphertext.byteLength);
+  combined.set(iv, 0);
+  combined.set(ciphertext, iv.byteLength);
+  return btoa(String.fromCharCode(...combined));
+}
+
+async function decryptDevGateSessionPayload(payload: string): Promise<string> {
+  const key = await getDevGateCryptoKey();
+  const combined = Uint8Array.from(atob(payload), (c) => c.charCodeAt(0));
+  if (combined.byteLength < 13) throw new Error("Encrypted payload too short");
+  const decrypted = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: combined.slice(0, 12) },
+    key,
+    combined.slice(12),
+  );
+  return new TextDecoder().decode(decrypted);
+}
+
 const { allowedRoles, allowedEmails, serverAccessFunction } = appConfig.devGate;
 export const isPublicMode = appConfig.publicMode;
 const DEV_GATE_SESSION_KEY = "tdp-dev-gate-session-v1";
@@ -60,28 +102,51 @@ function isUserAllowed(user: User | null | undefined) {
   return userRoles.some((role) => allowedRoles.includes(role));
 }
 
-function readDevGateSession(): DevGateSession | null {
+function parseDevGateSession(json: string): DevGateSession | null {
+  const parsed = JSON.parse(json) as Partial<DevGateSession>;
+  if (!parsed || typeof parsed !== "object") return null;
+  if (!parsed.userId || typeof parsed.userId !== "string") return null;
+  if (typeof parsed.grantedAt !== "number" || typeof parsed.expiresAt !== "number") return null;
+  if (!Number.isFinite(parsed.grantedAt) || !Number.isFinite(parsed.expiresAt)) return null;
+  return {
+    userId: parsed.userId,
+    email: typeof parsed.email === "string" ? parsed.email : null,
+    grantedAt: parsed.grantedAt,
+    expiresAt: parsed.expiresAt,
+  };
+}
+
+async function readDevGateSession(): Promise<DevGateSession | null> {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(DEV_GATE_SESSION_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<DevGateSession>;
-    if (!parsed || typeof parsed !== "object") return null;
-    if (!parsed.userId || typeof parsed.userId !== "string") return null;
-    if (!Number.isFinite(parsed.grantedAt) || !Number.isFinite(parsed.expiresAt)) return null;
-    return {
-      userId: parsed.userId,
-      email: typeof parsed.email === "string" ? parsed.email : null,
-      grantedAt: parsed.grantedAt,
-      expiresAt: parsed.expiresAt,
-    };
+    // Prefer encrypted payloads and keep JSON fallback for legacy sessions.
+    if (window.crypto?.subtle) {
+      try {
+        const decrypted = await decryptDevGateSessionPayload(raw);
+        return parseDevGateSession(decrypted);
+      } catch {
+        // Legacy plaintext fallback — migrate to encrypted on the fly.
+        const session = parseDevGateSession(raw);
+        if (session) {
+          encryptDevGateSessionPayload(raw)
+            .then((enc) => window.localStorage.setItem(DEV_GATE_SESSION_KEY, enc))
+            .catch(() => { /* best-effort migration */ });
+        }
+        return session;
+      }
+    }
+
+    return parseDevGateSession(raw);
   } catch {
     return null;
   }
 }
 
-function persistDevGateSession(user: User) {
-  if (typeof window === "undefined") return;
+
+function persistDevGateSession(user: User): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
   const now = Date.now();
   const payload: DevGateSession = {
     userId: user.id,
@@ -89,11 +154,13 @@ function persistDevGateSession(user: User) {
     grantedAt: now,
     expiresAt: now + sessionCacheTtlMs,
   };
-  try {
-    window.localStorage.setItem(DEV_GATE_SESSION_KEY, JSON.stringify(payload));
-  } catch (error) {
+  return (async () => {
+    if (!window.crypto?.subtle) return;
+    const encrypted = await encryptDevGateSessionPayload(JSON.stringify(payload));
+    window.localStorage.setItem(DEV_GATE_SESSION_KEY, encrypted);
+  })().catch((error) => {
     console.warn("Failed to persist dev gate session", error);
-  }
+  });
 }
 
 function clearDevGateSession() {
@@ -310,7 +377,7 @@ export async function requireDevAccess() {
 
   const { data: sessionData } = await supabase.auth.getSession();
   const currentUser = sessionData.session?.user ?? null;
-  const cachedSession = readDevGateSession();
+  const cachedSession = await readDevGateSession();
   let serverCheck: DevAccessResponse | null = null;
 
   if (currentUser && isUserAllowed(currentUser)) {
@@ -319,7 +386,7 @@ export async function requireDevAccess() {
     }
     serverCheck = await verifyServerAccess();
     if (serverCheck.allowed) {
-      persistDevGateSession(currentUser);
+      await persistDevGateSession(currentUser);
       return true;
     }
     if (hasGraceCachedSession(currentUser, cachedSession)) {
@@ -348,7 +415,7 @@ export async function requireDevAccess() {
       setGateBusy(state, true);
       setGateMessage(state, "Verifico le credenziali...", "info");
 
-      const { data: signInData, error } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error } = await supabase!.auth.signInWithPassword({
         email: state.emailInput.value.trim(),
         password: state.passwordInput.value,
       });
@@ -359,10 +426,10 @@ export async function requireDevAccess() {
         return;
       }
 
-      const freshUser = signInData.user ?? (await supabase.auth.getSession()).data.session?.user ?? null;
+      const freshUser = signInData.user ?? (await supabase!.auth.getSession()).data.session?.user ?? null;
       const serverCheck = await verifyServerAccess();
       if (!isUserAllowed(freshUser) || !serverCheck.allowed) {
-        await supabase.auth.signOut();
+        await supabase!.auth.signOut();
         clearDevGateSession();
         setGateBusy(state, false);
         const message = serverCheck.reason ?? "Utente non autorizzato per la PWA.";
@@ -371,7 +438,7 @@ export async function requireDevAccess() {
       }
 
       if (freshUser) {
-        persistDevGateSession(freshUser);
+        await persistDevGateSession(freshUser);
       }
       setGateMessage(state, "Accesso autorizzato.", "success");
       resolve(true);
