@@ -1,6 +1,6 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Timer, SlidersHorizontal, Target } from 'lucide-react';
-import { Activity } from '../../state/store';
+import { Activity, RoleId } from '../../state/store';
 import {
   computeOutcome,
   computeRoundScore,
@@ -24,6 +24,7 @@ const triggerHaptic = (pattern: number | number[]) => {
 
 interface ActivityMinigameProps {
   activity: Activity;
+  roleId?: RoleId;
   onComplete: (outcome: MinigameOutcome) => void;
   onCancel: () => void;
 }
@@ -99,6 +100,8 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
   const animationRef = useRef<number | null>(null);
   const feedbackTimeoutRef = useRef<number | null>(null);
   const hasStoppedRef = useRef(false);
+  const attemptCountRef = useRef(0);
+  const startedAtRef = useRef<number | null>(null);
   const speed = 0.045;
 
   const round = rounds[roundIndex];
@@ -160,6 +163,8 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
       window.clearTimeout(feedbackTimeoutRef.current);
       feedbackTimeoutRef.current = null;
     }
+    attemptCountRef.current += 1;
+    if (startedAtRef.current == null) startedAtRef.current = Date.now();
     setFeedback(null);
     setProgress(0);
     directionRef.current = 1;
@@ -190,7 +195,12 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
         hasStoppedRef.current = false;
       } else {
         setPhase('done');
-        onComplete(computeOutcome(config.type, nextScores));
+        onComplete(
+          computeOutcome(config.type, nextScores, {
+            attempts: attemptCountRef.current,
+            durationMs: Date.now() - (startedAtRef.current ?? Date.now()),
+          })
+        );
       }
     }, 900);
   };
@@ -301,6 +311,8 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
   const [roundScores, setRoundScores] = useState<number[]>([]);
   const [feedback, setFeedback] = useState<{ label: string; delta: number } | null>(null);
   const feedbackTimeoutRef = useRef<number | null>(null);
+  const attemptCountRef = useRef(0);
+  const startedAtRef = useRef<number | null>(null);
   const step = 5;
 
   const round = rounds[roundIndex];
@@ -315,6 +327,8 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
   }, []);
 
   const handleStart = () => {
+    attemptCountRef.current += 1;
+    if (startedAtRef.current == null) startedAtRef.current = Date.now();
     setFeedback(null);
     setLevel([50]);
     setPhase('adjust');
@@ -345,7 +359,12 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
         setLevel([50]);
       } else {
         setPhase('done');
-        onComplete(computeOutcome(config.type, nextScores));
+        onComplete(
+          computeOutcome(config.type, nextScores, {
+            attempts: attemptCountRef.current,
+            durationMs: Date.now() - (startedAtRef.current ?? Date.now()),
+          })
+        );
       }
     }, 900);
   };
@@ -451,8 +470,8 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
   );
 }
 
-export function ActivityMinigame({ activity, onComplete, onCancel }: ActivityMinigameProps) {
-  const config = useMemo(() => getMinigameConfig(activity.id), [activity.id]);
+export function ActivityMinigame({ activity, roleId, onComplete, onCancel }: ActivityMinigameProps) {
+  const config = useMemo(() => getMinigameConfig(activity.id, roleId), [activity.id, roleId]);
 
   if (config.type === 'audio') {
     return <AudioMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;

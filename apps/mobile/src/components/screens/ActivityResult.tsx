@@ -14,6 +14,12 @@ interface ActivityResultProps {
 }
 
 export function ActivityResult({ activity, rewards, outcome, onDone }: ActivityResultProps) {
+  const durationLabel = useMemo(() => {
+    if (!outcome.durationMs) return null;
+    const seconds = Math.max(1, Math.round(outcome.durationMs / 1000));
+    return `${seconds}s`;
+  }, [outcome.durationMs]);
+
   const ratingVariant = useMemo(() => {
     switch (outcome.rating) {
       case 'Perfetto':
@@ -59,6 +65,14 @@ export function ActivityResult({ activity, rewards, outcome, onDone }: ActivityR
                 Round {index + 1}: {score}
               </Badge>
             ))}
+            <Badge variant="outline" size="sm">
+              Tentativi: {outcome.attempts}
+            </Badge>
+            {durationLabel ? (
+              <Badge variant="outline" size="sm">
+                Tempo: {durationLabel}
+              </Badge>
+            ) : null}
           </div>
         </Card>
 
