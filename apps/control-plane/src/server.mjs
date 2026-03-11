@@ -8,9 +8,17 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import { decodeJwt } from "jose";
 import { createClient } from "@supabase/supabase-js";
+import rateLimit from "express-rate-limit";
 
 const CONTROL_PLANE_VERSION = (process.env.CONTROL_PLANE_VERSION || "2026.02.09").trim();
 const DEFAULT_CONTROL_PLANE_PORT = Number.parseInt(String.fromCharCode(56, 55, 56, 55), 10);
+
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // limit each IP to 300 authenticated requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const CONTROL_PLANE_PORT = parseInteger(
   process.env.CONTROL_PLANE_PORT || process.env.PORT,
   DEFAULT_CONTROL_PLANE_PORT,
@@ -231,23 +239,25 @@ router.post(
 
 router.post(
   "/api/supabase/db/read",
+  authRateLimiter,
   asyncRoute(attachAuthContext),
   requireRole("dev_viewer"),
   asyncRoute(supabaseDbReadHandler)
 );
 router.post(
   "/api/supabase/db/mutate",
+  authRateLimiter,
   asyncRoute(attachAuthContext),
   requireRole("dev_operator"),
   asyncRoute(supabaseDbMutateHandler)
 );
 
 for (const path of ["/api/audit/recent", "/api/audit", "/audit"]) {
-  router.get(path, asyncRoute(attachAuthContext), requireRole("dev_viewer"), asyncRoute(auditRecentHandler));
+  router.get(path, authRateLimiter, asyncRoute(attachAuthContext), requireRole("dev_viewer"), asyncRoute(auditRecentHandler));
 }
 
 for (const path of ["/api/dashboard/metrics", "/dashboard/metrics"]) {
-  router.get(path, asyncRoute(attachAuthContext), requireRole("dev_viewer"), asyncRoute(dashboardMetricsHandler));
+  router.get(path, authRateLimiter, asyncRoute(attachAuthContext), requireRole("dev_viewer"), asyncRoute(dashboardMetricsHandler));
 }
 
 for (const path of ["/api/db/ops", "/db/ops"]) {
