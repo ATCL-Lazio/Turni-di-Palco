@@ -6,7 +6,6 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import express from "express";
-import rateLimit from "express-rate-limit";
 import { decodeJwt } from "jose";
 import { createClient } from "@supabase/supabase-js";
 
@@ -160,6 +159,7 @@ const supabaseAdminClient =
 const supabaseDbClient = supabaseAdminClient || supabaseAuthClient;
 
 const rateLimitState = new Map();
+const dbOpsRateLimitState = new Map();
 const pendingByCommandId = new Map();
 const pendingByTokenHash = new Map();
 
@@ -241,13 +241,6 @@ router.post(
   requireRole("dev_operator"),
   asyncRoute(supabaseDbMutateHandler)
 );
-
-const dbOpsRateLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute window
-  max: 30, // limit each IP to 30 requests per window per path
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
 for (const path of ["/api/audit/recent", "/api/audit", "/audit"]) {
   router.get(path, asyncRoute(attachAuthContext), requireRole("dev_viewer"), asyncRoute(auditRecentHandler));
@@ -531,23 +524,24 @@ function extractClientIp(req) {
   return "unknown";
 }
 
-function rateLimitMiddleware(req, res, next) {
+function handleRateLimit(req, res, next, options) {
+  const { state, limit, skipHealth = false } = options;
   if (req.method === "OPTIONS") return next();
-  if (req.path === "/health" || req.path.endsWith("/health")) return next();
+  if (skipHealth && (req.path === "/health" || req.path.endsWith("/health"))) return next();
 
   const now = Date.now();
   const key = `${extractClientIp(req)}:${req.path}`;
-  const entry = rateLimitState.get(key);
+  const entry = state.get(key);
 
   if (!entry || entry.resetAt <= now) {
-    rateLimitState.set(key, { count: 1, resetAt: now + 60_000 });
-    res.setHeader("x-ratelimit-limit", String(RATE_LIMIT_PER_MIN));
-    res.setHeader("x-ratelimit-remaining", String(Math.max(RATE_LIMIT_PER_MIN - 1, 0)));
+    state.set(key, { count: 1, resetAt: now + 60_000 });
+    res.setHeader("x-ratelimit-limit", String(limit));
+    res.setHeader("x-ratelimit-remaining", String(Math.max(limit - 1, 0)));
     return next();
   }
 
   entry.count += 1;
-  if (entry.count > RATE_LIMIT_PER_MIN) {
+  if (entry.count > limit) {
     const retryAfterSeconds = Math.max(Math.ceil((entry.resetAt - now) / 1000), 1);
     res.setHeader("retry-after", String(retryAfterSeconds));
     return sendJson(res, 429, {
@@ -558,18 +552,38 @@ function rateLimitMiddleware(req, res, next) {
     });
   }
 
-  res.setHeader("x-ratelimit-limit", String(RATE_LIMIT_PER_MIN));
-  res.setHeader("x-ratelimit-remaining", String(Math.max(RATE_LIMIT_PER_MIN - entry.count, 0)));
+  res.setHeader("x-ratelimit-limit", String(limit));
+  res.setHeader("x-ratelimit-remaining", String(Math.max(limit - entry.count, 0)));
   return next();
 }
 
-function cleanupRateLimits() {
+function rateLimitMiddleware(req, res, next) {
+  return handleRateLimit(req, res, next, {
+    state: rateLimitState,
+    limit: RATE_LIMIT_PER_MIN,
+    skipHealth: true,
+  });
+}
+
+function dbOpsRateLimiter(req, res, next) {
+  return handleRateLimit(req, res, next, {
+    state: dbOpsRateLimitState,
+    limit: 30,
+  });
+}
+
+function cleanupRateLimitState(state) {
   const now = Date.now();
-  for (const [key, entry] of rateLimitState.entries()) {
+  for (const [key, entry] of state.entries()) {
     if (entry.resetAt <= now) {
-      rateLimitState.delete(key);
+      state.delete(key);
     }
   }
+}
+
+function cleanupRateLimits() {
+  cleanupRateLimitState(rateLimitState);
+  cleanupRateLimitState(dbOpsRateLimitState);
 }
 
 function cleanupPendingMiddleware(_req, _res, next) {
