@@ -340,12 +340,10 @@ export function Home({
                   </Button>
                   {allowTurnsSection ? (
                     <Button variant="ghost" size="sm" className="flex-1 justify-center min-h-[44px]" onClick={onViewTurni}>
-                      <CalendarPlus size={16} />
-                      Aggiungi
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
+                  <Button variant="ghost" size="sm" className="flex-1 justify-center min-h-[44px]" onClick={onViewTurni}>
+                    <CalendarPlus size={16} />
+                    Aggiungi
+                  </Button>
             )}
           </Card>
         </section>
