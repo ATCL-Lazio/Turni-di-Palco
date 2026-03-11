@@ -12,7 +12,7 @@ interface QRScannerProps {
 }
 
 export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
-  const [manualCode, setManualCode] = useState('');
+  const [manualCode] = useState('');
   const [manualTicket, setManualTicket] = useState('');
   const [manualEventId, setManualEventId] = useState('');
   const [isScanning, setIsScanning] = useState(true);
