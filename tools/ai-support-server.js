@@ -89,7 +89,7 @@ function readEnvFileValue(filePath, key) {
 }
 
 function writeEnvFileValue(filePath, key, value) {
-  if (!filePath || !key) return false;
+  if (String(filePath).trim() === '' || String(key).trim() === '') return false;
   const output = `${key}=${JSON.stringify(String(value))}`;
   const exists = fs.existsSync(filePath);
   const lines = exists ? fs.readFileSync(filePath, 'utf8').split(/\r?\n/) : [];
