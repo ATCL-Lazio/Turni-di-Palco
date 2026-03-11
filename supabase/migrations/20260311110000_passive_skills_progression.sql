@@ -317,7 +317,7 @@ values
   (
     'cue_precision',
     'Precisione Cue',
-    'Migliora la precisione nelle azioni tecniche e riduce l\'errore operativo.',
+    'Migliora la precisione nelle azioni tecniche e riduce l''errore operativo.',
     3
   )
 on conflict (id) do update
