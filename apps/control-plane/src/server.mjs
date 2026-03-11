@@ -6,6 +6,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import express from "express";
+import rateLimit from "express-rate-limit";
 import { decodeJwt } from "jose";
 import { createClient } from "@supabase/supabase-js";
 
@@ -18,6 +19,8 @@ const CONTROL_PLANE_PORT = parseInteger(
   65535
 );
 const RATE_LIMIT_PER_MIN = parseInteger(process.env.CONTROL_PLANE_RATE_LIMIT_PER_MIN, 120, 1, 5000);
+const AUTH_RATE_LIMIT_PER_15_MIN = 300;
+const DB_OPS_RATE_LIMIT_PER_MIN = 30;
 const CONFIRM_TOKEN_TTL_MS = parseInteger(
   process.env.CONTROL_PLANE_CONFIRM_TTL_MS,
   300000,
@@ -159,8 +162,6 @@ const supabaseAdminClient =
 const supabaseDbClient = supabaseAdminClient || supabaseAuthClient;
 
 const rateLimitState = new Map();
-const authRateLimitState = new Map();
-const dbOpsRateLimitState = new Map();
 const pendingByCommandId = new Map();
 const pendingByTokenHash = new Map();
 
@@ -232,29 +233,72 @@ router.post(
 
 router.post(
   "/api/supabase/db/read",
-  authRateLimiter,
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: AUTH_RATE_LIMIT_PER_15_MIN,
+    standardHeaders: true,
+    legacyHeaders: false,
+  }),
   asyncRoute(attachAuthContext),
   requireRole("dev_viewer"),
   asyncRoute(supabaseDbReadHandler)
 );
 router.post(
   "/api/supabase/db/mutate",
-  authRateLimiter,
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: AUTH_RATE_LIMIT_PER_15_MIN,
+    standardHeaders: true,
+    legacyHeaders: false,
+  }),
   asyncRoute(attachAuthContext),
   requireRole("dev_operator"),
   asyncRoute(supabaseDbMutateHandler)
 );
 
 for (const path of ["/api/audit/recent", "/api/audit", "/audit"]) {
-  router.get(path, authRateLimiter, asyncRoute(attachAuthContext), requireRole("dev_viewer"), asyncRoute(auditRecentHandler));
+  router.get(
+    path,
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: AUTH_RATE_LIMIT_PER_15_MIN,
+      standardHeaders: true,
+      legacyHeaders: false,
+    }),
+    asyncRoute(attachAuthContext),
+    requireRole("dev_viewer"),
+    asyncRoute(auditRecentHandler)
+  );
 }
 
 for (const path of ["/api/dashboard/metrics", "/dashboard/metrics"]) {
-  router.get(path, authRateLimiter, asyncRoute(attachAuthContext), requireRole("dev_viewer"), asyncRoute(dashboardMetricsHandler));
+  router.get(
+    path,
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: AUTH_RATE_LIMIT_PER_15_MIN,
+      standardHeaders: true,
+      legacyHeaders: false,
+    }),
+    asyncRoute(attachAuthContext),
+    requireRole("dev_viewer"),
+    asyncRoute(dashboardMetricsHandler)
+  );
 }
 
 for (const path of ["/api/db/ops", "/db/ops"]) {
-  router.get(path, dbOpsRateLimiter, asyncRoute(attachAuthContext), requireRole("dev_viewer"), asyncRoute(dbOpsHandler));
+  router.get(
+    path,
+    rateLimit({
+      windowMs: 60 * 1000,
+      max: DB_OPS_RATE_LIMIT_PER_MIN,
+      standardHeaders: true,
+      legacyHeaders: false,
+    }),
+    asyncRoute(attachAuthContext),
+    requireRole("dev_viewer"),
+    asyncRoute(dbOpsHandler)
+  );
 }
 
 app.use("/", router);
@@ -568,20 +612,6 @@ function rateLimitMiddleware(req, res, next) {
   });
 }
 
-function dbOpsRateLimiter(req, res, next) {
-  return handleRateLimit(req, res, next, {
-    state: dbOpsRateLimitState,
-    limit: 30,
-  });
-}
-
-function authRateLimiter(req, res, next) {
-  return handleRateLimit(req, res, next, {
-    state: authRateLimitState,
-    limit: 300,
-  });
-}
-
 function cleanupRateLimitState(state) {
   const now = Date.now();
   for (const [key, entry] of state.entries()) {
@@ -593,8 +623,6 @@ function cleanupRateLimitState(state) {
 
 function cleanupRateLimits() {
   cleanupRateLimitState(rateLimitState);
-  cleanupRateLimitState(authRateLimitState);
-  cleanupRateLimitState(dbOpsRateLimitState);
 }
 
 function cleanupPendingMiddleware(_req, _res, next) {
