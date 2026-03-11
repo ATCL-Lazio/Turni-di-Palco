@@ -338,12 +338,12 @@ export function Home({
                   </Button>
                   {allowTurnsSection ? (
                     <Button variant="ghost" size="sm" className="flex-1 justify-center min-h-[44px]" onClick={onViewTurni}>
-                  <Button variant="ghost" size="sm" className="flex-1 justify-center min-h-[44px]" onClick={onViewTurni}>
-                    <CalendarPlus size={16} />
-                    Aggiungi
-                  </Button>
+                      <CalendarPlus size={16} />
+                      Aggiungi
+                    </Button>
+                  ) : null}
+                </div>
         </section>
-        ) : null}
 
         {allowActivitiesSection ? (
         <section className="space-y-3">
