@@ -2308,6 +2308,10 @@ async function ensureGhLabel(label) {
   }
 }
 
+function escapeGhSearchTitle(title) {
+  return String(title).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
 async function findExistingIssueByTitle(title) {
   try {
     const data = await runGhJson([
@@ -2318,7 +2322,7 @@ async function findExistingIssueByTitle(title) {
       '--limit',
       '50',
       '--search',
-      `in:title "${title.replace(/"/g, '\\"')}"`,
+      `in:title "${escapeGhSearchTitle(title)}"`,
       '--json',
       'number,title,url',
     ]);
