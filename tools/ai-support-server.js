@@ -2810,7 +2810,8 @@ const requestHandler = (req, res) => {
 };
 
 // Keep-alive reciproco integrato
-const TURNI_DI_PALCO_URL = 'https://turni-di-palco-fq85.onrender.com';
+const TURNI_DI_PALCO_URL =
+  process.env.KEEP_ALIVE_TARGET_URL || 'https://turni-di-palco-fq85.onrender.com';
 const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // 10 minuti
 const KEEP_ALIVE_JITTER = 60000; // 1 minuto di jitter
 
