@@ -266,7 +266,7 @@ export function Home({
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>Prossimo evento</h3>
-            {eventState === 'ready' && allowTurnsSection ? (
+            {eventState === 'ready' ? (
               <button
                 onClick={onViewEventDetails}
                 className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
@@ -278,7 +278,7 @@ export function Home({
           </div>
 
           <Card 
-            hoverable={eventState === 'ready' && allowTurnsSection}
+            hoverable={eventState === 'ready'}
             onClick={eventState === 'ready' ? onViewTurni : undefined}
             animateOnMount
           >
