@@ -163,7 +163,7 @@ def fetch_calendar_events(*, supabase_url: str, api_key: str, timeout_s: int = 1
     response.raise_for_status()
     rows = response.json()
     if not isinstance(rows, list):
-        raise ValueError("Formato risposta calendario non valido.")
+        raise ValueError("Invalid calendar response format.")
 
     events: list[CalendarEvent] = []
     for row in rows:
