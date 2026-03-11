@@ -8,17 +8,9 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import { decodeJwt } from "jose";
 import { createClient } from "@supabase/supabase-js";
-import rateLimit from "express-rate-limit";
 
 const CONTROL_PLANE_VERSION = (process.env.CONTROL_PLANE_VERSION || "2026.02.09").trim();
 const DEFAULT_CONTROL_PLANE_PORT = Number.parseInt(String.fromCharCode(56, 55, 56, 55), 10);
-
-const authRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // limit each IP to 300 authenticated requests per windowMs
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 const CONTROL_PLANE_PORT = parseInteger(
   process.env.CONTROL_PLANE_PORT || process.env.PORT,
   DEFAULT_CONTROL_PLANE_PORT,
@@ -167,6 +159,7 @@ const supabaseAdminClient =
 const supabaseDbClient = supabaseAdminClient || supabaseAuthClient;
 
 const rateLimitState = new Map();
+const authRateLimitState = new Map();
 const dbOpsRateLimitState = new Map();
 const pendingByCommandId = new Map();
 const pendingByTokenHash = new Map();
@@ -582,6 +575,13 @@ function dbOpsRateLimiter(req, res, next) {
   });
 }
 
+function authRateLimiter(req, res, next) {
+  return handleRateLimit(req, res, next, {
+    state: authRateLimitState,
+    limit: 300,
+  });
+}
+
 function cleanupRateLimitState(state) {
   const now = Date.now();
   for (const [key, entry] of state.entries()) {
@@ -593,6 +593,7 @@ function cleanupRateLimitState(state) {
 
 function cleanupRateLimits() {
   cleanupRateLimitState(rateLimitState);
+  cleanupRateLimitState(authRateLimitState);
   cleanupRateLimitState(dbOpsRateLimitState);
 }
 
