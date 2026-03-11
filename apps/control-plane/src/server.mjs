@@ -6,6 +6,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import express from "express";
+import rateLimit from "express-rate-limit";
 import { decodeJwt } from "jose";
 import { createClient } from "@supabase/supabase-js";
 
@@ -241,6 +242,13 @@ router.post(
   asyncRoute(supabaseDbMutateHandler)
 );
 
+const dbOpsRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 30, // limit each IP to 30 requests per window per path
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 for (const path of ["/api/audit/recent", "/api/audit", "/audit"]) {
   router.get(path, asyncRoute(attachAuthContext), requireRole("dev_viewer"), asyncRoute(auditRecentHandler));
 }
@@ -250,7 +258,7 @@ for (const path of ["/api/dashboard/metrics", "/dashboard/metrics"]) {
 }
 
 for (const path of ["/api/db/ops", "/db/ops"]) {
-  router.get(path, asyncRoute(attachAuthContext), requireRole("dev_viewer"), asyncRoute(dbOpsHandler));
+  router.get(path, dbOpsRateLimiter, asyncRoute(attachAuthContext), requireRole("dev_viewer"), asyncRoute(dbOpsHandler));
 }
 
 app.use("/", router);
