@@ -84,7 +84,6 @@ ITALIAN_MONTHS = {
     "oct": 10,
     "october": 10,
     "nov": 11,
-    "november": 11,
     "dec": 12,
     "december": 12,
 }
