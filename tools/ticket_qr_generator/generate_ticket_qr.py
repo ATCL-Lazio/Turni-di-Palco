@@ -49,7 +49,6 @@ ITALIAN_MONTHS = {
     "febbraio": 2,
     "mar": 3,
     "marzo": 3,
-    "apr": 4,
     "aprile": 4,
     "mag": 5,
     "maggio": 5,
