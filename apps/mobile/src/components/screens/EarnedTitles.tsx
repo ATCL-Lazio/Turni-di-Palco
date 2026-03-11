@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Award, Calendar, Lock, MapPin, Theater } from 'lucide-react';
+import { ArrowLeft, Award, BookOpen, Calendar, Lock, MapPin, Theater } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { Card } from '../ui/Card';
@@ -13,7 +13,7 @@ interface EarnedTitlesProps {
   onViewed?: () => void;
 }
 
-const BADGE_ICONS: Record<string, LucideIcon> = { Award, MapPin, Theater, Calendar };
+const BADGE_ICONS: Record<string, LucideIcon> = { Award, MapPin, Theater, Calendar, BookOpen };
 
 function getBadgeGlyph(badge: Badge) {
   if (badge.icon === 'Developer' || badge.icon === 'developer_prompt') return '>_';

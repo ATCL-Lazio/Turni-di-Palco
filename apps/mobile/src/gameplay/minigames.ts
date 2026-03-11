@@ -1,4 +1,6 @@
-﻿export type MinigameType = 'timing' | 'audio';
+import type { RoleId } from '../state/store';
+
+export type MinigameType = 'timing' | 'audio';
 
 export type MinigameRound = {
   target: number;
@@ -11,6 +13,8 @@ export type MinigameConfig = {
   title: string;
   subtitle: string;
   rounds: MinigameRound[];
+  allowedRoles?: RoleId[];
+  roleOverrides?: Partial<Record<RoleId, Partial<Pick<MinigameConfig, 'title' | 'subtitle' | 'rounds'>>>>;
 };
 
 export type MinigameRating = 'Perfetto' | 'Ottimo' | 'Buono' | 'Da migliorare';
@@ -21,8 +25,11 @@ export type MinigameOutcome = {
   rating: MinigameRating;
   accuracy: number;
   roundScores: number[];
+  attempts: number;
+  durationMs: number;
 };
 
+// TODO: supportare configurazioni minigame remote per rollout, tuning e ruoli aggiuntivi.
 const MINIGAME_BY_ACTIVITY: Record<string, MinigameConfig> = {
   ritardo: {
     type: 'timing',
@@ -63,6 +70,23 @@ const MINIGAME_BY_ACTIVITY: Record<string, MinigameConfig> = {
       { target: 20, tolerance: 8, label: 'Entrata 2' },
       { target: 75, tolerance: 6, label: 'Entrata 3' },
     ],
+    roleOverrides: {
+      dramaturg: {
+        title: 'Analisi sottotesto',
+        subtitle: 'Blocca il momento in cui la tensione della scena cambia davvero.',
+      },
+    },
+  },
+  copione: {
+    type: 'timing',
+    title: 'Revisione copione',
+    subtitle: 'Segna i passaggi critici quando il testo entra nel punto di svolta.',
+    allowedRoles: ['dramaturg'],
+    rounds: [
+      { target: 28, tolerance: 6, label: 'Snodo 1' },
+      { target: 63, tolerance: 5, label: 'Snodo 2' },
+      { target: 47, tolerance: 6, label: 'Snodo 3' },
+    ],
   },
 };
 
@@ -77,8 +101,24 @@ const FALLBACK_CONFIG: MinigameConfig = {
   ],
 };
 
-export function getMinigameConfig(activityId: string): MinigameConfig {
-  return MINIGAME_BY_ACTIVITY[activityId] ?? FALLBACK_CONFIG;
+export function isMinigameAvailableForRole(activityId: string, roleId?: RoleId | null): boolean {
+  const config = MINIGAME_BY_ACTIVITY[activityId] ?? FALLBACK_CONFIG;
+  if (!config.allowedRoles?.length) return true;
+  return roleId ? config.allowedRoles.includes(roleId) : false;
+}
+
+export function getMinigameConfig(activityId: string, roleId?: RoleId | null): MinigameConfig {
+  const config = MINIGAME_BY_ACTIVITY[activityId] ?? FALLBACK_CONFIG;
+  if (!roleId) return config;
+
+  const override = config.roleOverrides?.[roleId];
+  if (!override) return config;
+
+  return {
+    ...config,
+    ...override,
+    rounds: override.rounds ?? config.rounds,
+  };
 }
 
 export function computeRoundScore(target: number, hit: number, tolerance: number) {
@@ -94,7 +134,11 @@ export function computeRoundScore(target: number, hit: number, tolerance: number
   return { score, accuracy, delta, label };
 }
 
-export function computeOutcome(type: MinigameType, roundScores: number[]): MinigameOutcome {
+export function computeOutcome(
+  type: MinigameType,
+  roundScores: number[],
+  meta?: { attempts?: number; durationMs?: number }
+): MinigameOutcome {
   const safeScores = roundScores.length ? roundScores : [0];
   const total = safeScores.reduce((sum, value) => sum + value, 0);
   const score = Math.round(total / safeScores.length);
@@ -106,7 +150,9 @@ export function computeOutcome(type: MinigameType, roundScores: number[]): Minig
     score,
     accuracy,
     rating,
-    roundScores: roundScores,
+    roundScores,
+    attempts: Math.max(1, Math.round(meta?.attempts ?? 1)),
+    durationMs: Math.max(0, Math.round(meta?.durationMs ?? 0)),
   };
 }
 

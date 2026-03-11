@@ -45,7 +45,7 @@ import {
 import { ScreenTransition } from './components/ui/ScreenTransition';
 import { ErrorOverlay } from './components/ui/ErrorOverlay';
 import { initErrorHandler, subscribeToCriticalErrors, getLastCriticalError, clearLastCriticalError } from './services/error-handler';
-import { MinigameOutcome } from './gameplay/minigames';
+import { MinigameOutcome, isMinigameAvailableForRole } from './gameplay/minigames';
 
 // Types and Hooks
 import { LegalReturnScreen, Screen, Tab } from './types/navigation';
@@ -224,6 +224,72 @@ function AppShell() {
   }, [newBadges]);
   const canViewAiSupport = isFeatureEnabled('mobile.action.ai_support');
   const canViewTicketQrPrototype = isFeatureEnabled('mobile.dev.ticket_qr_prototype');
+  const roleJourneyEnabled = isFeatureEnabled('mobile.section.role_journey');
+  const selectedRole = useMemo(
+    () => roles.find((role) => role.id === state.profile.roleId),
+    [roles, state.profile.roleId]
+  );
+  // TODO: leggere journey e attivita consigliate dal backend quando esiste una gestione runtime per i profili ruolo.
+  const recommendedActivityId = roleJourneyEnabled
+    ? selectedRole?.profile?.journey?.recommendedActivityId
+    : undefined;
+  const visibleActivities = useMemo(() => {
+    const baseActivities = activities.filter((activity) => isMinigameAvailableForRole(activity.id, null));
+    if (!roleJourneyEnabled) return baseActivities;
+    if (!selectedRole) return baseActivities;
+
+    const allowedActivityIds = selectedRole.profile?.allowedActivityIds;
+    const orderedActivityIds = selectedRole.profile?.activityOrder ?? [];
+    const orderedIndexById = new Map(orderedActivityIds.map((activityId, index) => [activityId, index]));
+    const defaultIndexById = new Map(activities.map((activity, index) => [activity.id, index]));
+
+    return activities
+      .filter((activity) => isMinigameAvailableForRole(activity.id, selectedRole.id))
+      .filter((activity) => !allowedActivityIds?.length || allowedActivityIds.includes(activity.id))
+      .sort((left, right) => {
+        const leftRecommended = left.id === recommendedActivityId ? 1 : 0;
+        const rightRecommended = right.id === recommendedActivityId ? 1 : 0;
+        if (leftRecommended !== rightRecommended) return rightRecommended - leftRecommended;
+
+        const leftOrder = orderedIndexById.get(left.id);
+        const rightOrder = orderedIndexById.get(right.id);
+        if (leftOrder != null || rightOrder != null) {
+          if (leftOrder == null) return 1;
+          if (rightOrder == null) return -1;
+          if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+        }
+
+        return (defaultIndexById.get(left.id) ?? 0) - (defaultIndexById.get(right.id) ?? 0);
+      });
+  }, [activities, recommendedActivityId, roleJourneyEnabled, selectedRole]);
+  const roleJourney = useMemo(() => {
+    if (!roleJourneyEnabled) return null;
+    const journey = selectedRole?.profile?.journey;
+    if (!journey) return null;
+
+    return {
+      eyebrow: journey.eyebrow,
+      headline: journey.headline,
+      summary: journey.summary,
+      recommendedActivityTitle: visibleActivities.find(
+        (activity) => activity.id === journey.recommendedActivityId
+      )?.title,
+      starterBadgeLabels: journey.starterBadgeLabels,
+      objectives: journey.objectives,
+      homeMessage: selectedRole?.profile?.homeMessage,
+      ctaLabel: journey.homeCtaLabel,
+    };
+  }, [roleJourneyEnabled, selectedRole, visibleActivities]);
+  const selectedEvent = useMemo(
+    () => confirmationEventOverride ?? events.find((event) => event.id === scannedEventId),
+    [confirmationEventOverride, events, scannedEventId]
+  );
+  const currentActivity = useMemo(
+    () =>
+      visibleActivities.find((activity) => activity.id === selectedActivityId)
+      ?? activities.find((activity) => activity.id === selectedActivityId),
+    [activities, selectedActivityId, visibleActivities]
+  );
 
   const hasValidEmail = Boolean(state.profile.email && state.profile.email.includes('@'));
   const isAuthValid = useMemo(() => {
@@ -730,9 +796,6 @@ function AppShell() {
   );
 
   const renderScreen = () => {
-    const selectedEvent = confirmationEventOverride ?? events.find(e => e.id === scannedEventId);
-    const selectedRole = roles.find(r => r.id === state.profile.roleId);
-    const currentActivity = activities.find(a => a.id === selectedActivityId);
     const selectedLeaderboardRole = selectedLeaderboardEntry
       ? roles.find((role) => role.id === selectedLeaderboardEntry.roleId)?.name ?? 'Ruolo'
       : 'Ruolo';
@@ -770,7 +833,16 @@ function AppShell() {
           onDismiss={() => setCurrentScreen(state.profile.roleId ? 'home' : 'welcome')}
         />
       );
-      case 'role-selection': return <RoleSelection roles={roles} onComplete={(role) => { updateProfile({ roleId: role.id as any }); setCurrentScreen('home'); }} />;
+      case 'role-selection': return (
+        <RoleSelection
+          roles={roles}
+          showRoleJourney={roleJourneyEnabled}
+          onComplete={(role) => {
+            updateProfile({ roleId: role.id });
+            setCurrentScreen('home');
+          }}
+        />
+      );
       case 'home': return (
         <Home
           userName={state.profile.name}
@@ -789,6 +861,7 @@ function AppShell() {
           allowActivitiesSection={tabFeatureFlags.activities}
           onScanQR={openQrScanner}
           onViewActivities={openActivities}
+          onOpenRoleJourney={openActivities}
           onViewTurni={openTurns}
           onViewEventDetails={() => {
             if (!tabFeatureFlags.turns) {
@@ -803,7 +876,8 @@ function AppShell() {
           totalTurns={turnStats.totalTurns}
           turnsThisMonth={turnStats.turnsThisMonth}
           uniqueTheatres={turnStats.uniqueTheatres}
-          activitiesCount={activities.length}
+          activitiesCount={visibleActivities.length}
+          roleJourney={roleJourney}
           eventLoading={followedEventsLoading}
           statsLoading={statsLoading}
           newBadgesCount={newBadges.length}
@@ -833,11 +907,13 @@ function AppShell() {
             }
             activitiesView={
               <Activities
-                activities={activities}
+                activities={visibleActivities}
+                activeRole={roleJourneyEnabled ? selectedRole : undefined}
                 slotsStatus={activitySlotsStatus}
                 slotsLoading={activitySlotsLoading}
                 isOnline={typeof navigator === 'undefined' ? true : navigator.onLine}
                 canStartActivities={isFeatureEnabled('mobile.action.activity_start')}
+                recommendedActivityId={roleJourneyEnabled ? recommendedActivityId : undefined}
                 onStartActivity={(id: string) => {
                   if (!isFeatureEnabled('mobile.action.activity_start')) {
                     showFeatureDisabledAlert('Avvio attivita');
@@ -908,19 +984,27 @@ function AppShell() {
           onPurchase={purchaseShopItem}
         />
       );
-      case 'activity-detail': return currentActivity && <ActivityDetail activity={currentActivity} onStart={() => {
-        if (!isFeatureEnabled('mobile.action.activity_start')) {
-          showFeatureDisabledAlert('Avvio attivita');
-          return;
-        }
-        setActivityOutcome(null);
-        setActivityCompletion(null);
-        setCurrentScreen('activity-minigame');
-      }} onClose={() => setCurrentScreen('activities')} />;
+      case 'activity-detail': return currentActivity && (
+        <ActivityDetail
+          activity={currentActivity}
+          role={roleJourneyEnabled ? selectedRole : undefined}
+          onStart={() => {
+            if (!isFeatureEnabled('mobile.action.activity_start')) {
+              showFeatureDisabledAlert('Avvio attivita');
+              return;
+            }
+            setActivityOutcome(null);
+            setActivityCompletion(null);
+            setCurrentScreen('activity-minigame');
+          }}
+          onClose={() => setCurrentScreen('activities')}
+        />
+      );
       case 'activity-minigame':
         return currentActivity && (
           <ActivityMinigame
             activity={currentActivity}
+            roleId={roleJourneyEnabled ? selectedRole?.id : undefined}
             onCancel={() => setCurrentScreen('activity-detail')}
             onComplete={(outcome) => {
               void (async () => {
@@ -929,7 +1013,7 @@ function AppShell() {
                   handleTabChange('activities');
                   return;
                 }
-                const completion = await completeActivity(selectedActivityId);
+                const completion = await completeActivity(selectedActivityId, outcome);
                 if (!completion.ok) {
                   window.alert(completion.error);
                   handleTabChange('activities');
@@ -955,11 +1039,13 @@ function AppShell() {
           />
         ) : (
           <Activities
-            activities={activities}
+            activities={visibleActivities}
+            activeRole={roleJourneyEnabled ? selectedRole : undefined}
             slotsStatus={activitySlotsStatus}
             slotsLoading={activitySlotsLoading}
             isOnline={typeof navigator === 'undefined' ? true : navigator.onLine}
             canStartActivities={isFeatureEnabled('mobile.action.activity_start')}
+            recommendedActivityId={roleJourneyEnabled ? recommendedActivityId : undefined}
             onStartActivity={(id: string) => {
               if (!isFeatureEnabled('mobile.action.activity_start')) {
                 showFeatureDisabledAlert('Avvio attivita');

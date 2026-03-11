@@ -14,6 +14,7 @@ import {
   Volume2,
   Package,
   Clipboard,
+  BookOpen,
   ShieldCheck,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -43,6 +44,7 @@ const ROLE_ICONS: Record<RoleId, React.ElementType> = {
   fonico: Volume2,
   attrezzista: Package,
   palco: Clipboard,
+  dramaturg: BookOpen,
   rspp: ShieldCheck,
 };
 
@@ -55,7 +57,7 @@ const ROLE_STAT_LABELS: Record<keyof Role['stats'], string> = {
   creativity: 'Creatività',
 };
 
-const BADGE_ICONS: Record<string, LucideIcon> = { Award, MapPin, Theater, Calendar };
+const BADGE_ICONS: Record<string, LucideIcon> = { Award, MapPin, Theater, Calendar, BookOpen };
 
 function getBadgeGlyph(badge: GameBadge) {
   if (badge.icon === 'Developer' || badge.icon === 'developer_prompt') return '>_';

@@ -11,6 +11,7 @@ export const roles: Role[] = [
   { id: "attrezzista", name: "Attrezzista / Scenografo", focus: "Allestimento rapido", stats: ["Creativita", "Manualita", "Organizzazione"] },
   { id: "palco", name: "Assistente di palco", focus: "Coordinamento", stats: ["Coordinazione", "Leadership", "Sangue freddo"] },
   { id: "rspp", name: "RSPP", focus: "Sicurezza e prevenzione", stats: ["Prevenzione", "Valutazione rischi", "Coordinamento"] },
+  { id: "dramaturg", name: "Dramaturg", focus: "Analisi del testo e ritmo di scena", stats: ["Analisi", "Sottotesto", "Continuita"] },
 ];
 
 export const avatarIcons: { id: AvatarIcon; label: string; symbol: string }[] = [
