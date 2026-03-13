@@ -1320,6 +1320,10 @@ const TURN_REGISTRATION_ERROR_MESSAGES: Array<{ token: string; message: string }
     token: 'theatres_geodata_columns_missing',
     message: 'Configurazione coordinate teatri incompleta sul server. Contatta il supporto ATCL.',
   },
+  {
+    token: 'already_registered',
+    message: 'Hai già registrato un turno per questo evento.',
+  },
 ];
 
 export function localizeTurnRegistrationError(error: unknown): string {
@@ -1359,7 +1363,8 @@ function isDuplicateSyncError(error: unknown) {
   return (
     message.includes('duplicate') ||
     message.includes('already exists') ||
-    message.includes('already followed')
+    message.includes('already followed') ||
+    message.includes('already_registered')
   );
 }
 
