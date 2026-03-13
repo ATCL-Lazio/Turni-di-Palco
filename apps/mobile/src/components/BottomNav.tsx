@@ -33,9 +33,9 @@ export function BottomNav({ activeTab, onTabChange, enabledTabs }: BottomNavProp
   } : undefined;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 w-full app-nav z-50">
+    <nav className="fixed left-0 right-0 w-full app-nav z-50" style={{ bottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <div className="bg-[#0f0d0e]/90 backdrop-blur-2xl border-t border-white/[0.05]">
-        <div className="relative app-content flex items-stretch justify-around px-2 pt-1 pb-[calc(env(safe-area-inset-bottom,_0px)+4px)] min-h-[54px]">
+        <div className="relative app-content flex items-stretch justify-around px-2 pt-1 pb-1 min-h-[54px]">
 
           {indicatorStyle && (
             <div
