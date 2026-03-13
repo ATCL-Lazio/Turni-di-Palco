@@ -269,7 +269,7 @@ export function Home({
         </header>
 
         {roleJourney ? (
-          <Card className="border border-[#f4bf4f]/30 bg-gradient-to-br from-[#201819] via-[#251b1d] to-[#171314]">
+          <Card className="animate-stagger-2 border border-[#f4bf4f]/30 bg-gradient-to-br from-[#201819] via-[#251b1d] to-[#171314]">
             <div className="space-y-3">
               {roleJourney.eyebrow ? (
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f4bf4f]">
@@ -319,14 +319,13 @@ export function Home({
         ) : null}
 
         {allowTurnsSection ? (
-        <section className="space-y-3">
+        <section className="animate-stagger-3 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>Prossimo evento</h3>
+            <h3 className="text-white text-base font-semibold tracking-tight">Prossimo evento</h3>
             {eventState === 'ready' ? (
               <button
                 onClick={onViewEventDetails}
-                className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
-                style={{ margin: '20px 0 5px' }}
+                className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-2 rounded-lg transition-colors"
               >
                 Dettagli
               </button>
@@ -369,7 +368,7 @@ export function Home({
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="flex items-start gap-3" style={{ marginBottom: '20px' }}>
+                <div className="flex items-start gap-3 mb-4">
                   <div className="flex-shrink-0 bg-[#241f20] rounded-lg flex flex-col items-center justify-center w-[70px] h-[70px] gap-1">
                     <Calendar className="text-[#f4bf4f] block" size={50} />
                     <p className="text-xs leading-none text-[#f4bf4f] !m-0">{upcomingEvent?.date?.slice(0, 6)}</p>
@@ -390,9 +389,9 @@ export function Home({
                   </div>
                 </div>
                 <div className="flex gap-2 pt-1">
-                  <Button variant="secondary" size="sm" className="flex-1 justify-center min-h-[44px]" onClick={onNavigateToEvent} style={{ backgroundColor: '#a72847' }}>
-                    <Navigation size={16} className="text-white" />
-                    <div className="text-white">Naviga</div>
+                  <Button variant="default" size="sm" className="flex-1 justify-center min-h-[44px]" onClick={onNavigateToEvent}>
+                    <Navigation size={16} />
+                    Naviga
                   </Button>
                   {allowTurnsSection ? (
                     <Button variant="ghost" size="sm" className="flex-1 justify-center min-h-[44px]" onClick={onViewTurni}>
@@ -408,13 +407,12 @@ export function Home({
         ) : null}
 
         {allowActivitiesSection ? (
-        <section className="space-y-3">
+        <section className="animate-stagger-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>Turni ATCL</h3>
+            <h3 className="text-white text-base font-semibold tracking-tight">Turni ATCL</h3>
             <button
               onClick={onViewTurni}
-              className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-[12px] rounded-lg"
-              style={{ marginTop: '20px' }}
+              className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-2 rounded-lg transition-colors"
             >
               Vedi tutti
             </button>
@@ -437,8 +435,8 @@ export function Home({
         </section>
         ) : null}
 
-        <section className="space-y-3">
-          <h3 className="text-white text-lg font-semibold" style={{ margin: '20px 0 5px' }}>Attività simulate</h3>
+        <section className="animate-stagger-5 space-y-3">
+          <h3 className="text-white text-base font-semibold tracking-tight">Attività simulate</h3>
           <Card hoverable onClick={onViewActivities} className="mb-5">
             <div className="flex items-center gap-4">
               <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">

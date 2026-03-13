@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Home, ListChecks, ShoppingBag, Trophy, User } from 'lucide-react';
 import { Tab } from '../types/navigation';
 
@@ -19,32 +19,52 @@ export function BottomNav({ activeTab, onTabChange, enabledTabs }: BottomNavProp
   const allowedTabs = enabledTabs ? new Set(enabledTabs) : null;
   const visibleTabs = allowedTabs ? tabs.filter((tab) => allowedTabs.has(tab.id)) : tabs;
 
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 w-full app-nav bg-[#1a1617] border-t border-[#2d2728] z-50">
-      <div className="app-content flex items-end justify-between gap-1 h-[72px] px-4 pb-4 pt-2">
-        {visibleTabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
+  const activeIndex = visibleTabs.findIndex((t) => t.id === activeTab);
+  const numTabs = visibleTabs.length;
 
-          return (
-            <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
-              className={`flex h-[44px] flex-1 min-w-0 flex-col items-center justify-end gap-[4px] rounded-[10px] text-[12px] leading-[14px] transition-colors ${
-                isActive 
-                  ? 'text-[#f4bf4f] tab-button-active' 
-                  : 'text-[#7a7577] hover:text-[#b8b2b3]'
-              }`}
-            >
-              <Icon 
-                size={24} 
-                strokeWidth={isActive ? 2.5 : 2}
-                className={isActive ? 'tab-icon-pulse' : ''}
-              />
-              <span className="w-full px-1 text-center truncate">{tab.label}</span>
-            </button>
-          );
-        })}
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 w-full app-nav z-50">
+      <div className="bg-[#0f0d0e]/90 backdrop-blur-2xl border-t border-white/[0.05]">
+        <div className="relative app-content flex items-stretch justify-around px-2 pt-1 pb-[calc(env(safe-area-inset-bottom,_0px)+4px)] min-h-[54px]">
+
+          {/* Sliding gold indicator line */}
+          {activeIndex >= 0 && (
+            <div
+              className="absolute top-0 h-[2px] bg-[#f4bf4f] rounded-full"
+              style={{
+                width: `calc(100% / ${numTabs} - 20px)`,
+                left: `calc(${activeIndex} * (100% / ${numTabs}) + 10px)`,
+                transition: 'left 280ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+              }}
+            />
+          )}
+
+          {visibleTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => onTabChange(tab.id)}
+                className={`relative flex flex-1 min-w-0 flex-col items-center justify-center gap-[3px] py-1 rounded-xl transition-colors duration-150 ${
+                  isActive
+                    ? 'text-[#f4bf4f] tab-button-active'
+                    : 'text-[#3d393a] hover:text-[#7a7577] active:text-[#b8b2b3]'
+                }`}
+              >
+                <Icon
+                  size={20}
+                  strokeWidth={isActive ? 2.5 : 1.8}
+                  className={isActive ? 'tab-icon-pulse' : ''}
+                />
+                <span className="text-[9.5px] leading-none tracking-[0.02em] font-medium w-full px-1 text-center truncate">
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );
