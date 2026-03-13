@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { ListChecks, Ticket } from 'lucide-react';
 import { Card } from '../ui/Card';
+import { Screen } from '../ui/Screen';
 
 export type ActivitiesHubSection = 'turns' | 'activities';
 
@@ -14,12 +15,7 @@ interface ActivitiesHubProps {
 }
 
 export function ActivitiesHub({
-  activeSection,
-  onSectionChange,
-  showTurns,
-  showActivities,
-  turnsView,
-  activitiesView,
+  activeSection, onSectionChange, showTurns, showActivities, turnsView, activitiesView,
 }: ActivitiesHubProps) {
   const resolvedSection = useMemo<ActivitiesHubSection | null>(() => {
     if (showTurns && showActivities) return activeSection;
@@ -29,8 +25,7 @@ export function ActivitiesHub({
   }, [activeSection, showActivities, showTurns]);
 
   useEffect(() => {
-    if (!resolvedSection) return;
-    if (resolvedSection !== activeSection) {
+    if (resolvedSection && resolvedSection !== activeSection) {
       onSectionChange(resolvedSection);
     }
   }, [activeSection, onSectionChange, resolvedSection]);
@@ -38,57 +33,73 @@ export function ActivitiesHub({
   const showSwitcher = showTurns && showActivities;
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }}
-    >
-      <div className="w-full app-content px-6 pt-6 pb-8 space-y-5">
-        {showSwitcher ? (
-          <div className="rounded-[14px] border border-[#2d2728] bg-[#1a1617] p-1 grid grid-cols-2 gap-1">
-            <button
-              type="button"
-              onClick={() => onSectionChange('turns')}
-              className={`min-h-[44px] rounded-[10px] px-3 text-sm font-medium transition-colors ${
-                resolvedSection === 'turns'
-                  ? 'bg-[#f4bf4f] text-[#1a1617]'
-                  : 'text-[#b8b2b3] hover:text-white hover:bg-[#2a2425]'
-              }`}
-            >
-              <span className="inline-flex items-center gap-2 justify-center w-full">
-                <Ticket size={16} />
-                Turni ATCL
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onSectionChange('activities')}
-              className={`min-h-[44px] rounded-[10px] px-3 text-sm font-medium transition-colors ${
-                resolvedSection === 'activities'
-                  ? 'bg-[#f4bf4f] text-[#1a1617]'
-                  : 'text-[#b8b2b3] hover:text-white hover:bg-[#2a2425]'
-              }`}
-            >
-              <span className="inline-flex items-center gap-2 justify-center w-full">
-                <ListChecks size={16} />
-                Attività
-              </span>
-            </button>
-          </div>
-        ) : null}
+    <Screen contentClassName="px-6 pt-6 pb-8 space-y-5">
+      {showSwitcher && (
+        <SectionSwitcher activeSection={resolvedSection} onSectionChange={onSectionChange} />
+      )}
 
-        {resolvedSection === 'turns' ? turnsView : null}
-        {resolvedSection === 'activities' ? activitiesView : null}
+      {resolvedSection === 'turns' && turnsView}
+      {resolvedSection === 'activities' && activitiesView}
 
-        {!resolvedSection ? (
-          <Card className="text-center py-10">
-            <p className="text-sm text-[#7a7577]">Sezione non disponibile</p>
-            <p className="text-sm text-[#b8b2b3] mt-1">
-              Turni e attivita sono temporaneamente disattivati dalle feature flag.
-            </p>
-          </Card>
-        ) : null}
-      </div>
+      {!resolvedSection && (
+        <Card className="text-center py-10">
+          <p className="text-sm text-[#7a7577]">Sezione non disponibile</p>
+          <p className="text-sm text-[#b8b2b3] mt-1">
+            Turni e attivita sono temporaneamente disattivati dalle feature flag.
+          </p>
+        </Card>
+      )}
+    </Screen>
+  );
+}
+
+// === Sub-components ===
+
+function SectionSwitcher({
+  activeSection, onSectionChange,
+}: {
+  activeSection: ActivitiesHubSection | null;
+  onSectionChange: (section: ActivitiesHubSection) => void;
+}) {
+  return (
+    <div className="rounded-[14px] border border-[#2d2728] bg-[#1a1617] p-1 grid grid-cols-2 gap-1">
+      <SwitcherButton
+        active={activeSection === 'turns'}
+        icon={<Ticket size={16} />}
+        label="Turni ATCL"
+        onClick={() => onSectionChange('turns')}
+      />
+      <SwitcherButton
+        active={activeSection === 'activities'}
+        icon={<ListChecks size={16} />}
+        label="Attività"
+        onClick={() => onSectionChange('activities')}
+      />
     </div>
   );
 }
 
+function SwitcherButton({
+  active, icon, label, onClick,
+}: {
+  active: boolean;
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-h-[44px] rounded-[10px] px-3 text-sm font-medium transition-colors ${
+        active
+          ? 'bg-[#f4bf4f] text-[#1a1617]'
+          : 'text-[#b8b2b3] hover:text-white hover:bg-[#2a2425]'
+      }`}
+    >
+      <span className="inline-flex items-center gap-2 justify-center w-full">
+        {icon} {label}
+      </span>
+    </button>
+  );
+}
