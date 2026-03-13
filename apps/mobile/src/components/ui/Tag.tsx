@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from './utils';
 
-type TagVariant = 'default' | 'outline' | 'info';
+type TagVariant = 'default' | 'outline' | 'info' | 'success';
 
 interface TagProps {
   children: React.ReactNode;
@@ -15,6 +15,7 @@ export function Tag({ children, variant = 'default', className = '', size = 'md'
     default: 'bg-[#241f20] text-[#f4bf4f]',
     outline: 'border border-[#f4bf4f]/40 text-[#f4bf4f]',
     info: 'bg-[#f4bf4f]/10 text-[#f4bf4f]',
+    success: 'bg-[#52c41a]/10 text-[#52c41a] border border-[#52c41a]/30',
   };
 
   const sizes = {
