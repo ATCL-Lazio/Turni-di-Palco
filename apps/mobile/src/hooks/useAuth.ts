@@ -98,7 +98,7 @@ export function useAuth(
 
     const applyUserProfileFromAuth = useCallback(
         (
-            user: { email: string | null; user_metadata?: Record<string, unknown> } | null | undefined,
+            user: { email?: string | null; user_metadata?: Record<string, unknown> } | null | undefined,
             options?: {
                 fallbackName?: string;
                 navigateTo?: 'home' | 'change-password';
