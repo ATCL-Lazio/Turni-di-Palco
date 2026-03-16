@@ -58,7 +58,7 @@ export function AppShell() {
     theatreReputationLoading, badges, followedEvents, followedEventsLoading,
     shopCatalog, shopCatalogLoading, purchaseShopItem,
     activitySlotsStatus, activitySlotsLoading,
-    followEvent, unfollowEvent, isEventFollowed, markBadgesSeen,
+    getEventPlan, planEvent, cancelEventPlan, markBadgesSeen,
     updateProfile, registerTurn, pendingBoostRequests, turnSyncFeedback, clearTurnSyncFeedback,
     completeActivity, resetProgress, resetState,
     changePassword, sendPasswordResetEmail, featureFlags, isFeatureEnabled,
@@ -412,8 +412,10 @@ export function AppShell() {
             activeSection={activitiesSection} onSectionChange={setActivitiesSection}
             showTurns={tabFlags.turns} showActivities={tabFlags.activities}
             turnsView={
-              <ATCLTurns events={events} isEventFollowed={isEventFollowed}
-                onToggleFollow={(id: string) => isEventFollowed(id) ? unfollowEvent(id) : followEvent(id)}
+              <ATCLTurns events={events} roles={roles} getEventPlan={getEventPlan}
+                onPlanEvent={(id: string) => { void planEvent(id, state.profile.roleId as RoleId); }}
+                onCancelPlanning={(id: string) => { void cancelEventPlan(id); }}
+                onEditPlanning={(id: string) => { nav.setScannedEventId(id); nav.navigate('event-details'); }}
                 onViewMap={() => openEventsMap(events.map(e => e.theatre))}
                 onViewEvent={(id: string) => { nav.setScannedEventId(id); nav.navigate('event-details'); }}
                 onScanQR={openQrScanner} canScanQr={isFeatureEnabled('mobile.action.qr_scan')} embedded />
@@ -462,7 +464,18 @@ export function AppShell() {
         );
 
       case 'event-details':
-        return <EventDetails event={selectedEvent} onBack={() => nav.navigate('home')} onNavigate={() => openInMaps(selectedEvent?.theatre ?? '')} />;
+        return (
+          <EventDetails
+            event={selectedEvent}
+            roles={roles}
+            currentRoleId={state.profile.roleId as RoleId}
+            planning={selectedEvent ? getEventPlan(selectedEvent.id) : null}
+            onBack={() => nav.navigate('home')}
+            onNavigate={() => openInMaps(selectedEvent?.theatre ?? '')}
+            onSavePlanning={planEvent}
+            onClearPlanning={cancelEventPlan}
+          />
+        );
 
       case 'shop':
         return (

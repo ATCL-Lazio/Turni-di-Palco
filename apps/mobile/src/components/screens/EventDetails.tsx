@@ -1,17 +1,59 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
 import { Calendar, CalendarPlus, Clock, MapPin, Navigation } from 'lucide-react';
-import { GameEvent } from '../../state/store';
+import { EventPlanning, GameEvent, Role, RoleId } from '../../state/store';
 
 type EventDetailsProps = {
   event?: GameEvent;
+  roles: Role[];
+  currentRoleId: RoleId;
+  planning: EventPlanning | null;
   onBack: () => void;
   onNavigate: () => void;
+  onSavePlanning: (eventId: string, roleId: RoleId) => Promise<void>;
+  onClearPlanning: (eventId: string) => Promise<void>;
 };
 
-export function EventDetails({ event, onBack, onNavigate }: EventDetailsProps) {
+export function EventDetails({
+  event,
+  roles,
+  currentRoleId,
+  planning,
+  onBack,
+  onNavigate,
+  onSavePlanning,
+  onClearPlanning,
+}: EventDetailsProps) {
+  const [selectedRoleId, setSelectedRoleId] = useState<RoleId>(planning?.roleId ?? currentRoleId);
+  const [isSavingPlanning, setIsSavingPlanning] = useState(false);
+  const [isClearingPlanning, setIsClearingPlanning] = useState(false);
+
+  useEffect(() => {
+    setSelectedRoleId(planning?.roleId ?? currentRoleId);
+  }, [currentRoleId, planning?.roleId, event?.id]);
+
+  const selectedRoleName = useMemo(
+    () => roles.find((role) => role.id === selectedRoleId)?.name ?? selectedRoleId,
+    [roles, selectedRoleId]
+  );
+  const savedRoleName = useMemo(() => {
+    if (!planning) return null;
+    return roles.find((role) => role.id === planning.roleId)?.name ?? planning.roleId;
+  }, [planning, roles]);
+  const planningStatusLabel = planning ? getPlanningStatusLabel(planning.status) : 'Da pianificare';
+  const planningStatusClassName = planning
+    ? getPlanningStatusClassName(planning.status)
+    : 'border-white/10 bg-white/5 text-[#b8b2b3]';
+
   if (!event) {
     return (
       <div className="min-h-screen">
@@ -61,6 +103,24 @@ export function EventDetails({ event, onBack, onNavigate }: EventDetailsProps) {
     URL.revokeObjectURL(url);
   };
 
+  const handleSavePlanning = async () => {
+    setIsSavingPlanning(true);
+    try {
+      await onSavePlanning(event.id, selectedRoleId);
+    } finally {
+      setIsSavingPlanning(false);
+    }
+  };
+
+  const handleClearPlanning = async () => {
+    setIsClearingPlanning(true);
+    try {
+      await onClearPlanning(event.id);
+    } finally {
+      setIsClearingPlanning(false);
+    }
+  };
+
   return (
     <div className="min-h-screen pb-24">
       <div className="app-content px-6 space-y-6 pt-6">
@@ -108,6 +168,77 @@ export function EventDetails({ event, onBack, onNavigate }: EventDetailsProps) {
           </div>
         </Card>
 
+        <Card className="border border-[#f4bf4f]/10 bg-[#151112]">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h4 className="text-white">Pianificazione partecipazione</h4>
+              <p className="text-sm text-[#b8b2b3] mt-1">
+                Salva il ruolo che intendi coprire per questo evento e mantieni lo stato visibile nella lista.
+              </p>
+            </div>
+            <span
+              className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-medium ${planningStatusClassName}`}
+            >
+              {planningStatusLabel}
+            </span>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            <label className="block text-sm text-[#b8b2b3]" htmlFor="event-role-select">
+              Ruolo previsto
+            </label>
+            <Select
+              value={selectedRoleId}
+              onValueChange={(value) => setSelectedRoleId(value as RoleId)}
+            >
+              <SelectTrigger
+                id="event-role-select"
+                className="w-full border-[#2d2728] bg-[#241f20] text-white"
+              >
+                <SelectValue placeholder="Scegli un ruolo" />
+              </SelectTrigger>
+              <SelectContent>
+                {roles.map((role) => (
+                  <SelectItem key={role.id} value={role.id}>
+                    {role.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-[#b8b2b3]">
+              {planning
+                ? `Stato attuale: ${planningStatusLabel.toLowerCase()} come ${savedRoleName}.`
+                : 'Nessuna pianificazione salvata per questo evento.'}
+            </p>
+            {planning && planning.roleId !== selectedRoleId ? (
+              <p className="text-sm text-[#f4bf4f]">
+                Modifica pronta da salvare: {selectedRoleName}.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => void handleSavePlanning()}
+              disabled={isSavingPlanning}
+            >
+              {planning ? 'Aggiorna pianificazione' : 'Salva pianificazione'}
+            </Button>
+            {planning ? (
+              <Button
+                variant="ghost"
+                size="md"
+                onClick={() => void handleClearPlanning()}
+                disabled={isClearingPlanning}
+              >
+                Cancella pianificazione
+              </Button>
+            ) : null}
+          </div>
+        </Card>
+
         <div className="space-y-3">
           <Button variant="primary" size="lg" fullWidth onClick={handleAddToCalendar}>
             <CalendarPlus size={16} />
@@ -124,6 +255,28 @@ export function EventDetails({ event, onBack, onNavigate }: EventDetailsProps) {
       </div>
     </div>
   );
+}
+
+function getPlanningStatusLabel(status: EventPlanning['status']) {
+  switch (status) {
+    case 'confirmed':
+      return 'Confermato';
+    case 'cancelled':
+      return 'Annullato';
+    default:
+      return 'Pianificato';
+  }
+}
+
+function getPlanningStatusClassName(status: EventPlanning['status']) {
+  switch (status) {
+    case 'confirmed':
+      return 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300';
+    case 'cancelled':
+      return 'border-white/10 bg-white/5 text-[#b8b2b3]';
+    default:
+      return 'border-[#f4bf4f]/40 bg-[#f4bf4f]/10 text-[#f4bf4f]';
+  }
 }
 
 function parseEventDateTime(dateValue: string, timeValue: string) {
