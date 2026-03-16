@@ -72,7 +72,8 @@ export type GameEvent = {
   focusRole?: RoleId;
 };
 
-export type EventPlanningStatus = 'planned';
+export const EVENT_PLANNING_STATUSES = ['planned', 'confirmed', 'cancelled'] as const;
+export type EventPlanningStatus = (typeof EVENT_PLANNING_STATUSES)[number];
 
 export type EventPlanning = {
   eventId: string;
@@ -349,12 +350,18 @@ type DbTheatreReputationRow = {
   total_turns?: number | null;
 };
 
-type FollowedEventRow = {
+type PlannedParticipationRpcRow = {
   event_id: string;
-  planned_role_id?: string | null;
-  planning_status?: string | null;
+  event_name?: string | null;
+  theatre?: string | null;
+  event_date?: string | null;
+  event_time?: string | null;
+  role_id?: string | null;
+  role_name?: string | null;
+  status?: string | null;
+  notes?: string | null;
+  created_at?: string | null;
   updated_at?: string | null;
-  events?: DbEventRow | DbEventRow[] | null;
 };
 
 // TODO: spostare i profili ruolo nel catalogo remoto per evitare duplicazione tra client e seed SQL.
@@ -821,8 +828,36 @@ function normalizeText(value: string | null | undefined) {
   return decodeHtmlEntities(decodeUnicodeEscapes(value));
 }
 
+function isEventPlanningStatus(value: unknown): value is EventPlanningStatus {
+  return typeof value === 'string'
+    && (EVENT_PLANNING_STATUSES as readonly string[]).includes(value);
+}
+
+function resolveEventPlanningStatus(value: unknown): EventPlanningStatus {
+  return isEventPlanningStatus(value) ? value : 'planned';
+}
+
 function resolveEventPlanningRoleId(value: unknown, fallbackRoleId: RoleId): RoleId {
   return isRoleId(value) ? value : fallbackRoleId;
+}
+
+function parseEventScheduleTimestamp(event: Pick<GameEvent, 'date' | 'time'>) {
+  const timestamp = new Date(`${event.date} ${event.time}`).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function sortEventsForPlanning(events: GameEvent[]) {
+  const now = Date.now();
+  return [...events].sort((left, right) => {
+    const leftTimestamp = parseEventScheduleTimestamp(left);
+    const rightTimestamp = parseEventScheduleTimestamp(right);
+    const leftFuture = leftTimestamp >= now;
+    const rightFuture = rightTimestamp >= now;
+
+    if (leftFuture !== rightFuture) return leftFuture ? -1 : 1;
+    if (leftFuture && rightFuture) return leftTimestamp - rightTimestamp;
+    return rightTimestamp - leftTimestamp;
+  });
 }
 
 function upsertEventPlan(plans: EventPlanning[], nextPlan: EventPlanning) {
@@ -1349,6 +1384,10 @@ const TURN_REGISTRATION_ERROR_MESSAGES: Array<{ token: string; message: string }
     token: 'theatres_geodata_columns_missing',
     message: 'Configurazione coordinate teatri incompleta sul server. Contatta il supporto ATCL.',
   },
+  {
+    token: 'already_registered',
+    message: 'Hai già registrato un turno per questo evento.',
+  },
 ];
 
 export function localizeTurnRegistrationError(error: unknown): string {
@@ -1388,7 +1427,8 @@ function isDuplicateSyncError(error: unknown) {
   return (
     message.includes('duplicate') ||
     message.includes('already exists') ||
-    message.includes('already followed')
+    message.includes('already followed') ||
+    message.includes('already_registered')
   );
 }
 
@@ -1699,7 +1739,7 @@ function loadState(): GameState {
             return {
               eventId: typeof plan.eventId === 'string' ? plan.eventId : '',
               roleId,
-              status: 'planned' as const,
+              status: resolveEventPlanningStatus(plan.status),
               updatedAt,
             };
           })
@@ -1992,7 +2032,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       const nextFollowedEvents = plans
         .map((plan) => catalog.events.find((event) => event.id === plan.eventId) ?? null)
         .filter((event): event is GameEvent => Boolean(event));
-      setFollowedEvents(nextFollowedEvents);
+      setFollowedEvents(sortEventsForPlanning(nextFollowedEvents));
     },
     [catalog.events]
   );
@@ -2371,9 +2411,12 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (mutation.kind === 'follow_event_insert') {
-          const { error } = await supabase
-            .from('followed_events')
-            .upsert(mutation.payload, { onConflict: 'user_id,event_id' });
+          const { error } = await supabase.rpc('upsert_planned_participation', {
+            p_event_id: mutation.payload.event_id,
+            p_role_id: mutation.payload.planned_role_id,
+            p_status: mutation.payload.planning_status,
+            p_notes: null,
+          });
           if (!error || isDuplicateSyncError(error)) return { status: 'applied' };
           return shouldRetrySyncError(error)
             ? { status: 'retry', error }
@@ -2381,11 +2424,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (mutation.kind === 'follow_event_delete') {
-          const { error } = await supabase
-            .from('followed_events')
-            .delete()
-            .eq('user_id', mutation.payload.user_id)
-            .eq('event_id', mutation.payload.event_id);
+          const { error } = await supabase.rpc('remove_planned_participation', {
+            p_event_id: mutation.payload.event_id,
+          });
           if (!error) return { status: 'applied' };
           return shouldRetrySyncError(error)
             ? { status: 'retry', error }
@@ -2796,7 +2837,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   }, [flushMirroredClientLogsToServer]);
 
   const refreshFollowedEvents = useCallback(
-    async (_catalogEvents: GameEvent[]) => {
+    async (catalogEvents: GameEvent[]) => {
       if (!isSupabaseConfigured || !supabase || !authUserId) {
         setEventPlansLoading(false);
         setFollowedEventsLoading(false);
@@ -2808,64 +2849,52 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           setEventPlansLoading(true);
           setFollowedEventsLoading(true);
           try {
-            const planningResponse = await supabase!
-              .from('followed_events')
-              .select(
-                'event_id, planned_role_id, planning_status, updated_at, events:events(id,name,theatre,event_date,event_time,genre,base_rewards,focus_role)'
-              )
-              .eq('user_id', authUserId);
-            let data = planningResponse.data as FollowedEventRow[] | null;
-            let error = planningResponse.error;
-            if (error) {
-              const legacyResponse = await supabase!
-                .from('followed_events')
-                .select(
-                  'event_id, events:events(id,name,theatre,event_date,event_time,genre,base_rewards,focus_role)'
-                )
-                .eq('user_id', authUserId);
-              data = legacyResponse.data as FollowedEventRow[] | null;
-              error = legacyResponse.error;
-            }
+            const { data, error } = await supabase!.rpc('get_my_planned_participations');
             if (!error && data) {
-              const rows = data as FollowedEventRow[];
-              const mappedEvents = rows
-                .map((row) => {
-                  const eventData = Array.isArray(row.events) ? row.events[0] : row.events;
-                  if (!eventData) return null;
-                  return {
-                    id: eventData.id,
-                    name: normalizeText(eventData.name),
-                    theatre: normalizeText(eventData.theatre),
-                    date: normalizeText(eventData.event_date),
-                    time: normalizeText(eventData.event_time),
-                    genre: normalizeText(eventData.genre),
-                    baseRewards: {
-                      xp: Number(eventData.base_rewards?.xp ?? 0),
-                      reputation: Number(eventData.base_rewards?.reputation ?? 0),
-                      cachet: Number(eventData.base_rewards?.cachet ?? 0),
-                    },
-                    focusRole: eventData.focus_role ?? undefined,
-                  } as GameEvent;
-                })
-                .filter((e): e is GameEvent => !!e);
+              const rows = data as PlannedParticipationRpcRow[];
               const mappedPlans = rows
                 .map((row) => {
                   const roleId = resolveEventPlanningRoleId(
-                    row.planned_role_id,
+                    row.role_id,
                     state.profile.roleId
                   );
                   const updatedAt = row.updated_at ? new Date(row.updated_at).getTime() : Date.now();
                   return {
                     eventId: row.event_id,
                     roleId,
-                    status: 'planned' as const,
+                    status: resolveEventPlanningStatus(row.status),
                     updatedAt: Number.isFinite(updatedAt) ? updatedAt : Date.now(),
                   };
                 })
                 .filter((plan) => plan.eventId);
 
-              setFollowedEvents(mappedEvents);
+              const mappedEvents = rows
+                .map((row) => {
+                  const catalogEvent = catalogEvents.find((event) => event.id === row.event_id);
+                  if (catalogEvent) return catalogEvent;
+
+                  return {
+                    id: row.event_id,
+                    name: normalizeText(row.event_name),
+                    theatre: normalizeText(row.theatre),
+                    date: normalizeText(row.event_date),
+                    time: normalizeText(row.event_time),
+                    genre: 'Evento',
+                    baseRewards: {
+                      xp: 0,
+                      reputation: 0,
+                      cachet: 0,
+                    },
+                  } as GameEvent;
+                })
+                .filter((event) => Boolean(event.id && event.name));
+
+              setState((prev) => ({
+                ...prev,
+                eventPlans: mappedPlans,
+              }));
               setEventPlans(mappedPlans);
+              setFollowedEvents(sortEventsForPlanning(mappedEvents));
             }
           } finally {
             setFollowedEventsLoading(false);
@@ -3102,17 +3131,17 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       };
 
       logOfflineSync('Action planEvent', { eventId, roleId });
+      setState((prev) => ({
+        ...prev,
+        eventPlans: upsertEventPlan(prev.eventPlans, nextPlan),
+      }));
       setEventPlans((prev) => upsertEventPlan(prev, nextPlan));
       setFollowedEvents((prev) => {
         const filtered = prev.filter((item) => item.id !== eventId);
-        return [event, ...filtered];
+        return sortEventsForPlanning([event, ...filtered]);
       });
 
       if (!isSupabaseConfigured || !supabase || !authUserId) {
-        setState((prev) => ({
-          ...prev,
-          eventPlans: upsertEventPlan(prev.eventPlans, nextPlan),
-        }));
         logOfflineSync('planEvent handled locally only (no remote prerequisites)', {
           eventId,
           roleId,
@@ -3141,9 +3170,12 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       await withMobileWatchdog(
         async () => {
-          const { error } = await supabase!
-            .from('followed_events')
-            .upsert(queuedMutation.payload, { onConflict: 'user_id,event_id' });
+          const { error } = await supabase!.rpc('upsert_planned_participation', {
+            p_event_id: eventId,
+            p_role_id: roleId,
+            p_status: 'planned',
+            p_notes: null,
+          });
           if (error && !isDuplicateSyncError(error)) {
             console.warn('Supabase event planning upsert failed', error);
             logOfflineSync('planEvent immediate sync failed, falling back to queue', {
@@ -3178,13 +3210,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const cancelEventPlan = useCallback(
     async (eventId: string) => {
       logOfflineSync('Action cancelEventPlan', { eventId });
+      setState((prev) => ({
+        ...prev,
+        eventPlans: removeEventPlan(prev.eventPlans, eventId),
+      }));
       setEventPlans((prev) => removeEventPlan(prev, eventId));
       setFollowedEvents((prev) => prev.filter((item) => item.id !== eventId));
       if (!isSupabaseConfigured || !supabase || !authUserId) {
-        setState((prev) => ({
-          ...prev,
-          eventPlans: removeEventPlan(prev.eventPlans, eventId),
-        }));
         logOfflineSync('cancelEventPlan handled locally only (no remote prerequisites)', {
           eventId,
           isSupabaseConfigured,
@@ -3212,11 +3244,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       await withMobileWatchdog(
         async () => {
-          const { error } = await supabase!
-            .from('followed_events')
-            .delete()
-            .eq('user_id', authUserId)
-            .eq('event_id', eventId);
+          const { error } = await supabase!.rpc('remove_planned_participation', {
+            p_event_id: eventId,
+          });
           if (error) {
             console.warn('Supabase cancel event plan failed', error);
             logOfflineSync('cancelEventPlan immediate sync failed, falling back to queue', {
@@ -3284,12 +3314,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   }, [authUserId, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !authUserId) {
-      syncLocalEventPlanning(state.eventPlans);
-      return;
-    }
+    if (isSupabaseConfigured && supabase && authUserId) return;
+    syncLocalEventPlanning(state.eventPlans);
+  }, [authUserId, catalog.events, state.eventPlans, syncLocalEventPlanning]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !authUserId) return;
     refreshFollowedEvents(catalog.events);
-  }, [authUserId, catalog.events, refreshFollowedEvents, state.eventPlans, syncLocalEventPlanning]);
+  }, [authUserId, catalog.events, refreshFollowedEvents]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;

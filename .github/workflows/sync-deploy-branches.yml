@@ -24,7 +24,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -72,7 +72,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -141,13 +141,76 @@ jobs:
             fi
           done
 
+          is_netlify_paused_payload() {
+            local payload="$1"
+            local normalized
+            normalized="$(printf '%s' "$payload" | tr '[:upper:]' '[:lower:]')"
+            printf '%s' "$normalized" | grep -Eq 'site not available|site is paused|project is paused|account is paused|usage limit|credit allotment|bandwidth allotment|build minutes allotment'
+          }
+
+          check_netlify_site_paused() {
+            local response_file http_code body
+            response_file="$(mktemp)"
+            http_code="$(curl -sS -L -o "$response_file" -w "%{http_code}" "https://turni-di-palco.netlify.app" || true)"
+            body="$(cat "$response_file" 2>/dev/null || true)"
+            rm -f "$response_file"
+
+            if is_netlify_paused_payload "$body"; then
+              echo "[Netlify] public site indicates the project is paused or unavailable due to plan/usage limits (HTTP ${http_code:-unknown})."
+              return 0
+            fi
+
+            return 1
+          }
+
           status="pending"
           min_epoch="$((SYNC_EPOCH - 300))"
           for attempt in $(seq 1 90); do
-            if ! response="$(curl -fsS \
+            response_file="$(mktemp)"
+            headers_file="$(mktemp)"
+            http_code="$(curl -sS \
+              -D "$headers_file" \
+              -o "$response_file" \
+              -w "%{http_code}" \
               -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
-              "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID_TURNI}/deploys?per_page=50")"; then
-              echo "[Netlify] API request failed (attempt $attempt/90)" >&2
+              "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID_TURNI}/deploys?per_page=50" \
+              || true)"
+            response="$(cat "$response_file")"
+            retry_after="$(awk 'BEGIN { IGNORECASE = 1 } /^Retry-After:/ { gsub("\r", "", $2); print $2; exit }' "$headers_file")"
+            rm -f "$response_file" "$headers_file"
+
+            if [ -z "$http_code" ] || [ "$http_code" = "000" ]; then
+              if check_netlify_site_paused; then
+                status="skipped"
+                break
+              fi
+              echo "[Netlify] API request failed before receiving an HTTP status (attempt $attempt/90)" >&2
+              status="failure"
+              break
+            fi
+
+            if [ "$http_code" = "429" ]; then
+              wait_seconds="${retry_after:-}"
+              if ! [[ "$wait_seconds" =~ ^[0-9]+$ ]]; then
+                wait_seconds=60
+              fi
+              if [ "$wait_seconds" -lt 5 ]; then
+                wait_seconds=5
+              fi
+              if [ "$wait_seconds" -gt 180 ]; then
+                wait_seconds=180
+              fi
+              echo "[Netlify] rate limited on attempt $attempt/90 (HTTP 429). Retrying in ${wait_seconds}s."
+              sleep "$wait_seconds"
+              continue
+            fi
+
+            if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+              if is_netlify_paused_payload "$response" || check_netlify_site_paused; then
+                status="skipped"
+                break
+              fi
+              echo "[Netlify] API request failed with HTTP $http_code (attempt $attempt/90)" >&2
               status="failure"
               break
             fi
@@ -228,6 +291,10 @@ jobs:
               latest_branch="$(echo "$deploys_json" | jq -r 'sort_by(.createdEpoch) | reverse | first | (.branch // "none")')"
               latest_context="$(echo "$deploys_json" | jq -r 'sort_by(.createdEpoch) | reverse | first | (.context // "none")')"
               echo "[Netlify] attempt $attempt/90: no recent deploy found for $DEPLOY_SHA (latest id: $latest_id, commit: $latest_commit, branch: $latest_branch, context: $latest_context)"
+              if [ "$attempt" -ge 6 ] && [ $((attempt % 3)) -eq 0 ] && check_netlify_site_paused; then
+                status="skipped"
+                break
+              fi
               sleep 20
               continue
             fi
@@ -269,8 +336,17 @@ jobs:
           state: 'success'
           environment-url: https://turni-di-palco.netlify.app
 
+      - name: Update deployment status (inactive) - Netlify
+        if: always() && steps.wait-netlify.outputs.netlify_status == 'skipped' && steps.deployment-netlify.outputs.deployment_id != ''
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment-netlify.outputs.deployment_id }}
+          state: 'inactive'
+          environment-url: https://turni-di-palco.netlify.app
+
       - name: Update deployment status (failure) - Netlify
-        if: always() && steps.wait-netlify.outputs.netlify_status != 'success' && steps.deployment-netlify.outputs.deployment_id != ''
+        if: always() && steps.wait-netlify.outputs.netlify_status == 'failure' && steps.deployment-netlify.outputs.deployment_id != ''
         uses: chrnorm/deployment-status@v2
         with:
           token: '${{ github.token }}'
@@ -279,7 +355,7 @@ jobs:
           environment-url: https://turni-di-palco.netlify.app
 
       - name: Fail workflow if Netlify deploy failed
-        if: always() && steps.wait-netlify.outputs.netlify_status != 'success'
+        if: always() && steps.wait-netlify.outputs.netlify_status == 'failure'
         run: exit 1
 
   deploy-railway:
@@ -294,7 +370,7 @@ jobs:
       DEPLOY_SHA: ${{ needs.sync-deploy-preview-branches.outputs.deploy_sha }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Validate Railway token
         run: |
@@ -410,7 +486,7 @@ jobs:
       deployments: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Create GitHub Deployment - Turni-di-Palco
         uses: chrnorm/deployment-action@v2
@@ -472,7 +548,7 @@ jobs:
       deployments: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Create GitHub Deployment - Maxwell-AI-Support
         uses: chrnorm/deployment-action@v2
@@ -535,7 +611,7 @@ jobs:
       deployments: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Create GitHub Deployment - Turni-di-Palco-Control-Plane
         uses: chrnorm/deployment-action@v2

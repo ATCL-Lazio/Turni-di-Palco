@@ -1,6 +1,8 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Screen } from '../ui/Screen';
+import { FormField, FormInput, AuthFormLayout } from '../ui/FormField';
+import { Button } from '../ui/Button';
 
 interface LoginProps {
   onBack: () => void;
@@ -20,12 +22,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
     const newErrors = { email: '', password: '' };
     if (!email) newErrors.email = 'Email richiesta';
     if (!password) newErrors.password = 'Password richiesta';
-
-    if (newErrors.email || newErrors.password) {
-      setErrors(newErrors);
-      return;
-    }
-
+    if (newErrors.email || newErrors.password) { setErrors(newErrors); return; }
     onLogin(email, password);
   };
 
@@ -35,120 +32,58 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
       className="relative items-start justify-start"
       contentClassName="relative w-full flex-1 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom,_0px)+32px)] space-y-0 box-border"
     >
-      <div className="flex h-full flex-col">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
-          aria-label="Indietro"
-        >
+      <AuthFormLayout>
+        <button type="button" onClick={onBack}
+          className="flex items-center justify-center size-[44px] text-[#f4bf4f]" aria-label="Indietro">
           <ArrowLeft size={24} />
         </button>
 
         <div className="mt-4 flex flex-col items-start gap-1">
-          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[#f5f5f5]">
-            Accedi
-          </p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3]">
-            Inizia la tua carriera teatrale
-          </p>
+          <h1 className="text-2xl font-bold tracking-[-0.24px] text-[#f5f5f5]">Accedi</h1>
+          <p className="text-base text-[#b8b2b3]">Inizia la tua carriera teatrale</p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          method="post"
-          action="/login"
-          autoComplete="on"
-          className="mt-8 flex w-full max-w-[300px] flex-col gap-6 mx-auto"
-        >
-          <div className="flex flex-col gap-2 w-full">
-            <label htmlFor="login-email" className="text-[16px] leading-[24px] text-[#b8b2b3]">
-              Email
-            </label>
-            <div
-              className={`bg-[#241f20] border-2 ${
-                errors.email ? 'border-[#ff4d4f]' : 'border-[#2d2728]'
-              } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
-            >
-              <input
-                id="login-email"
-                name="username"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="username"
-                inputMode="email"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                aria-invalid={Boolean(errors.email)}
-                placeholder="tuo@email.com"
-                enterKeyHint="next"
-                className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
-              />
-            </div>
-          </div>
+        <form onSubmit={handleSubmit} method="post" action="/login" autoComplete="on"
+          className="mt-8 flex w-full max-w-[300px] flex-col gap-6 mx-auto">
 
-          <div className="flex flex-col gap-2 w-full">
-            <label htmlFor="login-password" className="text-[16px] leading-[24px] text-[#b8b2b3]">
-              Password
-            </label>
-            <div
-              className={`bg-[#241f20] border-2 ${
-                errors.password ? 'border-[#ff4d4f]' : 'border-[#2d2728]'
-              } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
-            >
-              <input
-                id="login-password"
-                name="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                aria-invalid={Boolean(errors.password)}
-                placeholder="••••••••"
-                enterKeyHint="go"
-                className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={onForgotPassword}
-              className="self-start rounded-md px-2 py-[10px] mt-2 text-[16px] leading-[25.6px] text-[#f4bf4f]"
-            >
+          <FormField label="Email" htmlFor="login-email" error={errors.email}>
+            <FormInput
+              id="login-email" name="username" type="email"
+              value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+              autoComplete="username" inputMode="email" autoCapitalize="none"
+              autoCorrect="off" spellCheck={false} hasError={!!errors.email}
+              placeholder="tuo@email.com" enterKeyHint="next"
+            />
+          </FormField>
+
+          <FormField label="Password" htmlFor="login-password" error={errors.password}>
+            <FormInput
+              id="login-password" name="password" type="password"
+              value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+              autoComplete="current-password" hasError={!!errors.password}
+              placeholder="••••••••" enterKeyHint="go"
+            />
+            <button type="button" onClick={onForgotPassword}
+              className="self-start rounded-md px-2 py-2.5 mt-2 text-base text-[#f4bf4f]">
               Password dimenticata?
             </button>
-          </div>
+          </FormField>
 
           {errorMessage && (
-            <p className="text-[14px] leading-[20px] text-[#ff4d4f] text-center">
-              {errorMessage}
-            </p>
+            <p className="text-sm text-[#ff4d4f] text-center">{errorMessage}</p>
           )}
 
-          <button
-            type="submit"
-            className="bg-gradient-to-b from-[#8c1c38] to-[#a82847] h-[44px] w-full rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)]"
-          >
-            <span className="block text-[18px] leading-[28px] text-center text-white">
-              Accedi
-            </span>
-          </button>
+          <Button type="submit" fullWidth>Accedi</Button>
         </form>
 
         <div className="mt-auto pt-6 text-center">
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3]">
-            Non hai un account?
-          </p>
-          <button
-            type="button"
-            onClick={onSignup}
-            className="inline-flex items-center justify-center rounded-md px-2 py-[10px] text-[16px] leading-[25.6px] text-[#f4bf4f]"
-          >
+          <p className="text-base text-[#b8b2b3]">Non hai un account?</p>
+          <button type="button" onClick={onSignup}
+            className="inline-flex items-center justify-center rounded-md px-2 py-2.5 text-base text-[#f4bf4f]">
             Registrati
           </button>
         </div>
-      </div>
+      </AuthFormLayout>
     </Screen>
   );
 }

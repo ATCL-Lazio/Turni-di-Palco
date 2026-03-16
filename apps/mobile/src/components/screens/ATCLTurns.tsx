@@ -129,6 +129,10 @@ export function ATCLTurns({
           {sortedEvents.map((event) => {
             const planning = getEventPlan(event.id);
             const roleLabel = planning ? roleLabelById.get(planning.roleId) ?? planning.roleId : null;
+            const statusLabel = planning ? getPlanningStatusLabel(planning.status) : 'Da pianificare';
+            const statusClassName = planning
+              ? getPlanningStatusClassName(planning.status)
+              : 'border-white/10 bg-white/5 text-[#b8b2b3]';
 
             return (
               <Card
@@ -149,13 +153,9 @@ export function ATCLTurns({
                         <h4 className="text-white text-lg leading-tight">{event.name}</h4>
                       </div>
                       <span
-                        className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-medium ${
-                          planning
-                            ? 'border-[#f4bf4f]/40 bg-[#f4bf4f]/10 text-[#f4bf4f]'
-                            : 'border-white/10 bg-white/5 text-[#b8b2b3]'
-                        }`}
+                        className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-medium ${statusClassName}`}
                       >
-                        {planning ? 'Pianificato' : 'Da pianificare'}
+                        {statusLabel}
                       </span>
                     </div>
 
@@ -263,4 +263,26 @@ export function ATCLTurns({
       {content}
     </div>
   );
+}
+
+function getPlanningStatusLabel(status: EventPlanning['status']) {
+  switch (status) {
+    case 'confirmed':
+      return 'Confermato';
+    case 'cancelled':
+      return 'Annullato';
+    default:
+      return 'Pianificato';
+  }
+}
+
+function getPlanningStatusClassName(status: EventPlanning['status']) {
+  switch (status) {
+    case 'confirmed':
+      return 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300';
+    case 'cancelled':
+      return 'border-white/10 bg-white/5 text-[#b8b2b3]';
+    default:
+      return 'border-[#f4bf4f]/40 bg-[#f4bf4f]/10 text-[#f4bf4f]';
+  }
 }
