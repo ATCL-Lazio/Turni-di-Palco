@@ -3665,7 +3665,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'followed_events', filter: `user_id=eq.${authUserId}` },
+        { event: '*', schema: 'public', table: 'planned_participations', filter: `user_id=eq.${authUserId}` },
         () => {
           refreshFollowedEvents(catalog.events);
         }
