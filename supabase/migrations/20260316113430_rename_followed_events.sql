@@ -1,9 +1,9 @@
--- Issue #330 follow-up: rename followed_events → planned_participations.
--- Idempotent: only acts when followed_events exists and planned_participations does not.
+-- Backfill older environments that still have the legacy followed_events table.
+-- Idempotent: renames when only followed_events exists, or drops the legacy table
+-- once planned_participations is already present.
 
 do $$
 begin
-  -- Case 1: followed_events exists, planned_participations does not → rename + backfill schema.
   if exists (
     select 1 from information_schema.tables
     where table_schema = 'public' and table_name = 'followed_events'
@@ -11,10 +11,8 @@ begin
     select 1 from information_schema.tables
     where table_schema = 'public' and table_name = 'planned_participations'
   ) then
-
     alter table public.followed_events rename to planned_participations;
 
-    -- Add columns introduced by the richer planning schema if they are missing.
     if not exists (
       select 1 from information_schema.columns
       where table_schema = 'public' and table_name = 'planned_participations' and column_name = 'id'
@@ -35,7 +33,6 @@ begin
       select 1 from information_schema.columns
       where table_schema = 'public' and table_name = 'planned_participations' and column_name = 'status'
     ) then
-      -- Ensure the enum type exists before using it.
       if not exists (select 1 from pg_type where typname = 'participation_status') then
         create type public.participation_status as enum ('planned', 'confirmed', 'cancelled');
       end if;
@@ -66,7 +63,6 @@ begin
         add column updated_at timestamptz not null default now();
     end if;
 
-    -- Rename legacy RLS policies to match the new table name.
     if exists (
       select 1 from pg_policies
       where schemaname = 'public' and tablename = 'planned_participations'
@@ -98,8 +94,6 @@ begin
     end if;
 
     raise notice 'followed_events renamed to planned_participations';
-
-  -- Case 2: both tables exist → drop the legacy one (data already in planned_participations).
   elsif exists (
     select 1 from information_schema.tables
     where table_schema = 'public' and table_name = 'followed_events'
@@ -109,7 +103,6 @@ begin
   ) then
     drop table public.followed_events;
     raise notice 'followed_events dropped (planned_participations already existed)';
-
   else
     raise notice 'planned_participations already exists, nothing to do';
   end if;

@@ -13,8 +13,8 @@
   
 
 ## Events feed and follow
-- The events list can be pulled from Supabase; Home shows followed events, while Turni ATCL shows the full catalog with follow/unfollow.
-- Followed events are stored in `followed_events` and refreshed via realtime subscriptions.
+- The events list can be pulled from Supabase; Home shows planned events, while Turni ATCL shows the full catalog with follow/unfollow.
+- Event planning is stored in `planned_participations` and refreshed via realtime subscriptions.
 
 ## Event details
 - The event detail screen can export a local `.ics` calendar file using `event_date` + `event_time` from the feed.
