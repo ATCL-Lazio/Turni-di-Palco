@@ -63,7 +63,7 @@ function AppShell() {
     theatreReputationLoading, badges, followedEvents, followedEventsLoading,
     shopCatalog, shopCatalogLoading, purchaseShopItem,
     activitySlotsStatus, activitySlotsLoading,
-    followEvent, unfollowEvent, isEventFollowed, markBadgesSeen,
+    getEventPlan, planEvent, cancelEventPlan, followEvent, markBadgesSeen,
     updateProfile, registerTurn, pendingBoostRequests, turnSyncFeedback, clearTurnSyncFeedback,
     completeActivity, resetProgress, resetState,
     changePassword, sendPasswordResetEmail, featureFlags, isFeatureEnabled
@@ -896,8 +896,11 @@ function AppShell() {
             turnsView={
               <ATCLTurns
                 events={events}
-                isEventFollowed={isEventFollowed}
-                onToggleFollow={(id: string) => isEventFollowed(id) ? unfollowEvent(id) : followEvent(id)}
+                roles={roles}
+                getEventPlan={getEventPlan}
+                onPlanEvent={(id: string) => followEvent(id)}
+                onCancelPlanning={cancelEventPlan}
+                onEditPlanning={(id: string) => { setScannedEventId(id); setCurrentScreen('event-details'); }}
                 onViewMap={() => openEventsMap(events.map(e => e.theatre))}
                 onViewEvent={(id: string) => { setScannedEventId(id); setCurrentScreen('event-details'); }}
                 onScanQR={openQrScanner}
@@ -969,7 +972,18 @@ function AppShell() {
           }}
         />
       );
-      case 'event-details': return <EventDetails event={selectedEvent} onBack={() => setCurrentScreen('home')} onNavigate={() => openInMaps(selectedEvent?.theatre ?? '')} />;
+      case 'event-details': return (
+        <EventDetails
+          event={selectedEvent}
+          roles={roles}
+          currentRoleId={state.profile.roleId}
+          planning={selectedEvent ? getEventPlan(selectedEvent.id) : null}
+          onBack={() => setCurrentScreen('home')}
+          onNavigate={() => openInMaps(selectedEvent?.theatre ?? '')}
+          onSavePlanning={planEvent}
+          onClearPlanning={cancelEventPlan}
+        />
+      );
       case 'shop': return (
         <Shop
           cachet={state.profile.cachet}
