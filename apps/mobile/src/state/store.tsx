@@ -550,7 +550,7 @@ const MOBILE_WATCHDOG_TIMEOUTS = {
   refreshLeaderboard: 15000,
   markBadgesSeen: 12000,
   restoreSession: 15000,
-  refreshFollowedEvents: 12000,
+  refreshEventPlanning: 12000,
   followEvent: 10000,
   unfollowEvent: 10000,
   loadCatalog: 18000,
@@ -2836,7 +2836,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     };
   }, [flushMirroredClientLogsToServer]);
 
-  const refreshFollowedEvents = useCallback(
+  const refreshEventPlanning = useCallback(
     async (catalogEvents: GameEvent[]) => {
       if (!isSupabaseConfigured || !supabase || !authUserId) {
         setEventPlansLoading(false);
@@ -2902,10 +2902,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           }
         },
         {
-          operation: 'refreshFollowedEvents',
-          timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.refreshFollowedEvents,
-          title: 'Eventi seguiti lenti',
-          message: 'Il refresh degli eventi seguiti sta impiegando troppo tempo.',
+          operation: 'refreshEventPlanning',
+          timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.refreshEventPlanning,
+          title: 'Pianificazione eventi lenta',
+          message: 'Il refresh della pianificazione eventi sta impiegando troppo tempo.',
         }
       );
     },
@@ -3320,8 +3320,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !authUserId) return;
-    refreshFollowedEvents(catalog.events);
-  }, [authUserId, catalog.events, refreshFollowedEvents]);
+    refreshEventPlanning(catalog.events);
+  }, [authUserId, catalog.events, refreshEventPlanning]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -3394,7 +3394,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             events: nextEvents,
             activities: nextActivities,
           });
-          refreshFollowedEvents(nextEvents);
+          refreshEventPlanning(nextEvents);
         },
         {
           operation: 'loadCatalog',
@@ -3665,9 +3665,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'followed_events', filter: `user_id=eq.${authUserId}` },
+        { event: '*', schema: 'public', table: 'planned_participations', filter: `user_id=eq.${authUserId}` },
         () => {
-          refreshFollowedEvents(catalog.events);
+          refreshEventPlanning(catalog.events);
         }
       )
       .on(
@@ -3701,7 +3701,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     catalog.events,
     refreshBadges,
     refreshActivitySlotsStatus,
-    refreshFollowedEvents,
+    refreshEventPlanning,
     refreshFeatureFlags,
     refreshShopCatalog,
     refreshTheatreReputation,
