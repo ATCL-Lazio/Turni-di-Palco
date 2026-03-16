@@ -49,6 +49,10 @@ export function EventDetails({
     if (!planning) return null;
     return roles.find((role) => role.id === planning.roleId)?.name ?? planning.roleId;
   }, [planning, roles]);
+  const planningStatusLabel = planning ? getPlanningStatusLabel(planning.status) : 'Da pianificare';
+  const planningStatusClassName = planning
+    ? getPlanningStatusClassName(planning.status)
+    : 'border-white/10 bg-white/5 text-[#b8b2b3]';
 
   if (!event) {
     return (
@@ -173,13 +177,9 @@ export function EventDetails({
               </p>
             </div>
             <span
-              className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-medium ${
-                planning
-                  ? 'border-[#f4bf4f]/40 bg-[#f4bf4f]/10 text-[#f4bf4f]'
-                  : 'border-white/10 bg-white/5 text-[#b8b2b3]'
-              }`}
+              className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-medium ${planningStatusClassName}`}
             >
-              {planning ? 'Pianificato' : 'Da pianificare'}
+              {planningStatusLabel}
             </span>
           </div>
 
@@ -207,7 +207,7 @@ export function EventDetails({
             </Select>
             <p className="text-sm text-[#b8b2b3]">
               {planning
-                ? `Stato attuale: pianificato come ${savedRoleName}.`
+                ? `Stato attuale: ${planningStatusLabel.toLowerCase()} come ${savedRoleName}.`
                 : 'Nessuna pianificazione salvata per questo evento.'}
             </p>
             {planning && planning.roleId !== selectedRoleId ? (
@@ -255,6 +255,28 @@ export function EventDetails({
       </div>
     </div>
   );
+}
+
+function getPlanningStatusLabel(status: EventPlanning['status']) {
+  switch (status) {
+    case 'confirmed':
+      return 'Confermato';
+    case 'cancelled':
+      return 'Annullato';
+    default:
+      return 'Pianificato';
+  }
+}
+
+function getPlanningStatusClassName(status: EventPlanning['status']) {
+  switch (status) {
+    case 'confirmed':
+      return 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300';
+    case 'cancelled':
+      return 'border-white/10 bg-white/5 text-[#b8b2b3]';
+    default:
+      return 'border-[#f4bf4f]/40 bg-[#f4bf4f]/10 text-[#f4bf4f]';
+  }
 }
 
 function parseEventDateTime(dateValue: string, timeValue: string) {

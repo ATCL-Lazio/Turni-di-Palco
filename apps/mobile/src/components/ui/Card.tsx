@@ -26,8 +26,8 @@ export function Card({
   'aria-label': ariaLabel,
   'aria-disabled': ariaDisabled,
 }: CardProps) {
-  const hoverClass = hoverable || onClick ? 'mobile-card-hover cursor-pointer' : '';
-  const animationClass = animateOnMount ? 'mobile-hero-reveal' : '';
+  const hoverClass = hoverable || onClick ? 'mobile-card-hover cursor-pointer active:scale-[0.985] active:shadow-none' : '';
+  const animationClass = animateOnMount ? 'animate-card-in' : '';
   
   const defaultStyles: React.CSSProperties = {
     backgroundColor: 'rgb(26, 22, 23)',
