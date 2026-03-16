@@ -8,7 +8,7 @@ function AppWithNavigator() {
   const { events, featureFlags, isFeatureEnabled } = useGameState();
   const { isScreenEnabled, isTabEnabled } = useFeatureGates(featureFlags, isFeatureEnabled);
 
-  const initialEvents = useMemo(() => events.map(e => ({ id: e.id })), [events]);
+  const initialEvents = useMemo(() => events.map((event) => ({ id: event.id })), [events]);
 
   return (
     <NavigatorProvider
