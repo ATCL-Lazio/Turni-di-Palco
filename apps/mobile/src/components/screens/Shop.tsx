@@ -235,13 +235,13 @@ function formatCategory(category: ShopCatalogItem['category']) {
   return null;
 }
 
-function formatPurchaseEffect(item: ShopCatalogItem, result: ShopPurchaseResult, selectedTheatre: string) {
+function formatPurchaseEffect(item: ShopCatalogItem, result: Extract<ShopPurchaseResult, { ok: true }>, selectedTheatre: string) {
   if (item.category === 'slot') return `Slot extra ora disponibili: ${3 + result.extraSlotsAfter}`;
   if (item.category === 'rep_atcl') return `Reputazione ATCL aggiornata a ${result.reputationAfter}/100`;
   return `Pacchetto teatro applicato su ${result.theatre ?? selectedTheatre}`;
 }
 
-function formatRejection(result: ShopPurchaseResult) {
+function formatRejection(result: Extract<ShopPurchaseResult, { ok: false }>) {
   if (result.rejectionReason === 'insufficient_cachet') return "Cachet insufficiente per completare l'acquisto.";
   if (result.rejectionReason === 'max_purchase_reached') return 'Hai raggiunto il limite massimo per questo elemento.';
   if (result.rejectionReason === 'theatre_not_eligible') return 'Puoi acquistare questo pack solo su teatri già giocati.';
