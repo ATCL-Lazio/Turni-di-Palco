@@ -57,6 +57,12 @@ Turni di Palco nasce dall'esigenza di rendere il teatro un'esperienza continuati
 
 ---
 
+---
+
+<sub>Documentazione tecnica per il team di sviluppo: [DEVELOPMENT.md](DEVELOPMENT.md)</sub>
+
+---
+
 ## Licenza
 
 <a href="https://atcllazio.it">
