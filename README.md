@@ -47,11 +47,14 @@ Turni di Palco nasce dall'esigenza di rendere il teatro un'esperienza continuati
 - trasforma ogni visita a teatro in un passo concreto di un percorso personale;
 - favorisce il legame tra il pubblico e le realtà teatrali del territorio.
 
----
+<div align="center">
 
 ## Screenshot
-
-![Screenshot dell'applicazione](<assets/images/Screenshot 2026-02-27 121448.png>)
+<img src="assets/images/Screenshot 2026-03-17 120648.png" alt="Screenshot dell'applicazione" width="150" style="margin: 10px">
+<img src="assets/images/Screenshot 2026-03-17 121756.png" alt="Screenshot dell'applicazione" width="150" style="margin: 10px">
+<img src="assets\images\Screenshot 2026-03-17 122258.png" alt="Screenshot dell'applicazione" width="150" style="margin: 10px">
+<img src="assets\images\Screenshot 2026-03-17 122845.png" alt="Screenshot dell'applicazione" width="150" style="margin: 10px">
+</div>
 
 ---
 
