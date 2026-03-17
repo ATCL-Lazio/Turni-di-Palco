@@ -6,10 +6,8 @@
 
 **Il teatro come percorso. La cultura come gioco.**
 
-[![Stato app](https://turni-di-palco-badges.onrender.com/website?url=https%3A%2F%2Fturni-di-palco.vercel.app&label=app&logo=vercel&logoColor=white&up_message=online&down_message=offline&up_color=brightgreen&down_color=red)](https://turni-di-palco.vercel.app)
-[![App Version](https://turni-di-palco-badges.onrender.com/endpoint?url=https%3A%2F%2Fturni-di-palco-control-plane.onrender.com%2Fapi%2Fbadges%2Fmobile-version)](https://turni-di-palco.vercel.app)
 
-[**→ Accedi all'applicazione**](https://turni-di-palco.vercel.app)
+[**Accedi all'applicazione**](https://turni-di-palco.vercel.app)
 
 </div>
 
