@@ -306,6 +306,293 @@ a:hover {
   color: var(--tdp-text-muted);
 }
 
+.main-content-landing {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.landing-page .main-content-landing h2,
+.landing-page .main-content-landing h3 {
+  margin: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.landing-section {
+  position: relative;
+}
+
+.landing-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.landing-grid-overview {
+  grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.95fr);
+}
+
+.landing-grid-showcase {
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  align-items: start;
+}
+
+.landing-card,
+.landing-cta {
+  position: relative;
+  overflow: hidden;
+  padding: 1.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--tdp-radius-lg);
+  background:
+    linear-gradient(180deg, rgba(34, 24, 28, 0.96), rgba(18, 13, 15, 0.92)),
+    radial-gradient(circle at top right, rgba(244, 191, 79, 0.1), transparent 34%);
+  box-shadow: var(--tdp-shadow);
+}
+
+.landing-card::before,
+.landing-cta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(140deg, rgba(244, 191, 79, 0.08), transparent 36%);
+}
+
+.section-label {
+  display: inline-flex;
+  margin-bottom: 0.9rem;
+  color: var(--tdp-gold);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.section-head {
+  max-width: 50rem;
+  margin-bottom: 1.2rem;
+}
+
+.section-head p,
+.landing-cta-copy p,
+.landing-lead {
+  margin: 0.85rem 0 0;
+  max-width: 44rem;
+  color: var(--tdp-text-soft);
+  font-size: 1.02rem;
+}
+
+.section-head h2,
+.landing-card h2,
+.landing-cta-copy h2 {
+  font-size: clamp(1.9rem, 3vw, 3rem);
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.landing-card-story h2,
+.landing-cta-copy h2 {
+  max-width: 12ch;
+}
+
+.landing-card-story {
+  min-height: 100%;
+}
+
+.landing-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-top: 1.8rem;
+}
+
+.landing-stat {
+  padding: 1rem;
+  border: 1px solid rgba(244, 191, 79, 0.12);
+  border-radius: 1.15rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.landing-stat strong,
+.signal-list strong,
+.benefit-list strong {
+  display: block;
+  color: var(--tdp-text);
+}
+
+.landing-stat span {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--tdp-text-soft);
+  font-size: 0.94rem;
+  line-height: 1.6;
+}
+
+.landing-card-signal h3,
+.gallery-head h3,
+.audience-card h3,
+.journey-step h3 {
+  font-size: 1.35rem;
+  line-height: 1.12;
+}
+
+.signal-list,
+.benefit-list,
+.journey-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.signal-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.1rem;
+}
+
+.signal-list li {
+  padding: 0 0 0.95rem;
+  border-bottom: 1px solid rgba(244, 191, 79, 0.12);
+}
+
+.signal-list li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.signal-list span,
+.audience-card p,
+.journey-step p,
+.benefit-list li,
+.screen-shot figcaption {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--tdp-text-muted);
+  line-height: 1.7;
+}
+
+.audience-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.audience-badge,
+.journey-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.2rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(244, 191, 79, 0.12);
+  color: var(--tdp-gold);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.journey-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.journey-step {
+  padding: 1.45rem;
+  border: 1px solid rgba(244, 191, 79, 0.12);
+  border-radius: 1.4rem;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.journey-step h3 {
+  margin-top: 0.95rem;
+}
+
+.benefit-list {
+  display: grid;
+  gap: 0.95rem;
+  margin-top: 1.35rem;
+}
+
+.benefit-list li {
+  position: relative;
+  margin-top: 0;
+  padding-left: 1.3rem;
+}
+
+.benefit-list li::before {
+  content: "";
+  position: absolute;
+  top: 0.72rem;
+  left: 0;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--tdp-gold);
+  box-shadow: 0 0 16px rgba(244, 191, 79, 0.4);
+}
+
+.gallery-card {
+  padding-bottom: 1.35rem;
+}
+
+.gallery-head {
+  margin-bottom: 1.1rem;
+}
+
+.screen-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.screen-shot {
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1.4rem;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.screen-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.landing-cta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  background:
+    linear-gradient(135deg, rgba(60, 18, 28, 0.98), rgba(24, 16, 19, 0.92)),
+    radial-gradient(circle at top right, rgba(244, 191, 79, 0.16), transparent 34%);
+}
+
+.cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.85rem;
+}
+
+@media (max-width: 980px) {
+  .landing-grid-overview,
+  .landing-grid-showcase,
+  .landing-cta {
+    grid-template-columns: 1fr;
+  }
+
+  .cta-actions {
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 760px) {
   .page-header {
     padding: 1rem 1rem 1.25rem;
@@ -321,6 +608,10 @@ a:hover {
     padding: 0 1rem 2rem;
   }
 
+  .main-content-landing {
+    gap: 1rem;
+  }
+
   .project-name {
     font-size: clamp(2.6rem, 12vw, 4rem);
   }
@@ -331,5 +622,24 @@ a:hover {
 
   .hero-actions .btn {
     width: 100%;
+  }
+
+  .landing-card,
+  .landing-cta,
+  .journey-step {
+    padding: 1.2rem;
+  }
+
+  .landing-stat-grid,
+  .audience-grid,
+  .journey-list,
+  .screen-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-head h2,
+  .landing-card h2,
+  .landing-cta-copy h2 {
+    font-size: clamp(1.6rem, 8vw, 2.2rem);
   }
 }
