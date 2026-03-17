@@ -368,7 +368,7 @@ type PlannedParticipationRpcRow = {
 const DRAMATURG_PROFILE: RoleProfile = {
   allowedActivityIds: ['copione', 'recitazione', 'ritardo'],
   activityOrder: ['copione', 'recitazione', 'ritardo'],
-  homeMessage: 'Oggi il focus e rifinire ritmo, sottotesto e continuita di scena.',
+  homeMessage: 'Oggi il focus è rifinire ritmo, sottotesto e continuità di scena.',
   journey: {
     eyebrow: 'Percorso ruolo',
     headline: 'Costruisci il battito della scena prima dell\'ingresso in palco.',
