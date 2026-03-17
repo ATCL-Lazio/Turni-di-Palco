@@ -1,5 +1,6 @@
 ---
 layout: default
+permalink: /
 ---
 
 ## Che cos'è
