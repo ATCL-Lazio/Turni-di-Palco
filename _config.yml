@@ -23,6 +23,11 @@ exclude:
   - AGENTS.md
   - DEVELOPMENT.md
   - CLAUDE.md
+  - DEPLOY_NETLIFY.md
+  - TECHNICAL_NOTES.md
+  - SECURITY.md
+  - supabase/
+  - railway/
   - render.yaml
   - vercel.json
   - netlify.toml
