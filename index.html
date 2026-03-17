@@ -8,6 +8,7 @@ main_content_class: main-content-landing
 content_panel: false
 ---
 
+<!-- Sequenza editoriale unica: niente sezioni duplicate dopo la CTA dell'hero. -->
 <section class="landing-section" aria-labelledby="landing-about-title">
   <div class="section-head section-head-compact">
     <span class="section-label">Cos'è Turni di Palco</span>
@@ -19,6 +20,7 @@ content_panel: false
   </div>
 </section>
 
+<!-- 4 passaggi con numero in primo piano per rafforzare la gerarchia visiva. -->
 <section class="landing-section" aria-labelledby="landing-journey-title">
   <div class="section-head section-head-compact">
     <span class="section-label">Come funziona</span>
@@ -92,29 +94,33 @@ content_panel: false
   </ul>
 </section>
 
+<!-- Screenshot più dominanti: testo ridotto e galleria più ampia. -->
 <section class="landing-section" aria-labelledby="landing-gallery-title">
-  <div class="section-head section-head-compact">
-    <span class="section-label">Screenshot app</span>
-    <h2 id="landing-gallery-title">Dashboard, missioni, shop e carriera: il prodotto è qui.</h2>
-  </div>
+  <div class="gallery-layout">
+    <div class="section-head section-head-compact gallery-intro">
+      <span class="section-label">Screenshot app</span>
+      <h2 id="landing-gallery-title">Dashboard, missioni, shop e carriera: il prodotto è qui.</h2>
+      <p>La prova del prodotto è visiva: schermate reali, leggibili e in primo piano.</p>
+    </div>
 
-  <div class="screen-grid screen-grid-wide">
-    <figure class="screen-shot">
-      <img src="assets/images/Screenshot 2026-03-17 120648.png" alt="Dashboard con progressione e attività recenti">
-      <figcaption>Dashboard personale con stato carriera, risorse e attività in evidenza.</figcaption>
-    </figure>
-    <figure class="screen-shot">
-      <img src="assets/images/Screenshot 2026-03-17 121756.png" alt="Lista eventi con missioni e disponibilità">
-      <figcaption>Vista eventi e missioni disponibili, legate agli spettacoli del circuito.</figcaption>
-    </figure>
-    <figure class="screen-shot">
-      <img src="assets/images/Screenshot 2026-03-17 122258.png" alt="Shop con ricompense e oggetti digitali">
-      <figcaption>Shop interno per riscattare risorse e premi collegati alla progressione.</figcaption>
-    </figure>
-    <figure class="screen-shot">
-      <img src="assets/images/Screenshot 2026-03-17 122845.png" alt="Schermata carriera con statistiche e reputazione">
-      <figcaption>Schermata carriera con reputazione, caratteristiche e avanzamento del ruolo scelto.</figcaption>
-    </figure>
+    <div class="screen-grid screen-grid-wide">
+      <figure class="screen-shot">
+        <img src="assets/images/Screenshot 2026-03-17 120648.png" alt="Dashboard con progressione e attività recenti">
+        <figcaption>Dashboard personale con stato carriera, risorse e attività in evidenza.</figcaption>
+      </figure>
+      <figure class="screen-shot">
+        <img src="assets/images/Screenshot 2026-03-17 121756.png" alt="Lista eventi con missioni e disponibilità">
+        <figcaption>Vista eventi e missioni disponibili, legate agli spettacoli del circuito.</figcaption>
+      </figure>
+      <figure class="screen-shot">
+        <img src="assets/images/Screenshot 2026-03-17 122258.png" alt="Shop con ricompense e oggetti digitali">
+        <figcaption>Shop interno per riscattare risorse e premi collegati alla progressione.</figcaption>
+      </figure>
+      <figure class="screen-shot">
+        <img src="assets/images/Screenshot 2026-03-17 122845.png" alt="Schermata carriera con statistiche e reputazione">
+        <figcaption>Schermata carriera con reputazione, caratteristiche e avanzamento del ruolo scelto.</figcaption>
+      </figure>
+    </div>
   </div>
 </section>
 
@@ -127,6 +133,7 @@ content_panel: false
     <div class="cta-actions">
       <a href="{{ site.app_url }}" class="btn btn-primary">Apri App</a>
       <a href="{{ site.github.repository_url }}/blob/main/DEVELOPMENT.md" class="btn btn-secondary">Documentazione</a>
+      <a href="{{ site.github.repository_url }}" class="btn btn-secondary">Repository</a>
     </div>
   </div>
 </section>
