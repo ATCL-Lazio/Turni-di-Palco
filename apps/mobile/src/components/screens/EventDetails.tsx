@@ -230,7 +230,7 @@ export function EventDetails({
               <Button
                 variant="ghost"
                 size="md"
-                onClick={() => void handleClearPlanning()}
+                onClick={() => handleClearPlanning()}
                 disabled={isClearingPlanning}
               >
                 Cancella pianificazione
