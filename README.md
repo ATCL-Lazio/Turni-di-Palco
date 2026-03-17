@@ -50,10 +50,10 @@ Turni di Palco nasce dall'esigenza di rendere il teatro un'esperienza continuati
 <div align="center">
 
 ## Screenshot
-<img src="assets/images/Screenshot 2026-03-17 120648.png" alt="Screenshot dell'applicazione" width="150" style="padding: 10px">
-<img src="assets/images/Screenshot 2026-03-17 121756.png" alt="Screenshot dell'applicazione" width="150" style="padding: 10px">
-<img src="assets\images\Screenshot 2026-03-17 122258.png" alt="Screenshot dell'applicazione" width="150" style="padding: 10px">
-<img src="assets\images\Screenshot 2026-03-17 122845.png" alt="Screenshot dell'applicazione" width="150" style="padding: 10px">
+<img src="assets/images/Screenshot 2026-03-17 120648.png" alt="Screenshot dell'applicazione" width="150" style="padding: 20px">
+<img src="assets/images/Screenshot 2026-03-17 121756.png" alt="Screenshot dell'applicazione" width="150" style="padding: 20px">
+<img src="assets\images\Screenshot 2026-03-17 122258.png" alt="Screenshot dell'applicazione" width="150" style="padding: 20px">
+<img src="assets\images\Screenshot 2026-03-17 122845.png" alt="Screenshot dell'applicazione" width="150" style="padding: 20px">
 </div>
 
 ---
