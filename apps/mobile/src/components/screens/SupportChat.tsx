@@ -98,7 +98,6 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
       await requestAiIssue({ payload: draft });
     } catch (error) {
       // Log the error to aid debugging and optionally surface a non-blocking message to the user.
-       
       console.error('Failed to create support issue from AI draft:', error);
       setErrorMessage(prev => prev ?? "Non sono riuscito a creare automaticamente la segnalazione. Puoi riprovare piu' tardi oppure creare la segnalazione manualmente.");
     } finally {
