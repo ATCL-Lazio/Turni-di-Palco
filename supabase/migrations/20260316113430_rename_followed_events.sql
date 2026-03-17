@@ -11,7 +11,9 @@ begin
     select 1 from information_schema.tables
     where table_schema = 'public' and table_name = 'planned_participations'
   ) then
-    alter table public.followed_events rename to planned_participations;
+    create table public.planned_participations (like public.followed_events including all);
+    insert into public.planned_participations select * from public.followed_events;
+    drop table public.followed_events;
 
     if not exists (
       select 1 from information_schema.columns
