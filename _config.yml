@@ -21,7 +21,6 @@ exclude:
   - "*.sh"
   - ".env*"
   - AGENTS.md
-  - DEVELOPMENT.md
   - CLAUDE.md
   - DEPLOY_NETLIFY.md
   - TECHNICAL_NOTES.md
