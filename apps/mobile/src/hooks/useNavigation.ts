@@ -168,10 +168,11 @@ export function useNavigation(initialEvents: { id: string }[], options?: UseNavi
             screen: persistedScreen,
             activeTab: persistedTab,
             legalReturnScreen,
+            isPasswordRecovery,
             scannedEventId,
             selectedActivityId,
         });
-    }, [activeTab, currentScreen, isScreenEnabled, isTabEnabled, legalReturnScreen, scannedEventId, selectedActivityId]);
+    }, [activeTab, currentScreen, isPasswordRecovery, isScreenEnabled, isTabEnabled, legalReturnScreen, scannedEventId, selectedActivityId]);
 
     const handleTabChange = (tab: Tab) => {
         const nextTab = isTabEnabled && !isTabEnabled(tab) ? resolveFallbackTab(isTabEnabled) : tab;
