@@ -287,8 +287,8 @@ function parseEventDateTime(dateValue: string, timeValue: string) {
   const safeMinutes = timeMatch ? Number(timeMatch[2]) : 0;
 
   const isoCandidate = timeValue ? `${dateValue}T${timeValue}` : dateValue;
-  let parsed = new Date(isoCandidate);
-  if (!Number.isNaN(parsed.getTime())) return parsed;
+  let attemptedDate = new Date(isoCandidate);
+  if (!Number.isNaN(attemptedDate.getTime())) return attemptedDate;
 
   const normalized = dateValue
     .toLowerCase()
