@@ -36,9 +36,9 @@ export function ScreenTransition({
   }, [animationClass, animationKey]);
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className="w-full h-full"
+      className="w-full h-full overflow-hidden"
       onAnimationEnd={(event) => {
         if (event.target !== containerRef.current) return;
         onAnimationEnd?.();
