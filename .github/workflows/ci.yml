@@ -71,11 +71,25 @@ jobs:
         run: node tools/extract-ui-copy.js
 
       - name: Run Italian spelling and grammar check
+        id: italian-lt
         uses: reviewdog/action-languagetool@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-check
           language: it
           patterns: "**/*.md **/*.txt **/*.html .temp/ci/ui-copy.txt"
+          ignore_patterns: "AGENTS.md CLAUDE.md"
           disabled_categories: "CASING,PUNCTUATION"
           level: error
+
+      - name: Run English comparison check (post Italian failure)
+        if: always() && steps.italian-lt.outcome == 'failure'
+        uses: reviewdog/action-languagetool@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-check
+          language: en-US
+          patterns: "AGENTS.md CLAUDE.md"
+          disabled_categories: "CASING,PUNCTUATION"
+          level: error
+          fail_on_error: false
