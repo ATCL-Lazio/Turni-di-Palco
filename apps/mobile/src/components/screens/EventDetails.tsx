@@ -39,7 +39,7 @@ export function EventDetails({
 
   useEffect(() => {
     setSelectedRoleId(planning?.roleId ?? currentRoleId);
-  }, [currentRoleId, planning?.roleId, event?.id]);
+  }, [currentRoleId, planning?.roleId]);
 
   const selectedRoleName = useMemo(
     () => roles.find((role) => role.id === selectedRoleId)?.name ?? selectedRoleId,
@@ -221,7 +221,7 @@ export function EventDetails({
             <Button
               variant="primary"
               size="md"
-              onClick={() => void handleSavePlanning()}
+              onClick={() => handleSavePlanning()}
               disabled={isSavingPlanning}
             >
               {planning ? 'Aggiorna pianificazione' : 'Salva pianificazione'}
@@ -230,7 +230,7 @@ export function EventDetails({
               <Button
                 variant="ghost"
                 size="md"
-                onClick={() => void handleClearPlanning()}
+                onClick={() => handleClearPlanning()}
                 disabled={isClearingPlanning}
               >
                 Cancella pianificazione
@@ -287,8 +287,8 @@ function parseEventDateTime(dateValue: string, timeValue: string) {
   const safeMinutes = timeMatch ? Number(timeMatch[2]) : 0;
 
   const isoCandidate = timeValue ? `${dateValue}T${timeValue}` : dateValue;
-  let parsed = new Date(isoCandidate);
-  if (!Number.isNaN(parsed.getTime())) return parsed;
+  let attemptedDate = new Date(isoCandidate);
+  if (!Number.isNaN(attemptedDate.getTime())) return attemptedDate;
 
   const normalized = dateValue
     .toLowerCase()
