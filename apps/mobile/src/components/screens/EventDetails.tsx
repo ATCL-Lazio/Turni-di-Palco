@@ -336,7 +336,7 @@ function parseEventDateTime(dateValue: string, timeValue: string) {
 }
 
 function sanitizeIcsText(value: string) {
-  return value.replace(/([,;])/g, '\\$1').replace(/\r?\n/g, '\\n');
+  return value.replace(/\\/g, '\\\\').replace(/([,;])/g, '\\$1').replace(/\r?\n/g, '\\n');
 }
 
 const MONTHS: Record<string, number> = {
