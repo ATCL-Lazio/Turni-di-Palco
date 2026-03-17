@@ -94,7 +94,16 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
     if (issueTrackerRef.current.has(signature)) return;
     issueTrackerRef.current.add(signature);
     setIsCreatingIssue(true);
-    try { await requestAiIssue({ payload: draft }); } catch { /* noop */ } finally { setIsCreatingIssue(false); }
+    try {
+      await requestAiIssue({ payload: draft });
+    } catch (error) {
+      // Log the error to aid debugging and optionally surface a non-blocking message to the user.
+      // eslint-disable-next-line no-console
+      console.error('Failed to create support issue from AI draft:', error);
+      setErrorMessage(prev => prev ?? "Non sono riuscito a creare automaticamente la segnalazione. Puoi riprovare piu' tardi oppure creare la segnalazione manualmente.");
+    } finally {
+      setIsCreatingIssue(false);
+    }
   };
 
   const handleSend = async () => {
@@ -123,7 +132,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
       setMessages(prev => [...prev, buildSupportMessage('assistant', text || (draft ? 'Ok, ci penso io!' : reply))]);
     } catch {
       if (controller.signal.aborted || requestIdRef.current !== requestId || activeSessionId !== requestSessionId) return;
-      const fallback = "Il supporto automatizzato non e' disponibile in questo momento. Riprova tra poco.";
+      const fallback = "Il supporto automatizzato non è disponibile in questo momento. Riprova tra poco.";
       setErrorMessage(fallback);
       setMessages(prev => [...prev, buildSupportMessage('assistant', fallback)]);
     } finally {
@@ -143,7 +152,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
   const handleNewSession = () => {
     if (isLoading) return;
     const sessionId = buildMessageId();
-    const session: ChatSession = { id: sessionId, createdAt: Date.now(), updatedAt: Date.now(), messages: [buildSupportMessage('assistant', `Ciao ${displayName}! Sono Maxwell, pronto a darti una mano. Come posso aiutarti?`)] };
+    const session: ChatSession = { id: sessionId, createdAt: Date.now(), updatedAt: Date.now(), messages: [greetingMessage] };
     const next = [session, ...chatSessions].slice(0, MAX_SESSIONS);
     setChatSessions(next);
     setActiveSessionId(sessionId);
@@ -415,6 +424,25 @@ function getHistoryKey(displayName: string) {
   return `${HISTORY_KEY_PREFIX}${displayName.trim().toLowerCase().replace(/\s+/g, '-') || 'utente'}`;
 }
 
+function validateSupportMessage(raw: unknown): SupportMessage | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const m = raw as { id?: unknown; role?: unknown; content?: unknown; createdAt?: unknown };
+  const id = typeof m.id === 'string' ? m.id : m.id != null ? String(m.id) : null;
+  const role = m.role === 'assistant' || m.role === 'user' ? m.role : null;
+  const content = typeof m.content === 'string' ? m.content : null;
+  const createdAtValue = Number(m.createdAt);
+  const createdAt = Number.isFinite(createdAtValue) && createdAtValue > 0 ? createdAtValue : Date.now();
+
+  if (!id || !role || content == null) {
+    return null;
+  }
+
+  return { id, role, content, createdAt };
+}
+
 function loadChatHistory(displayName: string): ChatSession[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -424,7 +452,19 @@ function loadChatHistory(displayName: string): ChatSession[] {
     if (!Array.isArray(parsed)) return [];
     return parsed
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((s: any) => ({ id: String(s.id), createdAt: Number(s.createdAt) || Date.now(), updatedAt: Number(s.updatedAt) || Date.now(), messages: Array.isArray(s.messages) ? s.messages : [] }))
+      .map((s: any) => {
+        const messagesArray = Array.isArray(s.messages) ? s.messages : [];
+        const messages: SupportMessage[] = messagesArray
+          .map((m: unknown) => validateSupportMessage(m))
+          .filter((m): m is SupportMessage => m !== null);
+
+        return {
+          id: String(s.id),
+          createdAt: Number(s.createdAt) || Date.now(),
+          updatedAt: Number(s.updatedAt) || Date.now(),
+          messages,
+        };
+      })
       .filter((s: ChatSession) => s.id && s.messages.length > 0)
       .sort((a: ChatSession, b: ChatSession) => b.updatedAt - a.updatedAt);
   } catch { return []; }  
