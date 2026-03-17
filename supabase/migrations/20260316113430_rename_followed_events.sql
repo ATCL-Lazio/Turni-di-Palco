@@ -26,7 +26,7 @@ begin
       where table_schema = 'public' and table_name = 'planned_participations' and column_name = 'role_id'
     ) then
       alter table public.planned_participations
-        add column role_id text references public.roles(id) on update cascade on delete restrict;
+        add column role_id text references public.roles(id) on update cascade on delete set null;
     end if;
 
     if not exists (
