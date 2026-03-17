@@ -371,7 +371,7 @@ const DRAMATURG_PROFILE: RoleProfile = {
   homeMessage: 'Oggi il focus e rifinire ritmo, sottotesto e continuita di scena.',
   journey: {
     eyebrow: 'Percorso ruolo',
-    headline: 'Costruisci il battito della scena prima dell ingresso in palco.',
+    headline: 'Costruisci il battito della scena prima dell\'ingresso in palco.',
     summary: 'Parti da Revisione copione, consolida il sottotesto e sblocca i primi badge di ruolo.',
     recommendedActivityId: 'copione',
     starterBadgeLabels: ['Primo briefing drammaturgico', 'Occhio sul testo'],
