@@ -265,11 +265,8 @@ export function AppShell() {
     const previousIndex = tabOrder.indexOf(previousTabRef.current);
     let animation: string;
     if (currentIndex === -1 || previousIndex === -1) animation = 'tab-fade-in';
-    else if (currentIndex > previousIndex) {
-      animation = (nav.activeTab === 'activities' || nav.activeTab === 'profile') ? 'tab-slide-up' : 'tab-slide-right';
-    } else {
-      animation = (previousTabRef.current === 'activities' || previousTabRef.current === 'profile') ? 'tab-slide-down' : 'tab-slide-left';
-    }
+    else if (currentIndex > previousIndex) animation = 'tab-slide-right';
+    else animation = 'tab-slide-left';
     setScreenAnimation(animation);
     setScreenAnimationKey(v => v + 1);
     previousTabRef.current = nav.activeTab;
