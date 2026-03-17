@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "*",
-      "Bash(*)"
+      "Bash(*)",
+      "WebFetch(domain:atcl-lazio.github.io)"
     ]
   }
 }
