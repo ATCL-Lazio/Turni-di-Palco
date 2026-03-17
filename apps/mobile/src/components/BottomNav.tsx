@@ -16,6 +16,10 @@ const TAB_CONFIG = [
   { id: 'profile' as const, icon: User, label: 'Profilo' },
 ] as const;
 
+const BOTTOM_NAV_PADDING_STYLE: React.CSSProperties = {
+  paddingBottom: 'calc(4px + env(safe-area-inset-bottom, 0px))',
+};
+
 export function BottomNav({ activeTab, onTabChange, enabledTabs }: BottomNavProps) {
   const visibleTabs = useMemo(() => {
     if (!enabledTabs) return TAB_CONFIG;
@@ -34,7 +38,7 @@ export function BottomNav({ activeTab, onTabChange, enabledTabs }: BottomNavProp
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 w-full z-50 bg-[#0f0d0e]/90 backdrop-blur-2xl border-t border-white/[0.05]">
-      <div className="relative app-content flex items-stretch justify-around px-2 pt-1 min-h-[54px]" style={{ paddingBottom: 'calc(4px + env(safe-area-inset-bottom, 0px))' }}>
+      <div className="relative app-content flex items-stretch justify-around px-2 pt-1 min-h-[54px]" style={BOTTOM_NAV_PADDING_STYLE}>
 
           {indicatorStyle && (
             <div
