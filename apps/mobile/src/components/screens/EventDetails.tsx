@@ -221,7 +221,7 @@ export function EventDetails({
             <Button
               variant="primary"
               size="md"
-              onClick={() => void handleSavePlanning()}
+              onClick={() => handleSavePlanning()}
               disabled={isSavingPlanning}
             >
               {planning ? 'Aggiorna pianificazione' : 'Salva pianificazione'}
