@@ -1097,9 +1097,12 @@ async function readTurnGeolocationSnapshot(): Promise<TurnGeolocationSnapshot | 
       },
       () => resolve(null),
       {
+        // High accuracy is intentionally enabled here to ensure reliable venue/turn validation,
+        // at the cost of higher battery usage on some devices.
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 60000,
+        // Limit cached positions to 5 seconds to avoid using stale locations for check-in logic.
+        maximumAge: 5000,
       }
     );
   });
