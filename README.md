@@ -1,10 +1,5 @@
-<div align="center">
-<img src="apps/pwa/public/icons/pwa-192.png" alt="Turni di Palco" width="120">
-<h1>Turni di Palco</h1>
-<p><strong>Il teatro come percorso. La cultura come gioco.</strong></p>
-<p><a href="https://turni-di-palco.vercel.app"><strong>→ Accedi all'applicazione</strong></a></p>
-</div>
-
+---
+layout: default
 ---
 
 ## Che cos'è
@@ -41,6 +36,8 @@ Turni di Palco nasce dall'esigenza di rendere il teatro un'esperienza continuati
 - trasforma ogni visita a teatro in un passo concreto di un percorso personale;
 - favorisce il legame tra il pubblico e le realtà teatrali del territorio.
 
+---
+
 ## Screenshot
 
 <div align="center">
@@ -49,8 +46,6 @@ Turni di Palco nasce dall'esigenza di rendere il teatro un'esperienza continuati
 <img src="assets/images/Screenshot 2026-03-17 122258.png" alt="Screenshot dell'applicazione" width="150" style="padding: 20px">
 <img src="assets/images/Screenshot 2026-03-17 122845.png" alt="Screenshot dell'applicazione" width="150" style="padding: 20px">
 </div>
-
----
 
 ---
 
