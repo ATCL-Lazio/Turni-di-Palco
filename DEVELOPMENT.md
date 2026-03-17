@@ -1,3 +1,7 @@
+---
+permalink: /development/
+---
+
 # Turni di Palco — Documentazione tecnica
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/82f90be3-aaed-4dcc-8a21-8ee00395d6eb/deploy-status)](https://app.netlify.com/projects/turni-di-palco/deploys)
