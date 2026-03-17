@@ -393,6 +393,17 @@ function HistoryDrawer({ chatSessions, activeSessionId, isLoading, onSelectSessi
 // === Helpers ===
 
 function buildMessageId() {
+  // Prefer cryptographically secure randomness when available
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+    const hex = Array.from(bytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    return `${Date.now()}-${hex}`;
+  }
+
+  // Fallback for non-browser environments (e.g., SSR)
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
