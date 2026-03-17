@@ -415,6 +415,25 @@ function getHistoryKey(displayName: string) {
   return `${HISTORY_KEY_PREFIX}${displayName.trim().toLowerCase().replace(/\s+/g, '-') || 'utente'}`;
 }
 
+function validateSupportMessage(raw: unknown): SupportMessage | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const m = raw as { id?: unknown; role?: unknown; content?: unknown; createdAt?: unknown };
+  const id = typeof m.id === 'string' ? m.id : m.id != null ? String(m.id) : null;
+  const role = m.role === 'assistant' || m.role === 'user' ? m.role : null;
+  const content = typeof m.content === 'string' ? m.content : null;
+  const createdAtValue = Number(m.createdAt);
+  const createdAt = Number.isFinite(createdAtValue) && createdAtValue > 0 ? createdAtValue : Date.now();
+
+  if (!id || !role || content == null) {
+    return null;
+  }
+
+  return { id, role, content, createdAt };
+}
+
 function loadChatHistory(displayName: string): ChatSession[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -424,7 +443,19 @@ function loadChatHistory(displayName: string): ChatSession[] {
     if (!Array.isArray(parsed)) return [];
     return parsed
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((s: any) => ({ id: String(s.id), createdAt: Number(s.createdAt) || Date.now(), updatedAt: Number(s.updatedAt) || Date.now(), messages: Array.isArray(s.messages) ? s.messages : [] }))
+      .map((s: any) => {
+        const messagesArray = Array.isArray(s.messages) ? s.messages : [];
+        const messages: SupportMessage[] = messagesArray
+          .map((m: unknown) => validateSupportMessage(m))
+          .filter((m): m is SupportMessage => m !== null);
+
+        return {
+          id: String(s.id),
+          createdAt: Number(s.createdAt) || Date.now(),
+          updatedAt: Number(s.updatedAt) || Date.now(),
+          messages,
+        };
+      })
       .filter((s: ChatSession) => s.id && s.messages.length > 0)
       .sort((a: ChatSession, b: ChatSession) => b.updatedAt - a.updatedAt);
   } catch { return []; }  
