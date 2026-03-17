@@ -143,7 +143,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
   const handleNewSession = () => {
     if (isLoading) return;
     const sessionId = buildMessageId();
-    const session: ChatSession = { id: sessionId, createdAt: Date.now(), updatedAt: Date.now(), messages: [buildSupportMessage('assistant', `Ciao ${displayName}! Sono Maxwell, pronto a darti una mano. Come posso aiutarti?`)] };
+    const session: ChatSession = { id: sessionId, createdAt: Date.now(), updatedAt: Date.now(), messages: [greetingMessage] };
     const next = [session, ...chatSessions].slice(0, MAX_SESSIONS);
     setChatSessions(next);
     setActiveSessionId(sessionId);
