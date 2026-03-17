@@ -123,7 +123,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
       setMessages(prev => [...prev, buildSupportMessage('assistant', text || (draft ? 'Ok, ci penso io!' : reply))]);
     } catch {
       if (controller.signal.aborted || requestIdRef.current !== requestId || activeSessionId !== requestSessionId) return;
-      const fallback = "Il supporto automatizzato non e' disponibile in questo momento. Riprova tra poco.";
+      const fallback = "Il supporto automatizzato non è disponibile in questo momento. Riprova tra poco.";
       setErrorMessage(fallback);
       setMessages(prev => [...prev, buildSupportMessage('assistant', fallback)]);
     } finally {
