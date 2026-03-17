@@ -4,7 +4,7 @@ permalink: /
 
 <div align="center">
 
-<img src="apps/pwa/public/icons/pwa-192.png" alt="Turni di Palco" width="120">
+<img src="assets/images/pwa-192.png" alt="Turni di Palco" width="120">
 
 # Turni di Palco
 
