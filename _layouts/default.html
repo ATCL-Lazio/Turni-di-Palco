@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{{ '/assets/css/style.css?v=' | append: site.github.build_revision | relative_url }}">
     <link rel="stylesheet" href="{{ '/assets/css/pages-theme.css?v=' | append: site.github.build_revision | relative_url }}">
   </head>
-  <body>
+  <body{% if page.page_class %} class="{{ page.page_class }}"{% endif %}>
     <a id="skip-to-content" href="#content">Vai al contenuto.</a>
 
     <div class="site-shell">
@@ -34,10 +34,14 @@
         </div>
       </header>
 
-      <main id="content" class="main-content" role="main">
+      <main id="content" class="main-content{% if page.main_content_class %} {{ page.main_content_class }}{% endif %}" role="main">
+        {% if page.content_panel == false %}
+        {{ content }}
+        {% else %}
         <section class="content-panel">
           {{ content }}
         </section>
+        {% endif %}
 
         <footer class="site-footer">
           <span class="site-footer-owner">
