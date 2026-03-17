@@ -98,7 +98,6 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
       await requestAiIssue({ payload: draft });
     } catch (error) {
       // Log the error to aid debugging and optionally surface a non-blocking message to the user.
-      // eslint-disable-next-line no-console
       console.error('Failed to create support issue from AI draft:', error);
       setErrorMessage(prev => prev ?? "Non sono riuscito a creare automaticamente la segnalazione. Puoi riprovare piu' tardi oppure creare la segnalazione manualmente.");
     } finally {
@@ -456,7 +455,7 @@ function loadChatHistory(displayName: string): ChatSession[] {
         const messagesArray = Array.isArray(s.messages) ? s.messages : [];
         const messages: SupportMessage[] = messagesArray
           .map((m: unknown) => validateSupportMessage(m))
-          .filter((m): m is SupportMessage => m !== null);
+          .filter((m: SupportMessage | null): m is SupportMessage => m !== null);
 
         return {
           id: String(s.id),
