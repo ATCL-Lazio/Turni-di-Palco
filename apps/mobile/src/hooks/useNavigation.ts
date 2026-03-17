@@ -130,7 +130,7 @@ export function useNavigation(initialEvents: { id: string }[], options?: UseNavi
 
     const [currentScreen, setCurrentScreen] = useState<Screen>(() => persistedNavState?.screen ?? 'welcome');
     const [legalReturnScreen, setLegalReturnScreen] = useState<LegalReturnScreen>(() => persistedNavState?.legalReturnScreen ?? 'welcome');
-    const [isPasswordRecovery, setIsPasswordRecovery] = useState(() => persistedNavState?.isPasswordRecovery ?? false);
+    const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
     const [activeTab, setActiveTab] = useState<Tab>(() => persistedNavState?.activeTab ?? 'home');
     const [scannedEventId, setScannedEventId] = useState<string>(() => persistedNavState?.scannedEventId ?? initialEvents[0]?.id ?? '');
     const [selectedActivityId, setSelectedActivityId] = useState<string>(() => persistedNavState?.selectedActivityId ?? '');
@@ -168,7 +168,6 @@ export function useNavigation(initialEvents: { id: string }[], options?: UseNavi
             screen: persistedScreen,
             activeTab: persistedTab,
             legalReturnScreen,
-            isPasswordRecovery,
             scannedEventId,
             selectedActivityId,
         });
