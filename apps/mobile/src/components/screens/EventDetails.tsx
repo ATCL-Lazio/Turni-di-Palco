@@ -39,7 +39,7 @@ export function EventDetails({
 
   useEffect(() => {
     setSelectedRoleId(planning?.roleId ?? currentRoleId);
-  }, [currentRoleId, planning?.roleId, event?.id]);
+  }, [currentRoleId, planning?.roleId]);
 
   const selectedRoleName = useMemo(
     () => roles.find((role) => role.id === selectedRoleId)?.name ?? selectedRoleId,
