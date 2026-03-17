@@ -822,3 +822,83 @@ a:hover {
     max-width: 42rem;
   }
 }
+
+/* Mobile app visual alignment for marketing landing */
+.landing-page {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", "Inter", system-ui, sans-serif;
+}
+
+.landing-page .project-name,
+.landing-page .main-content h1,
+.landing-page .main-content h2,
+.landing-page .main-content h3 {
+  font-family: inherit;
+  letter-spacing: -0.02em;
+}
+
+.landing-page .project-name {
+  font-size: clamp(2.4rem, 7vw, 4rem);
+  line-height: 1.05;
+}
+
+.landing-page .hero-inner {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(36, 31, 32, 0.94), rgba(26, 22, 23, 0.9));
+  border-radius: 24px;
+}
+
+.landing-page .main-content-landing {
+  gap: 1rem;
+}
+
+.landing-page .landing-section {
+  padding: 1.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(34, 28, 30, 0.86), rgba(24, 20, 21, 0.82));
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+}
+
+.landing-page .landing-manifesto {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.landing-page .journey-stack li {
+  padding-bottom: 0.9rem;
+}
+
+.landing-page .audience-columns article {
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.landing-page .gallery-layout,
+.landing-page .landing-manifesto {
+  grid-template-columns: 1fr;
+}
+
+.landing-page .gallery-intro {
+  max-width: 56rem;
+}
+
+.landing-page .landing-cta {
+  padding: 1.2rem;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(74, 14, 26, 0.95), rgba(38, 31, 33, 0.9));
+}
+
+@media (max-width: 760px) {
+  .landing-page .landing-section {
+    padding: 1rem;
+    border-radius: 18px;
+  }
+
+  .landing-page .screen-grid-wide {
+    grid-template-columns: 1fr;
+  }
+}
