@@ -94,7 +94,16 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
     if (issueTrackerRef.current.has(signature)) return;
     issueTrackerRef.current.add(signature);
     setIsCreatingIssue(true);
-    try { await requestAiIssue({ payload: draft }); } catch { /* noop */ } finally { setIsCreatingIssue(false); }
+    try {
+      await requestAiIssue({ payload: draft });
+    } catch (error) {
+      // Log the error to aid debugging and optionally surface a non-blocking message to the user.
+      // eslint-disable-next-line no-console
+      console.error('Failed to create support issue from AI draft:', error);
+      setErrorMessage(prev => prev ?? "Non sono riuscito a creare automaticamente la segnalazione. Puoi riprovare piu' tardi oppure creare la segnalazione manualmente.");
+    } finally {
+      setIsCreatingIssue(false);
+    }
   };
 
   const handleSend = async () => {
