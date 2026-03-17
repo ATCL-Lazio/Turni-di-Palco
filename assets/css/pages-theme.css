@@ -70,16 +70,17 @@ a:hover {
 .page-header {
   position: relative;
   isolation: isolate;
-  padding: 3rem 1.5rem 2rem;
+  padding: 3rem 1.5rem 2.5rem;
 }
 
 .hero-backdrop {
   position: absolute;
-  inset: 0;
+  inset: 0 0 -7rem;
   z-index: -1;
   background:
     linear-gradient(135deg, rgba(45, 10, 15, 0.92), rgba(22, 17, 18, 0.78)),
     radial-gradient(circle at top, rgba(244, 191, 79, 0.16), transparent 32%);
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.75) 72%, transparent 100%);
 }
 
 .hero-backdrop::after {
@@ -325,10 +326,11 @@ a:hover {
 .landing-grid {
   display: grid;
   gap: 1.25rem;
+  align-items: stretch;
 }
 
 .landing-grid-overview {
-  grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.95fr);
+  grid-template-columns: minmax(0, 1.3fr) minmax(19rem, 0.92fr);
 }
 
 .landing-grid-showcase {
@@ -347,6 +349,13 @@ a:hover {
     linear-gradient(180deg, rgba(34, 24, 28, 0.96), rgba(18, 13, 15, 0.92)),
     radial-gradient(circle at top right, rgba(244, 191, 79, 0.1), transparent 34%);
   box-shadow: var(--tdp-shadow);
+}
+
+.landing-grid > .landing-card,
+.audience-grid > .audience-card,
+.journey-list > .journey-step,
+.screen-grid > .screen-shot {
+  height: 100%;
 }
 
 .landing-card::before,
@@ -552,6 +561,8 @@ a:hover {
 
 .screen-shot {
   margin: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
   padding: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 1.4rem;
