@@ -654,3 +654,171 @@ a:hover {
     font-size: clamp(1.6rem, 8vw, 2.2rem);
   }
 }
+
+/* Landing refactor: clearer editorial hierarchy */
+.hero-inner {
+  padding: 1.5rem 1.75rem;
+}
+
+.project-tagline {
+  max-width: 30ch;
+}
+
+.hero-copy {
+  max-width: 52ch;
+  margin-top: 1rem;
+  font-size: 1.05rem;
+}
+
+.main-content-landing {
+  gap: 1.7rem;
+}
+
+.landing-section {
+  padding-block: 0.45rem;
+}
+
+.landing-card,
+.landing-cta {
+  padding: 1.35rem;
+}
+
+.section-head p,
+.landing-cta-copy p,
+.landing-lead,
+.gallery-intro p {
+  margin-top: 0.6rem;
+  line-height: 1.65;
+}
+
+.section-head-compact {
+  max-width: 62rem;
+  margin-bottom: 0.5rem;
+}
+
+.journey-stack {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1rem;
+}
+
+.journey-stack li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  align-items: start;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(244, 191, 79, 0.2);
+}
+
+.journey-stack li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.journey-step-number {
+  font-family: Georgia, "Times New Roman", serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(2.65rem, 5vw, 3.2rem);
+  height: clamp(2.65rem, 5vw, 3.2rem);
+  border-radius: 999px;
+  border: 1px solid rgba(244, 191, 79, 0.42);
+  background: rgba(244, 191, 79, 0.14);
+  box-shadow: inset 0 0 20px rgba(244, 191, 79, 0.1);
+  font-size: clamp(1.5rem, 3.1vw, 2rem);
+  font-weight: 700;
+  color: rgba(244, 191, 79, 0.96);
+  line-height: 1;
+}
+
+.journey-stack h3 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.journey-stack p {
+  margin: 0.35rem 0 0;
+  color: var(--tdp-text-muted);
+}
+
+.audience-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.4rem;
+}
+
+.audience-columns article {
+  padding-right: 0.5rem;
+}
+
+.audience-columns h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.audience-columns p {
+  margin: 0.55rem 0 0;
+  color: var(--tdp-text-muted);
+}
+
+.landing-manifesto {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 1.5rem;
+  padding: 1.8rem;
+  border: 1px solid rgba(244, 191, 79, 0.2);
+  border-radius: var(--tdp-radius-lg);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.manifesto-heading h2 {
+  margin: 0;
+  font-size: clamp(1.9rem, 2.7vw, 2.8rem);
+  line-height: 1.05;
+}
+
+.screen-grid-wide {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.35rem;
+}
+
+.screen-grid-wide .screen-shot {
+  padding: 0.65rem;
+}
+
+.screen-grid-wide .screen-shot img {
+  aspect-ratio: 10 / 16;
+  object-fit: cover;
+}
+
+.gallery-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.36fr) minmax(0, 0.64fr);
+  gap: 1rem 1.5rem;
+  align-items: start;
+}
+
+.gallery-intro {
+  max-width: 24rem;
+}
+
+.hero-actions .btn-secondary,
+.cta-actions .btn-secondary {
+  opacity: 0.88;
+}
+
+@media (max-width: 980px) {
+  .audience-columns,
+  .landing-manifesto,
+  .gallery-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .gallery-intro {
+    max-width: 42rem;
+  }
+}
