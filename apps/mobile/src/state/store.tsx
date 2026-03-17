@@ -368,10 +368,10 @@ type PlannedParticipationRpcRow = {
 const DRAMATURG_PROFILE: RoleProfile = {
   allowedActivityIds: ['copione', 'recitazione', 'ritardo'],
   activityOrder: ['copione', 'recitazione', 'ritardo'],
-  homeMessage: 'Oggi il focus e rifinire ritmo, sottotesto e continuita di scena.',
+  homeMessage: 'Oggi il focus è rifinire ritmo, sottotesto e continuità di scena.',
   journey: {
     eyebrow: 'Percorso ruolo',
-    headline: 'Costruisci il battito della scena prima dell ingresso in palco.',
+    headline: 'Costruisci il battito della scena prima dell\'ingresso in palco.',
     summary: 'Parti da Revisione copione, consolida il sottotesto e sblocca i primi badge di ruolo.',
     recommendedActivityId: 'copione',
     starterBadgeLabels: ['Primo briefing drammaturgico', 'Occhio sul testo'],
@@ -529,20 +529,68 @@ const DEFAULT_SHOP_CATALOG: ShopCatalogItem[] = [
 ];
 
 const STORAGE_KEY = 'tdp-mobile-ui-state';
+// Maximum number of turns the mobile client keeps in memory/uses for a game session.
+// This is intentionally bounded to avoid unbounded state growth on long‑running devices
+// and to keep UI and sync operations predictable.
 const MAX_TURNS = 20;
+
+// Key used to persist the client‑side offline sync queue in storage. Version suffix (`v1`)
+// allows us to invalidate incompatible queue formats by bumping the version.
 const OFFLINE_SYNC_QUEUE_KEY = 'tdp-mobile-offline-sync-v1';
+
+// Base delay between retry attempts when flushing the offline sync queue.
+// 15 seconds is a compromise between user‑perceived latency (shorter is better)
+// and avoiding excessive battery and network usage on poor/unstable connections.
 const OFFLINE_SYNC_RETRY_INTERVAL_MS = 15000;
+
+// Upper bound on how many pending items we keep in the offline queue.
+// 300 items is large enough to cover typical offline sessions, but small enough
+// to avoid unbounded local storage usage and large burst uploads when connectivity returns.
 const OFFLINE_SYNC_MAX_ITEMS = 300;
+
+// Maximum number of retry attempts per item before we give up.
+// 12 attempts at 15 s intervals ~= 3 minutes total retry window, which is long enough
+// to ride out short outages without keeping failing items around indefinitely.
 const OFFLINE_SYNC_MAX_ATTEMPTS = 12;
+
+// Separate storage key for server log events queued for upload.
+// Kept distinct from the main data queue so that logging policies can evolve independently.
 const OFFLINE_SYNC_SERVER_LOG_QUEUE_KEY = 'tdp-mobile-offline-sync-server-logs-v1';
+
+// Number of log items sent per batch to the logging endpoint.
+// 60 strikes a balance between request overhead (fewer, larger batches) and
+// memory/CPU usage on low‑end devices (smaller payloads).
 const OFFLINE_SYNC_SERVER_LOG_BATCH_SIZE = 60;
+
+// Hard cap on how many log items we retain offline.
+// 2500 is enough for diagnostics across long offline periods while preventing
+// unbounded growth of log storage and very large upload bursts.
 const OFFLINE_SYNC_SERVER_LOG_MAX_ITEMS = 2500;
+
+// Retry interval for log uploads; shorter than data sync to reduce time‑to‑insight
+// for production issues, but still conservative to avoid hammering the backend.
 const OFFLINE_SYNC_SERVER_LOG_RETRY_INTERVAL_MS = 8000;
+
+// Supabase edge function used to receive mobile client logs.
+// Kept as a constant so that changing the function name is centralized.
 const OFFLINE_SYNC_SERVER_LOG_FUNCTION = 'mobile-logs';
+
+// Feature flag that enables mirroring of offline logs to an additional backend.
+// Controlled by environment so that log mirroring can be toggled per deployment.
 const OFFLINE_SYNC_SERVER_LOG_MIRROR_ENV =
   import.meta.env.VITE_OFFLINE_SYNC_SERVER_LOG_MIRROR_ENABLED;
+
+// Hostname pattern used to identify preview environments where server log behavior
+// may differ (e.g., additional logging or relaxed limits).
 const OFFLINE_SYNC_SERVER_LOG_PREVIEW_HOST_RE = /^turni-di-palco-pr-\d+\.onrender\.com$/i;
+
+// Common prefix for all offline sync–related log messages to make them easy to filter.
 const OFFLINE_SYNC_LOG_PREFIX = '[TDP Offline Sync]';
+
+// Per‑operation watchdog timeouts (in ms) for network/API calls.
+// Values are tuned based on typical Supabase and backend response times on mobile networks:
+// short enough to detect hangs and surface errors, but long enough to tolerate
+// transient latency spikes without failing normal requests.
 const MOBILE_WATCHDOG_TIMEOUTS = {
   refreshTurnStats: 10000,
   refreshTheatreReputation: 12000,
@@ -1097,9 +1145,12 @@ async function readTurnGeolocationSnapshot(): Promise<TurnGeolocationSnapshot | 
       },
       () => resolve(null),
       {
+        // High accuracy is intentionally enabled here to ensure reliable venue/turn validation,
+        // at the cost of higher battery usage on some devices.
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 60000,
+        // Limit cached positions to 5 seconds to avoid using stale locations for check-in logic.
+        maximumAge: 5000,
       }
     );
   });
