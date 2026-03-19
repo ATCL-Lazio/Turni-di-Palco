@@ -141,8 +141,8 @@ export function attachPermissionsListeners(root: HTMLElement) {
             const stream = await PermissionsService.requestCameraAccess();
             stream.getTracks().forEach((track) => track.stop());
             renderResult("Permesso fotocamera: concesso.", "ok");
-        } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-            if (error.name === "NotAllowedError" || error.name === "SecurityError") {
+        } catch (error) {
+            if (error instanceof DOMException && (error.name === "NotAllowedError" || error.name === "SecurityError")) {
                 renderResult("Permesso fotocamera: rifiutato.", "warn");
                 return;
             }
