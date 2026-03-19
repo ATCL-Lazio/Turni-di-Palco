@@ -1,6 +1,5 @@
 import type { LeaderboardEntry, LeaderboardStats } from "../types";
 import { resolveRole } from "../state";
-import { getAvatarVisual } from "../avatar-visual";
 
 export type LeaderboardViewMode = "xp" | "reputation" | "cachet";
 
@@ -109,14 +108,17 @@ function sortEntries(entries: LeaderboardEntry[], mode: LeaderboardViewMode): Le
   }
 }
 
-function colorFromString(input: string): string {
+function hueFromString(input: string): number {
   let hash = 0;
   for (let i = 0; i < input.length; i += 1) {
     hash = (hash << 5) - hash + input.charCodeAt(i);
     hash |= 0;
   }
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}deg 75% 55%)`;
+  return Math.abs(hash) % 360;
+}
+
+function colorFromString(input: string): string {
+  return `hsl(${hueFromString(input)}deg 75% 55%)`;
 }
 
 function formatLeaderboardPosition(position: number): string {
@@ -125,18 +127,18 @@ function formatLeaderboardPosition(position: number): string {
 
 function renderLeaderboardEntry(entry: LeaderboardEntry, position: number, isCurrentUser: boolean, viewMode: LeaderboardViewMode): string {
   const role = resolveRole(entry.roleId);
-  const avatarVisual = getAvatarVisual({ hue: 210, icon: "mask", rpmThumbnail: entry.profileImage || "" });
+  const entryHue = hueFromString(entry.id);
+  const entryColor = colorFromString(entry.id);
   const positionDisplay = formatLeaderboardPosition(position);
-  const fallbackColor = colorFromString(entry.id);
-  
+
   return `
     <div class="leaderboard-entry ${isCurrentUser ? "current-user" : ""}" data-player-id="${entry.id}">
       <div class="leaderboard-position">
         <span class="position-badge">${positionDisplay}</span>
       </div>
-      
+
       <div class="leaderboard-avatar">
-        <div class="avatar-display small" style="--avatar-color: ${avatarVisual.color || fallbackColor}; --avatar-hue: 210deg;">
+        <div class="avatar-display small" style="--avatar-color: ${entryColor}; --avatar-hue: ${entryHue}deg;">
           ${entry.profileImage ? `<img src="${entry.profileImage}" alt="${entry.name}" />` : `<span class="avatar-icon">${entry.name.slice(0, 1).toUpperCase()}</span>`}
         </div>
       </div>
@@ -192,9 +194,8 @@ export function attachLeaderboardListeners(
   
   modeButtons.forEach(button => {
     button.addEventListener("click", (event) => {
-      const target = event.target as HTMLElement;
-      const mode = target.dataset.mode as LeaderboardViewMode;
-      
+      const mode = (event.currentTarget as HTMLElement).dataset.mode as LeaderboardViewMode;
+
       if (mode && onViewModeChange) {
         onViewModeChange(mode);
       }

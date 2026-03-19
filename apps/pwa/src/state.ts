@@ -74,7 +74,7 @@ function clampHue(value: number, fallback: number) {
 export function getAvatarVisual(avatar: AvatarSettings) {
   const entry = avatarIcons.find((item) => item.id === avatar.icon) ?? avatarIcons[0];
   const hue = clampHue(avatar.hue, 210);
-  const color = `hsl(${hue}deg 70% 55%)`;
+  const color = `hsl(${hue}deg 75% 55%)`;
   const image = avatar.rpmThumbnail || "";
   return { icon: entry.symbol, color, image };
 }
