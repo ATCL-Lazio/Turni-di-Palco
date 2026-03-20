@@ -111,7 +111,7 @@ a:hover {
 
 .project-logo {
   display: block;
-  margin-bottom: 1.5rem;
+  margin: 0 auto 1.5rem;
   border-radius: 22px;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3);
 }
