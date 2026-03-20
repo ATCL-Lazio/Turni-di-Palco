@@ -153,4 +153,4 @@ python ticket_qr_generator.py
 
 oppure aprire il file `ticket_qr_generator_ui.py` con un editor di testo e eseguirlo.
 
-![Screenshot dell'app](<assets/images/Screenshot 2026-02-27 121448.png>)
+![Screenshot dell'app](</assets/images/Screenshot 2026-02-27 121448.png>)
