@@ -63,6 +63,7 @@ export default defineConfig(({ mode }) => {
   const allowedHosts = resolveAllowedHosts(env);
 
   return {
+    base: env.VITE_BASE || process.env.VITE_BASE || "/",
     plugins: [tailwindcss()],
     build: {
       rollupOptions: {
