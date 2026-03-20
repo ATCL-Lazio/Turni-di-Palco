@@ -1,5 +1,8 @@
 ---
+layout: default
 permalink: /development/
+title: Documentazione tecnica
+description: Guida tecnica e architettura del progetto Turni di Palco
 ---
 
 # Turni di Palco — Documentazione tecnica
