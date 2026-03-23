@@ -112,7 +112,7 @@ Dettagli utili:
   - Il sito parla di dialogo/interfacciamento con sistemi di accesso di terze parti, ma non espone reference API pubbliche.
 - Liveticket:
   - DTicket dichiara che i biglietti digitali possono interagire facilmente tra piu sistemi diversi e che il controllo accessi puo invalidare biglietti emessi da altri sistemi.
-  - Anche qui, pero', l'accesso appare commerciale e non self-service.
+  - Anche qui, però, l'accesso appare commerciale e non self-service.
 - 18Tickets / 18Months:
   - La presenza di demo e portale help indica un prodotto amministrativo maturo.
   - Non sono emerse API pubbliche o credenziali attivabili autonomamente.
