@@ -7,9 +7,8 @@ import json
 import os
 import pathlib
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import messagebox, ttk
 
-from PIL import Image, ImageTk
 from dotenv import load_dotenv
 
 # Load local .env if present
@@ -21,7 +20,6 @@ from generate_ticket_qr import (
     canonical_payload_json,
     default_ticket_circuit,
     fetch_calendar_events,
-    generate_qr_png,
     get_calendar_api_key,
     pretty_payload_json,
     reserve_hash,
@@ -65,7 +63,7 @@ SECTION_TITLE_FONT = ("TkDefaultFont", 11, "bold")
 class TicketQrGeneratorUI:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("Turni di Palco - Generatore QR Biglietteria")
+        self.root.title("Turni di Palco - Registratore Hash Biglietteria")
         self.root.geometry("1240x760")
         self.root.minsize(980, 680)
 
@@ -81,12 +79,9 @@ class TicketQrGeneratorUI:
         self.date_var = tk.StringVar(value="-")
         self.ticket_number_var = tk.StringVar(value="")
         self.skip_supabase_var = tk.BooleanVar(value=not has_creds)
-        self.output_var = tk.StringVar(value=str(pathlib.Path("./out/ticket-qr.png").resolve()))
         self.calendar_status_var = tk.StringVar(value="Calendario non caricato.")
         self.hash_var = tk.StringVar(value="-")
         self.calendar_events: list[CalendarEvent] = []
-
-        self.preview_image: ImageTk.PhotoImage | None = None
 
         self._configure_theme()
         self._build_layout()
@@ -275,10 +270,10 @@ class TicketQrGeneratorUI:
         header = ttk.Frame(frame, style="App.TFrame")
         header.pack(fill="x", pady=(0, 14))
         ttk.Label(header, text="TURNI DI PALCO", style="HeaderKicker.TLabel").pack(anchor="w")
-        ttk.Label(header, text="Generatore QR Biglietteria", style="HeaderTitle.TLabel").pack(anchor="w", pady=(2, 0))
+        ttk.Label(header, text="Registratore Hash Biglietteria", style="HeaderTitle.TLabel").pack(anchor="w", pady=(2, 0))
         ttk.Label(
             header,
-            text="Seleziona evento, inserisci il numero biglietto e genera il QR pronto per la scansione.",
+            text="Seleziona evento, inserisci il numero biglietto e prenota l'hash su Supabase.",
             style="HeaderSubtitle.TLabel",
         ).pack(anchor="w", pady=(4, 0))
 
@@ -341,10 +336,6 @@ class TicketQrGeneratorUI:
         _, ticket_field = self._build_field_row(setup_card, "Numero biglietto")
         ttk.Entry(ticket_field, textvariable=self.ticket_number_var, style="Value.TEntry").pack(fill="x", expand=True)
 
-        output_row, output_field = self._build_field_row(setup_card, "File output")
-        ttk.Entry(output_field, textvariable=self.output_var, style="Value.TEntry").pack(fill="x", expand=True, side="left")
-        ttk.Button(output_row, text="Sfoglia", command=self._pick_output, style="Secondary.TButton").pack(side="left", padx=(8, 0))
-
         ttk.Checkbutton(
             setup_card,
             text="Modalita locale (non prenota hash su Supabase)",
@@ -354,12 +345,12 @@ class TicketQrGeneratorUI:
 
         button_row = ttk.Frame(setup_card, style="Card.TFrame")
         button_row.pack(fill="x", pady=(0, 2))
-        ttk.Button(button_row, text="Genera e Prenota QR", command=self._generate, style="Primary.TButton").pack(anchor="w")
+        ttk.Button(button_row, text="Genera e Prenota Hash", command=self._generate, style="Primary.TButton").pack(anchor="w")
 
         result_card = self._build_card(
             right_column,
-            "Output QR",
-            "Controlla JSON, hash e anteprima prima di distribuire il biglietto.",
+            "Output Hash",
+            "Controlla JSON e hash prima di confermare la prenotazione.",
             expand=True,
         )
         ttk.Label(result_card, text="JSON generato", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 4))
@@ -381,27 +372,6 @@ class TicketQrGeneratorUI:
 
         ttk.Label(result_card, text="Hash SHA-256", style="FieldLabel.TLabel").pack(anchor="w", pady=(8, 4))
         ttk.Entry(result_card, textvariable=self.hash_var, state="readonly", style="Value.TEntry").pack(fill="x")
-
-        ttk.Label(result_card, text="Anteprima QR", style="FieldLabel.TLabel").pack(anchor="w", pady=(8, 4))
-        preview_container = ttk.Frame(result_card, style="Preview.TFrame", padding=8)
-        preview_container.pack(fill="x", pady=4)
-        self.qr_preview_label = ttk.Label(
-            preview_container,
-            text="Nessun QR generato",
-            style="Preview.TLabel",
-            anchor="center",
-            padding=2,
-        )
-        self.qr_preview_label.pack(fill="both", expand=True)
-
-    def _pick_output(self) -> None:
-        selected = filedialog.asksaveasfilename(
-            title="Salva QR come...",
-            defaultextension=".png",
-            filetypes=[("PNG", "*.png")],
-        )
-        if selected:
-            self.output_var.set(selected)
 
     def _open_circuit_settings(self) -> None:
         dialog = tk.Toplevel(self.root)
@@ -574,23 +544,11 @@ class TicketQrGeneratorUI:
                 if not reserved:
                     raise ValueError("Hash gia presente su Supabase. Verifica i dati del ticket (forse gia generato).")
 
-            qr_value = payload_hash
-            output_path = pathlib.Path(self.output_var.get()).resolve()
-            generate_qr_png(qr_value, output_path)
-
             self.json_box.delete("1.0", tk.END)
             self.json_box.insert(tk.END, pretty_payload_json(payload))
             self.hash_var.set(payload_hash)
 
-            # Resize QR code to fit container while maintaining aspect ratio
-            image = Image.open(output_path)
-            # Calculate appropriate size based on container width
-            max_size = 250  # Larger size for two-column layout
-            image.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
-            self.preview_image = ImageTk.PhotoImage(image)
-            self.qr_preview_label.configure(image=self.preview_image, text="")
-
-            success_msg = f"QR salvato in:\n{output_path}"
+            success_msg = f"Hash generato correttamente.\n\nHash: {payload_hash}"
             if is_remote:
                 success_msg += "\n\nHash prenotato correttamente su Supabase."
 
