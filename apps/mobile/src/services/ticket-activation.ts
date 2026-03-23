@@ -607,6 +607,259 @@ export async function activateTicketByDetails(
   }
 }
 
+// --- Issue #415: Client-side hash registration (inverted flow) ---
+
+const ROME_OFFSET = '+01:00';
+const OFFLINE_TICKET_QUEUE_KEY = 'tdp-mobile-ticket-queue-v1';
+
+export type PendingTicketRegistration = {
+  ticketNumber: string;
+  eventID: string;
+  circuit: string;
+  clientHash: string;
+  canonicalJson: string;
+  queuedAt: string;
+  retryCount: number;
+};
+
+export function buildEventDatetimeIso(eventDate: string, eventTime: string): string {
+  const date = eventDate.trim();
+  const time = eventTime.trim();
+  const timeParts = time.split(':');
+  const normalizedTime = timeParts.length === 2 ? `${time}:00` : time;
+  return `${date}T${normalizedTime}${ROME_OFFSET}`;
+}
+
+export async function computeTicketHash(params: {
+  circuit: string;
+  eventName: string;
+  eventID: string;
+  ticketNumber: string;
+  date: string;
+}): Promise<{ hash: string; canonicalJson: string }> {
+  const payload: TicketPayload = {
+    circuit: params.circuit.trim(),
+    eventName: params.eventName.trim(),
+    eventID: params.eventID.trim(),
+    ticketNumber: params.ticketNumber.trim(),
+    date: params.date.trim(),
+  };
+  const canonicalJson = stableStringify(payload);
+  const hash = await sha256Hex(canonicalJson);
+  return { hash, canonicalJson };
+}
+
+export async function registerTicketByNumber(
+  eventID: string,
+  ticketNumber: string,
+  userId: string,
+  eventMeta?: { name: string; date: string; time: string },
+  circuit = 'TicketOne'
+): Promise<
+  | { ok: true; eventId?: string; event?: ActivatedEventPayload; hash?: string; queued?: boolean }
+  | { ok: false; error: string }
+> {
+  const normalizedEventId = eventID.trim();
+  const normalizedTicket = ticketNumber.trim();
+  const normalizedUserId = userId.trim();
+
+  if (!normalizedEventId || !normalizedTicket || !normalizedUserId) {
+    return { ok: false, error: 'Dati mancanti per la registrazione biglietto.' };
+  }
+
+  if (isSupabaseConfigured && !UUID_PATTERN.test(normalizedUserId)) {
+    return { ok: false, error: 'ID utente non valido.' };
+  }
+
+  const manualTicketKey = buildManualTicketKey(normalizedEventId, normalizedTicket);
+  if (localManualActivationStore.has(manualTicketKey)) {
+    return { ok: false, error: 'Biglietto già registrato in questa sessione.' };
+  }
+
+  // Compute client-side hash if event metadata is available
+  let clientHash = '';
+  let canonicalJson = '';
+  if (eventMeta) {
+    const dateIso = buildEventDatetimeIso(eventMeta.date, eventMeta.time);
+    const computed = await computeTicketHash({
+      circuit,
+      eventName: eventMeta.name,
+      eventID: normalizedEventId,
+      ticketNumber: normalizedTicket,
+      date: dateIso,
+    });
+    clientHash = computed.hash;
+    canonicalJson = computed.canonicalJson;
+  }
+
+  // Offline: queue for later sync
+  if (!supabase || !isSupabaseConfigured || isNavigatorOffline()) {
+    if (!clientHash) {
+      return { ok: false, error: 'Impossibile registrare offline senza dati evento.' };
+    }
+    enqueueOfflineTicket({
+      ticketNumber: normalizedTicket,
+      eventID: normalizedEventId,
+      circuit,
+      clientHash,
+      canonicalJson,
+      queuedAt: new Date().toISOString(),
+      retryCount: 0,
+    });
+    cleanupOldRecords();
+    localManualActivationStore.set(manualTicketKey, {
+      eventId: normalizedEventId,
+      ticketNumber: normalizedTicket,
+      activatedBy: normalizedUserId,
+      activatedAtIso: new Date().toISOString(),
+    });
+    return { ok: true, eventId: normalizedEventId, hash: clientHash, queued: true };
+  }
+
+  try {
+    const { data, error } = await invokeTicketActivation({
+      action: 'register_ticket',
+      payload: {
+        eventID: normalizedEventId,
+        ticketNumber: normalizedTicket,
+        circuit,
+        clientHash: clientHash || undefined,
+      },
+      userId: normalizedUserId,
+    });
+
+    if (error) {
+      const errorMessage = await resolveFunctionErrorMessage(
+        error,
+        'Errore durante la registrazione del biglietto.'
+      );
+      throw new Error(errorMessage);
+    }
+
+    const remote = data as {
+      ok?: boolean;
+      alreadyActivated?: boolean;
+      error?: string;
+      eventId?: string;
+      eventName?: string;
+      hash?: string;
+      event?: ActivatedEventPayload;
+    } | null;
+
+    if (remote?.ok) {
+      cleanupOldRecords();
+      localManualActivationStore.set(manualTicketKey, {
+        eventId: normalizedEventId,
+        ticketNumber: normalizedTicket,
+        activatedBy: normalizedUserId,
+        activatedAtIso: new Date().toISOString(),
+      });
+      return { ok: true, eventId: remote.eventId, event: remote.event, hash: remote.hash };
+    }
+
+    if (remote?.alreadyActivated) {
+      return { ok: false, error: 'Questo biglietto è già stato utilizzato.' };
+    }
+
+    return { ok: false, error: remote?.error || 'Errore durante la registrazione biglietto.' };
+  } catch (error) {
+    if (shouldLogActivationError(error)) {
+      console.error('Ticket registration failed:', error);
+    }
+    return { ok: false, error: error instanceof Error ? error.message : 'Errore tecnico.' };
+  }
+}
+
+// --- Offline ticket queue ---
+
+function isNavigatorOffline(): boolean {
+  return typeof navigator !== 'undefined' && !navigator.onLine;
+}
+
+function readOfflineTicketQueue(): PendingTicketRegistration[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(OFFLINE_TICKET_QUEUE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeOfflineTicketQueue(queue: PendingTicketRegistration[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (queue.length === 0) {
+      window.localStorage.removeItem(OFFLINE_TICKET_QUEUE_KEY);
+    } else {
+      window.localStorage.setItem(OFFLINE_TICKET_QUEUE_KEY, JSON.stringify(queue));
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function enqueueOfflineTicket(entry: PendingTicketRegistration) {
+  const queue = readOfflineTicketQueue();
+  // Deduplicate by clientHash
+  if (queue.some((item) => item.clientHash === entry.clientHash)) return;
+  queue.push(entry);
+  writeOfflineTicketQueue(queue);
+}
+
+export function getOfflineTicketQueueSize(): number {
+  return readOfflineTicketQueue().length;
+}
+
+export async function flushOfflineTicketQueue(
+  userId: string
+): Promise<{ synced: number; failed: number }> {
+  if (!supabase || !isSupabaseConfigured || isNavigatorOffline()) {
+    return { synced: 0, failed: 0 };
+  }
+
+  const queue = readOfflineTicketQueue();
+  if (queue.length === 0) return { synced: 0, failed: 0 };
+
+  const remaining: PendingTicketRegistration[] = [];
+  let synced = 0;
+  let failed = 0;
+
+  for (const entry of queue) {
+    try {
+      const { data, error } = await invokeTicketActivation({
+        action: 'register_ticket',
+        payload: {
+          eventID: entry.eventID,
+          ticketNumber: entry.ticketNumber,
+          circuit: entry.circuit,
+          clientHash: entry.clientHash,
+        },
+        userId,
+      });
+
+      if (error) throw error;
+      const remote = data as { ok?: boolean; alreadyActivated?: boolean } | null;
+      if (remote?.ok || remote?.alreadyActivated) {
+        synced++;
+      } else {
+        entry.retryCount++;
+        if (entry.retryCount < 5) remaining.push(entry);
+        else failed++;
+      }
+    } catch {
+      entry.retryCount++;
+      if (entry.retryCount < 5) remaining.push(entry);
+      else failed++;
+    }
+  }
+
+  writeOfflineTicketQueue(remaining);
+  return { synced, failed };
+}
+
 export function listLocalTicketRecords(): TicketActivationRecord[] {
   return Array.from(localActivationStore.values()).sort((a, b) => a.hash.localeCompare(b.hash));
 }

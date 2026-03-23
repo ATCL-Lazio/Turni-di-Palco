@@ -47,6 +47,7 @@ export const MOBILE_FEATURE_FLAG_KEYS = [
   "mobile.action.activity_start",
   "mobile.action.activity_complete",
   "mobile.action.shop_purchase",
+  "mobile.action.ticket_entry",
   "mobile.dev.ticket_qr_prototype",
 ] as const;
 export type MobileFeatureFlagKey = (typeof MOBILE_FEATURE_FLAG_KEYS)[number];
@@ -69,6 +70,8 @@ export const MOBILE_FEATURE_FLAG_DESCRIPTIONS: Record<MobileFeatureFlagKey, stri
   "mobile.action.activity_start": "Abilita l'avvio attivita simulate nell'app mobile.",
   "mobile.action.activity_complete": "Abilita il completamento attivita simulate nell'app mobile.",
   "mobile.action.shop_purchase": "Abilita gli acquisti nello shop mobile.",
+  "mobile.action.ticket_entry":
+    "Abilita l'inserimento manuale del numero biglietto come metodo primario di registrazione turno.",
   "mobile.dev.ticket_qr_prototype":
     "Abilita il prototipo developer per generazione e attivazione ticket QR nelle impostazioni account.",
 };

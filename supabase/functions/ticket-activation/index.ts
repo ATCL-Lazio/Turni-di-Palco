@@ -8,6 +8,48 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
+const DEFAULT_CIRCUIT = 'TicketOne';
+
+// Rome timezone offset (+01:00 CET). Matches Python generator's dt.timezone(dt.timedelta(hours=1)).
+const ROME_OFFSET = '+01:00';
+
+function buildCanonicalJson(fields: {
+  circuit: string;
+  eventName: string;
+  eventID: string;
+  ticketNumber: string;
+  date: string;
+}): string {
+  // Must match Python's json.dumps(OrderedDict(...), ensure_ascii=False, separators=(",",":"))
+  // and JS client's JSON.stringify with explicit key order.
+  return JSON.stringify({
+    circuit: fields.circuit,
+    eventName: fields.eventName,
+    eventID: fields.eventID,
+    ticketNumber: fields.ticketNumber,
+    date: fields.date,
+  });
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const encoded = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest('SHA-256', encoded);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function buildEventDatetimeIso(eventDate: string, eventTime: string): string {
+  // eventDate: "2026-03-15" or "15 Marzo 2026" etc. — from DB it's ISO date.
+  // eventTime: "21:00" or "21:00:00"
+  const date = eventDate.trim();
+  const time = eventTime.trim();
+  const timeParts = time.split(':');
+  const normalizedTime =
+    timeParts.length === 2 ? `${time}:00` : time;
+  return `${date}T${normalizedTime}${ROME_OFFSET}`;
+}
+
 function jsonResponse(payload: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -50,7 +92,7 @@ serve(async (req: Request) => {
   try {
     const { action, hash, payload, userId: requestedUserId } = await req.json();
 
-    const activationActions = ['activate_hash', 'activate_by_details'];
+    const activationActions = ['activate_hash', 'activate_by_details', 'register_ticket'];
     const needsAuthenticatedUser = activationActions.includes(action);
     let resolvedUserId = typeof requestedUserId === 'string' ? requestedUserId.trim() : '';
 
@@ -232,6 +274,111 @@ serve(async (req: Request) => {
         ok: false,
         alreadyActivated: true,
       }, 200);
+    }
+
+    if (action === 'register_ticket') {
+      const ticketNumber = typeof payload?.ticketNumber === 'string' ? payload.ticketNumber.trim() : '';
+      const eventID = typeof payload?.eventID === 'string' ? payload.eventID.trim() : '';
+      const circuit = typeof payload?.circuit === 'string' && payload.circuit.trim()
+        ? payload.circuit.trim()
+        : DEFAULT_CIRCUIT;
+
+      if (!ticketNumber || !eventID || !resolvedUserId) {
+        return jsonResponse({ error: 'Dati mancanti: eventID, ticketNumber e sessione sono obbligatori.' }, 400);
+      }
+
+      // 1. Load event from calendar to get name + date + time
+      const { data: eventRow, error: eventError } = await supabase
+        .from('events')
+        .select('id,name,event_date,event_time,theatre,genre,base_rewards,focus_role')
+        .eq('id', eventID)
+        .maybeSingle();
+
+      if (eventError) throw eventError;
+      if (!eventRow) {
+        return jsonResponse({ ok: false, error: 'Evento non trovato nel calendario.' }, 200);
+      }
+
+      const eventName = String(eventRow.name ?? '').trim();
+      const eventDate = String(eventRow.event_date ?? '').trim();
+      const eventTime = String(eventRow.event_time ?? '').trim();
+
+      if (!eventName || !eventDate || !eventTime) {
+        return jsonResponse({ ok: false, error: 'Dati evento incompleti nel calendario.' }, 200);
+      }
+
+      // 2. Build canonical JSON and compute SHA-256 (matching Python generator algorithm)
+      const dateIso = buildEventDatetimeIso(eventDate, eventTime);
+      const canonicalJson = buildCanonicalJson({
+        circuit,
+        eventName,
+        eventID: eventRow.id,
+        ticketNumber,
+        date: dateIso,
+      });
+      const computedHash = await sha256Hex(canonicalJson);
+
+      // 3. Verify client-provided hash if present
+      const clientHash = typeof payload?.clientHash === 'string' ? payload.clientHash.trim().toLowerCase() : '';
+      if (clientHash && clientHash !== computedHash) {
+        return jsonResponse({ ok: false, error: 'Hash biglietto non corrisponde. Verifica i dati inseriti.' }, 200);
+      }
+
+      // 4. Try to insert + activate atomically (new ticket not pre-registered)
+      const now = new Date().toISOString();
+      const { error: insertError } = await supabase.from('ticket_activations').insert({
+        hash: computedHash,
+        circuit,
+        event_name: eventName,
+        event_id: eventRow.id,
+        ticket_number: ticketNumber,
+        date: dateIso,
+        activated_by: resolvedUserId,
+        activated_at: now,
+      });
+
+      if (!insertError) {
+        // Successfully created and activated in one step
+        return jsonResponse({
+          ok: true,
+          eventId: eventRow.id,
+          eventName,
+          hash: computedHash,
+          event: eventRow,
+        }, 200);
+      }
+
+      // 5. PK collision: ticket already exists (pre-registered or duplicate)
+      if ((insertError as { code?: string }).code === '23505') {
+        // Try to activate the existing unactivated record
+        const { data: activated, error: activateError } = await supabase
+          .from('ticket_activations')
+          .update({ activated_by: resolvedUserId, activated_at: now })
+          .eq('hash', computedHash)
+          .is('activated_by', null)
+          .select();
+
+        if (activateError) throw activateError;
+
+        if (activated && activated.length > 0) {
+          return jsonResponse({
+            ok: true,
+            eventId: eventRow.id,
+            eventName,
+            hash: computedHash,
+            event: eventRow,
+          }, 200);
+        }
+
+        // Already activated by someone else
+        return jsonResponse({
+          ok: false,
+          alreadyActivated: true,
+          error: 'Questo biglietto è già stato utilizzato.',
+        }, 200);
+      }
+
+      throw insertError;
     }
 
     return jsonResponse({ error: 'Invalid action' }, 400);
