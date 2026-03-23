@@ -38,7 +38,6 @@ function resolveHttps(): HttpsServerOptions | undefined {
     }
   }
 
-  if (flag) return {};
   return {};
 }
 
