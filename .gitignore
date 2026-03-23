@@ -28,6 +28,8 @@ yarn-error.log*
 coverage/
 .nyc_output/
 .turbo/
+.bundle/
+_site/
 
 # HTTPS dev certs (mkcert)
 *.pem
