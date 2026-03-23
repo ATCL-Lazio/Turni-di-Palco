@@ -36,7 +36,7 @@ Obiettivo pratico:
 | Cassino | Cinema Teatro Manzoni | Non esplicitato nella pagina ATCL | Media | La pagina ATCL rimanda al sito del Teatro Manzoni di Cassino ma non nomina TicketOne, 18Tickets o altri circuiti. |
 | Civitavecchia | Teatro Traiano | TicketOne | Alta | La pagina ATCL linka direttamente `ticketone.it`. |
 | Colleferro | Teatro Vittorio Veneto | Liveticket | Alta | La pagina ATCL indica "online su liveticket.it". |
-| Colonna | Teatro Chiesa Vecchia | Non verificato pubblicamente | Bassa | Dal catalogo ATCL emerge la venue, ma il circuito non e' emerso nella verifica pubblica svolta oggi. |
+| Colonna | Teatro Chiesa Vecchia | Non verificato pubblicamente | Bassa | Dal catalogo ATCL emerge la venue, ma il circuito non è emerso nella verifica pubblica svolta oggi. |
 | Fara in Sabina | Teatro Potlach | Prenotazione diretta / circuito non emerso | Media | Nella verifica pubblica ATCL non emerge un provider online chiaro; nelle pagine correlate compaiono contatti diretti del teatro. |
 | Fiuggi | Teatro Comunale di Fiuggi | Vendita online non esplicitata | Media | La pagina ATCL dice che i biglietti sono disponibili anche online, ma non nomina il provider. |
 | Fondi | Teatro Citta' di Fondi "Nino Canale" | Vendita online non esplicitata | Media | La pagina ATCL indica apertura vendita online dal 1 novembre, senza nominare il circuito. |
