@@ -1,19 +1,19 @@
 ---
 layout: default
 permalink: /development/technical_notes/
-title: Note tecniche
+title: Note tecniche - Turni di Palco
 description: Architettura, integrazioni e note operative di Turni di Palco
 ---
 
 [<- Torna alla documentazione tecnica]({{ '/development/' | relative_url }})
 
-# Note tecniche â€” Turni di Palco
+# Note tecniche - Turni di Palco
 
 ## Struttura repo (high level)
 
 - `apps/pwa`: PWA Vite multipage (entry HTML nella root del package). Asset statici in `apps/pwa/public/` (incl. `public/sw.js` e `public/mobile/`).
 - `apps/mobile`: App mobile React/Vite.
-- `shared/`: stili e utilitÃ  condivise.
+- `shared/`: stili e utilita' condivise.
 - `tools/`: script di automazione build/copy/cache.
   - `tools/serve-dist.js` serve `apps/pwa/dist` e risolve le richieste `/mobile/*` su `apps/pwa/dist/public/mobile/*`.
 
@@ -54,7 +54,7 @@ description: Architettura, integrazioni e note operative di Turni di Palco
 ## PWA, cache e aggiornamenti
 
 - Service Worker: `apps/pwa/public/sw.js`
-- Il versioning della cache viene aggiornato dallo script `tools/update-cache-version.js` (invocato da `npm run build:pwa`) per forzare lâ€™update degli asset core.
+- Il versioning della cache viene aggiornato dallo script `tools/update-cache-version.js` (invocato da `npm run build:pwa`) per forzare l'update degli asset core.
 - Il server `tools/serve-dist.js` imposta cache differenziata:
   - `no-store` per HTML, `sw.js` e manifest.
   - Cache aggressiva per asset hashed, icone e QR (immutabili).
@@ -69,30 +69,30 @@ description: Architettura, integrazioni e note operative di Turni di Palco
 
 - Netlify: gli header sono configurati in `netlify.toml` nella sezione `[[headers]]`.
 - Nota CSP: al momento `index.html` contiene uno script inline per il redirect mobile; per questo `script-src` include temporaneamente `'unsafe-inline'` finche' il bootstrap non viene spostato in un modulo esterno.
-- Render: il servizio PWA usa `tools/serve-dist.js` (startCommand in `render.yaml`), quindi gli header e la cache vanno configurati lÃ¬.
-  - Se si migra la PWA a â€œStatic Siteâ€ su Render, utilizzare il supporto ai `headers` del manifest Render.
+- Render: il servizio PWA usa `tools/serve-dist.js` (startCommand in `render.yaml`), quindi gli header e la cache vanno configurati li.
+  - Se si migra la PWA a "Static Site" su Render, utilizzare il supporto ai `headers` del manifest Render.
 
 ## Supabase (client)
 
-- Configurazione lato client tramite variabili dâ€™ambiente (vedi `.env`, `apps/mobile/.env.example`, `apps/pwa/.env.example`).
+- Configurazione lato client tramite variabili d'ambiente (vedi `.env`, `apps/mobile/.env.example`, `apps/pwa/.env.example`).
 - Auth: login/signup tramite `supabase.auth.*` (per comportamento e policy: verificare impostazioni progetto Supabase, es. email verification).
 
 ## QR: modello funzionale (attivazione codice)
 
-Obiettivo: introdurre un sistema di attivazione/riscatto che trasforma i codici biglietto (TicketOne/VivaTicket/â€¦) in hash e li gestisce a DB.
+Obiettivo: introdurre un sistema di attivazione/riscatto che trasforma i codici biglietto (TicketOne/VivaTicket/...) in hash e li gestisce a DB.
 
 Flusso proposto:
 
 1. Il codice biglietto viene normalizzato e hashato (SHA-256).
 
-2. Lâ€™hash viene controllato per unicitÃ  a DB.
-   - In caso di collisione: reroll/strategia di disambiguazione (es. payload JSON piÃ¹ ricco) per garantire unicitÃ .
+2. L'hash viene controllato per unicita' a DB.
+   - In caso di collisione: reroll/strategia di disambiguazione (es. payload JSON piu' ricco) per garantire unicita'.
 3. Generazione di un QR code da far scansionare in app.
 4. Scansione:
    - Verifica a DB dello stato del codice.
-   - Se non Ã¨ attivo: richiesta conferma per lâ€™attivazione.
+   - Se non e' attivo: richiesta conferma per l'attivazione.
 5. Attivazione:
-   - Il codice viene marcato come attivo e associato allâ€™utente che lo ha riscattato.
+   - Il codice viene marcato come attivo e associato all'utente che lo ha riscattato.
 
 ## Biglietteria: accessibilita API provider (verifica 2026-03-23)
 
@@ -129,7 +129,7 @@ Dettagli utili:
 Implicazioni architetturali:
 
 - Modellare l'integrazione ticketing come layer ad adapter/provider, non come dipendenza hardcoded da un singolo circuito.
-- Prevedere almeno due modalita:
+- Prevedere almeno due modalita':
   - `partner-api` per provider con accesso commerciale/API private.
   - `manual-import` o `qr-normalized-payload` per scenari senza API.
 - Per un MVP e' piu realistico basarsi su QR/payload normalizzato, import manuale o feed concordati con il provider, invece di attendere API pubbliche.
@@ -145,22 +145,22 @@ Provider con API realmente accessibili (benchmark esterno):
   - Usa `navigator.mediaDevices.getUserMedia` + decoding con `jsqr`.
   - La fotocamera funziona solo in **secure context** (HTTPS o `localhost`).
 
-### Validazione QR (evita â€œQR qualsiasiâ€)
+### Validazione QR (evita "QR qualsiasi")
 
 Problema: un QR generico (es. QR di un prodotto) veniva interpretato come valido e portava alla conferma evento.
 
-Mitigazione implementata (provvisoria, fino allâ€™integrazione DB):
+Mitigazione implementata (provvisoria, fino all'integrazione DB):
 
 - `apps/mobile/src/App.tsx`: lo scan viene accettato solo se il contenuto include un ID evento noto (es. `ATCL-001`).
 
-- `apps/mobile/src/components/screens/QRScanner.tsx`: mostra errore â€œQR non validoâ€ e riprende la scansione.
+- `apps/mobile/src/components/screens/QRScanner.tsx`: mostra errore "QR non valido" e riprende la scansione.
 
-Nota: attualmente lâ€™elenco eventi Ã¨ mock (`apps/mobile/src/state/store.tsx`, `events`). Con Supabase il controllo dovrÃ  diventare:
+Nota: attualmente l'elenco eventi e' mock (`apps/mobile/src/state/store.tsx`, `events`). Con Supabase il controllo dovra' diventare:
 
 - lookup/validazione su tabella biglietti/QR,
 
 - verifica stato (attivo/non attivo),
-- redemption atomico con associamento allâ€™utente.
+- redemption atomico con associamento all'utente.
 
 ## Eventi ATCL: feed, import e follow
 
@@ -198,24 +198,24 @@ Obiettivo: introdurre un nuovo ruolo di gioco con esperienza dedicata senza fram
   - `role_code` stabile (es. `dramaturg`, `tech_lead`, ...),
   - copy/UI (titolo, descrizione breve, tone of voice),
   - mapping verso badge consigliati,
-  - mapping verso minigiocchi abilitati.
-- Evitare logica hardcoded lato client: i mapping vanno caricati da config (`role_profile`) cosÃ¬ da poter fare tuning senza rebuild completo.
-- Mantenere retrocompatibilitÃ : se il profilo ruolo non Ã¨ disponibile, fallback su esperienza standard.
+  - mapping verso minigiochi abilitati.
+- Evitare logica hardcoded lato client: i mapping vanno caricati da config (`role_profile`) cosi' da poter fare tuning senza rebuild completo.
+- Mantenere retrocompatibilita': se il profilo ruolo non e' disponibile, fallback su esperienza standard.
 
 ### 2) Badge dedicati al ruolo
 
 - Strategia badge consigliata:
-  - badge trasversali (giÃ  esistenti) restano invariati,
+  - badge trasversali (gia' esistenti) restano invariati,
   - badge specifici del nuovo ruolo aggiunti in `public.badges` con naming coerente (`role_<role_code>_<milestone>`),
-  - visibilitÃ  iniziale controllata (es. `hidden`/`secret`) per reveal progressivo.
+  - visibilita' iniziale controllata (es. `hidden`/`secret`) per reveal progressivo.
 - Evoluzione raccomandata di `evaluate_badges_for_user`:
   - includere regole basate su `profiles.role_id` + metriche minigioco,
-  - separare regole â€œglobaliâ€ da regole â€œrole-specificâ€ (CTE/moduli SQL distinti) per mantenibilitÃ .
+  - separare regole "globali" da regole "role-specific" (CTE/moduli SQL distinti) per mantenibilita'.
 - Trigger di assegnazione: conservare il modello attuale event-driven, estendendo gli eventi che possono assegnare badge (esito minigioco, streak, missioni).
 
 ### 3) Minigiochi dedicati
 
-- Basare l'integrazione sul catalogo giÃ  esistente lato mobile (`apps/mobile/src/gameplay/minigames.ts`) introducendo:
+- Basare l'integrazione sul catalogo gia' esistente lato mobile (`apps/mobile/src/gameplay/minigames.ts`) introducendo:
   - `allowedRoles` per minigioco,
   - difficulty/scoring profile opzionale per ruolo,
   - reward mapping (token/reputation/badge progress).
@@ -228,13 +228,13 @@ Obiettivo: introdurre un nuovo ruolo di gioco con esperienza dedicata senza fram
 
 ### 4) Personalizzazione UX per ruolo
 
-- Onboarding: dopo `role-selection`, mostrare una â€œrole journey cardâ€ con:
+- Onboarding: dopo `role-selection`, mostrare una "role journey card" con:
   - obiettivi iniziali,
   - primo minigioco consigliato,
   - badge di avvio ottenibili.
 - Home: ordinare widget e CTA in base al ruolo (senza duplicare schermate intere).
-- Notifiche: prioritÃ  ai messaggi in linea col ruolo (nuovo badge di ruolo, sfida giornaliera, evento coerente col focus role).
-- Progressione: introdurre missioni settimanali a tema ruolo come layer sopra il sistema reputazione giÃ  esistente.
+- Notifiche: priorita' ai messaggi in linea col ruolo (nuovo badge di ruolo, sfida giornaliera, evento coerente col focus role).
+- Progressione: introdurre missioni settimanali a tema ruolo come layer sopra il sistema reputazione gia' esistente.
 
 ### 5) Piano di rollout (sicuro)
 
@@ -264,10 +264,10 @@ Obiettivo: introdurre un nuovo ruolo di gioco con esperienza dedicata senza fram
 
 ### 7) Rischi e mitigazioni
 
-- **Rischio:** esplosione complessitÃ  per ruolo.
+- **Rischio:** esplosione complessita' per ruolo.
   - **Mitigazione:** config-driven architecture, componenti UI riusabili, no fork per ruolo.
 - **Rischio:** badge troppo facili/difficili.
-  - **Mitigazione:** soglie tunabili server-side + osservabilitÃ  settimanale.
+  - **Mitigazione:** soglie tunabili server-side + osservabilita' settimanale.
 - **Rischio:** minigiochi non coerenti col ruolo.
   - **Mitigazione:** playlist per ruolo con gating progressivo e test qualitativi rapidi.
 - **Rischio:** regressioni su utenti attuali.
