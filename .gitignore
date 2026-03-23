@@ -58,3 +58,4 @@ maxwell-ai-credentials.json
 # Python cache
 tools/ticket_qr_generator/out/
 tools/ticket_qr_generator/__pycache__/
+.vercel
