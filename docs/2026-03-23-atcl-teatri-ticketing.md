@@ -15,13 +15,13 @@ Obiettivo pratico:
 ## Metodo
 
 - Fonte primaria: pagine pubbliche ATCL delle stagioni 2025-2026/2026.
-- Quando la pagina ATCL nomina esplicitamente un circuito o linka direttamente il provider, la mappatura e' marcata come `Alta`.
+- Quando la pagina ATCL nomina esplicitamente un circuito o linka direttamente il provider, la mappatura è marcata come `Alta`.
 - Quando la pagina ATCL indica solo "online", "sito web" o il botteghino del teatro senza nominare il circuito, la mappatura e' marcata come `Media` o `Bassa`.
 - Dove non emerge un circuito online pubblico, il dato viene lasciato come `Non esplicitato`.
 
 ## Sintesi
 
-- TicketOne compare in modo esplicito in piu' piazze importanti della rete ATCL, ma non e' il circuito unico di tutto il network.
+- TicketOne compare in modo esplicito in più piazze importanti della rete ATCL, ma non e' il circuito unico di tutto il network.
 - Ciaotickets e Tickettando/18Tickets sono presenti in modo chiaro in alcune venue specifiche.
 - Liveticket emerge chiaramente almeno a Colleferro.
 - In diversi teatri il sito ATCL non pubblica il circuito: rimanda al botteghino locale o al sito del teatro.
@@ -36,7 +36,7 @@ Obiettivo pratico:
 | Cassino | Cinema Teatro Manzoni | Non esplicitato nella pagina ATCL | Media | La pagina ATCL rimanda al sito del Teatro Manzoni di Cassino ma non nomina TicketOne, 18Tickets o altri circuiti. |
 | Civitavecchia | Teatro Traiano | TicketOne | Alta | La pagina ATCL linka direttamente `ticketone.it`. |
 | Colleferro | Teatro Vittorio Veneto | Liveticket | Alta | La pagina ATCL indica "online su liveticket.it". |
-| Colonna | Teatro Chiesa Vecchia | Non verificato pubblicamente | Bassa | Dal catalogo ATCL emerge la venue, ma il circuito non e' emerso nella verifica pubblica svolta oggi. |
+| Colonna | Teatro Chiesa Vecchia | Non verificato pubblicamente | Bassa | Dal catalogo ATCL emerge la venue, ma il circuito non è emerso nella verifica pubblica svolta oggi. |
 | Fara in Sabina | Teatro Potlach | Prenotazione diretta / circuito non emerso | Media | Nella verifica pubblica ATCL non emerge un provider online chiaro; nelle pagine correlate compaiono contatti diretti del teatro. |
 | Fiuggi | Teatro Comunale di Fiuggi | Vendita online non esplicitata | Media | La pagina ATCL dice che i biglietti sono disponibili anche online, ma non nomina il provider. |
 | Fondi | Teatro Citta' di Fondi "Nino Canale" | Vendita online non esplicitata | Media | La pagina ATCL indica apertura vendita online dal 1 novembre, senza nominare il circuito. |
@@ -53,7 +53,7 @@ Obiettivo pratico:
 | Rignano Flaminio | Teatro Paladino | Tickettando / 18Tickets | Alta | La pagina ATCL indica abbonamenti e biglietti online su `Tickettando.it` con link `*.18tickets.it`. |
 | Tarquinia | Teatro Comunale Rossella Falk | Non esplicitato nella pagina ATCL | Media | La pagina ATCL usa un link esterno abbreviato (`shorturl.at`) ma non rende leggibile il provider nella pagina stessa. |
 | Tivoli | Teatro Giuseppetti | Vendita online non esplicitata | Media | La pagina ATCL indica "vendita online e al botteghino", ma non nomina il circuito. |
-| Tuscania | Teatro Il Rivellino | Non emerso pubblicamente nella verifica ATCL | Bassa | La venue e' presente nel catalogo ATCL 2026, ma il circuito di biglietteria non e' emerso chiaramente dalle pagine verificate. |
+| Tuscania | Teatro Il Rivellino | Non emerso pubblicamente nella verifica ATCL | Bassa | La venue è presente nel catalogo ATCL 2026, ma il circuito di biglietteria non è emerso chiaramente dalle pagine verificate. |
 | Velletri | Teatro Artemisio Gian Maria Volonte' | TicketOne | Alta | La pagina ATCL indica "Biglietti online su ticketone.it". |
 | Viterbo | Teatro dell'Unione | TicketOne | Alta | La pagina ATCL linka direttamente `ticketone.it`; nelle pagine teatro ragazzi compare anche la dicitura "online su Ticketone". |
 
@@ -102,9 +102,9 @@ Obiettivo pratico:
 ## Note operative
 
 - Questa mappa mostra che ATCL non appare come unico titolare tecnico di un solo circuito di biglietteria per tutta la rete.
-- Il modello ricorrente e' distribuito: alcuni teatri usano TicketOne, altri Ciaotickets, altri Tickettando/18Tickets, altri ancora gestiscono botteghino e sito locale.
-- Se serve una futura integrazione tecnica, l'interlocutore corretto non e' "ATCL in generale", ma il singolo teatro/venue o il circuito effettivamente usato da quella piazza.
-- Cassino merita verifica separata direttamente con il Teatro Manzoni se l'obiettivo e' capire accessi tecnici, API o export.
+- Il modello ricorrente è distribuito: alcuni teatri usano TicketOne, altri Ciaotickets, altri Tickettando/18Tickets, altri ancora gestiscono botteghino e sito locale.
+- Se serve una futura integrazione tecnica, l'interlocutore corretto non è "ATCL in generale", ma il singolo teatro/venue o il circuito effettivamente usato da quella piazza.
+- Cassino merita verifica separata direttamente con il Teatro Manzoni se l'obiettivo è capire accessi tecnici, API o export.
 
 ## Fonti principali usate
 
