@@ -2,7 +2,7 @@
 layout: default
 permalink: /development/technical_notes/
 title: Note tecniche - Turni di Palco
-description: Architettura, integrazioni e note operative di Turni di Palco
+description: Architettura, integrazioni e note operative di Turni di Palco.
 ---
 
 [<- Torna alla documentazione tecnica]({{ '/development/' | relative_url }})
