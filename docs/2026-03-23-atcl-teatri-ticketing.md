@@ -15,13 +15,13 @@ Obiettivo pratico:
 ## Metodo
 
 - Fonte primaria: pagine pubbliche ATCL delle stagioni 2025-2026/2026.
-- Quando la pagina ATCL nomina esplicitamente un circuito o linka direttamente il provider, la mappatura e' marcata come `Alta`.
+- Quando la pagina ATCL nomina esplicitamente un circuito o linka direttamente il provider, la mappatura è marcata come `Alta`.
 - Quando la pagina ATCL indica solo "online", "sito web" o il botteghino del teatro senza nominare il circuito, la mappatura e' marcata come `Media` o `Bassa`.
 - Dove non emerge un circuito online pubblico, il dato viene lasciato come `Non esplicitato`.
 
 ## Sintesi
 
-- TicketOne compare in modo esplicito in piu' piazze importanti della rete ATCL, ma non e' il circuito unico di tutto il network.
+- TicketOne compare in modo esplicito in più piazze importanti della rete ATCL, ma non e' il circuito unico di tutto il network.
 - Ciaotickets e Tickettando/18Tickets sono presenti in modo chiaro in alcune venue specifiche.
 - Liveticket emerge chiaramente almeno a Colleferro.
 - In diversi teatri il sito ATCL non pubblica il circuito: rimanda al botteghino locale o al sito del teatro.
