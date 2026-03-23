@@ -120,7 +120,7 @@ Dettagli utili:
 Implicazioni architetturali:
 
 - Modellare l'integrazione ticketing come layer ad adapter/provider, non come dipendenza hardcoded da un singolo circuito.
-- Prevedere almeno due modalita:
+- Prevedere almeno due modalità:
   - `partner-api` per provider con accesso commerciale/API private.
   - `manual-import` o `qr-normalized-payload` per scenari senza API.
 - Per un MVP e' piu realistico basarsi su QR/payload normalizzato, import manuale o feed concordati con il provider, invece di attendere API pubbliche.
