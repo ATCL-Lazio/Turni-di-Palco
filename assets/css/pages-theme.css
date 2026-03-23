@@ -155,7 +155,7 @@ a:hover {
   font-size: 0.94rem;
   font-weight: 700;
   text-decoration: none;
-  transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, border-color 160ms ease;
+  transition: transform, box-shadow, background-color, border-color 160ms ease;
 }
 
 .btn:hover {
