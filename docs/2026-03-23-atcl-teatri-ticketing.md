@@ -102,9 +102,9 @@ Obiettivo pratico:
 ## Note operative
 
 - Questa mappa mostra che ATCL non appare come unico titolare tecnico di un solo circuito di biglietteria per tutta la rete.
-- Il modello ricorrente e' distribuito: alcuni teatri usano TicketOne, altri Ciaotickets, altri Tickettando/18Tickets, altri ancora gestiscono botteghino e sito locale.
-- Se serve una futura integrazione tecnica, l'interlocutore corretto non e' "ATCL in generale", ma il singolo teatro/venue o il circuito effettivamente usato da quella piazza.
-- Cassino merita verifica separata direttamente con il Teatro Manzoni se l'obiettivo e' capire accessi tecnici, API o export.
+- Il modello ricorrente è distribuito: alcuni teatri usano TicketOne, altri Ciaotickets, altri Tickettando/18Tickets, altri ancora gestiscono botteghino e sito locale.
+- Se serve una futura integrazione tecnica, l'interlocutore corretto non è "ATCL in generale", ma il singolo teatro/venue o il circuito effettivamente usato da quella piazza.
+- Cassino merita verifica separata direttamente con il Teatro Manzoni se l'obiettivo è capire accessi tecnici, API o export.
 
 ## Fonti principali usate
 
