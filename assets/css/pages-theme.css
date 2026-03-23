@@ -321,6 +321,12 @@ a:hover {
   color: var(--tdp-text-muted);
 }
 
+.site-footer-copyright {
+  flex-basis: 100%;
+  text-align: center;
+  margin-top: 0.25rem;
+}
+
 /* 9. Landing page */
 .main-content-landing {
   padding-top: 0.25rem;
