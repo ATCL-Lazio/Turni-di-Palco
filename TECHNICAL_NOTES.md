@@ -92,7 +92,7 @@ Contesto: i provider gia presenti in `tools/ticket_qr_generator/circuit_options.
 Sintesi operativa:
 
 - Nei provider italiani verificati non emergono API pubbliche self-service facilmente accessibili.
-- Il pattern prevalente e' B2B/commerciale: demo, contatto partner o attivazione su richiesta.
+- Il pattern prevalente è B2B/commerciale: demo, contatto partner o attivazione su richiesta.
 - Per il progetto non conviene assumere integrazioni dirette immediate senza accordo commerciale o accesso partner.
 
 | Provider | API pubbliche | Accessibilita reale | Note operative |
