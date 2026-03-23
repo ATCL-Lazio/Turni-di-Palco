@@ -17,7 +17,7 @@ import type { Screen } from '../types/navigation';
 export type PendingTicketActivation =
   | { mode: 'hash'; hash: string; eventId: string; event?: ActivatedEventPayload }
   | { mode: 'manual'; eventId: string; ticketNumber: string }
-  | { mode: 'ticket-number'; eventId: string; ticketNumber: string; eventMeta?: { name: string; date: string; time: string } };
+  | { mode: 'ticket-number'; eventId: string; ticketNumber: string; circuit?: string; eventMeta?: { name: string; date: string; time: string } };
 
 export interface QrHandlerDeps {
   authUserId: string | null;
@@ -96,7 +96,7 @@ export function useQrHandlers(deps: QrHandlerDeps) {
 
     // Manual ticket entry (inverted flow: register_ticket action)
     if (code.startsWith('manual-ticket:')) {
-      const [, eventId, ticketNumber] = code.split(':');
+      const [, eventId, ticketNumber, circuit] = code.split(':');
       if (!eventId || !ticketNumber) return { ok: false as const, error: 'Dati manuali incompleti.' };
 
       const normalizedEventId = eventId.trim();
@@ -116,6 +116,7 @@ export function useQrHandlers(deps: QrHandlerDeps) {
           mode: 'ticket-number',
           eventId: normalizedEventId,
           ticketNumber: normalizedTicketNumber,
+          circuit: circuit?.trim() || undefined,
           eventMeta: { name: matchedEvent.name, date: matchedEvent.date, time: matchedEvent.time },
         });
       } else {
@@ -189,6 +190,7 @@ export function useQrHandlers(deps: QrHandlerDeps) {
         pendingTicketActivation.ticketNumber,
         activationUserId,
         pendingTicketActivation.eventMeta,
+        pendingTicketActivation.circuit,
       );
       if (!registration.ok) return { ok: false, error: registration.error };
 
