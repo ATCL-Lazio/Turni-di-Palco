@@ -85,6 +85,51 @@ Flusso proposto:
 5. Attivazione:
    - Il codice viene marcato come attivo e associato all’utente che lo ha riscattato.
 
+## Biglietteria: accessibilita API provider (verifica 2026-03-23)
+
+Contesto: i provider gia presenti in `tools/ticket_qr_generator/circuit_options.json` includono `TicketOne`, `TICKETTANDO/18 MONTHS`, `ciaotickets` e `Liveticket`.
+
+Sintesi operativa:
+
+- Nei provider italiani verificati non emergono API pubbliche self-service facilmente accessibili.
+- Il pattern prevalente e' B2B/commerciale: demo, contatto partner o attivazione su richiesta.
+- Per il progetto non conviene assumere integrazioni dirette immediate senza accordo commerciale o accesso partner.
+
+| Provider | API pubbliche | Accessibilita reale | Note operative |
+| --- | --- | --- | --- |
+| TicketOne | Parziale | Media-bassa | `EVENTIM.Inhouse` dichiara API aperte in lettura e scrittura, ma il percorso visibile e' B2B con demo/contatto; non emerge un portale developer self-service. |
+| Ciaotickets | Non trovate pubbliche | Bassa | Il sito descrive controllo accessi digitale e interfacciamento con tornelli Zucchetti/Skidata, ma non mostra documentazione API aperta. |
+| Liveticket | Non trovate pubbliche | Bassa | La documentazione commerciale parla di interoperabilita tra sistemi e controllo accessi DTicket, ma non di API pubbliche con onboarding self-service. |
+| 18Tickets / 18Months | Non trovate pubbliche | Bassa | Sito commerciale, demo esercente e help portal, ma nessuna documentazione developer/API pubblica trovata. |
+
+Dettagli utili:
+
+- TicketOne:
+  - `EVENTIM.Inhouse` cita esplicitamente API in lettura/scrittura.
+  - `EVENTIM.Net` risulta invece presentato come piattaforma/servizio B2B senza documentazione API pubblica emersa nella verifica iniziale.
+- Ciaotickets:
+  - Posizionato come sistema completo di biglietteria e controllo accessi.
+  - Il sito parla di dialogo/interfacciamento con sistemi di accesso di terze parti, ma non espone reference API pubbliche.
+- Liveticket:
+  - DTicket dichiara che i biglietti digitali possono interagire facilmente tra piu sistemi diversi e che il controllo accessi puo invalidare biglietti emessi da altri sistemi.
+  - Anche qui, pero', l'accesso appare commerciale e non self-service.
+- 18Tickets / 18Months:
+  - La presenza di demo e portale help indica un prodotto amministrativo maturo.
+  - Non sono emerse API pubbliche o credenziali attivabili autonomamente.
+
+Implicazioni architetturali:
+
+- Modellare l'integrazione ticketing come layer ad adapter/provider, non come dipendenza hardcoded da un singolo circuito.
+- Prevedere almeno due modalita:
+  - `partner-api` per provider con accesso commerciale/API private.
+  - `manual-import` o `qr-normalized-payload` per scenari senza API.
+- Per un MVP e' piu realistico basarsi su QR/payload normalizzato, import manuale o feed concordati con il provider, invece di attendere API pubbliche.
+
+Provider con API realmente accessibili (benchmark esterno):
+
+- Ticketmaster ha un developer portal pubblico con API key e documentazione aperta.
+- Questo benchmark e' utile per distinguere tra "API esistono in qualche forma" e "API facilmente accessibili per integrazione rapida".
+
 ## QR: scansione in app (stato attuale)
 
 - Camera scan: `apps/mobile/src/components/screens/QRScanner.tsx`
