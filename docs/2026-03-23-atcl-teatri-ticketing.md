@@ -53,7 +53,7 @@ Obiettivo pratico:
 | Rignano Flaminio | Teatro Paladino | Tickettando / 18Tickets | Alta | La pagina ATCL indica abbonamenti e biglietti online su `Tickettando.it` con link `*.18tickets.it`. |
 | Tarquinia | Teatro Comunale Rossella Falk | Non esplicitato nella pagina ATCL | Media | La pagina ATCL usa un link esterno abbreviato (`shorturl.at`) ma non rende leggibile il provider nella pagina stessa. |
 | Tivoli | Teatro Giuseppetti | Vendita online non esplicitata | Media | La pagina ATCL indica "vendita online e al botteghino", ma non nomina il circuito. |
-| Tuscania | Teatro Il Rivellino | Non emerso pubblicamente nella verifica ATCL | Bassa | La venue e' presente nel catalogo ATCL 2026, ma il circuito di biglietteria non e' emerso chiaramente dalle pagine verificate. |
+| Tuscania | Teatro Il Rivellino | Non emerso pubblicamente nella verifica ATCL | Bassa | La venue è presente nel catalogo ATCL 2026, ma il circuito di biglietteria non è emerso chiaramente dalle pagine verificate. |
 | Velletri | Teatro Artemisio Gian Maria Volonte' | TicketOne | Alta | La pagina ATCL indica "Biglietti online su ticketone.it". |
 | Viterbo | Teatro dell'Unione | TicketOne | Alta | La pagina ATCL linka direttamente `ticketone.it`; nelle pagine teatro ragazzi compare anche la dicitura "online su Ticketone". |
 
