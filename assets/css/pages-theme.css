@@ -155,7 +155,7 @@ a:hover {
   font-size: 0.94rem;
   font-weight: 700;
   text-decoration: none;
-  transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, border-color 160ms ease;
+  transition: transform, box-shadow, background-color, border-color 160ms ease;
 }
 
 .btn:hover {
@@ -423,6 +423,12 @@ a:hover {
   margin-top: 1.5rem;
 }
 
+@media (max-width: 1060px) and (min-width: 860px) {
+  .intro-values {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .intro-value {
   padding: 1.1rem 1.25rem;
   border: 1px solid var(--tdp-border);
@@ -546,6 +552,18 @@ a:hover {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
+}
+
+@media (max-width: 1199px) {
+  .showcase-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .showcase-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .showcase-card {
