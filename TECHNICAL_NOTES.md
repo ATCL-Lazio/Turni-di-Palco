@@ -97,7 +97,7 @@ Sintesi operativa:
 
 | Provider | API pubbliche | Accessibilita reale | Note operative |
 | --- | --- | --- | --- |
-| TicketOne | Parziale | Media-bassa | `EVENTIM.Inhouse` dichiara API aperte in lettura e scrittura, ma il percorso visibile e' B2B con demo/contatto; non emerge un portale developer self-service. |
+| TicketOne | Parziale | Media-bassa | `EVENTIM.Inhouse` dichiara API aperte in lettura e scrittura, ma il percorso visibile è B2B con demo/contatto; non emerge un portale developer self-service. |
 | Ciaotickets | Non trovate pubbliche | Bassa | Il sito descrive controllo accessi digitale e interfacciamento con tornelli Zucchetti/Skidata, ma non mostra documentazione API aperta. |
 | Liveticket | Non trovate pubbliche | Bassa | La documentazione commerciale parla di interoperabilita tra sistemi e controllo accessi DTicket, ma non di API pubbliche con onboarding self-service. |
 | 18Tickets / 18Months | Non trovate pubbliche | Bassa | Sito commerciale, demo esercente e help portal, ma nessuna documentazione developer/API pubblica trovata. |
