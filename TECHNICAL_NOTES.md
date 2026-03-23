@@ -59,7 +59,7 @@
 ## Header di sicurezza (Netlify/Render)
 
 - Netlify: gli header sono configurati in `netlify.toml` nella sezione `[[headers]]`.
-- Nota CSP: al momento `index.html` contiene uno script inline per il redirect mobile; per questo `script-src` include temporaneamente `'unsafe-inline'` finche' il bootstrap non viene spostato in un modulo esterno.
+- Nota CSP: al momento `index.html` contiene uno script inline per il redirect mobile; per questo `script-src` include temporaneamente `'unsafe-inline'` finché il bootstrap non viene spostato in un modulo esterno.
 - Render: il servizio PWA usa `tools/serve-dist.js` (startCommand in `render.yaml`), quindi gli header e la cache vanno configurati lì.
   - Se si migra la PWA a “Static Site” su Render, utilizzare il supporto ai `headers` del manifest Render.
 
