@@ -423,6 +423,12 @@ a:hover {
   margin-top: 1.5rem;
 }
 
+@media (max-width: 1060px) and (min-width: 860px) {
+  .intro-values {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .intro-value {
   padding: 1.1rem 1.25rem;
   border: 1px solid var(--tdp-border);
