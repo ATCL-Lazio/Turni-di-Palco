@@ -1,10 +1,10 @@
-# Note tecniche — Turni di Palco
+# Note tecniche - Turni di Palco
 
 ## Struttura repo (high level)
 
 - `apps/pwa`: PWA Vite multipage (entry HTML nella root del package). Asset statici in `apps/pwa/public/` (incl. `public/sw.js` e `public/mobile/`).
 - `apps/mobile`: App mobile React/Vite.
-- `shared/`: stili e utilità condivise.
+- `shared/`: stili e utilita' condivise.
 - `tools/`: script di automazione build/copy/cache.
   - `tools/serve-dist.js` serve `apps/pwa/dist` e risolve le richieste `/mobile/*` su `apps/pwa/dist/public/mobile/*`.
 
@@ -45,7 +45,7 @@
 ## PWA, cache e aggiornamenti
 
 - Service Worker: `apps/pwa/public/sw.js`
-- Il versioning della cache viene aggiornato dallo script `tools/update-cache-version.js` (invocato da `npm run build:pwa`) per forzare l’update degli asset core.
+- Il versioning della cache viene aggiornato dallo script `tools/update-cache-version.js` (invocato da `npm run build:pwa`) per forzare l'update degli asset core.
 - Il server `tools/serve-dist.js` imposta cache differenziata:
   - `no-store` per HTML, `sw.js` e manifest.
   - Cache aggressiva per asset hashed, icone e QR (immutabili).
@@ -59,31 +59,31 @@
 ## Header di sicurezza (Netlify/Render)
 
 - Netlify: gli header sono configurati in `netlify.toml` nella sezione `[[headers]]`.
-- Nota CSP: al momento `index.html` contiene uno script inline per il redirect mobile; per questo `script-src` include temporaneamente `'unsafe-inline'` finché il bootstrap non viene spostato in un modulo esterno.
-- Render: il servizio PWA usa `tools/serve-dist.js` (startCommand in `render.yaml`), quindi gli header e la cache vanno configurati lì.
-  - Se si migra la PWA a “Static Site” su Render, utilizzare il supporto ai `headers` del manifest Render.
+- Nota CSP: al momento `index.html` contiene uno script inline per il redirect mobile; per questo `script-src` include temporaneamente `'unsafe-inline'` finche' il bootstrap non viene spostato in un modulo esterno.
+- Render: il servizio PWA usa `tools/serve-dist.js` (startCommand in `render.yaml`), quindi gli header e la cache vanno configurati li.
+  - Se si migra la PWA a "Static Site" su Render, utilizzare il supporto ai `headers` del manifest Render.
 
 ## Supabase (client)
 
-- Configurazione lato client tramite variabili d’ambiente (vedi `.env`, `apps/mobile/.env.example`, `apps/pwa/.env.example`).
+- Configurazione lato client tramite variabili d'ambiente (vedi `.env`, `apps/mobile/.env.example`, `apps/pwa/.env.example`).
 - Auth: login/signup tramite `supabase.auth.*` (per comportamento e policy: verificare impostazioni progetto Supabase, es. email verification).
 
 ## QR: modello funzionale (attivazione codice)
 
-Obiettivo: introdurre un sistema di attivazione/riscatto che trasforma i codici biglietto (TicketOne/VivaTicket/…) in hash e li gestisce a DB.
+Obiettivo: introdurre un sistema di attivazione/riscatto che trasforma i codici biglietto (TicketOne/VivaTicket/...) in hash e li gestisce a DB.
 
 Flusso proposto:
 
 1. Il codice biglietto viene normalizzato e hashato (SHA-256).
 
-2. L’hash viene controllato per unicità a DB.
-   - In caso di collisione: reroll/strategia di disambiguazione (es. payload JSON più ricco) per garantire unicità.
+2. L'hash viene controllato per unicita' a DB.
+   - In caso di collisione: reroll/strategia di disambiguazione (es. payload JSON piu' ricco) per garantire unicita'.
 3. Generazione di un QR code da far scansionare in app.
 4. Scansione:
    - Verifica a DB dello stato del codice.
-   - Se non è attivo: richiesta conferma per l’attivazione.
+   - Se non e' attivo: richiesta conferma per l'attivazione.
 5. Attivazione:
-   - Il codice viene marcato come attivo e associato all’utente che lo ha riscattato.
+   - Il codice viene marcato come attivo e associato all'utente che lo ha riscattato.
 
 ## Biglietteria: accessibilita API provider (verifica 2026-03-23)
 
@@ -92,12 +92,12 @@ Contesto: i provider gia presenti in `tools/ticket_qr_generator/circuit_options.
 Sintesi operativa:
 
 - Nei provider italiani verificati non emergono API pubbliche self-service facilmente accessibili.
-- Il pattern prevalente è B2B/commerciale: demo, contatto partner o attivazione su richiesta.
+- Il pattern prevalente e' B2B/commerciale: demo, contatto partner o attivazione su richiesta.
 - Per il progetto non conviene assumere integrazioni dirette immediate senza accordo commerciale o accesso partner.
 
 | Provider | API pubbliche | Accessibilita reale | Note operative |
 | --- | --- | --- | --- |
-| TicketOne | Parziale | Media-bassa | `EVENTIM.Inhouse` dichiara API aperte in lettura e scrittura, ma il percorso visibile è B2B con demo/contatto; non emerge un portale developer self-service. |
+| TicketOne | Parziale | Media-bassa | `EVENTIM.Inhouse` dichiara API aperte in lettura e scrittura, ma il percorso visibile e' B2B con demo/contatto; non emerge un portale developer self-service. |
 | Ciaotickets | Non trovate pubbliche | Bassa | Il sito descrive controllo accessi digitale e interfacciamento con tornelli Zucchetti/Skidata, ma non mostra documentazione API aperta. |
 | Liveticket | Non trovate pubbliche | Bassa | La documentazione commerciale parla di interoperabilita tra sistemi e controllo accessi DTicket, ma non di API pubbliche con onboarding self-service. |
 | 18Tickets / 18Months | Non trovate pubbliche | Bassa | Sito commerciale, demo esercente e help portal, ma nessuna documentazione developer/API pubblica trovata. |
@@ -112,7 +112,7 @@ Dettagli utili:
   - Il sito parla di dialogo/interfacciamento con sistemi di accesso di terze parti, ma non espone reference API pubbliche.
 - Liveticket:
   - DTicket dichiara che i biglietti digitali possono interagire facilmente tra piu sistemi diversi e che il controllo accessi puo invalidare biglietti emessi da altri sistemi.
-  - Anche qui, però, l'accesso appare commerciale e non self-service.
+  - Anche qui, pero', l'accesso appare commerciale e non self-service.
 - 18Tickets / 18Months:
   - La presenza di demo e portale help indica un prodotto amministrativo maturo.
   - Non sono emerse API pubbliche o credenziali attivabili autonomamente.
@@ -120,7 +120,7 @@ Dettagli utili:
 Implicazioni architetturali:
 
 - Modellare l'integrazione ticketing come layer ad adapter/provider, non come dipendenza hardcoded da un singolo circuito.
-- Prevedere almeno due modalità:
+- Prevedere almeno due modalita':
   - `partner-api` per provider con accesso commerciale/API private.
   - `manual-import` o `qr-normalized-payload` per scenari senza API.
 - Per un MVP e' piu realistico basarsi su QR/payload normalizzato, import manuale o feed concordati con il provider, invece di attendere API pubbliche.
@@ -136,22 +136,22 @@ Provider con API realmente accessibili (benchmark esterno):
   - Usa `navigator.mediaDevices.getUserMedia` + decoding con `jsqr`.
   - La fotocamera funziona solo in **secure context** (HTTPS o `localhost`).
 
-### Validazione QR (evita “QR qualsiasi”)
+### Validazione QR (evita "QR qualsiasi")
 
 Problema: un QR generico (es. QR di un prodotto) veniva interpretato come valido e portava alla conferma evento.
 
-Mitigazione implementata (provvisoria, fino all’integrazione DB):
+Mitigazione implementata (provvisoria, fino all'integrazione DB):
 
 - `apps/mobile/src/App.tsx`: lo scan viene accettato solo se il contenuto include un ID evento noto (es. `ATCL-001`).
 
-- `apps/mobile/src/components/screens/QRScanner.tsx`: mostra errore “QR non valido” e riprende la scansione.
+- `apps/mobile/src/components/screens/QRScanner.tsx`: mostra errore "QR non valido" e riprende la scansione.
 
-Nota: attualmente l’elenco eventi è mock (`apps/mobile/src/state/store.tsx`, `events`). Con Supabase il controllo dovrà diventare:
+Nota: attualmente l'elenco eventi e' mock (`apps/mobile/src/state/store.tsx`, `events`). Con Supabase il controllo dovra' diventare:
 
 - lookup/validazione su tabella biglietti/QR,
 
 - verifica stato (attivo/non attivo),
-- redemption atomico con associamento all’utente.
+- redemption atomico con associamento all'utente.
 
 ## Eventi ATCL: feed, import e follow
 
@@ -190,23 +190,23 @@ Obiettivo: introdurre un nuovo ruolo di gioco con esperienza dedicata senza fram
   - copy/UI (titolo, descrizione breve, tone of voice),
   - mapping verso badge consigliati,
   - mapping verso minigiochi abilitati.
-- Evitare logica hardcoded lato client: i mapping vanno caricati da config (`role_profile`) così da poter fare tuning senza rebuild completo.
-- Mantenere retrocompatibilità: se il profilo ruolo non è disponibile, fallback su esperienza standard.
+- Evitare logica hardcoded lato client: i mapping vanno caricati da config (`role_profile`) cosi' da poter fare tuning senza rebuild completo.
+- Mantenere retrocompatibilita': se il profilo ruolo non e' disponibile, fallback su esperienza standard.
 
 ### 2) Badge dedicati al ruolo
 
 - Strategia badge consigliata:
-  - badge trasversali (già esistenti) restano invariati,
+  - badge trasversali (gia' esistenti) restano invariati,
   - badge specifici del nuovo ruolo aggiunti in `public.badges` con naming coerente (`role_<role_code>_<milestone>`),
-  - visibilità iniziale controllata (es. `hidden`/`secret`) per reveal progressivo.
+  - visibilita' iniziale controllata (es. `hidden`/`secret`) per reveal progressivo.
 - Evoluzione raccomandata di `evaluate_badges_for_user`:
   - includere regole basate su `profiles.role_id` + metriche minigioco,
-  - separare regole “globali” da regole “role-specific” (CTE/moduli SQL distinti) per mantenibilità.
+  - separare regole "globali" da regole "role-specific" (CTE/moduli SQL distinti) per mantenibilita'.
 - Trigger di assegnazione: conservare il modello attuale event-driven, estendendo gli eventi che possono assegnare badge (esito minigioco, streak, missioni).
 
 ### 3) Minigiochi dedicati
 
-- Basare l'integrazione sul catalogo già esistente lato mobile (`apps/mobile/src/gameplay/minigames.ts`) introducendo:
+- Basare l'integrazione sul catalogo gia' esistente lato mobile (`apps/mobile/src/gameplay/minigames.ts`) introducendo:
   - `allowedRoles` per minigioco,
   - difficulty/scoring profile opzionale per ruolo,
   - reward mapping (token/reputation/badge progress).
@@ -219,13 +219,13 @@ Obiettivo: introdurre un nuovo ruolo di gioco con esperienza dedicata senza fram
 
 ### 4) Personalizzazione UX per ruolo
 
-- Onboarding: dopo `role-selection`, mostrare una “role journey card” con:
+- Onboarding: dopo `role-selection`, mostrare una "role journey card" con:
   - obiettivi iniziali,
   - primo minigioco consigliato,
   - badge di avvio ottenibili.
 - Home: ordinare widget e CTA in base al ruolo (senza duplicare schermate intere).
-- Notifiche: priorità ai messaggi in linea col ruolo (nuovo badge di ruolo, sfida giornaliera, evento coerente col focus role).
-- Progressione: introdurre missioni settimanali a tema ruolo come layer sopra il sistema reputazione già esistente.
+- Notifiche: priorita' ai messaggi in linea col ruolo (nuovo badge di ruolo, sfida giornaliera, evento coerente col focus role).
+- Progressione: introdurre missioni settimanali a tema ruolo come layer sopra il sistema reputazione gia' esistente.
 
 ### 5) Piano di rollout (sicuro)
 
@@ -255,10 +255,10 @@ Obiettivo: introdurre un nuovo ruolo di gioco con esperienza dedicata senza fram
 
 ### 7) Rischi e mitigazioni
 
-- **Rischio:** esplosione complessità per ruolo.
+- **Rischio:** esplosione complessita' per ruolo.
   - **Mitigazione:** config-driven architecture, componenti UI riusabili, no fork per ruolo.
 - **Rischio:** badge troppo facili/difficili.
-  - **Mitigazione:** soglie tunabili server-side + osservabilità settimanale.
+  - **Mitigazione:** soglie tunabili server-side + osservabilita' settimanale.
 - **Rischio:** minigiochi non coerenti col ruolo.
   - **Mitigazione:** playlist per ruolo con gating progressivo e test qualitativi rapidi.
 - **Rischio:** regressioni su utenti attuali.
