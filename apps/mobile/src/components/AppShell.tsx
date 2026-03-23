@@ -193,7 +193,10 @@ export function AppShell() {
 
   // Navigation action helpers
   const openQrScanner = useCallback(() => {
-    if (!isFeatureEnabled('mobile.action.qr_scan')) { showFeatureDisabledAlert('Scansione QR'); return; }
+    if (!isFeatureEnabled('mobile.action.qr_scan') && !isFeatureEnabled('mobile.action.ticket_entry')) {
+      showFeatureDisabledAlert('Registrazione biglietto');
+      return;
+    }
     nav.navigate('qr-scanner');
   }, [isFeatureEnabled, nav, showFeatureDisabledAlert]);
 
@@ -437,12 +440,12 @@ export function AppShell() {
         return <Leaderboard onSelectEntry={openLeaderboardProfile} />;
 
       case 'qr-scanner':
-        if (!isFeatureEnabled('mobile.action.qr_scan')) {
+        if (!isFeatureEnabled('mobile.action.qr_scan') && !isFeatureEnabled('mobile.action.ticket_entry')) {
           return (
             <div className="min-h-screen pb-24">
               <div className="app-content px-6 pt-6 space-y-4">
                 <Card>
-                  <h3 className="text-white mb-2">Scansione QR non disponibile</h3>
+                  <h3 className="text-white mb-2">Registrazione non disponibile</h3>
                   <p className="text-[#b8b2b3] text-sm mb-4">Questa funzione e temporaneamente disattivata dalla configurazione runtime.</p>
                   <button type="button" className="text-sm text-[#f4bf4f] hover:text-[#e6a23c]" onClick={() => handleTabChange('home')}>Torna alla Home</button>
                 </Card>
@@ -450,7 +453,7 @@ export function AppShell() {
             </div>
           );
         }
-        return <QRScanner onClose={() => handleTabChange(nav.activeTab === 'home' ? 'home' : 'activities')} onScan={handleQRScanAttempt} events={events} />;
+        return <QRScanner onClose={() => handleTabChange(nav.activeTab === 'home' ? 'home' : 'activities')} onScan={handleQRScanAttempt} events={events} ticketEntryPrimary={isFeatureEnabled('mobile.action.ticket_entry')} />;
 
       case 'event-confirmation':
         return (
