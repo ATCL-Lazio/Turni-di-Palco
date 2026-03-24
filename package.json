@@ -7,10 +7,8 @@
     "apps/control-plane"
   ],
   "scripts": {
-    "clean:builds": "node tools/clean-builds.js",
     "dev:control-plane": "npm --workspace apps/control-plane run dev",
     "dev:control-plane:https": "npm run dev:control-plane",
-    "preview:pwa": "npm --workspace apps/pwa run preview",
     "start:control-plane": "npm --workspace apps/control-plane run start",
     "test:mobile": "npm --workspace apps/mobile run test",
     "lint": "npm --workspace apps/mobile run lint",
