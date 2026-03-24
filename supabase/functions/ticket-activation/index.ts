@@ -56,23 +56,30 @@ serve(async (req: Request) => {
 
     if (needsAuthenticatedUser) {
       const authHeader = req.headers.get('Authorization');
+      console.log('[auth] Header present:', Boolean(authHeader), 'starts-with-Bearer:', authHeader?.startsWith('Bearer ') ?? false);
+
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        console.warn('Missing or invalid Authorization header');
+        console.warn('[auth] Missing or invalid Authorization header');
         return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
       }
 
       const token = authHeader.replace('Bearer ', '');
-      // Use serviceKey to verify the token, as anonKey might not have permissions to getUser for others.
-      const authClient = createClient(supabaseUrl, serviceKey);
+      console.log('[auth] Token length:', token.length);
 
-      const { data, error: authError } = await authClient.auth.getUser(token);
+      const { data, error: authError } = await supabase.auth.getUser(token);
       const user = data?.user;
-      
+
       if (authError || !user) {
-        console.error('Auth verification failed');
+        console.error('[auth] Verification failed:', {
+          message: authError?.message,
+          status: (authError as Record<string, unknown>)?.status,
+          hasUser: Boolean(user),
+          tokenLength: token.length,
+        });
         return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
       }
 
+      console.log('[auth] User verified:', user.id);
       // Do not trust userId sent by client payload if we have an authenticated user.
       resolvedUserId = user.id;
     }

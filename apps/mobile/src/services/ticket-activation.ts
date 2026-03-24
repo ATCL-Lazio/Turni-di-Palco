@@ -175,7 +175,7 @@ async function invalidateAuthSession() {
 
 function shouldLogActivationError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error ?? '');
-  return !/sessione scaduta|invalid jwt|unauthorized|401/i.test(message);
+  return !/sessione scaduta/i.test(message);
 }
 
 async function getAccessTokenForFunctions(): Promise<string> {
@@ -197,6 +197,7 @@ async function getAccessTokenForFunctions(): Promise<string> {
     !sessionToken || !expiresAt || expiresAt <= nowSeconds + TOKEN_REFRESH_SKEW_SECONDS;
 
   if (!shouldRefresh && sessionToken) {
+    console.debug('[ticket-activation] Using cached token, length:', sessionToken.length, 'remaining_s:', expiresAt - nowSeconds);
     return sessionToken;
   }
 
@@ -212,6 +213,7 @@ async function getAccessTokenForFunctions(): Promise<string> {
     throw new Error(SESSION_REQUIRED_MESSAGE);
   }
 
+  console.debug('[ticket-activation] Using refreshed token, length:', refreshedToken.length);
   return refreshedToken;
 }
 
@@ -221,6 +223,7 @@ async function invokeTicketActivation(body: Record<string, unknown>) {
   }
 
   const token = await getAccessTokenForFunctions();
+  console.debug('[ticket-activation] Invoking function, token length:', token.length, 'action:', (body as Record<string, unknown>).action);
   let response = await supabase.functions.invoke('ticket-activation', {
     headers: { Authorization: `Bearer ${token}` },
     body,
@@ -228,6 +231,7 @@ async function invokeTicketActivation(body: Record<string, unknown>) {
 
   // Retry once with a refreshed token if gateway rejects the request.
   if (response.error && getFunctionErrorStatus(response.error) === 401) {
+    console.warn('[ticket-activation] 401 on first attempt, status:', getFunctionErrorStatus(response.error), 'error:', response.error);
     const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
     const refreshedToken = refreshed.session?.access_token?.trim();
     if (!refreshError && refreshedToken) {
@@ -237,6 +241,7 @@ async function invokeTicketActivation(body: Record<string, unknown>) {
       });
     }
     if (response.error && getFunctionErrorStatus(response.error) === 401) {
+      console.warn('[ticket-activation] 401 on retry, invalidating session');
       await invalidateAuthSession();
     }
   }
