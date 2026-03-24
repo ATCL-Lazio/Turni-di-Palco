@@ -2,28 +2,22 @@
   "name": "turni-di-palco-monorepo",
   "private": true,
   "workspaces": [
-    "apps/pwa",
     "apps/mobile",
     "apps/reactbricks",
     "apps/control-plane"
   ],
   "scripts": {
     "clean:builds": "node tools/clean-builds.js",
-    "dev:pwa": "npm --workspace apps/pwa run dev",
-    "dev:pwa:https": "npm --workspace apps/pwa run dev:https",
     "dev:control-plane": "npm --workspace apps/control-plane run dev",
     "dev:control-plane:https": "npm run dev:control-plane",
-    "build:pwa": "node tools/update-cache-version.js && npm --workspace apps/pwa run build && node tools/copy-mobile-to-dist.js",
     "preview:pwa": "npm --workspace apps/pwa run preview",
     "start:control-plane": "npm --workspace apps/control-plane run start",
-    "test:pwa": "npm --workspace apps/pwa run test",
     "test:mobile": "npm --workspace apps/mobile run test",
-    "lint": "npm --workspace apps/pwa run lint && npm --workspace apps/mobile run lint",
-    "lint:pwa": "npm --workspace apps/pwa run lint",
+    "lint": "npm --workspace apps/mobile run lint",
     "lint:mobile": "npm --workspace apps/mobile run lint",
-    "typecheck": "npm --workspace apps/pwa run typecheck 2>/dev/null; npm --workspace apps/mobile run typecheck",
+    "typecheck": "npm --workspace apps/mobile run typecheck",
     "prepare": "husky",
-    "format": "npm --workspace apps/pwa run format",
+    "format": "npm --workspace apps/mobile run format",
     "dev:mobile": "npm --workspace apps/mobile run dev",
     "build:mobile": "npm --workspace apps/mobile run build && npm run sync:mobile",
     "sync:mobile": "node tools/sync-mobile.js",
@@ -42,7 +36,6 @@
     "qrcode-terminal": "^0.12.0"
   },
   "lint-staged": {
-    "apps/pwa/**/*.{ts,tsx}": "eslint --fix",
     "apps/mobile/**/*.{ts,tsx}": "eslint --fix"
   },
   "dependencies": {
