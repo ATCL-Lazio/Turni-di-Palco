@@ -50,7 +50,7 @@ serve(async (req: Request) => {
   try {
     const { action, hash, payload, userId: requestedUserId } = await req.json();
 
-    const activationActions = ['activate_hash', 'activate_by_details'];
+    const activationActions = ['activate_hash', 'activate_by_details', 'activate_by_ticket_number'];
     const needsAuthenticatedUser = activationActions.includes(action);
     let resolvedUserId = typeof requestedUserId === 'string' ? requestedUserId.trim() : '';
 
@@ -174,30 +174,66 @@ serve(async (req: Request) => {
       }, 200);
     }
 
-    if (action === 'activate_hash' || action === 'activate_by_details') {
+    if (action === 'activate_hash' || action === 'activate_by_details' || action === 'activate_by_ticket_number') {
       if (
         !resolvedUserId ||
         (action === 'activate_hash' && !hash) ||
-        (action === 'activate_by_details' && (!payload?.eventID || !payload?.ticketNumber))
+        (action === 'activate_by_details' && (!payload?.eventID || !payload?.ticketNumber)) ||
+        (action === 'activate_by_ticket_number' && !payload?.ticketNumber)
       ) {
-        return jsonResponse({ error: 'Missing required parameters' }, 400);
+        return jsonResponse({
+          error: 'Missing required parameters',
+          received: {
+            action,
+            hasHash: !!hash,
+            hasPayload: !!payload,
+            hasTicketNumber: !!payload?.ticketNumber,
+            hasUserId: !!resolvedUserId,
+          },
+        }, 400);
       }
 
-      // 1. Resolve hash if using details
+      // 1. Resolve hash if using details or ticket number
       let targetHash = hash;
-      
+
       if (action === 'activate_by_details') {
         const { data: ticket } = await supabase
           .from('ticket_activations')
           .select('hash')
           .eq('event_id', payload.eventID)
           .eq('ticket_number', payload.ticketNumber)
-          .maybeSingle(); // Use maybeSingle to avoid 406 if multiple found (though they should be unique per event)
-        
+          .maybeSingle();
+
         if (!ticket) {
           return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
         }
         targetHash = ticket.hash;
+      } else if (action === 'activate_by_ticket_number') {
+        let query = supabase
+          .from('ticket_activations')
+          .select('hash, event_id, ticket_number')
+          .eq('ticket_number', payload.ticketNumber);
+
+        if (payload.circuit) {
+          query = query.ilike('circuit', payload.circuit.trim());
+        }
+        if (payload.eventID) {
+          query = query.eq('event_id', payload.eventID.trim());
+        }
+
+        const { data: tickets, error: searchError } = await query;
+
+        if (searchError) throw searchError;
+
+        if (!tickets || tickets.length === 0) {
+          return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
+        }
+
+        if (tickets.length > 1) {
+          return jsonResponse({ ok: false, error: 'Ticket number non univoco. Specifica Circuito o Evento.' }, 200);
+        }
+
+        targetHash = tickets[0].hash;
       }
 
       // 2. Atomic activation update
