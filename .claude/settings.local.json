@@ -4,6 +4,7 @@
       "*",
       "Bash(*)",
       "WebFetch(domain:atcl-lazio.github.io)",
+      "WebFetch(doamin:atcllazio.it)",
       "mcp__claude_ai_Supabase__*"
     ]
   }
