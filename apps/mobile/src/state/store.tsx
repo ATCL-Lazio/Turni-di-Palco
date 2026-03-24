@@ -20,6 +20,7 @@ import {
   normalizeMobileFeatureFlags,
   readMobileFeatureFlagsCache,
   writeMobileFeatureFlagsCache,
+  readEnvFeatureFlagOverrides,
 } from '../services/feature-flags';
 
 export const ROLE_IDS = ['attore', 'luci', 'fonico', 'attrezzista', 'palco', 'rspp', 'dramaturg'] as const;
@@ -3064,8 +3065,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     const hasVercelOverrides = Object.keys(vercelOverrides).length > 0;
     const sourceWithVercel = (baseSource: Exclude<MobileFeatureFlagsSource, 'vercel'>): MobileFeatureFlagsSource =>
       hasVercelOverrides ? 'vercel' : baseSource;
-    const applyRuntimeOverrides = (baseline: MobileFeatureFlagsState): MobileFeatureFlagsState =>
-      applyMobileFeatureFlagOverrides(baseline, vercelOverrides);
+
+    const envOverrides = readEnvFeatureFlagOverrides();
+
+    const applyRuntimeOverrides = (baseline: MobileFeatureFlagsState): MobileFeatureFlagsState => {
+      let next = applyMobileFeatureFlagOverrides(baseline, envOverrides);
+      return applyMobileFeatureFlagOverrides(next, vercelOverrides);
+    };
 
     if (!isSupabaseConfigured || !supabase) {
       applyFeatureFlagsSnapshot(

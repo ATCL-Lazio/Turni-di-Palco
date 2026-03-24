@@ -1,0 +1,374 @@
+# =============================================================================
+# OpenAI Codex Configuration File
+# =============================================================================
+# This file contains configuration settings for OpenAI Codex CLI tool.
+# For more information, visit: https://github.com/openai/codex
+
+# Suppress warning about under-development features
+suppress_unstable_features_warning = true
+
+# =============================================================================
+# CORE MODEL SETTINGS
+# =============================================================================
+
+# Default AI model to use for code generation and assistance
+# Available models: gpt-4, gpt-4-turbo, gpt-3.5-turbo, gpt-5.2-codex, etc.
+model = "gpt-5.4"
+
+# Reasoning effort level for the model (affects response quality and speed)
+# Options: "low", "medium", "high", "xhigh"
+model_reasoning_effort = "xhigh"
+
+# AI personality style for interactions
+# Options: "pragmatic", "creative", "analytical", etc.
+personality = "pragmatic"
+approvals_reviewer = "user"
+# =============================================================================
+# PROJECT TRUST SETTINGS
+# =============================================================================
+# Define trust levels for different project directories.
+# "trusted" allows full access to project files and resources.
+# "untrusted" restricts access and requires explicit permission.
+
+# Game Development Projects
+[projects.'\\?\C:\Users\Federico\OneDrive\Strumenti\kanka-gpt-repository']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\Federico\OneDrive\Strumenti\ImageLocalizator']
+trust_level = "trusted"
+
+[projects.'\\?\E:\Unreal Projects\FrancoGame']
+trust_level = "trusted"
+
+[projects.'\\?\E:\Unreal Projects\MMD\Plugins\IM4U']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\Federico\Unreal Projects\FrancoGame\docs']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\Federico\Unreal Projects\FrancoGame']
+trust_level = "trusted"
+
+[projects.'C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy']
+trust_level = "trusted"
+
+# Turni di Palco Theatre Management Game
+[projects.'\\?\C:\Users\Federico\OneDrive\Documenti\Turni di Palco -ATCL\Game\Turni-di-Palco']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\Federico\repo\Turni di Palco - ATCL\Game\Turni-di-Palco']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\Federico\repo\Turni-di-Palco']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\Federico\repo\Turni-di-Palco\UI']
+trust_level = "trusted"
+
+# System and User Directories
+[projects.'C:\Users\Federico\OneDrive\Immagini']
+trust_level = "trusted"
+
+[projects.'C:\Users\Federico\AppData']
+trust_level = "trusted"
+
+[projects.'C:\Windows\System32']
+trust_level = "trusted"
+
+# Additional Development Projects
+[projects.'\\?\C:\Users\Federico\repo\Kanka-MCP-Server']
+trust_level = "trusted"
+
+[projects.'C:\Users\Federico\OneDrive\Desktop']
+trust_level = "trusted"
+
+# Dungeons & Dragons Projects
+[projects.'\\?\C:\Users\Federico\OneDrive\Documenti\D&D\Eldarion']
+trust_level = "trusted"
+
+[projects.'C:\Users\Federico\OneDrive\Desktop\Eldarion']
+trust_level = "trusted"
+
+# Additional System Paths (duplicates may exist for different path formats)
+[projects.'C:\WINDOWS\system32']
+trust_level = "trusted"
+
+[projects.'C:\Users\Federico']
+trust_level = "trusted"
+
+[projects.'C:\Users\Federico\OneDrive\Strumenti']
+trust_level = "trusted"
+
+[projects.'C:\Users\Federico\OneDrive\Documenti\D&D\Eldarion']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\Federico\repo\ComfyUI']
+trust_level = "trusted"
+
+[projects.'E:\Acer']
+trust_level = "trusted"
+
+[projects.'C:\Users\Federico\repo']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\Federico\repo\whatsapp-mcp']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\Federico\repo\telegram-mcp']
+trust_level = "trusted"
+
+[projects.'C:\Users\Federico\OneDrive\Strumenti\MikuMikuMovingV1']
+trust_level = "trusted"
+
+[projects.'C:\Users\Federico\AppData\Local\AnthropicClaude']
+trust_level = "trusted"
+
+[projects.'C:\Users\Federico\AppData\Roaming\Claude\logs']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\Federico\repo\fing-mcp-server']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\Federico\repo\spotify-mcp-server']
+trust_level = "trusted"
+
+[projects.'C:\Users\Federico\repo\phonelink-mcp-server']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\Federico\repo\git-UI-toolbix']
+trust_level = "trusted"
+
+[projects."C:\\Program Files (x86)\\Ubisoft\\Ubisoft Game Launcher\\games\\Assassin's Creed II"]
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\Federico\repo\Heartran Text Tools']
+trust_level = "trusted"
+
+[projects.'C:\Users\Federico\OneDrive\Musica']
+trust_level = "trusted"
+
+[projects.'\\?\C:\Users\Federico\repo\alexa-mcp-server']
+trust_level = "trusted"
+
+[projects.'C:\Users\Federico\Downloads']
+trust_level = "trusted"
+
+[projects.'C:\Program Files (x86)\Steam\steamapps\common']
+trust_level = "trusted"
+
+# =============================================================================
+# NOTICE AND WARNING SETTINGS
+# =============================================================================
+# Control which notices and warnings are displayed in the CLI
+
+[notice]
+# Hide migration prompt for gpt-5.1-codex-max model
+"hide_gpt-5.1-codex-max_migration_prompt" = true
+# Hide warning about full file system access
+hide_full_access_warning = true
+# Hide warning about world-writable directory access
+hide_world_writable_warning = true
+hide_rate_limit_model_nudge = true
+
+# Model migration mappings for automatic updates
+# When old models are deprecated, automatically map to new versions
+[notice.model_migrations]
+"gpt-5.1-codex-max" = "gpt-5.2-codex"
+"gpt-5.2" = "gpt-5.3-codex"
+"gpt-5.2-codex" = "gpt-5.3-codex"
+"gpt-5.3-codex" = "gpt-5.4"
+
+[mcp_servers.Alexa]
+url = "http://127.0.0.1:8787/mcp"
+allow_http = true
+startup_timeout_sec = 200.0
+
+[mcp_servers.Figma]
+url = "https://mcp.figma.com/mcp"
+startup_timeout_sec = 200.0
+
+[mcp_servers.Kanka]
+url = "http://100.82.64.124:5000/mcp"
+allow_http = true
+startup_timeout_sec = 200.0
+
+[mcp_servers.Kanka.env_http_headers]
+Authorization = "Bearer ${KANKA_API_TOKEN}"
+
+[mcp_servers.Fetch]
+command = "uvx"
+args = ["mcp-server-fetch"]
+startup_timeout_sec = 200.0
+
+[mcp_servers.Fing]
+url = "http://100.82.64.124:3010/mcp"
+startup_timeout_sec = 120.0
+allow_http = true
+
+[mcp_servers.Home_Assistant]
+url = "http://192.168.1.110:8123/api/mcp"
+allow_http = true
+bearer_token_env_var = "HOME_ASSISTANT_TOKEN"
+startup_timeout_sec = 200.0
+
+[mcp_servers.iCloud]
+command = "npx"
+args = ["-y", "@jahfer/dav-mcp-server"]
+startup_timeout_sec = 200.0
+
+[mcp_servers.iCloud.env]
+ALL_PROXY = ""
+DAV_PASSWORD = "nrwh-abzk-irrx-kurw"
+DAV_PROVIDER = "icloud"
+DAV_USERNAME = "fede_rico99@hotmail.it"
+HTTPS_PROXY = ""
+HTTP_PROXY = ""
+
+[mcp_servers.MyPhone]
+command = "node"
+args = ["C:/Users/Federico/repo/phonelink-mcp-server/dist/index.js"]
+startup_timeout_sec = 200.0
+
+[mcp_servers.Netlify]
+command = "npx"
+args = ["-y", "@netlify/mcp"]
+startup_timeout_sec = 200.0
+
+[mcp_servers.Netlify.env]
+NETLIFY_PERSONAL_ACCESS_TOKEN = "nfp_U3svA8PjvG21Zv5tzkFe1YCCW97X3tPbff71"
+
+[mcp_servers.Puppeteer]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-puppeteer"]
+startup_timeout_sec = 200.0
+
+[mcp_servers.Render]
+url = "https://mcp.render.com/mcp"
+bearer_token_env_var = "STITCH_ACCESS_TOKEN"
+startup_timeout_sec = 200.0
+
+[mcp_servers.Render.env_http_headers]
+X-Goog-User-Project = "GOOGLE_CLOUD_PROJECT"
+
+[mcp_servers.SequentialThinking]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+startup_timeout_sec = 200.0
+
+[mcp_servers.NotebookLM]
+command = "node"
+args = ["C:\\Users\\Federico\\repo\\notebooklm-mcp-server\\dist\\index.js"]
+startup_timeout_sec = 200.0
+
+[mcp_servers.Stitch]
+url = "https://stitch.googleapis.com/mcp"
+bearer_token_env_var = "STITCH_ACCESS_TOKEN"
+startup_timeout_sec = 200.0
+
+[mcp_servers.Stitch.env_http_headers]
+X-Goog-User-Project = "${GOOGLE_CLOUD_PROJECT}"
+
+[mcp_servers.Steam]
+command = "node"
+args = [
+  "C:\\Users\\Federico\\repo\\steam-mcp\\build\\index.js"
+]
+cwd = "C:\\Users\\Federico\\repo\\steam-mcp"
+startup_timeout_sec = 200.0
+
+[mcp_servers.Spotify]
+command = "node"
+args = ["C:\\Users\\Federico\\repo\\spotify-mcp-server\\build\\index.js"]
+startup_timeout_sec = 200.0
+
+[mcp_servers.Tailscale]
+command = "cmd"
+args = ["/c", 'C:\Users\Federico\AppData\Roaming\npm\tailscale-mcp-server.cmd']
+startup_timeout_sec = 200.0
+
+[mcp_servers.Tailscale.env]
+LOG_LEVEL = "3"
+TAILSCALE_API_KEY = "${TAILSCALE_API_KEY}"
+TAILSCALE_TAILNET = "${TAILSCALE_TAILNET}"
+
+[mcp_servers.Telegram]
+command = "npx"
+args = ["-y", "@chaindead/telegram-mcp"]
+startup_timeout_sec = 200.0
+
+[mcp_servers.Telegram.env]
+TG_API_HASH = "8cc74c3b01303aecf5939c00f2cc0081"
+TG_APP_ID = "39684794"
+TG_PASSWORD = "Heartran98"
+TG_PHONE = "+393319275133"
+
+[mcp_servers.UnrealMCP]
+command = 'C:\Users\Federico\repo\UnrealMCP\MCP\run_unreal_mcp.bat'
+startup_timeout_sec = 200.0
+
+[mcp_servers.UnrealCodeAnalyzer]
+command = "node"
+args = ['C:\Users\Federico\repo\unreal-analyzer-mcp\build\index.js']
+startup_timeout_sec = 200.0
+
+[mcp_servers.VirusTotal]
+command = "npx"
+args = ["-y", "@burtthecoder/mcp-virustotal"]
+startup_timeout_sec = 200.0
+
+[mcp_servers.VirusTotal.env]
+VIRUSTOTAL_API_KEY = "93c13f6ebfe2c1d773b9620609182e57910d8c35aa1113712130b6c727491452"
+
+[mcp_servers.Wix]
+command = "npx"
+args = ["-y", "mcp-remote", "https://mcp.wix.com/sse"]
+startup_timeout_sec = 200.0
+
+[mcp_servers.Whatsapp]
+command = "C:\\Users\\Federico\\AppData\\Local\\Microsoft\\WinGet\\Packages\\astral-sh.uv_Microsoft.Winget.Source_8wekyb3d8bbwe\\uv.exe"
+args = ["--directory", "C:\\Users\\Federico\\repo\\whatsapp-mcp\\whatsapp-mcp-server", "run", "main.py"]
+startup_timeout_sec = 200.0
+
+[mcp_servers.Windows-MCP]
+command = "uvx"
+args = ["windows-mcp"]
+startup_timeout_sec = 200.0
+
+[mcp_servers.Railway]
+command = "railway-mcp-server"
+startup_timeout_sec = 200.0
+
+[mcp_servers.Vercel]
+url = "https://mcp.vercel.com"
+
+[mcp_servers.Supabase]
+url = "https://mcp.supabase.com/mcp?project_ref=nskdqxntfxtwnbtunpgm"
+
+[features]
+# Enable unified execution model for improved performance
+unified_exec = true
+# Enable shell snapshot functionality for command history
+shell_snapshot = true
+# Enable UTF-8 support for PowerShell
+powershell_utf8 = true
+# Enable steering capabilities for fine-tuned control
+steer = true
+# Enable RMCP client for remote MCP connections
+rmcp_client = true
+# Enable collaboration features (experimental)
+multi_agent = true
+# Enable experimental Windows sandbox (unstable)
+experimental_windows_sandbox = true
+# Enable elevated Windows sandbox (requires admin privileges)
+elevated_windows_sandbox = true
+# Enable apps feature
+apps = true
+
+[tui]
+status_line = ["model-with-reasoning", "current-dir", "git-branch", "context-remaining", "five-hour-limit", "weekly-limit", "codex-version"]
+
+# =============================================================================
+# END OF CONFIGURATION FILE
+# =============================================================================
+
+

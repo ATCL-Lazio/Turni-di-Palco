@@ -9,7 +9,7 @@ const shouldPrint = argv.includes("--print");
 
 const templatePath = process.env.AI_PROMPT_TEMPLATE
   ? resolve(process.env.AI_PROMPT_TEMPLATE)
-  : resolve("apps/pwa/src/features/ai/prompt-template.md");
+  : resolve("docs/prompt-template.md");
 
 const template = readFileSync(templatePath, "utf-8");
 
