@@ -15,8 +15,6 @@
   - Dev: `npm run dev:mobile`
   - Build: `npm run build:mobile`
   - Preview: `npm --workspace apps/mobile run preview` (usata dai deploy Render/Vercel)
-  - Dev: `npm run dev:mobile`
-  - Build: `npm run build:mobile`
   - Sync only: `npm run sync:mobile`
   - AI support server (local): `npm run ai:support` (default local port)
   - Dev + AI support together: `npm --workspace apps/mobile run dev:with-ai`
