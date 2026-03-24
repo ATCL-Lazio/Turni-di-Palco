@@ -63,25 +63,30 @@ serve(async (req: Request) => {
         return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
       }
 
-      const token = authHeader.replace('Bearer ', '');
+      const token = authHeader.slice('Bearer '.length);
       console.log('[auth] Token length:', token.length);
 
-      const { data, error: authError } = await supabase.auth.getUser(token);
-      const user = data?.user;
-
-      if (authError || !user) {
-        console.error('[auth] Verification failed:', {
-          message: authError?.message,
-          status: (authError as Record<string, unknown>)?.status,
-          hasUser: Boolean(user),
-          tokenLength: token.length,
-        });
+      // The gateway already verified the JWT signature and expiry via verify_jwt: true.
+      // Decode the payload to extract the sub claim (user ID) without a redundant getUser call.
+      let userId: string | undefined;
+      try {
+        const parts = token.split('.');
+        if (parts.length !== 3) throw new Error('Malformed JWT');
+        const payload = JSON.parse(atob(parts[1]));
+        userId = typeof payload.sub === 'string' ? payload.sub : undefined;
+        console.log('[auth] JWT sub:', userId ?? '(missing)');
+      } catch (decodeErr) {
+        console.error('[auth] JWT decode failed:', (decodeErr as Error).message);
         return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
       }
 
-      console.log('[auth] User verified:', user.id);
+      if (!userId) {
+        console.error('[auth] JWT has no sub claim (anon key or service key passed as user token)');
+        return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
+      }
+
       // Do not trust userId sent by client payload if we have an authenticated user.
-      resolvedUserId = user.id;
+      resolvedUserId = userId;
     }
 
     if (action === 'reserve_hash') {
