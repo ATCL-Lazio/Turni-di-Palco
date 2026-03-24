@@ -5,6 +5,8 @@
       "Bash(*)",
       "WebFetch(domain:atcl-lazio.github.io)",
       "WebFetch(domain:atcllazio.it)",
+      "WebFetch(domain:spaziorossellini.it)",
+      "WebFetch(domain:github.com/ATCL-Lazio/Turni-di-Palco)",
       "mcp__claude_ai_Supabase__*"
     ]
   }
