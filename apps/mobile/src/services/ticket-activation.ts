@@ -197,7 +197,7 @@ async function getAccessTokenForFunctions(): Promise<string> {
     !sessionToken || !expiresAt || expiresAt <= nowSeconds + TOKEN_REFRESH_SKEW_SECONDS;
 
   if (!shouldRefresh && sessionToken) {
-    console.debug('[ticket-activation] Using cached token, length:', sessionToken.length, 'remaining_s:', expiresAt - nowSeconds);
+    console.log('[ticket-activation] Using cached token, length:', sessionToken.length, 'remaining_s:', expiresAt - nowSeconds, 'prefix:', sessionToken.slice(0, 20));
     return sessionToken;
   }
 
@@ -213,7 +213,7 @@ async function getAccessTokenForFunctions(): Promise<string> {
     throw new Error(SESSION_REQUIRED_MESSAGE);
   }
 
-  console.debug('[ticket-activation] Using refreshed token, length:', refreshedToken.length);
+  console.log('[ticket-activation] Using refreshed token, length:', refreshedToken.length, 'prefix:', refreshedToken.slice(0, 20));
   return refreshedToken;
 }
 
@@ -223,7 +223,7 @@ async function invokeTicketActivation(body: Record<string, unknown>) {
   }
 
   const token = await getAccessTokenForFunctions();
-  console.debug('[ticket-activation] Invoking function, token length:', token.length, 'action:', (body as Record<string, unknown>).action);
+  console.log('[ticket-activation] Invoking function, token length:', token.length, 'prefix:', token.slice(0, 20), 'action:', (body as Record<string, unknown>).action);
   let response = await supabase.functions.invoke('ticket-activation', {
     headers: { Authorization: `Bearer ${token}` },
     body,

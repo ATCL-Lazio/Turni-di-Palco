@@ -64,7 +64,7 @@ serve(async (req: Request) => {
       }
 
       const token = authHeader.slice('Bearer '.length);
-      console.log('[auth] Token length:', token.length);
+      console.log('[auth] Token length:', token.length, 'prefix:', token.slice(0, 20));
 
       // The gateway already verified the JWT signature and expiry via verify_jwt: true.
       // Decode the payload to extract the sub claim (user ID) without a redundant getUser call.
@@ -72,7 +72,10 @@ serve(async (req: Request) => {
       try {
         const parts = token.split('.');
         if (parts.length !== 3) throw new Error('Malformed JWT');
-        const payload = JSON.parse(atob(parts[1]));
+        // JWT uses base64url encoding; convert to standard base64 for atob
+        const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
+        const payload = JSON.parse(atob(padded));
         userId = typeof payload.sub === 'string' ? payload.sub : undefined;
         console.log('[auth] JWT sub:', userId ?? '(missing)');
       } catch (decodeErr) {
