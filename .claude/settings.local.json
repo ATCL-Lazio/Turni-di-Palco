@@ -3,7 +3,10 @@
     "allow": [
       "*",
       "Bash(*)",
-      "WebFetch(domain:atcl-lazio.github.io)"
+      "WebFetch(domain:atcl-lazio.github.io)",
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__get_edge_function",
+      "mcp__claude_ai_Supabase__deploy_edge_function"
     ]
   }
 }
