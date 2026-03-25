@@ -470,9 +470,9 @@ function UpcomingEventSection({
         ) : eventState === 'empty' ? (
           <div className="space-y-3">
             <p className="text-white">Nessun evento in programma</p>
-            <p className="text-sm text-[#b8b2b3]">Aggiungi un evento o registra un turno dal QR.</p>
+            <p className="text-sm text-[#b8b2b3]">Aggiungi un evento o registra un biglietto.</p>
             <div className="flex gap-2">
-              {allowScanQr && <Button variant="secondary" size="sm" onClick={onScanQR}>Scansiona QR</Button>}
+              {allowScanQr && <Button variant="secondary" size="sm" onClick={onScanQR}>Registra Biglietto</Button>}
               <Button variant="ghost" size="sm" onClick={onViewTurni}>Vedi turni</Button>
             </div>
           </div>

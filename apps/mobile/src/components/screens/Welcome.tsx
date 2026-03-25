@@ -20,7 +20,7 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
         <div className="animate-stagger-4 mt-6 mb-5 w-full max-w-[300px] bg-[#1a1617] border border-[#2d2728] rounded-2xl px-4 py-3">
           <p className="!m-0 text-sm leading-relaxed text-center text-[#7a7577]">
             Simula la carriera di un professionista del teatro e registra la tua
-            partecipazione agli eventi reali ATCL scansionando il QR sul biglietto.
+            partecipazione agli eventi reali ATCL registrando il numero del biglietto.
           </p>
         </div>
 

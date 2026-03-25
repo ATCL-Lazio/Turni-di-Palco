@@ -6,6 +6,7 @@ import {
   isManualTicketActivatedInSession,
   isTicketHashActivatedInSession,
   parseTicketQrValue,
+  registerTicketByNumber,
   resolveTicketHashPreview,
   type ActivatedEventPayload,
 } from '../services/ticket-activation';
@@ -15,7 +16,8 @@ import type { Screen } from '../types/navigation';
 
 export type PendingTicketActivation =
   | { mode: 'hash'; hash: string; eventId: string; event?: ActivatedEventPayload }
-  | { mode: 'manual'; eventId: string; ticketNumber: string };
+  | { mode: 'manual'; eventId: string; ticketNumber: string }
+  | { mode: 'ticket-number'; eventId: string; ticketNumber: string; circuit?: string; eventMeta?: { name: string; date: string; time: string } };
 
 export interface QrHandlerDeps {
   authUserId: string | null;
@@ -78,8 +80,11 @@ export function useQrHandlers(deps: QrHandlerDeps) {
   } = deps;
 
   const handleQRScanAttempt = useCallback(async (code: string) => {
-    if (!isFeatureEnabled('mobile.action.qr_scan')) {
-      return { ok: false as const, error: 'Scansione QR temporaneamente disattivata.' };
+    const ticketEntryEnabled = isFeatureEnabled('mobile.action.ticket_entry');
+    const qrScanEnabled = isFeatureEnabled('mobile.action.qr_scan');
+
+    if (!ticketEntryEnabled && !qrScanEnabled) {
+      return { ok: false as const, error: 'Registrazione temporaneamente disattivata.' };
     }
     if (!authReady) return { ok: false as const, error: 'Verifica sessione...' };
     if (!isAuthValid) {
@@ -89,58 +94,75 @@ export function useQrHandlers(deps: QrHandlerDeps) {
 
     const activationUserId = (authUserId ?? profileEmail ?? '').trim();
 
-    // Manual ticket entry
+    // Manual ticket entry (inverted flow: register_ticket action)
     if (code.startsWith('manual-ticket:')) {
-      const [, eventId, ticketNumber] = code.split(':');
+      const [, eventId, ticketNumber, circuit] = code.split(':');
       if (!eventId || !ticketNumber) return { ok: false as const, error: 'Dati manuali incompleti.' };
 
       const normalizedEventId = eventId.trim();
       const normalizedTicketNumber = ticketNumber.trim();
       if (isManualTicketActivatedInSession(normalizedEventId, normalizedTicketNumber)) {
-        return { ok: false as const, error: 'Ticket già attivato in questa sessione.' };
+        return { ok: false as const, error: 'Biglietto già registrato in questa sessione.' };
       }
-      if (!events.some(event => event.id === normalizedEventId)) {
+
+      const matchedEvent = events.find(event => event.id === normalizedEventId);
+      if (!matchedEvent) {
         return { ok: false as const, error: 'Evento non presente nel calendario.' };
       }
 
-      setPendingTicketActivation({ mode: 'manual', eventId: normalizedEventId, ticketNumber: normalizedTicketNumber });
+      // Use the new ticket-number mode when ticket_entry is enabled
+      if (ticketEntryEnabled) {
+        setPendingTicketActivation({
+          mode: 'ticket-number',
+          eventId: normalizedEventId,
+          ticketNumber: normalizedTicketNumber,
+          circuit: circuit?.trim() || undefined,
+          eventMeta: { name: matchedEvent.name, date: matchedEvent.date, time: matchedEvent.time },
+        });
+      } else {
+        setPendingTicketActivation({ mode: 'manual', eventId: normalizedEventId, ticketNumber: normalizedTicketNumber });
+      }
       setConfirmationEventOverride(mapActivatedEvent(normalizedEventId, events) ?? null);
       setScannedEventId(normalizedEventId);
       navigate('event-confirmation');
       return { ok: true as const };
     }
 
-    // Ticket hash
-    const ticketHash = parseTicketQrValue(code);
-    if (ticketHash) {
-      if (!activationUserId) {
-        return { ok: false as const, error: 'Utente non disponibile per l\'attivazione ticket.' };
-      }
-      if (isTicketHashActivatedInSession(ticketHash)) {
-        return { ok: false as const, error: 'Ticket già attivato in questa sessione.' };
+    // Ticket hash (QR scan path — requires qr_scan enabled)
+    if (qrScanEnabled) {
+      const ticketHash = parseTicketQrValue(code);
+      if (ticketHash) {
+        if (!activationUserId) {
+          return { ok: false as const, error: 'Utente non disponibile per l\'attivazione ticket.' };
+        }
+        if (isTicketHashActivatedInSession(ticketHash)) {
+          return { ok: false as const, error: 'Ticket già attivato in questa sessione.' };
+        }
+
+        const preview = await resolveTicketHashPreview(ticketHash);
+        if (!preview.ok) return { ok: false as const, error: preview.error };
+
+        setPendingTicketActivation({ mode: 'hash', hash: ticketHash, eventId: preview.eventId, event: preview.event });
+        setConfirmationEventOverride(mapActivatedEvent(preview.eventId, events, preview.event) ?? null);
+        setScannedEventId(preview.eventId);
+        navigate('event-confirmation');
+        return { ok: true as const };
       }
 
-      const preview = await resolveTicketHashPreview(ticketHash);
-      if (!preview.ok) return { ok: false as const, error: preview.error };
+      // Standard QR validation
+      const result = await validateQrPayload(code, events.map(event => event.id));
+      if (!result.valid || !result.eventId) {
+        return { ok: false as const, error: result.error ?? 'QR non valido.' };
+      }
 
-      setPendingTicketActivation({ mode: 'hash', hash: ticketHash, eventId: preview.eventId, event: preview.event });
-      setConfirmationEventOverride(mapActivatedEvent(preview.eventId, events, preview.event) ?? null);
-      setScannedEventId(preview.eventId);
+      setPendingTicketActivation(null);
+      setConfirmationEventOverride(null);
+      setScannedEventId(result.eventId);
       navigate('event-confirmation');
       return { ok: true as const };
     }
 
-    // Standard QR validation
-    const result = await validateQrPayload(code, events.map(event => event.id));
-    if (!result.valid || !result.eventId) {
-      return { ok: false as const, error: result.error ?? 'QR non valido.' };
-    }
-
-    setPendingTicketActivation(null);
-    setConfirmationEventOverride(null);
-    setScannedEventId(result.eventId);
-    navigate('event-confirmation');
-    return { ok: true as const };
+    return { ok: false as const, error: 'Formato non riconosciuto.' };
   }, [authReady, authUserId, events, isAuthValid, isFeatureEnabled, navigate, profileEmail, setConfirmationEventOverride, setPendingTicketActivation, setScannedEventId]);
 
   const handleEventConfirm = useCallback(async ({ boostRequested }: { boostRequested: boolean }): Promise<
@@ -155,6 +177,39 @@ export function useQrHandlers(deps: QrHandlerDeps) {
     }
 
     const activationUserId = (authUserId ?? profileEmail ?? '').trim();
+
+    // New inverted flow: register ticket by number (issue #415)
+    if (pendingTicketActivation?.mode === 'ticket-number') {
+      if (!activationUserId) {
+        navigate('welcome');
+        return { ok: false, error: 'Sessione non valida. Effettua di nuovo il login.' };
+      }
+
+      const registration = await registerTicketByNumber(
+        pendingTicketActivation.eventId,
+        pendingTicketActivation.ticketNumber,
+        activationUserId,
+        pendingTicketActivation.eventMeta,
+        pendingTicketActivation.circuit,
+      );
+      if (!registration.ok) return { ok: false, error: registration.error };
+
+      const resolvedEventId = registration.eventId ?? pendingTicketActivation.eventId;
+      const turnResult = await registerTurn({
+        eventId: resolvedEventId,
+        roleId: profileRoleId,
+        eventOverride: mapActivatedEvent(resolvedEventId, events, registration.event),
+        boostRequested,
+      });
+      if (!turnResult.ok) {
+        return { ok: false, error: turnResult.error || 'Biglietto registrato, ma non e stato possibile registrare il turno.' };
+      }
+
+      setPendingTicketActivation(null);
+      setConfirmationEventOverride(null);
+      setScannedEventId(resolvedEventId);
+      return { ok: true, syncStatus: turnResult.syncStatus, boostRequested: turnResult.boostRequested, boostApplied: turnResult.boostApplied, boostRejectionReason: turnResult.boostRejectionReason, rewards: turnResult.rewards };
+    }
 
     if (pendingTicketActivation?.mode === 'hash') {
       if (!activationUserId) {
