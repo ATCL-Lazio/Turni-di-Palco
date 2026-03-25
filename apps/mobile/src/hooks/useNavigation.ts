@@ -168,6 +168,7 @@ export function useNavigation(initialEvents: { id: string }[], options?: UseNavi
             screen: persistedScreen,
             activeTab: persistedTab,
             legalReturnScreen,
+            isPasswordRecovery,
             scannedEventId,
             selectedActivityId,
         });
