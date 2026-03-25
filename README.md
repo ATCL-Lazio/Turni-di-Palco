@@ -91,7 +91,6 @@ Turni di Palco nasce dall'esigenza di rendere il teatro un'esperienza continuati
 
 L'applicazione è accessibile tramite:
 - **Web**: [turni-di-palco.vercel.app](https://turni-di-palco.vercel.app)
-- **Credenziali**: Fornite esclusivamente da ATCL agli utenti autorizzati
 
 ---
 
