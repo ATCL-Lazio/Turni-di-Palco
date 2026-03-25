@@ -243,7 +243,7 @@ export function ATCLTurns({
           {canScanQr ? (
             <Button variant="primary" onClick={onScanQR}>
               <QrCode size={18} />
-              Scansiona QR
+              Registra Biglietto
             </Button>
           ) : null}
         </Card>

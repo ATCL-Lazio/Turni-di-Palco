@@ -1,20 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { QrCode, X } from 'lucide-react';
+import { Ticket, Camera, X } from 'lucide-react';
 import jsQR from 'jsqr';
 import { GameEvent } from '../../state/store';
+import { CIRCUIT_OPTIONS, DEFAULT_CIRCUIT } from '../../data/circuit_options';
 
 interface QRScannerProps {
   onClose: () => void;
   onScan: (code: string) => Promise<{ ok: true } | { ok: false; error: string }> | { ok: true } | { ok: false; error: string };
   events?: GameEvent[];
+  /** When true (default), show ticket entry as the primary view. */
+  ticketEntryPrimary?: boolean;
 }
 
-export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
+export function QRScanner({ onClose, onScan, events = [], ticketEntryPrimary = true }: QRScannerProps) {
   const [manualTicket, setManualTicket] = useState('');
   const [manualEventId, setManualEventId] = useState('');
-  const [isScanning, setIsScanning] = useState(true);
+  const [manualCircuit, setManualCircuit] = useState<string>(DEFAULT_CIRCUIT);
+  const [isScanning, setIsScanning] = useState(!ticketEntryPrimary);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [isStartingCamera, setIsStartingCamera] = useState(false);
@@ -54,7 +58,7 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
       setScanError(result.error);
       if (isAuthErrorMessage(result.error)) { stopCamera(); shouldResume = false; }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'QR non valido.';
+      const message = error instanceof Error ? error.message : 'Codice non valido.';
       setScanError(message);
       if (isAuthErrorMessage(message)) { stopCamera(); shouldResume = false; }
     } finally {
@@ -133,13 +137,13 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualTicket.trim() || !manualEventId.trim()) { setScanError('Inserisci sia ID Evento che Numero Ticket.'); return; }
-    await handleScanAttempt(`manual-ticket:${manualEventId}:${manualTicket}`);
+    await handleScanAttempt(`manual-ticket:${manualEventId}:${manualTicket}:${manualCircuit}`);
   };
 
   return (
     <div className="fixed inset-0 app-gradient z-50 flex flex-col"
       style={{ '--qrscanner-header-bg': '#1a1617', '--qrscanner-header-hover-bg': '#241f20', '--qrscanner-accent': '#f4bf4f' } as React.CSSProperties}>
-      <ScannerHeader onClose={onClose} />
+      <ScannerHeader onClose={onClose} isScanning={isScanning} />
 
       <div className="flex-1 relative overflow-hidden">
         {isScanning ? (
@@ -157,11 +161,13 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
           <ManualEntryForm
             manualTicket={manualTicket}
             manualEventId={manualEventId}
+            manualCircuit={manualCircuit}
             events={events}
             scanError={scanError}
             isHandlingScan={isHandlingScan}
             onTicketChange={setManualTicket}
             onEventChange={setManualEventId}
+            onCircuitChange={setManualCircuit}
             onSubmit={handleManualSubmit}
             onSwitchToScanner={() => setIsScanning(true)}
           />
@@ -173,10 +179,10 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
 
 // === Sub-components ===
 
-function ScannerHeader({ onClose }: { onClose: () => void }) {
+function ScannerHeader({ onClose, isScanning }: { onClose: () => void; isScanning: boolean }) {
   return (
     <div className="flex items-center justify-between p-4 bg-[color:var(--qrscanner-header-bg)]">
-      <h3 className="text-white">Scansiona QR</h3>
+      <h3 className="text-white">{isScanning ? 'Scansiona Biglietto' : 'Registra Biglietto'}</h3>
       <button onClick={onClose}
         className="flex items-center justify-center size-[44px] hover:bg-[color:var(--qrscanner-header-hover-bg)] rounded-lg transition-colors">
         <X className="text-[color:var(--qrscanner-accent)]" size={24} />
@@ -200,14 +206,14 @@ function CameraView({ videoRef, canvasRef, isStartingCamera, isHandlingScan, sca
         <div className="absolute inset-0 bg-gradient-to-b from-[#1a1617]/60 to-[#0f0d0e]/80" />
         <ScanningFrame />
         {isStartingCamera && <Overlay text="Avvio fotocamera..." />}
-        {isHandlingScan && <Overlay text="Verifica QR..." />}
+        {isHandlingScan && <Overlay text="Verifica biglietto..." />}
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0f0d0e] to-transparent p-6">
         <div className="app-content text-center">
           {scanError && (
             <>
-              <p className="text-white mb-2">QR non valido</p>
+              <p className="text-white mb-2">Biglietto non valido</p>
               <p className="text-sm text-[#b8b2b3] mb-6">{scanError}</p>
             </>
           )}
@@ -222,7 +228,7 @@ function CameraView({ videoRef, canvasRef, isStartingCamera, isHandlingScan, sca
             </>
           ) : (
             <>
-              <p className="text-white mb-2">Inquadra il QR sul tuo biglietto ATCL</p>
+              <p className="text-white mb-2">Inquadra il codice sul tuo biglietto ATCL</p>
               <p className="text-sm text-[#b8b2b3] mb-6">Posiziona il codice al centro del riquadro</p>
               <ManualSwitchButton onClick={onSwitchToManual} />
             </>
@@ -260,31 +266,32 @@ function Overlay({ text }: { text: string }) {
 function ManualSwitchButton({ onClick }: { onClick: () => void }) {
   return (
     <button onClick={onClick}
-      className="inline-flex items-center justify-center rounded-md px-2 py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors">
-      Inserisci codice manualmente
+      className="inline-flex items-center justify-center gap-2 rounded-md px-2 py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors">
+      <Ticket size={16} />
+      Inserisci numero biglietto
     </button>
   );
 }
 
-function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHandlingScan, onTicketChange, onEventChange, onSubmit, onSwitchToScanner }: {
-  manualTicket: string; manualEventId: string; events: GameEvent[];
+function ManualEntryForm({ manualTicket, manualEventId, manualCircuit, events, scanError, isHandlingScan, onTicketChange, onEventChange, onCircuitChange, onSubmit, onSwitchToScanner }: {
+  manualTicket: string; manualEventId: string; manualCircuit: string; events: GameEvent[];
   scanError: string | null; isHandlingScan: boolean;
-  onTicketChange: (v: string) => void; onEventChange: (v: string) => void;
+  onTicketChange: (v: string) => void; onEventChange: (v: string) => void; onCircuitChange: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void; onSwitchToScanner: () => void;
 }) {
   return (
     <div className="p-6 app-content h-full overflow-y-auto pb-20">
       <div className="mb-6 text-center">
         <div className="w-16 h-16 bg-[#241f20] rounded-full flex items-center justify-center mx-auto mb-4">
-          <QrCode className="text-[#f4bf4f]" size={32} />
+          <Ticket className="text-[#f4bf4f]" size={32} />
         </div>
-        <h3 className="text-white mb-2">Inserimento Manuale</h3>
-        <p className="text-sm text-[#b8b2b3]">Inserisci i dati se il QR non è leggibile</p>
+        <h3 className="text-white mb-2">Registra il tuo Biglietto</h3>
+        <p className="text-sm text-[#b8b2b3]">Inserisci il numero di biglietto stampato sul tuo ticket</p>
       </div>
 
       <div className="mb-6 text-center">
         <div className="inline-block px-3 py-1 bg-[#241f20] rounded-full text-[10px] text-[#f4bf4f] font-bold uppercase tracking-wider">
-          Attivazione Biglietto
+          Registrazione Turno
         </div>
       </div>
 
@@ -310,9 +317,21 @@ function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHan
             </div>
           </div>
           <div className="space-y-2">
+            <label className="text-xs text-[#7f797a] ml-1 uppercase font-bold tracking-wider">Circuito Biglietteria</label>
+            <div className="relative">
+              <select value={manualCircuit} onChange={e => onCircuitChange(e.target.value)}
+                className="w-full bg-[#1a1617] border border-[#2d2728] rounded-xl px-4 py-3 text-sm text-white appearance-none focus:outline-none focus:border-[#f4bf4f] transition-colors">
+                {CIRCUIT_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#f4bf4f]">
+                <X size={14} className="rotate-45" />
+              </div>
+            </div>
+          </div>
+          <div className="space-y-2">
             <label className="text-xs text-[#7f797a] ml-1 uppercase font-bold tracking-wider">Numero Biglietto</label>
             <Input type="text" placeholder="es. 12345" value={manualTicket} onChange={e => onTicketChange(e.target.value)} className="text-center" />
-            <p className="text-[10px] text-[#7f797a] text-center px-2 italic">Puoi anche incollare direttamente l'Hash se lo hai</p>
+            <p className="text-[10px] text-[#7f797a] text-center px-2 italic">Trovi il numero stampato sul tuo biglietto</p>
           </div>
         </div>
 
@@ -321,8 +340,9 @@ function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHan
             {isHandlingScan ? 'Verifica in corso...' : 'Conferma dati'}
           </Button>
           <button type="button" onClick={onSwitchToScanner}
-            className="w-full rounded-md py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors">
-            Torna alla scansione QR
+            className="w-full inline-flex items-center justify-center gap-2 rounded-md py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors">
+            <Camera size={16} />
+            Usa la fotocamera
           </button>
         </div>
       </form>

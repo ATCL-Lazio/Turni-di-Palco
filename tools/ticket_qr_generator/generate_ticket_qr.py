@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ticket QR generator CLI for theatre box offices."""
+"""Ticket hash generator CLI for theatre box offices."""
 
 from __future__ import annotations
 
@@ -9,14 +9,12 @@ import hashlib
 import html
 import json
 import os
-import pathlib
 import re
 import sys
 import unicodedata
 from collections import OrderedDict
 from dataclasses import dataclass
 
-import qrcode
 import requests
 from dotenv import load_dotenv
 
@@ -269,12 +267,6 @@ def reserve_hash(
     return bool(body.get("reserved"))
 
 
-def generate_qr_png(qr_value: str, output_path: pathlib.Path) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    image = qrcode.make(qr_value)
-    image.save(output_path)
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate one-shot activation QR for Turni di Palco.")
     parser.add_argument("--circuit", default=default_ticket_circuit(), help="Ticket circuit, e.g. ATCL")
@@ -287,7 +279,6 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Load event name/date from Supabase events calendar using --event-id.",
     )
-    parser.add_argument("--output", default="./out/ticket-qr.png")
     parser.add_argument("--skip-supabase", action="store_true", help="Allow local-only generation")
     return parser.parse_args()
 
@@ -352,18 +343,12 @@ def main() -> int:
             )
             return 2
 
-    qr_value = payload_hash
-    output_path = pathlib.Path(args.output).resolve()
-    generate_qr_png(qr_value, output_path)
-
     print(
         json.dumps(
             {
                 "hash": payload_hash,
-                "qr_value": qr_value,
                 "json_payload": pretty_payload_json(payload),
                 "canonical_json": canonical_json,
-                "output": str(output_path),
                 "supabase_reserved": reserved,
             },
             ensure_ascii=False,

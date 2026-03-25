@@ -41,7 +41,7 @@ export function useFeatureGates(
     if (screen === 'career') return tabFlags.career;
     if (screen === 'earned-titles') return tabFlags.earnedTitles;
     if (screen === 'support') return isFeatureEnabled('mobile.action.ai_support');
-    if (screen === 'qr-scanner') return isFeatureEnabled('mobile.action.qr_scan');
+    if (screen === 'qr-scanner') return isFeatureEnabled('mobile.action.qr_scan') || isFeatureEnabled('mobile.action.ticket_entry');
     if (screen === 'event-confirmation') return isFeatureEnabled('mobile.action.turn_submit');
     if (screen === 'ticket-qr-prototype') return isFeatureEnabled('mobile.dev.ticket_qr_prototype');
     return true;

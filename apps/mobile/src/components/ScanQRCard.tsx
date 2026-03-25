@@ -1,5 +1,5 @@
 import React from 'react';
-import { QrCode, ChevronRight } from 'lucide-react';
+import { Ticket, ChevronRight } from 'lucide-react';
 
 interface ScanQRCardProps {
   onScanQR: () => void;
@@ -21,12 +21,12 @@ export function ScanQRCard({ onScanQR, className = '', style }: ScanQRCardProps)
     >
       <div className="flex items-center gap-3 h-[58px] pl-[5px] pr-0">
         <div className="bg-[#f4bf4f] rounded-[16.4px] size-[48px] flex items-center justify-center">
-          <QrCode className="text-[#2d0a0f]" size={24} />
+          <Ticket className="text-[#2d0a0f]" size={24} />
         </div>
         <div className="flex-1 flex items-center justify-between">
           <div className="flex flex-col items-start">
-            <p className="text-[16px] leading-[25.6px] font-semibold !text-[#ffffff] !m-0">Scansiona QR</p>
-            <p className="text-[16px] leading-[25.6px] !text-[#ffffff] !m-0">Registra un turno dal biglietto</p>
+            <p className="text-[16px] leading-[25.6px] font-semibold !text-[#ffffff] !m-0">Registra Biglietto</p>
+            <p className="text-[16px] leading-[25.6px] !text-[#ffffff] !m-0">Inserisci il numero del tuo ticket</p>
           </div>
           <ChevronRight className="text-white" size={22} />
         </div>
