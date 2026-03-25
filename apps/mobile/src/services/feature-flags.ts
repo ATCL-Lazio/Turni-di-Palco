@@ -25,7 +25,7 @@ export const MOBILE_FEATURE_FLAGS_FAIL_CLOSED = buildFlagState(false);
 export const MOBILE_FEATURE_FLAGS_ALL_ON = buildFlagState(true);
 export const MOBILE_FEATURE_FLAGS_DEFAULTS: MobileFeatureFlagsState = {
   ...MOBILE_FEATURE_FLAGS_ALL_ON,
-  "mobile.dev.ticket_qr_prototype": false,
+  "ticket_qr": false,
 };
 
 export type MobileFeatureFlagRow = {

@@ -78,7 +78,7 @@ export function useQrHandlers(deps: QrHandlerDeps) {
   } = deps;
 
   const handleQRScanAttempt = useCallback(async (code: string) => {
-    const qrScanEnabled = isFeatureEnabled('mobile.action.qr_scan');
+    const qrScanEnabled = isFeatureEnabled('qr_scan');
 
     if (!qrScanEnabled) {
       return { ok: false as const, error: 'Registrazione temporaneamente disattivata.' };
@@ -155,10 +155,10 @@ export function useQrHandlers(deps: QrHandlerDeps) {
     | { ok: true; syncStatus: TurnSyncStatus; boostRequested: boolean; boostApplied: boolean; boostRejectionReason: string | null; rewards: Rewards }
     | { ok: false; error: string }
   > => {
-    if (!isFeatureEnabled('mobile.action.turn_submit')) {
+    if (!isFeatureEnabled('registra_turno')) {
       return { ok: false, error: 'Registrazione turni temporaneamente disattivata.' };
     }
-    if (boostRequested && !isFeatureEnabled('mobile.action.turn_boost')) {
+    if (boostRequested && !isFeatureEnabled('boost_turno')) {
       return { ok: false, error: 'Boost turno temporaneamente disattivato.' };
     }
 
