@@ -11,13 +11,10 @@
 ## Build & run (sviluppo)
 
 - Install: `npm install` (workspaces).
-- PWA:
-  - Dev: `npm run dev:pwa` / `npm run dev:pwa:https`
-  - Build: `npm run build:pwa`
-  - Preview: `npm run preview:pwa`
 - Mobile:
   - Dev: `npm run dev:mobile`
   - Build: `npm run build:mobile`
+  - Preview: `npm --workspace apps/mobile run preview` (usata dai deploy Render/Vercel)
   - Sync only: `npm run sync:mobile`
   - AI support server (local): `npm run ai:support` (default local port)
   - Dev + AI support together: `npm --workspace apps/mobile run dev:with-ai`
@@ -42,30 +39,19 @@
   `Access-Control-Allow-Origin` matching the calling origin (or `*`) so the browser can
   read the response in `mode: "cors"`. In dev, prefer the same-origin `/health` proxy.
 
-## PWA, cache e aggiornamenti
+## Routing (produzione)
 
-- Service Worker: `apps/pwa/public/sw.js`
-- Il versioning della cache viene aggiornato dallo script `tools/update-cache-version.js` (invocato da `npm run build:pwa`) per forzare l'update degli asset core.
-- Il server `tools/serve-dist.js` imposta cache differenziata:
-  - `no-store` per HTML, `sw.js` e manifest.
-  - Cache aggressiva per asset hashed, icone e QR (immutabili).
+- L'app mobile ora risponde direttamente alla root (`/`).
+- Le configurazioni di Netlify, Vercel e Render sono state aggiornate per servire `apps/mobile/build` (o eseguire il preview della stessa) all'URL di base.
+- Feature Flags: configurabili tramite `VITE_FEATURE_FLAGS` e `VITE_DISABLED_FEATURE_FLAGS` nel file `.env`.
 
-## Routing `/mobile` (produzione)
-
-- L'app mobile usa `base: /mobile/`.
-- In produzione, `tools/serve-dist.js` risolve `/mobile/*` su `apps/pwa/dist/public/mobile/*`.
-- Se si usa hosting statico esterno, garantire che `/mobile` punti a `dist/public/mobile` (o aggiungere rewrite equivalente), altrimenti `/mobile` va in 404.
-
-## Header di sicurezza (Netlify/Render)
-
-- Netlify: gli header sono configurati in `netlify.toml` nella sezione `[[headers]]`.
-- Nota CSP: al momento `index.html` contiene uno script inline per il redirect mobile; per questo `script-src` include temporaneamente `'unsafe-inline'` finche' il bootstrap non viene spostato in un modulo esterno.
-- Render: il servizio PWA usa `tools/serve-dist.js` (startCommand in `render.yaml`), quindi gli header e la cache vanno configurati li.
-  - Se si migra la PWA a "Static Site" su Render, utilizzare il supporto ai `headers` del manifest Render.
+## Header di sicurezza
+- Netlify: header configurati in `netlify.toml` sezione `[[headers]]`.
+- Vercel/Render: le configurazioni puntano alla build mobile.
 
 ## Supabase (client)
 
-- Configurazione lato client tramite variabili d'ambiente (vedi `.env`, `apps/mobile/.env.example`, `apps/pwa/.env.example`).
+- Configurazione lato client tramite variabili d'ambiente (vedi `.env` e `apps/mobile/.env.example`).
 - Auth: login/signup tramite `supabase.auth.*` (per comportamento e policy: verificare impostazioni progetto Supabase, es. email verification).
 
 ## QR: modello funzionale (attivazione codice)

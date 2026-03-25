@@ -1,11 +1,11 @@
 @import "tailwindcss";
 @source "../../apps/mobile/src/**/*.{ts,tsx,js,jsx,html}";
 @source "../../apps/mobile/index.html";
-@source "../../apps/pwa/src/**/*.{ts,tsx,js,jsx,html}";
-@source "../../apps/pwa/*.html";
-@import "../../apps/pwa/src/styles/tokens.css";
-@import "../../apps/pwa/src/styles/layout.css";
-@import "../../apps/pwa/src/style.css";
+@source "../../apps/mobile/src/**/*.{ts,tsx,js,jsx,html}";
+@source "../../apps/mobile/*.html";
+@import "./extracted-pwa-styles/tokens.css";
+@import "./extracted-pwa-styles/layout.css";
+@import "./extracted-pwa-styles/style.css";
 
 :root {
   --color-burgundy-950: #2d0a0f;
