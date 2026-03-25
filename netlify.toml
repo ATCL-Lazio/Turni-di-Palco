@@ -1,21 +1,11 @@
 [build]
   base = "/"
-  command = "git clean -fdX && npm ci && npm run build:pwa"
-  publish = "apps/pwa/dist"
+  command = "git clean -fdX && npm ci && npm run build:mobile"
+  publish = "apps/mobile/build"
 
 [build.environment]
   NODE_VERSION = "22.14.0"
   SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_AI_SUPPORT_PORT,VITE_AI_SUPPORT_ENDPOINT,VITE_AI_SUPPORT_ISSUE_ENDPOINT"
-
-[[redirects]]
-  from = "/mobile/"
-  to = "/mobile.html"
-  status = 200
-
-[[redirects]]
-  from = "/mobile/*"
-  to = "/public/mobile/:splat"
-  status = 200
 
 [[redirects]]
   from = "/*"
@@ -23,10 +13,10 @@
   status = 200
 
 [context.production]
-  command = "git clean -fdX && npm ci && npm run build:pwa"
+  command = "git clean -fdX && npm ci && npm run build:mobile"
 
 [context.deploy-preview]
-  command = "git clean -fdX && npm ci && npm run build:pwa"
+  command = "git clean -fdX && npm ci && npm run build:mobile"
 
 [[headers]]
   for = "/*"

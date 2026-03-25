@@ -90,3 +90,9 @@ Template developed by [Heartran](https://github.com/heartran)
 | Gemini | Gemini | [176961590+gemini-code-assist[bot]@users.noreply.github.com](mailto:176961590+gemini-code-assist[bot]@users.noreply.github.com) |
 | Cascade | Cascade | [cascade@users.noreply.github.com](mailto:cascade@users.noreply.github.com) |
 | GitHub Copilot | Copilot[bot] | [198982749+Copilot[bot]@users.noreply.github.com](mailto:198982749+Copilot[bot]@users.noreply.github.com) |
+
+## Dati di accesso frontend
+
+Qualora sia necessario entrare all'interno del sito web i dati di accesso sono:
+- Email: `noreply@anthropic.com`
+- Password: `Codex`

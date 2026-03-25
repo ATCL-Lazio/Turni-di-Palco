@@ -24,7 +24,6 @@ exclude:
   - AGENTS.md
   - CLAUDE.md
   - DEPLOY_NETLIFY.md
-  - TECHNICAL_NOTES.md
   - SECURITY.md
   - supabase/
   - railway/

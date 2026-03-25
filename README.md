@@ -6,9 +6,31 @@
 
 <p align="center"><strong>Il teatro come percorso. La cultura come gioco.</strong></p>
 
-<p align="center">
-  <a href="https://turni-di-palco.vercel.app"><strong>Accedi all'applicazione</strong></a>
-</p>
+---
+
+> **⚠️ Nota importante**: Questo repository è pubblico per motivi di trasparenza e documentazione. Il software è **proprietario di ATCL** e non può essere riutilizzato, modificato o distribuito senza autorizzazione esplicita. Consulta la licenza per i dettagli.
+
+---
+
+## Project Status
+
+**Status**: Tool operativo interno di ATCL  
+**Tipo**: Applicazione web proprietaria  
+**Uso**: Esclusivamente per circuito ATCL e partner autorizzati  
+**Sviluppo**: Attivamente mantenuto dal team ATCL
+
+---
+
+## Perché questo repository è pubblico
+
+ATCL ha scelto di rendere pubblico il codice sorgente per:
+
+- **Trasparenza istituzionale** - Documentazione pubblica di un progetto culturale sostenuto da Regione Lazio e Ministero della Cultura
+- **Portfolio tecnico** - Mostrare l'approccio tecnologico adottato per la gestione digitale degli eventi teatrali
+- **Archiviazione pubblica** - Preservare il patrimonio tecnico del progetto nel tempo
+- **Collaborazione futura** - Consentire a partner autorizzati di comprendere l'architettura del sistema
+
+Il codice rimane proprietario e non può essere riutilizzato senza esplicita autorizzazione.
 
 ---
 
@@ -22,9 +44,13 @@ Attraverso un sistema di progressione digitale, ogni spettatore diventa protagon
 
 ## A chi è rivolto
 
-- **Giovani e studenti** che vogliono avvicinarsi al mondo dello spettacolo in modo coinvolgente e accessibile.
-- **Spettatori e appassionati** che desiderano approfondire i mestieri del teatro — dalla regia alle luci, dal suono all'organizzazione.
-- **Scuole e operatori culturali** alla ricerca di uno strumento educativo moderno per incentivare la partecipazione agli eventi dal vivo.
+**Turni di Palco è progettato per:**
+
+- **Utenti del circuito ATCL** - Giovani, studenti e spettatori che partecipano agli eventi del circuito teatrale laziale
+- **Operatori culturali ATCL** - Staff e partner autorizzati per la gestione delle attività
+- **Scuole e istituzioni** - Enti educativi che collaborano con ATCL per progetti formativi
+
+L'applicazione è accessibile esclusivamente attraverso le credenziali fornite da ATCL.
 
 ---
 
@@ -57,7 +83,15 @@ Turni di Palco nasce dall'esigenza di rendere il teatro un'esperienza continuati
 
 ---
 
-<sub>Documentazione tecnica per il team di sviluppo: [DEVELOPMENT.md](DEVELOPMENT.md)</sub>
+<sub>Documentazione tecnica per il team di sviluppo ATCL: [DEVELOPMENT.md](DEVELOPMENT.md)</sub>
+
+---
+
+## Accesso all'applicazione
+
+L'applicazione è accessibile tramite:
+- **Web**: [turni-di-palco.vercel.app](https://turni-di-palco.vercel.app)
+- **Credenziali**: Fornite esclusivamente da ATCL agli utenti autorizzati
 
 ---
 

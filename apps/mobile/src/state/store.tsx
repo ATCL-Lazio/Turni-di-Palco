@@ -20,6 +20,7 @@ import {
   normalizeMobileFeatureFlags,
   readMobileFeatureFlagsCache,
   writeMobileFeatureFlagsCache,
+  readEnvFeatureFlagOverrides,
 } from '../services/feature-flags';
 
 export const ROLE_IDS = ['attore', 'luci', 'fonico', 'attrezzista', 'palco', 'rspp', 'dramaturg'] as const;
@@ -218,6 +219,7 @@ export type TurnSyncFeedback = {
   boostRejectionReason: string | null;
   eventName: string;
   createdAt: number;
+  geolocationAvailable?: boolean;
 };
 
 export type GameState = {
@@ -1439,6 +1441,10 @@ const TURN_REGISTRATION_ERROR_MESSAGES: Array<{ token: string; message: string }
     token: 'already_registered',
     message: 'Hai già registrato un turno per questo evento.',
   },
+  {
+    token: 'invalid_coordinates',
+    message: 'Coordinate GPS non valide. Verifica il GPS e riprova.',
+  },
 ];
 
 export function localizeTurnRegistrationError(error: unknown): string {
@@ -2344,7 +2350,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     (
       payload: TurnRegisterPayload,
       rpcRow: TurnRegistrationRpcRow,
-      syncStatus: TurnSyncStatus
+      syncStatus: TurnSyncStatus,
+      geolocationAvailable?: boolean
     ) => {
       const turnRecord = buildTurnRecordFromPayload(
         payload,
@@ -2388,6 +2395,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         boostRejectionReason: rpcRow.boost_rejection_reason,
         eventName: payload.event_name,
         createdAt: Date.now(),
+        geolocationAvailable,
       });
     },
     []
@@ -2440,7 +2448,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             return { status: 'retry', error: new Error('Risposta RPC non valida') };
           }
           const syncStatus = resolveTurnSyncStatusFromRpc(rpcRow);
-          applyTurnRegistrationResult(mutation.payload, rpcRow, syncStatus);
+          applyTurnRegistrationResult(mutation.payload, rpcRow, syncStatus, Boolean(mutation.payload.checkin_latitude && mutation.payload.checkin_longitude));
           return { status: 'applied' };
         }
 
@@ -3064,8 +3072,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     const hasVercelOverrides = Object.keys(vercelOverrides).length > 0;
     const sourceWithVercel = (baseSource: Exclude<MobileFeatureFlagsSource, 'vercel'>): MobileFeatureFlagsSource =>
       hasVercelOverrides ? 'vercel' : baseSource;
-    const applyRuntimeOverrides = (baseline: MobileFeatureFlagsState): MobileFeatureFlagsState =>
-      applyMobileFeatureFlagOverrides(baseline, vercelOverrides);
+
+    const envOverrides = readEnvFeatureFlagOverrides();
+
+    const applyRuntimeOverrides = (baseline: MobileFeatureFlagsState): MobileFeatureFlagsState => {
+      let next = applyMobileFeatureFlagOverrides(baseline, envOverrides);
+      return applyMobileFeatureFlagOverrides(next, vercelOverrides);
+    };
 
     if (!isSupabaseConfigured || !supabase) {
       applyFeatureFlagsSnapshot(
@@ -3888,11 +3901,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         ? await readTurnGeolocationSnapshot()
         : null;
 
+      // Se la geolocalizzazione è richiesta ma non disponibile, procedi comunque con un avviso
       if (requiresServerGeolocation && !geolocationSnapshot) {
-        return {
-          ok: false,
-          error: 'Geolocalizzazione non disponibile. Abilita il GPS e riprova vicino al teatro.',
-        };
+        console.warn('Geolocalizzazione non disponibile - procedo senza validazione geofence');
       }
 
       const turnRegisterPayload: TurnRegisterPayload = {
@@ -3971,6 +3982,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           boostRejectionReason: localBoostRejectionReason,
           eventName: event.name,
           createdAt: Date.now(),
+          geolocationAvailable: Boolean(geolocationSnapshot),
         });
         return {
           ok: true,
@@ -4005,6 +4017,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           boostRejectionReason: null,
           eventName: event.name,
           createdAt: Date.now(),
+          geolocationAvailable: Boolean(geolocationSnapshot),
         });
         return {
           ok: true,
@@ -4044,7 +4057,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         );
 
         const syncStatus = resolveTurnSyncStatusFromRpc(rpcResponse);
-        applyTurnRegistrationResult(turnRegisterPayload, rpcResponse, syncStatus);
+        applyTurnRegistrationResult(turnRegisterPayload, rpcResponse, syncStatus, Boolean(geolocationSnapshot));
         logOfflineSync('registerTurn synced immediately via RPC', {
           turnId,
           eventId: event.id,
@@ -4097,6 +4110,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           boostRejectionReason: null,
           eventName: event.name,
           createdAt: Date.now(),
+          geolocationAvailable: Boolean(geolocationSnapshot),
         });
         return {
           ok: true,

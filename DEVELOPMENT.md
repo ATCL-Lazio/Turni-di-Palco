@@ -23,6 +23,12 @@ description: Guida tecnica e architettura del progetto Turni di Palco
 
 ---
 
+## Approfondimenti
+
+- [Note tecniche]({{ '/development/technical_notes/' | relative_url }}): architettura, QR, Supabase, ticketing e note operative.
+
+---
+
 ## Stato dei Deploy
 
 | Piattaforma | Stato | URL | QR |
