@@ -60,6 +60,27 @@ export function readVercelMobileFeatureFlagOverrides(): Partial<MobileFeatureFla
   return pickBooleanOverrides(MOBILE_FEATURE_FLAG_KEYS, rawOverrides);
 }
 
+function parseList(value: unknown): string[] {
+  if (typeof value !== "string") return [];
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+export function readEnvFeatureFlagOverrides(): Partial<MobileFeatureFlagsState> {
+  const overrides: Partial<MobileFeatureFlagsState> = {};
+  const enabled = new Set(parseList(import.meta.env.VITE_FEATURE_FLAGS));
+  const disabled = new Set(parseList(import.meta.env.VITE_DISABLED_FEATURE_FLAGS));
+
+  MOBILE_FEATURE_FLAG_KEYS.forEach((flag) => {
+    if (enabled.has(flag)) overrides[flag] = true;
+    if (disabled.has(flag)) overrides[flag] = false;
+  });
+
+  return overrides;
+}
+
 export function applyMobileFeatureFlagOverrides(
   baseline: MobileFeatureFlagsState,
   overrides: Partial<MobileFeatureFlagsState>

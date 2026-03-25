@@ -15,9 +15,8 @@ services:
   - key: VITE_DEV_CONTROL_PLANE_URL
     sync: false
   region: frankfurt
-  buildCommand: npm ci && npm run build:mobile && npm run build:pwa
-  startCommand: npm --workspace apps/pwa run preview:https -- --host 0.0.0.0 --port
-    $PORT --strictPort --clearScreen false
+  buildCommand: npm ci && npm run build:mobile
+  startCommand: npm --workspace apps/mobile run preview:https -- --host 0.0.0.0 --port $PORT --strictPort --clearScreen false
   autoDeployTrigger: commit
   previews:
     generation: manual
