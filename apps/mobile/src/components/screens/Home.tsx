@@ -351,7 +351,7 @@ function TurnSyncFeedbackCard({
   feedback?: TurnSyncFeedback | null;
   onDismiss?: () => void;
 }) {
-  if (!feedback || (!feedback.boostRequested && feedback.syncStatus !== 'failed_boost_fallback')) return null;
+  if (!feedback || (!feedback.boostRequested && feedback.syncStatus !== 'failed_boost_fallback' && feedback.geolocationAvailable !== false)) return null;
 
   const message =
     feedback.syncStatus === 'synced' && feedback.boostApplied ? 'Boost confermato'
@@ -359,12 +359,19 @@ function TurnSyncFeedbackCard({
     : feedback.syncStatus === 'synced_duplicate' ? 'Turno già sincronizzato'
     : 'Richiesta boost in verifica';
 
+  const showGeolocationWarning = feedback.geolocationAvailable === false;
+
   return (
     <Card className="bg-[#241f20] border border-[#3d3a3b]">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-sm text-white">{message}</p>
           <p className="text-xs text-[#b8b2b3]">{feedback.eventName}</p>
+          {showGeolocationWarning && (
+            <p className="text-xs text-[#f4bf4f] mt-2">
+              ⚠️ Turno registrato senza geolocalizzazione. Abilita il GPS per una validazione più accurata in futuro.
+            </p>
+          )}
         </div>
         {onDismiss && (
           <button type="button" onClick={onDismiss} className="text-[#7a7577] hover:text-white transition-colors p-1" aria-label="Chiudi notifica boost">
