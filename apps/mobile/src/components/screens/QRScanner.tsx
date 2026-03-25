@@ -4,21 +4,17 @@ import { Input } from '../ui/Input';
 import { Ticket, Camera, X } from 'lucide-react';
 import jsQR from 'jsqr';
 import { GameEvent } from '../../state/store';
-import { CIRCUIT_OPTIONS, DEFAULT_CIRCUIT } from '../../data/circuit_options';
 
 interface QRScannerProps {
   onClose: () => void;
   onScan: (code: string) => Promise<{ ok: true } | { ok: false; error: string }> | { ok: true } | { ok: false; error: string };
   events?: GameEvent[];
-  /** When true (default), show ticket entry as the primary view. */
-  ticketEntryPrimary?: boolean;
 }
 
-export function QRScanner({ onClose, onScan, events = [], ticketEntryPrimary = true }: QRScannerProps) {
+export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
   const [manualTicket, setManualTicket] = useState('');
   const [manualEventId, setManualEventId] = useState('');
-  const [manualCircuit, setManualCircuit] = useState<string>(DEFAULT_CIRCUIT);
-  const [isScanning, setIsScanning] = useState(!ticketEntryPrimary);
+  const [isScanning, setIsScanning] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [isStartingCamera, setIsStartingCamera] = useState(false);
@@ -137,7 +133,7 @@ export function QRScanner({ onClose, onScan, events = [], ticketEntryPrimary = t
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualTicket.trim() || !manualEventId.trim()) { setScanError('Inserisci sia ID Evento che Numero Ticket.'); return; }
-    await handleScanAttempt(`manual-ticket:${manualEventId}:${manualTicket}:${manualCircuit}`);
+    await handleScanAttempt(`manual-ticket:${manualEventId}:${manualTicket}`);
   };
 
   return (
@@ -161,13 +157,11 @@ export function QRScanner({ onClose, onScan, events = [], ticketEntryPrimary = t
           <ManualEntryForm
             manualTicket={manualTicket}
             manualEventId={manualEventId}
-            manualCircuit={manualCircuit}
             events={events}
             scanError={scanError}
             isHandlingScan={isHandlingScan}
             onTicketChange={setManualTicket}
             onEventChange={setManualEventId}
-            onCircuitChange={setManualCircuit}
             onSubmit={handleManualSubmit}
             onSwitchToScanner={() => setIsScanning(true)}
           />
@@ -273,10 +267,10 @@ function ManualSwitchButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function ManualEntryForm({ manualTicket, manualEventId, manualCircuit, events, scanError, isHandlingScan, onTicketChange, onEventChange, onCircuitChange, onSubmit, onSwitchToScanner }: {
-  manualTicket: string; manualEventId: string; manualCircuit: string; events: GameEvent[];
+function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHandlingScan, onTicketChange, onEventChange, onSubmit, onSwitchToScanner }: {
+  manualTicket: string; manualEventId: string; events: GameEvent[];
   scanError: string | null; isHandlingScan: boolean;
-  onTicketChange: (v: string) => void; onEventChange: (v: string) => void; onCircuitChange: (v: string) => void;
+  onTicketChange: (v: string) => void; onEventChange: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void; onSwitchToScanner: () => void;
 }) {
   return (
@@ -285,13 +279,13 @@ function ManualEntryForm({ manualTicket, manualEventId, manualCircuit, events, s
         <div className="w-16 h-16 bg-[#241f20] rounded-full flex items-center justify-center mx-auto mb-4">
           <Ticket className="text-[#f4bf4f]" size={32} />
         </div>
-        <h3 className="text-white mb-2">Registra il tuo Biglietto</h3>
-        <p className="text-sm text-[#b8b2b3]">Inserisci il numero di biglietto stampato sul tuo ticket</p>
+        <h3 className="text-white mb-2">Attiva il tuo Biglietto</h3>
+        <p className="text-sm text-[#b8b2b3]">Inserisci il numero di biglietto pre-registrato</p>
       </div>
 
       <div className="mb-6 text-center">
         <div className="inline-block px-3 py-1 bg-[#241f20] rounded-full text-[10px] text-[#f4bf4f] font-bold uppercase tracking-wider">
-          Registrazione Turno
+          Attivazione Biglietto
         </div>
       </div>
 
@@ -317,27 +311,15 @@ function ManualEntryForm({ manualTicket, manualEventId, manualCircuit, events, s
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-xs text-[#7f797a] ml-1 uppercase font-bold tracking-wider">Circuito Biglietteria</label>
-            <div className="relative">
-              <select value={manualCircuit} onChange={e => onCircuitChange(e.target.value)}
-                className="w-full bg-[#1a1617] border border-[#2d2728] rounded-xl px-4 py-3 text-sm text-white appearance-none focus:outline-none focus:border-[#f4bf4f] transition-colors">
-                {CIRCUIT_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#f4bf4f]">
-                <X size={14} className="rotate-45" />
-              </div>
-            </div>
-          </div>
-          <div className="space-y-2">
             <label className="text-xs text-[#7f797a] ml-1 uppercase font-bold tracking-wider">Numero Biglietto</label>
             <Input type="text" placeholder="es. 12345" value={manualTicket} onChange={e => onTicketChange(e.target.value)} className="text-center" />
-            <p className="text-[10px] text-[#7f797a] text-center px-2 italic">Trovi il numero stampato sul tuo biglietto</p>
+            <p className="text-[10px] text-[#7f797a] text-center px-2 italic">Il biglietto deve essere stato pre-registrato dalla biglietteria autorizzata</p>
           </div>
         </div>
 
         <div className="pt-4 space-y-3">
           <Button type="submit" variant="primary" size="lg" fullWidth disabled={isHandlingScan}>
-            {isHandlingScan ? 'Verifica in corso...' : 'Conferma dati'}
+            {isHandlingScan ? 'Verifica in corso...' : 'Attiva biglietto'}
           </Button>
           <button type="button" onClick={onSwitchToScanner}
             className="w-full inline-flex items-center justify-center gap-2 rounded-md py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors">

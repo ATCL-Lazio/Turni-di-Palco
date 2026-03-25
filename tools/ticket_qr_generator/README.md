@@ -2,13 +2,17 @@
 
 Prototipo per biglietterie teatrali che:
 - Calcola l'hash SHA-256 dal payload canonico del biglietto.
-- Pre-registra (riserva) l'hash su Supabase via `reserve_hash`.
+- **Pre-registra (riserva) l'hash su Supabase via `reserve_hash`. Questa è l'unica via autorizzata per la generazione di ticket validi.**
 
-La generazione del QR code avviene lato client mobile: l'app calcola autonomamente l'hash dal numero biglietto e lo usa per l'attivazione.
+## ⚠️ IMPORTANTE: Flusso Obbligatorio
+
+**Tutti i ticket DEVONO essere pre-registrati tramite questo strumento Python prima di poter essere attivati.**  
+L'attivazione client-side è possibile solo per ticket già pre-registrati in `ticket_activations` tramite `reserve_hash`.  
+Il flusso client-side diretto (`register_ticket`) è stato rimosso per garantire il controllo della biglietteria autorizzata.
 
 ## Struttura JSON del ticket
 
-Il payload usato per hashing e registrazione e:
+Il payload usato per hashing e registrazione è:
 
 ```json
 {
