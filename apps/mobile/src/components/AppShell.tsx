@@ -193,7 +193,7 @@ export function AppShell() {
 
   // Navigation action helpers
   const openQrScanner = useCallback(() => {
-    if (!isFeatureEnabled('mobile.action.qr_scan')) {
+    if (!isFeatureEnabled('qr_scan')) {
       showFeatureDisabledAlert('Registrazione biglietto');
       return;
     }
@@ -339,7 +339,7 @@ export function AppShell() {
     window.sessionStorage.setItem(PENDING_EVENT_KEY, pendingFromUrl.eventId);
     try { window.history.replaceState({}, '', stripEventLinkParams(window.location.href)); } catch { /* ignore */ }
     if (authReady && isAuthValid) {
-      if (!isFeatureEnabled('mobile.action.turn_submit')) { window.sessionStorage.removeItem(PENDING_EVENT_KEY); return; }
+      if (!isFeatureEnabled('registra_turno')) { window.sessionStorage.removeItem(PENDING_EVENT_KEY); return; }
       setPendingTicketActivation(null);
       setConfirmationEventOverride(null);
       nav.setScannedEventId(pendingFromUrl.eventId);
@@ -354,7 +354,7 @@ export function AppShell() {
     if (!authReady || !isAuthValid) return;
     const pendingEventId = window.sessionStorage.getItem(PENDING_EVENT_KEY);
     if (!pendingEventId) return;
-    if (!isFeatureEnabled('mobile.action.turn_submit')) { window.sessionStorage.removeItem(PENDING_EVENT_KEY); return; }
+    if (!isFeatureEnabled('registra_turno')) { window.sessionStorage.removeItem(PENDING_EVENT_KEY); return; }
     setPendingTicketActivation(null);
     setConfirmationEventOverride(null);
     nav.setScannedEventId(pendingEventId);
@@ -390,7 +390,7 @@ export function AppShell() {
             level={state.profile.level} xp={state.profile.xp} xpToNextLevel={state.profile.xpToNextLevel}
             reputation={state.profile.reputation} cachet={state.profile.cachet} tokenAtcl={state.profile.tokenAtcl}
             pendingBoostRequests={pendingBoostRequests} turnSyncFeedback={turnSyncFeedback} onDismissTurnSyncFeedback={clearTurnSyncFeedback}
-            allowScanQr={isFeatureEnabled('mobile.action.qr_scan')} allowTurnsSection={tabFlags.turns} allowActivitiesSection={tabFlags.activities}
+            allowScanQr={isFeatureEnabled('qr_scan')} allowTurnsSection={tabFlags.turns} allowActivitiesSection={tabFlags.activities}
             onScanQR={openQrScanner} onViewActivities={openActivities} onOpenRoleJourney={openActivities} onViewTurni={openTurns}
             onViewEventDetails={() => {
               if (!tabFlags.turns) { showFeatureDisabledAlert('La sezione turni'); return; }
@@ -418,17 +418,17 @@ export function AppShell() {
                 onEditPlanning={(id: string) => { nav.setScannedEventId(id); nav.navigate('event-details'); }}
                 onViewMap={() => openEventsMap(events.map(e => e.theatre))}
                 onViewEvent={(id: string) => { nav.setScannedEventId(id); nav.navigate('event-details'); }}
-                onScanQR={openQrScanner} canScanQr={isFeatureEnabled('mobile.action.qr_scan')} embedded />
+                onScanQR={openQrScanner} canScanQr={isFeatureEnabled('qr_scan')} embedded />
             }
             activitiesView={
               <Activities activities={visibleActivities}
                 activeRole={roleJourneyEnabled ? selectedRole : undefined}
                 slotsStatus={activitySlotsStatus} slotsLoading={activitySlotsLoading}
                 isOnline={typeof navigator === 'undefined' ? true : navigator.onLine}
-                canStartActivities={isFeatureEnabled('mobile.action.activity_start')}
+                canStartActivities={isFeatureEnabled('avvia_attivita')}
                 recommendedActivityId={roleJourneyEnabled ? recommendedActivityId : undefined}
                 onStartActivity={(id: string) => {
-                  if (!isFeatureEnabled('mobile.action.activity_start')) { showFeatureDisabledAlert('Avvio attivita'); return; }
+                  if (!isFeatureEnabled('avvia_attivita')) { showFeatureDisabledAlert('Avvio attivita'); return; }
                   nav.setSelectedActivityId(id);
                   nav.navigate('activity-detail');
                 }} embedded />
@@ -440,7 +440,7 @@ export function AppShell() {
         return <Leaderboard onSelectEntry={openLeaderboardProfile} />;
 
       case 'qr-scanner':
-        if (!isFeatureEnabled('mobile.action.qr_scan')) {
+        if (!isFeatureEnabled('qr_scan')) {
           return (
             <div className="min-h-screen pb-24">
               <div className="app-content px-6 pt-6 space-y-4">
@@ -458,7 +458,7 @@ export function AppShell() {
       case 'event-confirmation':
         return (
           <EventConfirmation event={selectedEvent} role={selectedRole} cachet={state.profile.cachet} tokenAtcl={state.profile.tokenAtcl}
-            pendingBoostRequests={pendingBoostRequests} allowBoost={isFeatureEnabled('mobile.action.turn_boost')}
+            pendingBoostRequests={pendingBoostRequests} allowBoost={isFeatureEnabled('boost_turno')}
             onConfirm={handleEventConfirm} onSuccess={() => handleTabChange('home')}
             onCancel={() => { setPendingTicketActivation(null); setConfirmationEventOverride(null); nav.setScannedEventId(''); handleTabChange(nav.activeTab === 'home' ? 'home' : 'activities'); }} />
         );
@@ -481,14 +481,14 @@ export function AppShell() {
         return (
           <Shop cachet={state.profile.cachet} extraActivitySlots={state.profile.extraActivitySlots}
             items={shopCatalog} theatreOptions={theatreReputation.map(item => ({ theatre: item.theatre, reputation: item.reputation }))}
-            loading={shopCatalogLoading} canPurchase={isFeatureEnabled('mobile.action.shop_purchase')} onPurchase={purchaseShopItem} />
+            loading={shopCatalogLoading} canPurchase={isFeatureEnabled('acquisti')} onPurchase={purchaseShopItem} />
         );
 
       case 'activity-detail':
         return currentActivity && (
           <ActivityDetail activity={currentActivity} role={roleJourneyEnabled ? selectedRole : undefined}
             onStart={() => {
-              if (!isFeatureEnabled('mobile.action.activity_start')) { showFeatureDisabledAlert('Avvio attivita'); return; }
+              if (!isFeatureEnabled('avvia_attivita')) { showFeatureDisabledAlert('Avvio attivita'); return; }
               setActivityOutcome(null); setActivityCompletion(null); nav.navigate('activity-minigame');
             }}
             onClose={() => nav.navigate('activities')} />
@@ -500,7 +500,7 @@ export function AppShell() {
             onCancel={() => nav.navigate('activity-detail')}
             onComplete={outcome => {
               void (async () => {
-                if (!isFeatureEnabled('mobile.action.activity_complete')) { showFeatureDisabledAlert('Completamento attivita'); handleTabChange('activities'); return; }
+                if (!isFeatureEnabled('completa_attivita')) { showFeatureDisabledAlert('Completamento attivita'); handleTabChange('activities'); return; }
                 const completion = await completeActivity(nav.selectedActivityId, outcome);
                 if (!completion.ok) { window.alert(completion.error); handleTabChange('activities'); return; }
                 setActivityOutcome(outcome);
@@ -517,10 +517,10 @@ export function AppShell() {
           <Activities activities={visibleActivities} activeRole={roleJourneyEnabled ? selectedRole : undefined}
             slotsStatus={activitySlotsStatus} slotsLoading={activitySlotsLoading}
             isOnline={typeof navigator === 'undefined' ? true : navigator.onLine}
-            canStartActivities={isFeatureEnabled('mobile.action.activity_start')}
+            canStartActivities={isFeatureEnabled('avvia_attivita')}
             recommendedActivityId={roleJourneyEnabled ? recommendedActivityId : undefined}
             onStartActivity={(id: string) => {
-              if (!isFeatureEnabled('mobile.action.activity_start')) { showFeatureDisabledAlert('Avvio attivita'); return; }
+              if (!isFeatureEnabled('avvia_attivita')) { showFeatureDisabledAlert('Avvio attivita'); return; }
               nav.setSelectedActivityId(id); nav.navigate('activity-detail');
             }} />
         );
