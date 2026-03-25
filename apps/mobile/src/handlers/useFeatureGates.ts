@@ -16,12 +16,12 @@ export function useFeatureGates(
   isFeatureEnabled: (key: MobileFeatureFlagKey) => boolean,
 ) {
   const tabFlags = useMemo<TabFeatureFlags>(() => ({
-    turns: featureFlags['mobile.section.turns'],
-    leaderboard: featureFlags['mobile.section.leaderboard'],
-    activities: featureFlags['mobile.section.activities'],
-    shop: featureFlags['mobile.section.shop'],
-    career: featureFlags['mobile.section.career'],
-    earnedTitles: featureFlags['mobile.section.earned_titles'],
+    turns: featureFlags['turni'],
+    leaderboard: featureFlags['classifica'],
+    activities: featureFlags['attivita'],
+    shop: featureFlags['shop'],
+    career: featureFlags['carriera'],
+    earnedTitles: featureFlags['titoli'],
   }), [featureFlags]);
 
   const isTabEnabled = useCallback((tab: Tab) => {
@@ -40,10 +40,10 @@ export function useFeatureGates(
     if (screen === 'shop') return tabFlags.shop;
     if (screen === 'career') return tabFlags.career;
     if (screen === 'earned-titles') return tabFlags.earnedTitles;
-    if (screen === 'support') return isFeatureEnabled('mobile.action.ai_support');
-    if (screen === 'qr-scanner') return isFeatureEnabled('mobile.action.qr_scan');
-    if (screen === 'event-confirmation') return isFeatureEnabled('mobile.action.turn_submit');
-    if (screen === 'ticket-qr-prototype') return isFeatureEnabled('mobile.dev.ticket_qr_prototype');
+    if (screen === 'support') return isFeatureEnabled('supporto_ai');
+    if (screen === 'qr-scanner') return isFeatureEnabled('qr_scan');
+    if (screen === 'event-confirmation') return isFeatureEnabled('registra_turno');
+    if (screen === 'ticket-qr-prototype') return isFeatureEnabled('ticket_qr');
     return true;
   }, [isFeatureEnabled, tabFlags]);
 
@@ -66,8 +66,8 @@ export function useFeatureGates(
     isScreenEnabled,
     showFeatureDisabledAlert,
     enabledNavTabs,
-    canViewAiSupport: isFeatureEnabled('mobile.action.ai_support'),
-    canViewTicketQrPrototype: isFeatureEnabled('mobile.dev.ticket_qr_prototype'),
-    roleJourneyEnabled: isFeatureEnabled('mobile.section.role_journey'),
+    canViewAiSupport: isFeatureEnabled('supporto_ai'),
+    canViewTicketQrPrototype: isFeatureEnabled('ticket_qr'),
+    roleJourneyEnabled: isFeatureEnabled('percorso_ruolo'),
   };
 }
