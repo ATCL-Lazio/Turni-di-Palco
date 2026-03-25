@@ -193,7 +193,7 @@ export function AppShell() {
 
   // Navigation action helpers
   const openQrScanner = useCallback(() => {
-    if (!isFeatureEnabled('mobile.action.qr_scan') && !isFeatureEnabled('mobile.action.ticket_entry')) {
+    if (!isFeatureEnabled('mobile.action.qr_scan')) {
       showFeatureDisabledAlert('Registrazione biglietto');
       return;
     }
@@ -440,7 +440,7 @@ export function AppShell() {
         return <Leaderboard onSelectEntry={openLeaderboardProfile} />;
 
       case 'qr-scanner':
-        if (!isFeatureEnabled('mobile.action.qr_scan') && !isFeatureEnabled('mobile.action.ticket_entry')) {
+        if (!isFeatureEnabled('mobile.action.qr_scan')) {
           return (
             <div className="min-h-screen pb-24">
               <div className="app-content px-6 pt-6 space-y-4">
@@ -453,7 +453,7 @@ export function AppShell() {
             </div>
           );
         }
-        return <QRScanner onClose={() => handleTabChange(nav.activeTab === 'home' ? 'home' : 'activities')} onScan={handleQRScanAttempt} events={events} ticketEntryPrimary={isFeatureEnabled('mobile.action.ticket_entry')} />;
+        return <QRScanner onClose={() => handleTabChange(nav.activeTab === 'home' ? 'home' : 'activities')} onScan={handleQRScanAttempt} events={events} />;
 
       case 'event-confirmation':
         return (
