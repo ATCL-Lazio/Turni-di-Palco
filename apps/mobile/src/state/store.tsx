@@ -3871,13 +3871,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         return { ok: false, error: 'Evento non trovato.' };
       }
 
-      if (!featureFlags['mobile.action.turn_submit']) {
-        logOfflineSync('registerTurn aborted: feature disabled', { eventId, roleId, feature: 'mobile.action.turn_submit' }, 'warn');
+      if (!featureFlags['registra_turno']) {
+        logOfflineSync('registerTurn aborted: feature disabled', { eventId, roleId, feature: 'registra_turno' }, 'warn');
         return { ok: false, error: 'Registrazione turni temporaneamente disattivata.' };
       }
 
-      if (boostRequested && !featureFlags['mobile.action.turn_boost']) {
-        logOfflineSync('registerTurn aborted: boost feature disabled', { eventId, roleId, feature: 'mobile.action.turn_boost' }, 'warn');
+      if (boostRequested && !featureFlags['boost_turno']) {
+        logOfflineSync('registerTurn aborted: boost feature disabled', { eventId, roleId, feature: 'boost_turno' }, 'warn');
         return { ok: false, error: 'Boost turno temporaneamente disattivato.' };
       }
 
@@ -3892,7 +3892,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           ? globalThis.crypto.randomUUID()
           : `turn-${Date.now()}`;
 
-      const geofenceValidationEnabled = featureFlags['mobile.action.turn_geofence'];
+      const geofenceValidationEnabled = featureFlags['geofence'];
       const requiresServerGeolocation = geofenceValidationEnabled
         && isSupabaseConfigured
         && Boolean(supabase)
@@ -4135,7 +4135,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   const purchaseShopItem = useCallback(
     async (itemCode: string, targetTheatre?: string | null): Promise<ShopPurchaseResult> => {
-      if (!featureFlags['mobile.action.shop_purchase']) {
+      if (!featureFlags['acquisti']) {
         return {
           ok: false,
           status: 'error',
@@ -4233,7 +4233,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       activityId: string,
       telemetry?: ActivityTelemetryInput
     ): Promise<CompleteActivityResult> => {
-      if (!featureFlags['mobile.action.activity_complete']) {
+      if (!featureFlags['completa_attivita']) {
         return { ok: false, error: 'Completamento attivita temporaneamente disattivato.' };
       }
       const activity = catalog.activities.find((item) => item.id === activityId);
