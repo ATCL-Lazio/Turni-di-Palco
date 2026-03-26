@@ -5,11 +5,14 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#120d0f">
+    <meta name="theme-color" content="#0d0a0b">
     {% seo %}
     <link rel="icon" type="image/png" sizes="192x192" href="{{ site_icon | relative_url }}">
     <link rel="shortcut icon" href="{{ site_icon | relative_url }}">
     <link rel="apple-touch-icon" href="{{ site_icon | relative_url }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ '/assets/css/style.css?v=' | append: site.github.build_revision | relative_url }}">
     <link rel="stylesheet" href="{{ '/assets/css/pages-theme.css?v=' | append: site.github.build_revision | relative_url }}">
   </head>
@@ -17,18 +20,42 @@
     <a id="skip-to-content" href="#content">Vai al contenuto.</a>
 
     <div class="site-shell">
+
+      <!-- Stage curtain decorations -->
+      <div class="curtain-left" aria-hidden="true"></div>
+      <div class="curtain-right" aria-hidden="true"></div>
+
       <header class="page-header" role="banner">
         <div class="hero-inner">
-          <p class="hero-kicker">A.T.C.L. presenta</p>
+          <div class="hero-spotlight" aria-hidden="true"></div>
+
+          <p class="hero-kicker">
+            <span class="hero-kicker-line" aria-hidden="true"></span>
+            A.T.C.L. presenta
+            <span class="hero-kicker-line" aria-hidden="true"></span>
+          </p>
+
           {% if site.logo %}
-          <img class="project-logo" src="{{ site.logo | relative_url }}" alt="{{ site.title }}" width="96" height="96">
+          <div class="project-logo-wrap">
+            <div class="project-logo-ring" aria-hidden="true"></div>
+            <img class="project-logo" src="{{ site.logo | relative_url }}" alt="{{ site.title }}" width="96" height="96">
+          </div>
           {% endif %}
+
           <h1 class="project-name">{{ page.title | default: site.title | default: site.github.repository_name }}</h1>
           <p class="project-tagline">{{ page.description | default: site.description | default: site.github.project_tagline }}</p>
+
           <div class="hero-actions">
             {% if site.app_url %}
-            <a href="{{ site.app_url }}" class="btn btn-primary">Apri l'app</a>
+            <a href="{{ site.app_url }}" class="btn btn-primary">
+              <span class="btn-shine" aria-hidden="true"></span>
+              Apri l'app
+            </a>
             {% endif %}
+          </div>
+
+          <div class="hero-ornament" aria-hidden="true">
+            <span></span><span></span><span></span>
           </div>
         </div>
       </header>
@@ -43,14 +70,35 @@
         {% endif %}
 
         <footer class="site-footer">
-          <span class="site-footer-owner">
-            {{ site.title }} &egrave; sviluppato da
-            <a href="https://atcllazio.it">A.T.C.L.</a>, Associazione Teatrale fra i Comuni del Lazio.
-          </span>
-          <span class="site-footer-credits">Pubblicato tramite <a href="https://pages.github.com">GitHub Pages</a>.</span>
-          <span class="site-footer-copyright">&copy; 2025 A.T.C.L. &mdash; Tutti i diritti riservati.</span>
+          <div class="footer-inner">
+            <div class="footer-brand">
+              {% if site.logo %}
+              <img src="{{ site.logo | relative_url }}" alt="{{ site.title }}" width="40" height="40" class="footer-logo">
+              {% endif %}
+              <div class="footer-brand-text">
+                <div class="footer-brand-name">{{ site.title }}</div>
+                <div class="footer-brand-sub">Il teatro come percorso</div>
+              </div>
+            </div>
+
+            <div class="footer-divider" aria-hidden="true"></div>
+
+            <div class="footer-info">
+              <p class="footer-info-text">
+                Sviluppato da <a href="https://atcllazio.it">A.T.C.L.</a> &mdash;
+                Associazione Teatrale fra i Comuni del Lazio.<br>
+                Promuove la cultura teatrale nel territorio laziale.
+              </p>
+            </div>
+
+            <div class="footer-meta">
+              <span>&copy; 2025 A.T.C.L. &mdash; Tutti i diritti riservati.</span>
+              <span>Pubblicato tramite <a href="https://pages.github.com">GitHub Pages</a>.</span>
+            </div>
+          </div>
         </footer>
       </main>
+
     </div>
   </body>
 </html>
