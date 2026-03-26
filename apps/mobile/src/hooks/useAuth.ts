@@ -111,7 +111,7 @@ export function useAuth(
 
             const email = user.email ?? profile.email;
             const displayName = resolveDisplayName({
-                name: (user.user_metadata as any)?.name,
+                name: (user.user_metadata?.name as string | undefined),
                 metadata: user.user_metadata,
                 email,
                 fallback: options?.fallbackName ?? profile.name,
