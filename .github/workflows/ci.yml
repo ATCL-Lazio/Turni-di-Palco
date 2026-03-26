@@ -77,7 +77,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-check
           language: it
-          patterns: "**/*.md **/*.txt **/*.html .temp/ci/ui-copy.txt"
+          patterns: ".temp/ci/ui-copy.txt"
           disabled_categories: "CASING,PUNCTUATION"
           level: error
 
