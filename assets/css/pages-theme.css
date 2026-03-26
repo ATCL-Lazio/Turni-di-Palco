@@ -649,6 +649,43 @@ a:hover {
   color: var(--tdp-gold);
 }
 
+/* Footer social icons */
+.footer-social {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.footer-social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--tdp-radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--tdp-border);
+  color: var(--tdp-text-soft);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  font-family: var(--tdp-font-body);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none !important;
+}
+
+.footer-social-link:hover {
+  background: rgba(244, 191, 79, 0.1);
+  border-color: rgba(244, 191, 79, 0.28);
+  color: var(--tdp-gold) !important;
+}
+
+.footer-rossellini {
+  width: auto;
+  padding: 0 0.55rem;
+}
+
 /* ─── 13. Landing page compositor ─── */
 .landing-composer {
   display: grid;
