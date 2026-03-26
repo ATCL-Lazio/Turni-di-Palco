@@ -44,6 +44,10 @@ function renderGate(root: HTMLElement): {
           <h1 class="text-xl font-bold text-neutral-100">Dev Dashboard</h1>
           <p class="text-sm text-neutral-400">Accedi con un account abilitato su Supabase.</p>
         </div>
+        <div class="bg-[#1a120e] border border-amber-900/40 rounded-lg px-4 py-3 space-y-1">
+          <p class="text-xs font-semibold text-amber-400">Stai cercando l'app?</p>
+          <p class="text-xs text-amber-200/70">Questa è l'area tecnica riservata agli sviluppatori. Se sei un utente di Turni di Palco, <a href="/mobile/" class="underline underline-offset-2 hover:text-amber-200 transition-colors">vai all'app mobile</a>.</p>
+        </div>
         <form data-gate-form class="space-y-4">
           <div class="space-y-1">
             <label class="text-xs text-neutral-400" for="gate-email">Email</label>
