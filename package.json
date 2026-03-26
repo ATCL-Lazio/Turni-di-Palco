@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": [
     "apps/mobile",
+    "apps/pwa",
     "apps/reactbricks",
     "apps/control-plane"
   ],
@@ -17,7 +18,9 @@
     "prepare": "husky",
     "format": "npm --workspace apps/mobile run format",
     "dev:mobile": "npm --workspace apps/mobile run dev",
+    "dev:pwa": "npm --workspace apps/pwa run dev",
     "build:mobile": "npm --workspace apps/mobile run build && mkdir -p dist && cp -rv apps/mobile/build/* dist/",
+    "build:pwa": "npm --workspace apps/pwa run build",
     "ai:codex": "node tools/ai-codex.js",
     "ai:support": "node tools/ai-support-server.js",
     "cleanup:events": "node tools/cleanup-old-events.js",
