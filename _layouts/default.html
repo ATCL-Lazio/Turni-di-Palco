@@ -29,8 +29,6 @@
             {% if site.app_url %}
             <a href="{{ site.app_url }}" class="btn btn-primary">Apri l'app</a>
             {% endif %}
-            <a href="{{ '/development/' | relative_url }}" class="btn btn-secondary">Documentazione</a>
-            <a href="{{ site.github.repository_url }}" class="btn btn-secondary">Repository</a>
           </div>
         </div>
       </header>
@@ -46,7 +44,7 @@
 
         <footer class="site-footer">
           <span class="site-footer-owner">
-            <a href="{{ site.github.repository_url }}">{{ site.title }}</a> &egrave; sviluppato da
+            {{ site.title }} &egrave; sviluppato da
             <a href="https://atcllazio.it">A.T.C.L.</a>, Associazione Teatrale fra i Comuni del Lazio.
           </span>
           <span class="site-footer-credits">Pubblicato tramite <a href="https://pages.github.com">GitHub Pages</a>.</span>
