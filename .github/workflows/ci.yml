@@ -39,7 +39,7 @@ jobs:
         run: npm run lint:mobile
 
       - name: Run type check (PWA)
-        run: npm --workspace apps/pwa run typecheck
+        run: npm run typecheck:pwa
       - name: Run type check (Mobile)
         run: npm --workspace apps/mobile run typecheck
 
@@ -78,7 +78,6 @@ jobs:
           reporter: github-check
           language: it
           patterns: "**/*.md **/*.txt **/*.html .temp/ci/ui-copy.txt"
-          ignore_patterns: "AGENTS.md CLAUDE.md"
           disabled_categories: "CASING,PUNCTUATION"
           level: error
 
