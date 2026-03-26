@@ -68,7 +68,7 @@ export default defineConfig(({ mode }) => {
   ) || DEFAULT_AI_SUPPORT_PORT;
 
   return {
-    base: '/',
+    base: '/mobile/',
     plugins: [react(), tailwindcss()],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
