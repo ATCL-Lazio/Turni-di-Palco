@@ -1414,7 +1414,91 @@ a:hover {
   }
 }
 
-/* ─── 22. Reduced motion ─── */
+/* ─── 22. Lightbox ─── */
+.tdp-zoomable {
+  cursor: zoom-in;
+}
+
+#tdp-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  background: rgba(7, 4, 5, 0.94);
+  backdrop-filter: blur(14px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+}
+
+#tdp-lightbox.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#tdp-lightbox-img {
+  max-width: min(400px, 88vw);
+  max-height: 82vh;
+  object-fit: contain;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 40px 100px rgba(0, 0, 0, 0.72),
+    0 0 0 1px rgba(244, 191, 79, 0.06);
+  transform: scale(0.9);
+  transition: transform 0.38s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+#tdp-lightbox.is-open #tdp-lightbox-img {
+  transform: scale(1);
+}
+
+#tdp-lightbox-caption {
+  margin: 0;
+  color: var(--tdp-text-muted);
+  font-family: var(--tdp-font-body);
+  font-size: 0.86rem;
+  text-align: center;
+  max-width: 38ch;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease 0.15s, transform 0.3s ease 0.15s;
+}
+
+#tdp-lightbox.is-open #tdp-lightbox-caption {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+#tdp-lightbox-close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--tdp-text-muted);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+#tdp-lightbox-close:hover {
+  background: rgba(244, 191, 79, 0.12);
+  border-color: rgba(244, 191, 79, 0.3);
+  color: var(--tdp-gold);
+}
+
+/* ─── 23. Reduced motion ─── */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
