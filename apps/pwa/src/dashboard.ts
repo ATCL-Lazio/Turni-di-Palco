@@ -1,13 +1,13 @@
 import { supabase } from "./services/supabase";
 
-type FeatureFlag = { flag_name: string; enabled: boolean; description: string | null };
+type FeatureFlag = { key: string; enabled: boolean; label: string; description: string };
 
 async function fetchFeatureFlags(): Promise<FeatureFlag[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
-    .from("feature_flags")
-    .select("flag_name, enabled, description")
-    .order("flag_name");
+    .from("mobile_feature_flags")
+    .select("key, enabled, label, description")
+    .order("key");
   if (error) return [];
   return (data ?? []) as FeatureFlag[];
 }
@@ -25,8 +25,8 @@ function flagRow(flag: FeatureFlag): string {
   return `
     <div class="flex items-center justify-between gap-4 py-2.5 border-b border-neutral-800 last:border-0">
       <div class="min-w-0">
-        <p class="text-sm text-neutral-100 font-mono truncate">${flag.flag_name}</p>
-        ${flag.description ? `<p class="text-xs text-neutral-500 truncate">${flag.description}</p>` : ""}
+        <p class="text-sm text-neutral-100 font-mono truncate">${flag.key}</p>
+        <p class="text-xs text-neutral-500 truncate">${flag.label}${flag.description ? ` — ${flag.description}` : ""}</p>
       </div>
       ${pill}
     </div>
