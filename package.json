@@ -13,6 +13,7 @@
     "test:mobile": "npm --workspace apps/mobile run test",
     "lint": "npm --workspace apps/mobile run lint",
     "lint:mobile": "npm --workspace apps/mobile run lint",
+    "lint:pwa": "echo 'PWA lint: no ESLint configured'",
     "typecheck": "npm --workspace apps/mobile run typecheck",
     "prepare": "husky",
     "format": "npm --workspace apps/mobile run format",
