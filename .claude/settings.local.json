@@ -7,8 +7,11 @@
       "WebFetch(domain:atcllazio.it)",
       "WebFetch(domain:spaziorossellini.it)",
       "WebFetch(domain:github.com/ATCL-Lazio/Turni-di-Palco)",
+      "WebFetch(domain:*atcl.vercel.app)",
       "mcp__claude_ai_Supabase__*",
-      "mcp__plugin_claude-mem_*"
+      "mcp__plugin_claude-mem_*",
+      "mcp__claude_ai_Vercel__*",
+      "mcp__claude_ai_Netlify__*"
     ]
   }
 }
