@@ -113,5 +113,66 @@
       </main>
 
     </div>
+
+    <!-- Lightbox -->
+    <div id="tdp-lightbox" role="dialog" aria-modal="true" aria-label="Ingrandimento immagine">
+      <button id="tdp-lightbox-close" aria-label="Chiudi">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      <img id="tdp-lightbox-img" src="" alt="">
+      <p id="tdp-lightbox-caption"></p>
+    </div>
+
+    <script>
+    (function () {
+      var lb      = document.getElementById('tdp-lightbox');
+      var lbImg   = document.getElementById('tdp-lightbox-img');
+      var lbCap   = document.getElementById('tdp-lightbox-caption');
+      var lbClose = document.getElementById('tdp-lightbox-close');
+      var lastFocus;
+
+      function open(src, alt, caption) {
+        lastFocus = document.activeElement;
+        lbImg.src = src;
+        lbImg.alt = alt || '';
+        lbCap.textContent = caption || '';
+        lb.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+        lbClose.focus();
+      }
+
+      function close() {
+        lb.classList.remove('is-open');
+        document.body.style.overflow = '';
+        lbImg.src = '';
+        if (lastFocus) lastFocus.focus();
+      }
+
+      /* Attach to all zoomable images */
+      document.querySelectorAll('.phone-frame img, .content-panel img').forEach(function (img) {
+        img.classList.add('tdp-zoomable');
+        img.setAttribute('tabindex', '0');
+        img.setAttribute('role', 'button');
+        img.setAttribute('aria-label', 'Ingrandisci immagine');
+        function trigger() {
+          var fig     = img.closest('figure, .showcase-card');
+          var figcap  = fig ? fig.querySelector('figcaption') : null;
+          open(img.src, img.alt, figcap ? figcap.textContent.trim() : '');
+        }
+        img.addEventListener('click', trigger);
+        img.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); trigger(); }
+        });
+      });
+
+      lbClose.addEventListener('click', close);
+      lb.addEventListener('click', function (e) { if (e.target === lb) close(); });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && lb.classList.contains('is-open')) close();
+      });
+    })();
+    </script>
   </body>
 </html>
