@@ -35,7 +35,6 @@ export type PersistedNavState = {
     screen: Screen;
     activeTab: Tab;
     legalReturnScreen: LegalReturnScreen;
-    isPasswordRecovery: boolean;
     scannedEventId: string;
     selectedActivityId: string;
 };

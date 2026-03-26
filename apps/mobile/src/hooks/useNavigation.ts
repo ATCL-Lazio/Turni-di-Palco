@@ -44,7 +44,6 @@ function readNavState(): PersistedNavState | null {
             screen: parsed.screen,
             activeTab: parsed.activeTab,
             legalReturnScreen: parsed.legalReturnScreen,
-            isPasswordRecovery: Boolean(parsed.isPasswordRecovery),
             scannedEventId: typeof parsed.scannedEventId === 'string' ? parsed.scannedEventId : '',
             selectedActivityId: typeof parsed.selectedActivityId === 'string' ? parsed.selectedActivityId : '',
         };
@@ -115,7 +114,6 @@ export function useNavigation(initialEvents: { id: string }[], options?: UseNavi
                 screen: 'welcome' as const,
                 activeTab: 'home' as const,
                 legalReturnScreen: 'welcome' as const,
-                isPasswordRecovery: false,
                 scannedEventId: '',
                 selectedActivityId: '',
             };
@@ -168,11 +166,10 @@ export function useNavigation(initialEvents: { id: string }[], options?: UseNavi
             screen: persistedScreen,
             activeTab: persistedTab,
             legalReturnScreen,
-            isPasswordRecovery,
             scannedEventId,
             selectedActivityId,
         });
-    }, [activeTab, currentScreen, isPasswordRecovery, isScreenEnabled, isTabEnabled, legalReturnScreen, scannedEventId, selectedActivityId]);
+    }, [activeTab, currentScreen, isScreenEnabled, isTabEnabled, legalReturnScreen, scannedEventId, selectedActivityId]);
 
     const handleTabChange = (tab: Tab) => {
         const nextTab = isTabEnabled && !isTabEnabled(tab) ? resolveFallbackTab(isTabEnabled) : tab;
