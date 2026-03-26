@@ -30,7 +30,6 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
     "@eslint/js": "^10.0.1",
-    "@modelcontextprotocol/server-puppeteer": "^2025.5.12",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.2",
     "qrcode": "^1.5.4",
