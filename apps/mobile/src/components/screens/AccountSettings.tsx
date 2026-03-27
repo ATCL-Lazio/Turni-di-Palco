@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ArrowLeft, Bell, Camera, ChevronRight, FileText, History, KeyRound,
-  LogOut, MapPin, MessageCircle, QrCode, Shield, ShieldCheck, Trash2,
+  ArrowLeft, Bell, Camera, ChevronRight, Download, FileText, History, KeyRound,
+  LogOut, MapPin, MessageCircle, QrCode, Shield, ShieldCheck, Trash2, UserX,
 } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
@@ -15,6 +15,7 @@ interface AccountSettingsProps {
   email: string;
   showAiSupport: boolean;
   showTicketPrototype: boolean;
+  leaderboardVisible: boolean;
   onBack: () => void;
   onViewTerms: () => void;
   onViewPrivacy: () => void;
@@ -22,6 +23,9 @@ interface AccountSettingsProps {
   onViewTicketPrototype: () => void;
   onChangePassword: () => void;
   onResetProgress: () => void;
+  onDeleteAccount: () => Promise<void>;
+  onExportData: () => void;
+  onToggleLeaderboard: (visible: boolean) => void;
   onLogout: () => void;
 }
 
@@ -31,14 +35,16 @@ type PermissionStatus = 'granted' | 'denied' | 'default' | 'unsupported';
 type PermissionKey = 'notifications' | 'camera' | 'geolocation';
 
 export function AccountSettings({
-  userName, email, showAiSupport, showTicketPrototype,
+  userName, email, showAiSupport, showTicketPrototype, leaderboardVisible,
   onBack, onViewTerms, onViewPrivacy, onViewSupport, onViewTicketPrototype,
-  onChangePassword, onResetProgress, onLogout,
+  onChangePassword, onResetProgress, onDeleteAccount, onExportData, onToggleLeaderboard, onLogout,
 }: AccountSettingsProps) {
   const { appInfo, appInfoStatus, appInfoError } = useAppInfo();
   const { permissionStatuses, permissionMessages, handlePermissionRequest } = usePermissions();
   const { notificationPermission, notificationStatusLabel, handleNotificationToggle } = useNotificationToggle();
   const supportStatus = useSupportStatus(showAiSupport);
+  const { geoConsent, grantGeoConsent, denyGeoConsent } = useGeoConsent();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleReset = () => {
     if (typeof window === 'undefined') return;
@@ -46,6 +52,20 @@ export function AccountSettings({
       'Vuoi davvero resettare i progressi? Questa modifica è irreversibile: cancelleremo turni, badge e statistiche e ti riporteremo alla scelta del ruolo.'
     );
     if (ok) onResetProgress();
+  };
+
+  const handleDeleteAccount = async () => {
+    if (typeof window === 'undefined') return;
+    const ok = window.confirm(
+      'Stai per eliminare definitivamente il tuo account e tutti i dati associati (turni, badge, statistiche, immagine profilo). Questa operazione è irreversibile. Continuare?'
+    );
+    if (!ok) return;
+    setDeleteError(null);
+    try {
+      await onDeleteAccount();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Impossibile eliminare il profilo. Riprova.');
+    }
   };
 
   return (
@@ -77,6 +97,14 @@ export function AccountSettings({
           notificationStatusLabel={notificationStatusLabel}
           onToggle={handleNotificationToggle}
         />
+        <GdprPrivacyCard
+          leaderboardVisible={leaderboardVisible}
+          geoConsent={geoConsent}
+          onToggleLeaderboard={onToggleLeaderboard}
+          onGrantGeoConsent={grantGeoConsent}
+          onDenyGeoConsent={denyGeoConsent}
+          onExportData={onExportData}
+        />
         <LinksSection
           showAiSupport={showAiSupport}
           showTicketPrototype={showTicketPrototype}
@@ -90,7 +118,12 @@ export function AccountSettings({
         <SettingsActionCard icon={Trash2} label="Resetta progressi" subtitle="Azzeramento irreversibile della carriera" onClick={handleReset} iconColor="text-[#ff4d4f]" />
 
         <div className="mt-auto flex flex-col gap-4">
+          {deleteError && <p className="text-[14px] leading-[20px] text-[#ff4d4f] text-center">{deleteError}</p>}
           <CopyrightNotice />
+          <button type="button" onClick={handleDeleteAccount}
+            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[14px] leading-[20px] text-[#ff4d4f]/70 w-full">
+            <UserX size={16} /> Elimina account
+          </button>
           <button type="button" onClick={onLogout}
             className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[18px] leading-[28px] text-[#ff4d4f] w-full">
             <LogOut size={20} /> Esci
@@ -457,6 +490,107 @@ function useSupportStatus(showAiSupport: boolean) {
   }, [showAiSupport]);
 
   return status;
+}
+
+// === GDPR Privacy Card ===
+
+const GEO_CONSENT_KEY = 'tdp-geo-consent-v1';
+type GeoConsent = 'granted' | 'denied' | null;
+
+function useGeoConsent() {
+  const [geoConsent, setGeoConsent] = useState<GeoConsent>(() => {
+    if (typeof window === 'undefined') return null;
+    const v = window.localStorage.getItem(GEO_CONSENT_KEY);
+    if (v === 'granted' || v === 'denied') return v;
+    return null;
+  });
+
+  const grantGeoConsent = useCallback(() => {
+    if (typeof window !== 'undefined') window.localStorage.setItem(GEO_CONSENT_KEY, 'granted');
+    setGeoConsent('granted');
+  }, []);
+
+  const denyGeoConsent = useCallback(() => {
+    if (typeof window !== 'undefined') window.localStorage.setItem(GEO_CONSENT_KEY, 'denied');
+    setGeoConsent('denied');
+  }, []);
+
+  return { geoConsent, grantGeoConsent, denyGeoConsent };
+}
+
+function GdprPrivacyCard({
+  leaderboardVisible,
+  geoConsent,
+  onToggleLeaderboard,
+  onGrantGeoConsent,
+  onDenyGeoConsent,
+  onExportData,
+}: {
+  leaderboardVisible: boolean;
+  geoConsent: GeoConsent;
+  onToggleLeaderboard: (visible: boolean) => void;
+  onGrantGeoConsent: () => void;
+  onDenyGeoConsent: () => void;
+  onExportData: () => void;
+}) {
+  const geoLabel = geoConsent === 'granted' ? 'Attiva' : geoConsent === 'denied' ? 'Negata' : 'Non impostata';
+
+  return (
+    <SettingsCard className="gap-[14px]">
+      <div className="flex items-center gap-[12px]">
+        <Shield className="text-[#f4bf4f]" size={24} />
+        <div className="text-left">
+          <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">Privacy e dati</p>
+          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">Controlli GDPR</p>
+        </div>
+      </div>
+
+      <div className="border-t border-[#2d2728] pt-[12px] flex flex-col gap-[16px]">
+        {/* Leaderboard opt-out */}
+        <div className="flex items-center justify-between gap-[12px]">
+          <div className="flex-1">
+            <p className="text-[16px] leading-[25.6px] text-white !m-0">Visibile in classifica</p>
+            <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Il tuo profilo appare nella classifica pubblica</p>
+          </div>
+          <Switch checked={leaderboardVisible} onCheckedChange={onToggleLeaderboard} />
+        </div>
+
+        {/* Geo consent */}
+        <div className="flex flex-col gap-[8px]">
+          <div className="flex items-start justify-between gap-[12px]">
+            <div className="flex-1">
+              <p className="text-[16px] leading-[25.6px] text-white !m-0">Verifica GPS ai turni</p>
+              <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">
+                Consenti la raccolta della posizione GPS per la verifica presenza. Stato: {geoLabel}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-[8px]">
+            <button type="button" onClick={onGrantGeoConsent}
+              disabled={geoConsent === 'granted'}
+              className="flex-1 py-[6px] px-[10px] rounded-[10px] border border-[#2d2728] text-[12px] text-white disabled:opacity-40">
+              Consenti
+            </button>
+            <button type="button" onClick={onDenyGeoConsent}
+              disabled={geoConsent === 'denied'}
+              className="flex-1 py-[6px] px-[10px] rounded-[10px] border border-[#2d2728] text-[12px] text-white disabled:opacity-40">
+              Nega
+            </button>
+          </div>
+        </div>
+
+        {/* Export data */}
+        <button type="button" onClick={onExportData}
+          className="flex items-center gap-[10px] py-[6px]">
+          <Download className="text-[#f4bf4f]" size={20} />
+          <div className="text-left">
+            <p className="text-[16px] leading-[25.6px] font-semibold text-white !m-0">Scarica i miei dati</p>
+            <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Esporta profilo, turni e badge in JSON</p>
+          </div>
+        </button>
+      </div>
+    </SettingsCard>
+  );
 }
 
 // === Helpers ===

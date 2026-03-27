@@ -187,6 +187,8 @@ export type PlayerProfile = {
   extraActivitySlots: number;
   profileImage?: string;
   lastActivityAt: number;
+  /** GDPR Art. 21 – se false il profilo non compare nella classifica pubblica. Default: true. */
+  leaderboardVisible: boolean;
 };
 
 export type RegisterTurnInput = {
@@ -331,6 +333,7 @@ type DbProfileRow = {
   extra_activity_slots?: number | null;
   profile_image?: string | null;
   last_activity_at?: string | null;
+  leaderboard_visible?: boolean | null;
 };
 
 type DbBadgeRow = {
@@ -540,6 +543,9 @@ const MAX_TURNS = 20;
 // allows us to invalidate incompatible queue formats by bumping the version.
 const OFFLINE_SYNC_QUEUE_KEY = 'tdp-mobile-offline-sync-v1';
 
+// GDPR Art. 7 – Consenso esplicito raccolta geolocalizzazione ai turni.
+const GEO_CONSENT_KEY = 'tdp-geo-consent-v1';
+
 // Base delay between retry attempts when flushing the offline sync queue.
 // 15 seconds is a compromise between user‑perceived latency (shorter is better)
 // and avoiding excessive battery and network usage on poor/unstable connections.
@@ -644,6 +650,7 @@ type ProfileUpsertPayload = {
   email: string;
   role_id: RoleId;
   profile_image?: string | null;
+  leaderboard_visible?: boolean | null;
 };
 
 type TurnInsertPayload = {
@@ -1515,6 +1522,7 @@ function buildProfileUpsertPayload(userId: string, profile: PlayerProfile): Prof
     email: profile.email,
     role_id: profile.roleId,
     profile_image: profile.profileImage ?? null,
+    leaderboard_visible: profile.leaderboardVisible ?? true,
   };
 }
 
@@ -1714,6 +1722,7 @@ function createInitialState(): GameState {
       extraActivitySlots: 0,
       profileImage: undefined,
       lastActivityAt: Date.now(),
+      leaderboardVisible: true,
     },
     turns: [],
     eventPlans: [],
@@ -1737,6 +1746,7 @@ function createDemoState(): GameState {
       extraActivitySlots: 1,
       profileImage: undefined,
       lastActivityAt: Date.now(),
+      leaderboardVisible: true,
     },
     turns: [
       {
@@ -2021,7 +2031,7 @@ type GameContextValue = {
   unfollowEvent: (eventId: string) => Promise<void>;
   isEventFollowed: (eventId: string) => boolean;
   markBadgesSeen: () => void;
-  updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage'>>) => void;
+  updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => void;
   registerTurn: (input: RegisterTurnInput) => Promise<RegisterTurnResult>;
   pendingBoostRequests: number;
   turnSyncFeedback: TurnSyncFeedback | null;
@@ -2031,6 +2041,10 @@ type GameContextValue = {
     telemetry?: ActivityTelemetryInput
   ) => Promise<CompleteActivityResult>;
   resetProgress: () => Promise<void>;
+  /** GDPR Art. 17 – elimina account e tutti i dati dal server e dal dispositivo. */
+  deleteAccount: () => Promise<void>;
+  /** GDPR Art. 15/20 – scarica copia di tutti i dati personali in JSON. */
+  exportUserData: () => void;
   changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
   resetState: () => void;
@@ -3573,6 +3587,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 lastActivityAt: Number.isFinite(parsedLastActivityAt)
                   ? parsedLastActivityAt
                   : prev.profile.lastActivityAt,
+                leaderboardVisible: profileRow.leaderboard_visible ?? prev.profile.leaderboardVisible,
               },
               eventPlans: prev.eventPlans,
               turns: remoteTurns,
@@ -3676,6 +3691,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 profile.extra_activity_slots ?? prev.profile.extraActivitySlots,
               profileImage: profile.profile_image ?? prev.profile.profileImage,
               lastActivityAt: profile.last_activity_at ? new Date(profile.last_activity_at).getTime() : prev.profile.lastActivityAt,
+              leaderboardVisible: profile.leaderboard_visible ?? prev.profile.leaderboardVisible,
             },
           }));
           setHasHydratedRemote(true);
@@ -3838,7 +3854,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateProfile = useCallback(
-    (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage'>>) => {
+    (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {
       let nextProfile: PlayerProfile | null = null;
       setState((prev: GameState) => {
         const nextRole =
@@ -3893,10 +3909,15 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           : `turn-${Date.now()}`;
 
       const geofenceValidationEnabled = featureFlags['geofence'];
+      // GDPR Art. 7 – raccogliamo la posizione solo se l'utente ha fornito consenso esplicito.
+      const geoConsent = typeof window !== 'undefined'
+        ? window.localStorage.getItem(GEO_CONSENT_KEY)
+        : null;
       const requiresServerGeolocation = geofenceValidationEnabled
         && isSupabaseConfigured
         && Boolean(supabase)
-        && Boolean(authUserId);
+        && Boolean(authUserId)
+        && geoConsent === 'granted';
       const geolocationSnapshot = requiresServerGeolocation
         ? await readTurnGeolocationSnapshot()
         : null;
@@ -4523,6 +4544,76 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  // GDPR Art. 17 – Diritto alla cancellazione: elimina account e tutti i dati utente.
+  const deleteAccount = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Supabase non configurato');
+    }
+    if (!authUserId) {
+      throw new Error('Devi essere autenticato per eliminare il profilo');
+    }
+    const { error } = await supabase.functions.invoke('delete-my-account');
+    if (error) {
+      throw new Error(error.message || 'Impossibile eliminare il profilo. Riprova.');
+    }
+    // Clear all local storage keys owned by this app
+    if (typeof window !== 'undefined') {
+      [
+        SUPABASE_SESSION_KEY,
+        LEGACY_SUPABASE_SESSION_KEY,
+        SUPABASE_SESSION_ID_KEY,
+        LEGACY_SUPABASE_SESSION_ID_KEY,
+        STORAGE_KEY,
+        OFFLINE_SYNC_QUEUE_KEY,
+        GEO_CONSENT_KEY,
+      ].forEach((k) => { try { window.localStorage.removeItem(k); } catch { /* ignore */ } });
+      // Also clear any remaining tdp-* and sb-*-auth-token keys
+      for (let i = window.localStorage.length - 1; i >= 0; i--) {
+        const key = window.localStorage.key(i);
+        if (key && (key.startsWith('tdp-') || (key.startsWith('sb-') && key.endsWith('-auth-token')))) {
+          try { window.localStorage.removeItem(key); } catch { /* ignore */ }
+        }
+      }
+    }
+    await supabase.auth.signOut();
+    resetState();
+  }, [authUserId, resetState]);
+
+  // GDPR Art. 15/20 – Diritto di accesso e portabilità: scarica tutti i dati in formato JSON.
+  const exportUserData = useCallback(() => {
+    const data = {
+      exportDate: new Date().toISOString(),
+      profile: {
+        name: state.profile.name,
+        email: state.profile.email,
+        roleId: state.profile.roleId,
+        level: state.profile.level,
+        xp: state.profile.xp,
+        xpTotal: state.profile.xpTotal,
+        xpField: state.profile.xpField,
+        reputation: state.profile.reputation,
+        cachet: state.profile.cachet,
+        tokenAtcl: state.profile.tokenAtcl,
+        lastActivityAt: new Date(state.profile.lastActivityAt).toISOString(),
+        leaderboardVisible: state.profile.leaderboardVisible,
+      },
+      turns: state.turns,
+      badges,
+      theatreReputation,
+      plannedEvents: eventPlans,
+    };
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const safeName = state.profile.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'profilo';
+    a.download = `turni-di-palco-${safeName}-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [state.profile, state.turns, badges, theatreReputation, eventPlans]);
 
   const value = useMemo<GameContextValue>(
     () => ({
@@ -4571,6 +4662,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       clearTurnSyncFeedback,
       completeActivity,
       resetProgress,
+      deleteAccount,
+      exportUserData,
       changePassword,
       sendPasswordResetEmail,
       resetState,
@@ -4619,6 +4712,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       clearTurnSyncFeedback,
       completeActivity,
       resetProgress,
+      deleteAccount,
+      exportUserData,
       changePassword,
       sendPasswordResetEmail,
       resetState,
