@@ -8,10 +8,8 @@ description: Guida tecnica e architettura del progetto Turni di Palco
 # Turni di Palco — Documentazione tecnica
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/82f90be3-aaed-4dcc-8a21-8ee00395d6eb/deploy-status)](https://app.netlify.com/projects/turni-di-palco/deploys)
-[![Mobile Build](https://github.com/Heartran/Turni-di-Palco/actions/workflows/mobile-build.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/mobile-build.yml)
 [![Cleanup Old Events](https://github.com/Heartran/Turni-di-Palco/actions/workflows/cleanup-events.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/cleanup-events.yml)
 [![CI](https://github.com/Heartran/Turni-di-Palco/actions/workflows/ci.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/ci.yml)
-[![Update Server Repository](https://github.com/Heartran/Turni-di-Palco/actions/workflows/update-server-repository.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/update-server-repository.yml)
 [![Sync Deploy Branches](https://github.com/Heartran/Turni-di-Palco/actions/workflows/sync-deploy-branches.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/sync-deploy-branches.yml)
 [![Security Checks](https://github.com/Heartran/Turni-di-Palco/actions/workflows/security.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/security.yml)
 [![Last Commit](https://turni-di-palco-badges.onrender.com/github/last-commit/Heartran/Turni-di-Palco?label=Last%20commit&logo=github)](https://github.com/Heartran/Turni-di-Palco/commits/main)
