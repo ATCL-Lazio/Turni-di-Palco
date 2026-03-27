@@ -34,7 +34,8 @@ jobs:
       - name: Post in-progress comment
         id: progress
         run: |
-          $body = @{ body = "## 🔄 Claude Code Review in progress...`n`nAnalyzing changed files on ${{ runner.name }}..." } | ConvertTo-Json -Compress
+          $bodyText = "## 🔄 Claude Code Review in progress...`n`nAnalyzing changed files on ${{ runner.name }}..."
+          $body = '{"body":"' + $bodyText.Replace('"', '\"') + '"}'
           $result = $body | gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments --input -
           $commentId = ($result | ConvertFrom-Json).id
           "comment_id=$commentId" >> $env:GITHUB_OUTPUT
@@ -81,8 +82,9 @@ jobs:
       - name: Update or post review results
         run: |
           $reviewBody = Get-Content "review_output.md" -Raw
-          $commentBody = "## 🤖 Claude Code Review`n`n$reviewBody`n`n---`n*Reviewed by Claude Code CLI on ${{ runner.name }} at $(Get-Date -Format 'yyyy-MM-dd HH:mm')*"
-          $body = @{ body = $commentBody } | ConvertTo-Json -Compress
+          $footer = "`n`n---`n*Reviewed by Claude Code CLI on ${{ runner.name }} at $(Get-Date -Format 'yyyy-MM-dd HH:mm')*"
+          $bodyText = "## 🤖 Claude Code Review`n`n$reviewBody$footer"
+          $body = '{"body":"' + $bodyText.Replace('"', '\"').Replace("`r", "").Replace("`n", "\n") + '"}'
           
           # Get the PR action type
           $prAction = "${{ github.event.action }}"
@@ -103,14 +105,15 @@ jobs:
         run: |
           $prAction = "${{ github.event.action }}"
           $commentId = "${{ steps.progress.outputs.comment_id }}"
-          $errorBody = @{ body = "## 🤖 Claude Code Review - Error`n`nFailed to complete code review. Check runner logs on ${{ runner.name }}." } | ConvertTo-Json -Compress
+          $bodyText = "## 🤖 Claude Code Review - Error`n`nFailed to complete code review. Check runner logs on ${{ runner.name }}."
+          $body = '{"body":"' + $bodyText.Replace('"', '\"') + '"}'
           
           if ($prAction -eq "opened" -and $commentId) {
             # Update the in-progress comment with error
-            $errorBody | gh api repos/${{ github.repository }}/issues/comments/$commentId -X PATCH --input -
+            $body | gh api repos/${{ github.repository }}/issues/comments/$commentId -X PATCH --input -
           } else {
             # Post new error comment
-            $errorBody | gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments --input -
+            $body | gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments --input -
           }
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
