@@ -60,7 +60,7 @@ export function AppShell() {
     activitySlotsStatus, activitySlotsLoading,
     getEventPlan, planEvent, cancelEventPlan, markBadgesSeen,
     updateProfile, registerTurn, pendingBoostRequests, turnSyncFeedback, clearTurnSyncFeedback,
-    completeActivity, resetProgress, resetState,
+    completeActivity, resetProgress, deleteAccount, exportUserData, resetState,
     changePassword, sendPasswordResetEmail, featureFlags, isFeatureEnabled,
   } = gameState;
 
@@ -553,11 +553,15 @@ export function AppShell() {
         return (
           <AccountSettings userName={state.profile.name} email={state.profile.email}
             showAiSupport={canViewAiSupport} showTicketPrototype={canViewTicketQrPrototype}
+            leaderboardVisible={state.profile.leaderboardVisible}
             onBack={() => nav.navigate('profile')} onViewTerms={() => nav.openLegal('terms', 'account-settings')}
             onViewPrivacy={() => nav.openLegal('privacy', 'account-settings')}
             onViewSupport={openSupport} onViewTicketPrototype={openTicketQrPrototype}
             onChangePassword={() => { nav.setIsPasswordRecovery(false); nav.navigate('change-password'); }}
             onResetProgress={async () => { await resetProgress(); handleTabChange('home'); nav.navigate('role-selection'); }}
+            onDeleteAccount={deleteAccount}
+            onExportData={exportUserData}
+            onToggleLeaderboard={(visible) => updateProfile({ leaderboardVisible: visible })}
             onLogout={handleLogout} />
         );
 
@@ -566,11 +570,15 @@ export function AppShell() {
           ? <SupportChat userName={state.profile.name} onBack={() => nav.navigate('account-settings')} />
           : <AccountSettings userName={state.profile.name} email={state.profile.email}
               showAiSupport={canViewAiSupport} showTicketPrototype={canViewTicketQrPrototype}
+              leaderboardVisible={state.profile.leaderboardVisible}
               onBack={() => nav.navigate('profile')} onViewTerms={() => nav.openLegal('terms', 'account-settings')}
               onViewPrivacy={() => nav.openLegal('privacy', 'account-settings')}
               onViewSupport={openSupport} onViewTicketPrototype={openTicketQrPrototype}
               onChangePassword={() => { nav.setIsPasswordRecovery(false); nav.navigate('change-password'); }}
               onResetProgress={async () => { await resetProgress(); handleTabChange('home'); nav.navigate('role-selection'); }}
+              onDeleteAccount={deleteAccount}
+              onExportData={exportUserData}
+              onToggleLeaderboard={(visible) => updateProfile({ leaderboardVisible: visible })}
               onLogout={handleLogout} />;
 
       case 'change-password':
@@ -605,11 +613,15 @@ export function AppShell() {
           ? <TicketQrActivationPrototype userId={authUserId ?? state.profile.email ?? 'guest-user'} onBack={() => nav.navigate('account-settings')} />
           : <AccountSettings userName={state.profile.name} email={state.profile.email}
               showAiSupport={canViewAiSupport} showTicketPrototype={canViewTicketQrPrototype}
+              leaderboardVisible={state.profile.leaderboardVisible}
               onBack={() => nav.navigate('profile')} onViewTerms={() => nav.openLegal('terms', 'account-settings')}
               onViewPrivacy={() => nav.openLegal('privacy', 'account-settings')}
               onViewSupport={openSupport} onViewTicketPrototype={openTicketQrPrototype}
               onChangePassword={() => { nav.setIsPasswordRecovery(false); nav.navigate('change-password'); }}
               onResetProgress={async () => { await resetProgress(); handleTabChange('home'); nav.navigate('role-selection'); }}
+              onDeleteAccount={deleteAccount}
+              onExportData={exportUserData}
+              onToggleLeaderboard={(visible) => updateProfile({ leaderboardVisible: visible })}
               onLogout={handleLogout} />;
 
       default:
