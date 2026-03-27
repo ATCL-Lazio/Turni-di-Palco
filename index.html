@@ -10,154 +10,209 @@ content_panel: false
 
 <div class="landing-composer">
 
+  <!-- TOC navigation -->
+  <nav aria-label="Indice sezioni">
+    <ul class="sections-toc">
+      <li><a href="#intro-title">Prodotto</a></li>
+      <li><a href="#features-title">Cosa trovi nell'app</a></li>
+      <li><a href="#flow-title">Flusso utente</a></li>
+      <li><a href="#gallery-title">Interfaccia reale</a></li>
+      <li><a href="#audience-title">Pubblico</a></li>
+      <li><a href="#cta-title">Entra nell'app</a></li>
+    </ul>
+  </nav>
+
+  <!-- Section 1: Prodotto — always open -->
   <section class="landing-block" aria-labelledby="intro-title">
-    <span class="section-label">Prodotto</span>
-    <h2 id="intro-title">Un'app che trasforma la presenza a teatro in progresso reale.</h2>
-    <p class="landing-intro-copy">
-      Turni di Palco collega eventi dal vivo, QR check-in, attività contestuali e crescita personale in un'esperienza
-      unica, semplice da leggere e coerente con il linguaggio del mobile.
-    </p>
-    <div class="landing-pill-row" aria-label="Punti chiave">
-      <span class="landing-pill">Check-in eventi</span>
-      <span class="landing-pill">Missioni contestuali</span>
-      <span class="landing-pill">Progressione carriera</span>
-      <span class="landing-pill">PWA multipagina</span>
-    </div>
-    <div class="intro-values">
-      <div class="intro-value">
-        <strong>Partecipa</strong>
-        <span>Ogni spettacolo diventa un'azione registrata nel tuo profilo.</span>
+    <div class="section-header">
+      <div class="section-header-text">
+        <span class="section-label">Prodotto</span>
+        <h2 id="intro-title">Un'app che trasforma la presenza a teatro in progresso reale.</h2>
       </div>
-      <div class="intro-value">
-        <strong>Gioca</strong>
-        <span>Missioni e contenuti mantengono viva l'esperienza oltre la serata.</span>
+      <svg class="section-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="section-body">
+      <div class="section-body-inner">
+        <p class="landing-intro-copy">
+          Turni di Palco collega eventi dal vivo, QR check-in, attività contestuali e crescita personale in un'esperienza
+          unica, semplice da leggere e coerente con il linguaggio del mobile.
+        </p>
+        <div class="landing-pill-row" aria-label="Punti chiave">
+          <span class="landing-pill">Check-in eventi</span>
+          <span class="landing-pill">Missioni contestuali</span>
+          <span class="landing-pill">Progressione carriera</span>
+          <span class="landing-pill">PWA multipagina</span>
+        </div>
+        <div class="intro-values">
+          <div class="intro-value">
+            <strong>Partecipa</strong>
+            <span>Ogni spettacolo diventa un'azione registrata nel tuo profilo.</span>
+          </div>
+          <div class="intro-value">
+            <strong>Gioca</strong>
+            <span>Missioni e contenuti mantengono viva l'esperienza oltre la serata.</span>
+          </div>
+          <div class="intro-value">
+            <strong>Cresci</strong>
+            <span>Ruoli, reputazione e risultati formano un percorso leggibile nel tempo.</span>
+          </div>
+        </div>
       </div>
-      <div class="intro-value">
-        <strong>Cresci</strong>
-        <span>Ruoli, reputazione e risultati formano un percorso leggibile nel tempo.</span>
+    </div>
+  </section>
+
+  <!-- Section 2: Cosa trovi nell'app — collapsed -->
+  <section class="landing-block is-collapsed" aria-labelledby="features-title">
+    <div class="section-header">
+      <div class="section-header-text">
+        <span class="section-label">Cosa trovi nell'app</span>
+        <h2 id="features-title">Una struttura chiara, pensata come un prodotto mobile.</h2>
+      </div>
+      <svg class="section-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="section-body">
+      <div class="section-body-inner">
+        <div class="feature-stack">
+          <article class="feature-panel">
+            <span class="feature-kicker">Dashboard</span>
+            <h3>Stato del profilo subito visibile.</h3>
+            <p>Ruolo, risorse, attività recenti e prossimi obiettivi convivono in un colpo d'occhio, senza elementi decorativi invasivi.</p>
+          </article>
+          <article class="feature-panel">
+            <span class="feature-kicker">Eventi</span>
+            <h3>Presenze e missioni nello stesso flusso.</h3>
+            <p>L'ingresso a teatro, la scansione QR e le attività collegate fanno parte della stessa esperienza, non di moduli separati.</p>
+          </article>
+          <article class="feature-panel">
+            <span class="feature-kicker">Carriera</span>
+            <h3>Progressione concreta, leggibile, cumulativa.</h3>
+            <p>Statistiche, reputazione e avanzamento del ruolo raccontano nel tempo cosa hai fatto davvero dentro il circuito culturale.</p>
+          </article>
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="landing-block" aria-labelledby="features-title">
-    <div class="landing-block-head">
-      <span class="section-label">Cosa trovi nell'app</span>
-      <h2 id="features-title">Una struttura chiara, pensata come un prodotto mobile.</h2>
+  <!-- Section 3: Flusso utente — collapsed -->
+  <section class="landing-block is-collapsed" aria-labelledby="flow-title">
+    <div class="section-header">
+      <div class="section-header-text">
+        <span class="section-label">Flusso utente</span>
+        <h2 id="flow-title">Quattro passaggi netti, senza marketing fumoso.</h2>
+      </div>
+      <svg class="section-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
-    <div class="feature-stack">
-      <article class="feature-panel">
-        <span class="feature-kicker">Dashboard</span>
-        <h3>Stato del profilo subito visibile.</h3>
-        <p>Ruolo, risorse, attività recenti e prossimi obiettivi convivono in un colpo d'occhio, senza elementi decorativi invasivi.</p>
-      </article>
-      <article class="feature-panel">
-        <span class="feature-kicker">Eventi</span>
-        <h3>Presenze e missioni nello stesso flusso.</h3>
-        <p>L'ingresso a teatro, la scansione QR e le attività collegate fanno parte della stessa esperienza, non di moduli separati.</p>
-      </article>
-      <article class="feature-panel">
-        <span class="feature-kicker">Carriera</span>
-        <h3>Progressione concreta, leggibile, cumulativa.</h3>
-        <p>Statistiche, reputazione e avanzamento del ruolo raccontano nel tempo cosa hai fatto davvero dentro il circuito culturale.</p>
-      </article>
-    </div>
-  </section>
-
-  <section class="landing-block" aria-labelledby="flow-title">
-    <div class="landing-block-head">
-      <span class="section-label">Flusso utente</span>
-      <h2 id="flow-title">Quattro passaggi netti, senza marketing fumoso.</h2>
-    </div>
-    <ol class="landing-flow">
-      <li>
-        <span class="landing-flow-index">01</span>
-        <div>
-          <h3>Scegli il ruolo</h3>
-          <p>All'avvio definisci una prospettiva narrativa che orienta missioni, tono e obiettivi personali.</p>
-        </div>
-      </li>
-      <li>
-        <span class="landing-flow-index">02</span>
-        <div>
-          <h3>Vai agli spettacoli</h3>
-          <p>La presenza dal vivo è il cuore dell'esperienza e attiva il collegamento con il tuo percorso digitale.</p>
-        </div>
-      </li>
-      <li>
-        <span class="landing-flow-index">03</span>
-        <div>
-          <h3>Completa attività collegate</h3>
-          <p>Quiz, missioni e micro-contenuti prolungano l'esperienza in modo leggero e contestuale.</p>
-        </div>
-      </li>
-      <li>
-        <span class="landing-flow-index">04</span>
-        <div>
-          <h3>Accumula risultati</h3>
-          <p>Esperienza, reputazione e ricompense costruiscono una continuità che valorizza la partecipazione ricorrente.</p>
-        </div>
-      </li>
-    </ol>
-  </section>
-
-  <section class="landing-block" aria-labelledby="gallery-title">
-    <div class="landing-block-head">
-      <span class="section-label">Interfaccia reale</span>
-      <h2 id="gallery-title">Le schermate contano: qui si vede davvero il prodotto.</h2>
-      <p class="landing-support-copy">Dashboard, eventi, shop e carriera mostrano un'interfaccia dark, ordinata e coerente con il mobile.</p>
-    </div>
-    <div class="showcase-grid">
-      <figure class="showcase-card">
-        <div class="phone-frame">
-          <img src="assets/images/Screenshot 2026-03-17 120648.png" alt="Dashboard con progressione, reputazione e attività recenti" loading="lazy">
-        </div>
-        <figcaption>Dashboard personale con stato carriera, risorse e attività in evidenza.</figcaption>
-      </figure>
-      <figure class="showcase-card">
-        <div class="phone-frame">
-          <img src="assets/images/Screenshot 2026-03-17 121756.png" alt="Schermata eventi con missioni e disponibilità del circuito" loading="lazy">
-        </div>
-        <figcaption>Vista eventi e missioni disponibili collegate agli spettacoli del circuito.</figcaption>
-      </figure>
-      <figure class="showcase-card">
-        <div class="phone-frame">
-          <img src="assets/images/Screenshot 2026-03-17 122258.png" alt="Shop interno con premi, risorse e oggetti digitali" loading="lazy">
-        </div>
-        <figcaption>Shop interno per riscattare risorse e premi collegati alla progressione.</figcaption>
-      </figure>
-      <figure class="showcase-card">
-        <div class="phone-frame">
-          <img src="assets/images/Screenshot 2026-03-17 122845.png" alt="Schermata carriera con statistiche, reputazione e avanzamento" loading="lazy">
-        </div>
-        <figcaption>Schermata carriera con reputazione, caratteristiche e avanzamento del ruolo scelto.</figcaption>
-      </figure>
+    <div class="section-body">
+      <div class="section-body-inner">
+        <ol class="landing-flow">
+          <li>
+            <span class="landing-flow-index">01</span>
+            <div>
+              <h3>Scegli il ruolo</h3>
+              <p>All'avvio definisci una prospettiva narrativa che orienta missioni, tono e obiettivi personali.</p>
+            </div>
+          </li>
+          <li>
+            <span class="landing-flow-index">02</span>
+            <div>
+              <h3>Vai agli spettacoli</h3>
+              <p>La presenza dal vivo è il cuore dell'esperienza e attiva il collegamento con il tuo percorso digitale.</p>
+            </div>
+          </li>
+          <li>
+            <span class="landing-flow-index">03</span>
+            <div>
+              <h3>Completa attività collegate</h3>
+              <p>Quiz, missioni e micro-contenuti prolungano l'esperienza in modo leggero e contestuale.</p>
+            </div>
+          </li>
+          <li>
+            <span class="landing-flow-index">04</span>
+            <div>
+              <h3>Accumula risultati</h3>
+              <p>Esperienza, reputazione e ricompense costruiscono una continuità che valorizza la partecipazione ricorrente.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
     </div>
   </section>
 
-  <section class="landing-block" aria-labelledby="audience-title">
-    <div class="landing-block-head">
-      <span class="section-label">Pubblico</span>
-      <h2 id="audience-title">Tre ingressi possibili, un'unica promessa: rendere il teatro più attivo e memorabile.</h2>
+  <!-- Section 4: Interfaccia reale — collapsed -->
+  <section class="landing-block is-collapsed" aria-labelledby="gallery-title">
+    <div class="section-header">
+      <div class="section-header-text">
+        <span class="section-label">Interfaccia reale</span>
+        <h2 id="gallery-title">Le schermate contano: qui si vede davvero il prodotto.</h2>
+      </div>
+      <svg class="section-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
-    <div class="audience-stack">
-      <article class="audience-panel">
-        <span class="audience-tag">Giovani</span>
-        <h3>Un linguaggio più vicino alle abitudini digitali.</h3>
-        <p>La cultura viene presentata come percorso, con obiettivi comprensibili e reward che danno continuità alla partecipazione.</p>
-      </article>
-      <article class="audience-panel">
-        <span class="audience-tag">Appassionati</span>
-        <h3>Un modo per seguire il circuito in modo più profondo.</h3>
-        <p>Ogni spettacolo non finisce all'uscita dalla sala, ma resta collegato a missioni, memoria e crescita personale.</p>
-      </article>
-      <article class="audience-panel">
-        <span class="audience-tag">Scuole e operatori</span>
-        <h3>Uno strumento per attivare, misurare e fidelizzare.</h3>
-        <p>La presenza agli eventi può essere accompagnata da percorsi e obiettivi che rendono più forte il legame con il territorio.</p>
-      </article>
+    <div class="section-body">
+      <div class="section-body-inner">
+        <p class="landing-support-copy">Dashboard, eventi, shop e carriera mostrano un'interfaccia dark, ordinata e coerente con il mobile.</p>
+        <div class="showcase-grid">
+          <figure class="showcase-card">
+            <div class="phone-frame">
+              <img src="assets/images/Screenshot 2026-03-17 120648.png" alt="Dashboard con progressione, reputazione e attività recenti" loading="lazy">
+            </div>
+            <figcaption>Dashboard personale con stato carriera, risorse e attività in evidenza.</figcaption>
+          </figure>
+          <figure class="showcase-card">
+            <div class="phone-frame">
+              <img src="assets/images/Screenshot 2026-03-17 121756.png" alt="Schermata eventi con missioni e disponibilità del circuito" loading="lazy">
+            </div>
+            <figcaption>Vista eventi e missioni disponibili collegate agli spettacoli del circuito.</figcaption>
+          </figure>
+          <figure class="showcase-card">
+            <div class="phone-frame">
+              <img src="assets/images/Screenshot 2026-03-17 122258.png" alt="Shop interno con premi, risorse e oggetti digitali" loading="lazy">
+            </div>
+            <figcaption>Shop interno per riscattare risorse e premi collegati alla progressione.</figcaption>
+          </figure>
+          <figure class="showcase-card">
+            <div class="phone-frame">
+              <img src="assets/images/Screenshot 2026-03-17 122845.png" alt="Schermata carriera con statistiche, reputazione e avanzamento" loading="lazy">
+            </div>
+            <figcaption>Schermata carriera con reputazione, caratteristiche e avanzamento del ruolo scelto.</figcaption>
+          </figure>
+        </div>
+      </div>
     </div>
   </section>
 
+  <!-- Section 5: Pubblico — collapsed -->
+  <section class="landing-block is-collapsed" aria-labelledby="audience-title">
+    <div class="section-header">
+      <div class="section-header-text">
+        <span class="section-label">Pubblico</span>
+        <h2 id="audience-title">Tre ingressi possibili, un'unica promessa: rendere il teatro più attivo e memorabile.</h2>
+      </div>
+      <svg class="section-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="section-body">
+      <div class="section-body-inner">
+        <div class="audience-stack">
+          <article class="audience-panel">
+            <span class="audience-tag">Giovani</span>
+            <h3>Un linguaggio più vicino alle abitudini digitali.</h3>
+            <p>La cultura viene presentata come percorso, con obiettivi comprensibili e reward che danno continuità alla partecipazione.</p>
+          </article>
+          <article class="audience-panel">
+            <span class="audience-tag">Appassionati</span>
+            <h3>Un modo per seguire il circuito in modo più profondo.</h3>
+            <p>Ogni spettacolo non finisce all'uscita dalla sala, ma resta collegato a missioni, memoria e crescita personale.</p>
+          </article>
+          <article class="audience-panel">
+            <span class="audience-tag">Scuole e operatori</span>
+            <h3>Uno strumento per attivare, misurare e fidelizzare.</h3>
+            <p>La presenza agli eventi può essere accompagnata da percorsi e obiettivi che rendono più forte il legame con il territorio.</p>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 6: CTA — always visible (no accordion) -->
   <section class="landing-block landing-block-cta" aria-labelledby="cta-title">
     <div class="landing-cta-panel">
       <div class="landing-cta-copy">

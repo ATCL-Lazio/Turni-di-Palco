@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ site.lang | default: "it" }}">
+<html lang="{{ site.lang | default: "it" }}" data-theme="dark">
   <head>
     {% assign site_icon = site.logo | default: 'assets/images/pwa-192.png' %}
     <meta charset="UTF-8">
@@ -7,6 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#0d0a0b">
     {% seo %}
+    <!-- Prevent flash of wrong theme before CSS loads -->
+    <script>!function(){var t=localStorage.getItem('tdp-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t)}();</script>
     <link rel="icon" type="image/png" sizes="192x192" href="{{ site_icon | relative_url }}">
     <link rel="shortcut icon" href="{{ site_icon | relative_url }}">
     <link rel="apple-touch-icon" href="{{ site_icon | relative_url }}">
@@ -18,6 +20,11 @@
   </head>
   <body{% if page.page_class %} class="{{ page.page_class }}"{% endif %}>
     <a id="skip-to-content" href="#content">Vai al contenuto.</a>
+
+    <button id="tdp-theme-toggle" aria-label="Cambia tema">
+      <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
 
     <div class="site-shell">
 
@@ -127,13 +134,109 @@
 
     <script>
     (function () {
+
+      /* ── Theme toggle ── */
+      var THEME_KEY = 'tdp-theme';
+      var toggleBtn = document.getElementById('tdp-theme-toggle');
+
+      function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem(THEME_KEY, theme);
+      }
+
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', function () {
+          var current = document.documentElement.getAttribute('data-theme');
+          applyTheme(current === 'dark' ? 'light' : 'dark');
+        });
+      }
+
+      /* ── Accordion sections ── */
+      document.querySelectorAll('.landing-block .section-header').forEach(function (header) {
+        var block = header.closest('.landing-block');
+        var body  = block ? block.querySelector('.section-body') : null;
+        if (!block || !body) return;
+
+        /* Set initial maxHeight for collapsed state */
+        if (block.classList.contains('is-collapsed')) {
+          body.style.maxHeight = '0px';
+        } else {
+          body.style.maxHeight = 'none';
+        }
+
+        header.addEventListener('click', function () {
+          var collapsed = block.classList.contains('is-collapsed');
+          if (collapsed) {
+            /* Expand */
+            block.classList.remove('is-collapsed');
+            body.style.maxHeight = body.scrollHeight + 'px';
+            body.addEventListener('transitionend', function onEnd() {
+              body.removeEventListener('transitionend', onEnd);
+              if (!block.classList.contains('is-collapsed')) {
+                body.style.maxHeight = 'none';
+              }
+            });
+          } else {
+            /* Collapse: pin explicit height first, then animate to 0 */
+            body.style.maxHeight = body.scrollHeight + 'px';
+            requestAnimationFrame(function () {
+              requestAnimationFrame(function () {
+                block.classList.add('is-collapsed');
+                body.style.maxHeight = '0px';
+              });
+            });
+          }
+        });
+
+        /* Keyboard support */
+        header.setAttribute('role', 'button');
+        header.setAttribute('tabindex', '0');
+        header.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); header.click(); }
+        });
+      });
+
+      /* ── TOC active link highlight on scroll ── */
+      var tocLinks = document.querySelectorAll('.sections-toc a[href^="#"]');
+      if (tocLinks.length) {
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              tocLinks.forEach(function (a) {
+                a.classList.toggle('is-active', a.getAttribute('href') === '#' + entry.target.id);
+              });
+            }
+          });
+        }, { threshold: 0.25 });
+
+        tocLinks.forEach(function (a) {
+          var target = document.querySelector(a.getAttribute('href'));
+          if (target) observer.observe(target);
+        });
+
+        /* TOC click: expand section if collapsed, then scroll */
+        tocLinks.forEach(function (a) {
+          a.addEventListener('click', function () {
+            var targetId = a.getAttribute('href').slice(1);
+            var target   = document.getElementById(targetId);
+            if (!target) return;
+            var block    = target.closest('.landing-block');
+            if (block && block.classList.contains('is-collapsed')) {
+              var hdr = block.querySelector('.section-header');
+              if (hdr) hdr.click();
+            }
+          });
+        });
+      }
+
+      /* ── Lightbox ── */
       var lb      = document.getElementById('tdp-lightbox');
       var lbImg   = document.getElementById('tdp-lightbox-img');
       var lbCap   = document.getElementById('tdp-lightbox-caption');
       var lbClose = document.getElementById('tdp-lightbox-close');
       var lastFocus;
 
-      function open(src, alt, caption) {
+      function lbOpen(src, alt, caption) {
         lastFocus = document.activeElement;
         lbImg.src = src;
         lbImg.alt = alt || '';
@@ -143,23 +246,22 @@
         lbClose.focus();
       }
 
-      function close() {
+      function lbClose_fn() {
         lb.classList.remove('is-open');
         document.body.style.overflow = '';
         lbImg.src = '';
         if (lastFocus) lastFocus.focus();
       }
 
-      /* Attach to all zoomable images */
       document.querySelectorAll('.phone-frame img, .content-panel img').forEach(function (img) {
         img.classList.add('tdp-zoomable');
         img.setAttribute('tabindex', '0');
         img.setAttribute('role', 'button');
         img.setAttribute('aria-label', 'Ingrandisci immagine');
         function trigger() {
-          var fig     = img.closest('figure, .showcase-card');
-          var figcap  = fig ? fig.querySelector('figcaption') : null;
-          open(img.src, img.alt, figcap ? figcap.textContent.trim() : '');
+          var fig    = img.closest('figure, .showcase-card');
+          var figcap = fig ? fig.querySelector('figcaption') : null;
+          lbOpen(img.src, img.alt, figcap ? figcap.textContent.trim() : '');
         }
         img.addEventListener('click', trigger);
         img.addEventListener('keydown', function (e) {
@@ -167,11 +269,12 @@
         });
       });
 
-      lbClose.addEventListener('click', close);
-      lb.addEventListener('click', function (e) { if (e.target === lb) close(); });
+      lbClose.addEventListener('click', lbClose_fn);
+      lb.addEventListener('click', function (e) { if (e.target === lb) lbClose_fn(); });
       document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && lb.classList.contains('is-open')) close();
+        if (e.key === 'Escape' && lb.classList.contains('is-open')) lbClose_fn();
       });
+
     })();
     </script>
   </body>
