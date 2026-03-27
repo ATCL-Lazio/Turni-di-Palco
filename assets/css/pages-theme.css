@@ -1733,10 +1733,22 @@ html[data-theme="light"] .sections-toc a.is-active {
   justify-content: space-between;
   gap: 1rem;
   cursor: pointer;
-  padding: 0.75rem 0;
+  padding: 0.5rem 0 0.75rem;
   user-select: none;
   border-bottom: 1px solid var(--tdp-border);
   transition: border-color 0.2s;
+}
+
+/* h2 is now a direct child of section-header */
+.section-header h2 {
+  margin: 0;
+  font-family: var(--tdp-font-display);
+  font-style: italic;
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  color: var(--tdp-text);
 }
 
 .section-header:hover {
@@ -1745,12 +1757,6 @@ html[data-theme="light"] .sections-toc a.is-active {
 
 .section-header:hover .section-chevron {
   color: var(--tdp-gold);
-}
-
-.section-header-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
 }
 
 .section-chevron {
