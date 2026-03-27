@@ -9,6 +9,7 @@ import { Switch } from '../ui/switch';
 import { getPermission, requestPermission, type NotificationPermissionState } from '../../lib/notifications';
 import { checkAiSupportAvailability } from '../../services/ai';
 import { CopyrightNotice } from '../ui/CopyrightNotice';
+import { GEO_CONSENT_KEY } from '../../constants/privacy';
 
 interface AccountSettingsProps {
   userName: string;
@@ -494,7 +495,6 @@ function useSupportStatus(showAiSupport: boolean) {
 
 // === GDPR Privacy Card ===
 
-const GEO_CONSENT_KEY = 'tdp-geo-consent-v1';
 type GeoConsent = 'granted' | 'denied' | null;
 
 function useGeoConsent() {
