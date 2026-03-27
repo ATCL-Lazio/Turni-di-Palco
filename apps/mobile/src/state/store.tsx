@@ -650,7 +650,7 @@ type ProfileUpsertPayload = {
   email: string;
   role_id: RoleId;
   profile_image?: string | null;
-  leaderboard_visible?: boolean | null;
+  leaderboard_visible?: boolean;
 };
 
 type TurnInsertPayload = {
@@ -1522,7 +1522,7 @@ function buildProfileUpsertPayload(userId: string, profile: PlayerProfile): Prof
     email: profile.email,
     role_id: profile.roleId,
     profile_image: profile.profileImage ?? null,
-    leaderboard_visible: profile.leaderboardVisible ?? true,
+    leaderboard_visible: profile.leaderboardVisible,
   };
 }
 
@@ -3691,7 +3691,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 profile.extra_activity_slots ?? prev.profile.extraActivitySlots,
               profileImage: profile.profile_image ?? prev.profile.profileImage,
               lastActivityAt: profile.last_activity_at ? new Date(profile.last_activity_at).getTime() : prev.profile.lastActivityAt,
-              leaderboardVisible: profile.leaderboard_visible ?? prev.profile.leaderboardVisible,
+              leaderboardVisible:
+                profile.leaderboard_visible != null
+                  ? profile.leaderboard_visible
+                  : prev.profile.leaderboardVisible,
             },
           }));
           setHasHydratedRemote(true);
