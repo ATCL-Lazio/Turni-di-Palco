@@ -49,6 +49,9 @@ jobs:
       - name: Run tests (Mobile)
         run: npm run test:mobile
 
+      - name: Build mobile bundle
+        run: npm run build:mobile
+
   italian-proofreading:
     runs-on: ubuntu-latest
     permissions:
