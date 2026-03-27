@@ -8,6 +8,7 @@ import {
   SUPABASE_SESSION_KEY,
 } from '../lib/auth-storage';
 import { resolveDisplayName } from '../lib/profile-utils';
+import { GEO_CONSENT_KEY } from '../constants/privacy';
 import { formatErrorDetails, reportCriticalError } from '../services/error-handler';
 import { withMobileWatchdog } from '../services/mobile-watchdog';
 import {
@@ -543,8 +544,6 @@ const MAX_TURNS = 20;
 // allows us to invalidate incompatible queue formats by bumping the version.
 const OFFLINE_SYNC_QUEUE_KEY = 'tdp-mobile-offline-sync-v1';
 
-// GDPR Art. 7 – Consenso esplicito raccolta geolocalizzazione ai turni.
-const GEO_CONSENT_KEY = 'tdp-geo-consent-v1';
 
 // Base delay between retry attempts when flushing the offline sync queue.
 // 15 seconds is a compromise between user‑perceived latency (shorter is better)
