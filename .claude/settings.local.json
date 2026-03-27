@@ -11,7 +11,8 @@
       "mcp__claude_ai_Supabase__*",
       "mcp__plugin_claude-mem_*",
       "mcp__claude_ai_Vercel__*",
-      "mcp__claude_ai_Netlify__*"
+      "mcp__claude_ai_Netlify__*",
+      "mcp__plugin_claude-mem_mcp-search__smart_outline"
     ]
   }
 }
