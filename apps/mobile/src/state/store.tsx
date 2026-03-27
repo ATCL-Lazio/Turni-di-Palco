@@ -650,7 +650,7 @@ type ProfileUpsertPayload = {
   email: string;
   role_id: RoleId;
   profile_image?: string | null;
-  leaderboard_visible?: boolean | null;
+  leaderboard_visible?: boolean;
 };
 
 type TurnInsertPayload = {
