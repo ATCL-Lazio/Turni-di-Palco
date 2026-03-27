@@ -1545,6 +1545,50 @@ html[data-theme="light"] .curtain-right {
   background: linear-gradient(to bottom, #3d0b18, #200610);
 }
 
+/* Hero text always stays light — hero bg is always dark */
+html[data-theme="light"] .project-name {
+  color: #f5ede6 !important;
+}
+
+html[data-theme="light"] .project-tagline {
+  color: rgba(245, 237, 230, 0.72) !important;
+}
+
+html[data-theme="light"] .hero-kicker {
+  color: rgba(244, 191, 79, 0.8);
+}
+
+/* Landing block and content panel — light backgrounds */
+html[data-theme="light"] .landing-block {
+  background: linear-gradient(160deg, #fffaf6 0%, #fdf5ef 100%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme="light"] .landing-block:not(.landing-block-cta):hover {
+  border-color: rgba(160, 100, 8, 0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(160, 100, 8, 0.06);
+}
+
+html[data-theme="light"] .content-panel {
+  background: linear-gradient(175deg, #fffaf6, #fdf4ed);
+  border-top-color: rgba(160, 100, 8, 0.14);
+}
+
+/* Inner value/feature/audience cards — slightly whiter to stand out from block bg */
+html[data-theme="light"] .intro-value,
+html[data-theme="light"] .feature-panel,
+html[data-theme="light"] .audience-panel {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.07);
+}
+
+html[data-theme="light"] .intro-value:hover,
+html[data-theme="light"] .feature-panel:hover,
+html[data-theme="light"] .audience-panel:hover {
+  background: #fff;
+  border-color: rgba(160, 100, 8, 0.18);
+}
+
 html[data-theme="light"] .feature-panel,
 html[data-theme="light"] .audience-panel {
   background: var(--tdp-surface-card);
@@ -1639,7 +1683,7 @@ html[data-theme="light"] #tdp-theme-toggle .icon-moon { opacity: 1; transform: r
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  padding: 0 0 2rem;
+  padding: 0 0 0.75rem 2.25rem; /* left indent matches landing-block inner padding */
   list-style: none;
   margin: 0;
 }
