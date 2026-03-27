@@ -36,8 +36,11 @@ jobs:
         run: |
           $tempFile = [System.IO.Path]::GetTempFileName()
           "## 🔄 Claude Code Review in progress...`n`nAnalyzing changed files on ${{ runner.name }}..." | Out-File -FilePath $tempFile -Encoding utf8
-          $result = gh pr comment ${{ github.event.pull_request.number }} --body-file $tempFile --json id --jq '.id'
-          "comment_id=$result" >> $env:GITHUB_OUTPUT
+          # Use gh api to post comment and capture ID
+          $body = @{ body = "## 🔄 Claude Code Review in progress...`n`nAnalyzing changed files on ${{ runner.name }}..." } | ConvertTo-Json
+          $result = $body | gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments --input -
+          $commentId = ($result | ConvertFrom-Json).id
+          "comment_id=$commentId" >> $env:GITHUB_OUTPUT
           Remove-Item $tempFile
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
