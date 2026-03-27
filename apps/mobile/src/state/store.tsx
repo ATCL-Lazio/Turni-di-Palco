@@ -3691,7 +3691,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 profile.extra_activity_slots ?? prev.profile.extraActivitySlots,
               profileImage: profile.profile_image ?? prev.profile.profileImage,
               lastActivityAt: profile.last_activity_at ? new Date(profile.last_activity_at).getTime() : prev.profile.lastActivityAt,
-              leaderboardVisible: profile.leaderboard_visible ?? prev.profile.leaderboardVisible,
+              leaderboardVisible:
+                profile.leaderboard_visible != null
+                  ? profile.leaderboard_visible
+                  : prev.profile.leaderboardVisible,
             },
           }));
           setHasHydratedRemote(true);
