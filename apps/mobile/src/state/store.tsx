@@ -1522,7 +1522,7 @@ function buildProfileUpsertPayload(userId: string, profile: PlayerProfile): Prof
     email: profile.email,
     role_id: profile.roleId,
     profile_image: profile.profileImage ?? null,
-    leaderboard_visible: profile.leaderboardVisible ?? true,
+    leaderboard_visible: profile.leaderboardVisible,
   };
 }
 
