@@ -34,11 +34,11 @@ jobs:
       - name: Post in-progress comment
         id: progress
         run: |
-          $bodyText = "## 🔄 Claude Code Review in progress...`n`nAnalyzing changed files on ${{ runner.name }}..."
-          $body = '{"body":"' + $bodyText.Replace('"', '\"') + '"}'
-          $result = $body | gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments --input -
-          $commentId = ($result | ConvertFrom-Json).id
-          "comment_id=$commentId" >> $env:GITHUB_OUTPUT
+          $tempFile = [System.IO.Path]::GetTempFileName()
+          "## 🔄 Claude Code Review in progress...`n`nAnalyzing changed files on ${{ runner.name }}..." | Out-File -FilePath $tempFile -Encoding utf8
+          $result = gh pr comment ${{ github.event.pull_request.number }} --body-file $tempFile --json id --jq '.id'
+          "comment_id=$result" >> $env:GITHUB_OUTPUT
+          Remove-Item $tempFile
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -82,21 +82,23 @@ jobs:
       - name: Update or post review results
         run: |
           $reviewBody = Get-Content "review_output.md" -Raw
-          $footer = "`n`n---`n*Reviewed by Claude Code CLI on ${{ runner.name }} at $(Get-Date -Format 'yyyy-MM-dd HH:mm')*"
-          $bodyText = "## 🤖 Claude Code Review`n`n$reviewBody$footer"
-          $body = '{"body":"' + $bodyText.Replace('"', '\"').Replace("`r", "").Replace("`n", "\n") + '"}'
+          $commentBody = "## 🤖 Claude Code Review`n`n$reviewBody`n`n---`n*Reviewed by Claude Code CLI on ${{ runner.name }} at $(Get-Date -Format 'yyyy-MM-dd HH:mm')*"
+          $tempFile = [System.IO.Path]::GetTempFileName()
+          $commentBody | Out-File -FilePath $tempFile -Encoding utf8
           
           # Get the PR action type
           $prAction = "${{ github.event.action }}"
           $commentId = "${{ steps.progress.outputs.comment_id }}"
           
           if ($prAction -eq "opened" -and $commentId) {
-            # First review: update the in-progress comment
+            # First review: update the in-progress comment using API
+            $body = @{ body = $commentBody } | ConvertTo-Json
             $body | gh api repos/${{ github.repository }}/issues/comments/$commentId -X PATCH --input -
           } else {
             # Subsequent update: post new comment
-            $body | gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments --input -
+            gh pr comment ${{ github.event.pull_request.number }} --body-file $tempFile
           }
+          Remove-Item $tempFile
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -105,15 +107,18 @@ jobs:
         run: |
           $prAction = "${{ github.event.action }}"
           $commentId = "${{ steps.progress.outputs.comment_id }}"
-          $bodyText = "## 🤖 Claude Code Review - Error`n`nFailed to complete code review. Check runner logs on ${{ runner.name }}."
-          $body = '{"body":"' + $bodyText.Replace('"', '\"') + '"}'
+          $errorBody = "## 🤖 Claude Code Review - Error`n`nFailed to complete code review. Check runner logs on ${{ runner.name }}."
+          $tempFile = [System.IO.Path]::GetTempFileName()
+          $errorBody | Out-File -FilePath $tempFile -Encoding utf8
           
           if ($prAction -eq "opened" -and $commentId) {
-            # Update the in-progress comment with error
+            # Update the in-progress comment with error using API
+            $body = @{ body = $errorBody } | ConvertTo-Json
             $body | gh api repos/${{ github.repository }}/issues/comments/$commentId -X PATCH --input -
           } else {
             # Post new error comment
-            $body | gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments --input -
+            gh pr comment ${{ github.event.pull_request.number }} --body-file $tempFile
           }
+          Remove-Item $tempFile
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
