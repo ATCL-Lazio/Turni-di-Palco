@@ -15,7 +15,7 @@ description: Guida tecnica e architettura del progetto Turni di Palco
 [![Last Commit](https://turni-di-palco-badges.onrender.com/github/last-commit/Heartran/Turni-di-Palco?label=Last%20commit&logo=github)](https://github.com/Heartran/Turni-di-Palco/commits/main)
 [![Open Issues](https://turni-di-palco-badges.onrender.com/github/issues/Heartran/Turni-di-Palco?label=Open%20issues&logo=github)](https://github.com/Heartran/Turni-di-Palco/issues)
 [![App Version](https://turni-di-palco-badges.onrender.com/endpoint?url=https%3A%2F%2Fturni-di-palco-control-plane.onrender.com%2Fapi%2Fbadges%2Fmobile-version)](supabase/functions/app-version/index.ts)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18%20%7C%2022.14.0-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/node-18%2B%20(recommended%3A%2022.14.0)-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![PWA Stack](https://img.shields.io/badge/PWA-Vite%207-646CFF?logo=vite&logoColor=white)](apps/pwa/package.json)
 [![Tests](https://img.shields.io/badge/tests-Vitest-6E9F18?logo=vitest&logoColor=white)](apps/pwa/package.json)
 
