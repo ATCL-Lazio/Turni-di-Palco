@@ -52,5 +52,11 @@ async function cleanupOldEvents(daysToKeep = 7) {
   }
 }
 
-const days = process.argv[2] ? parseInt(process.argv[2]) : 7;
+const arg = process.argv[2];
+const parsedDays = arg !== undefined ? parseInt(arg, 10) : NaN;
+const days =
+  Number.isInteger(parsedDays) && parsedDays > 0
+    ? parsedDays
+    : 7;
+
 cleanupOldEvents(days);
