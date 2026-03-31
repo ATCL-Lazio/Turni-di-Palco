@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { ArrowLeft, Shield, MapPin, Trash2, Eye, Lock, FileText } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { CopyrightNotice } from '../ui/CopyrightNotice';
@@ -7,10 +7,7 @@ interface PrivacyPolicyProps {
   onBack: () => void;
 }
 
-const IUBENDA_PRIVACY_POLICY_URL = 'https://www.iubenda.com/privacy-policy/3231580';
-const IUBENDA_SCRIPT_SRC = 'https://cdn.iubenda.com/iubenda.js';
-const IUBENDA_ANCHOR_CLASSES =
-  'iubenda-nostyle no-brand iubenda-noiframe iubenda-embed iubenda-noiframe iub-body-embed';
+const IUBENDA_PRIVACY_POLICY_URL = 'https://www.iubenda.com/privacy-policy/15042123';
 
 const highlights = [
   {
@@ -35,34 +32,7 @@ const highlights = [
   },
 ];
 
-function loadIubendaScript() {
-  if (typeof document === 'undefined') return null;
-
-  const iubendaWindow = window as Window & { _iub?: unknown[] };
-  if (!Array.isArray(iubendaWindow._iub)) {
-    iubendaWindow._iub = [];
-  }
-
-  // Remove any existing script so it re-executes on remount, re-processing
-  // the newly inserted anchor element.
-  const existing = document.querySelector<HTMLScriptElement>(`script[src="${IUBENDA_SCRIPT_SRC}"]`);
-  existing?.remove();
-
-  const script = document.createElement('script');
-  script.src = IUBENDA_SCRIPT_SRC;
-  script.async = true;
-  document.body.appendChild(script);
-  return script;
-}
-
 export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
-  useEffect(() => {
-    const script = loadIubendaScript();
-    return () => {
-      script?.remove();
-    };
-  }, []);
-
   return (
     <Screen
       withBottomNavPadding={false}
@@ -133,21 +103,17 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
                 <span className="text-[#f5f5f5] font-medium">Iubenda</span>
               </p>
             </div>
-            <div className="p-4">
-              {/* Scrollable container — iubenda injects the full document inline,
-                  so we constrain height and allow internal scroll. White bg for
-                  readability since iubenda uses dark-on-light text. */}
-              <div className="max-h-[55vh] overflow-y-auto overflow-x-hidden overscroll-contain rounded-[10px]">
-                <div className="legal-embed bg-white p-4 text-black">
-                  <a
-                    href={IUBENDA_PRIVACY_POLICY_URL}
-                    className={IUBENDA_ANCHOR_CLASSES}
-                    title="Privacy Policy"
-                  >
-                    Privacy Policy
-                  </a>
-                </div>
-              </div>
+            <div className="p-2">
+              {/* iframe embed — no script dependency, no remount issues,
+                  works on iubenda free plan. White bg matches iubenda's
+                  default light-theme document. */}
+              <iframe
+                src={IUBENDA_PRIVACY_POLICY_URL}
+                className="w-full rounded-[10px] bg-white"
+                style={{ height: '55vh', border: 'none' }}
+                title="Privacy Policy"
+                loading="lazy"
+              />
             </div>
             <div className="px-4 pb-3">
               <p className="text-[11px] leading-[16px] text-[#b8b2b3]/50">
