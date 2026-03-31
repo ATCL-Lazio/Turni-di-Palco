@@ -134,7 +134,8 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
               </p>
             </div>
             <div className="p-4">
-              <div className="legal-embed">
+              {/* White background so iubenda's default dark text is readable */}
+              <div className="legal-embed bg-white rounded-[10px] p-3 text-black">
                 <a
                   href={IUBENDA_PRIVACY_POLICY_URL}
                   className={IUBENDA_ANCHOR_CLASSES}
