@@ -245,7 +245,7 @@ serve(async (req: Request) => {
           .eq('ticket_number', payload.ticketNumber);
 
         if (payload.circuit) {
-          query = query.ilike('circuit', payload.circuit.trim());
+          query = query.eq('circuit', payload.circuit.trim());
         }
         if (payload.eventID) {
           query = query.eq('event_id', payload.eventID.trim());
