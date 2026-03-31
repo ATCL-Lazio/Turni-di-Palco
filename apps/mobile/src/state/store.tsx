@@ -2877,7 +2877,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') return;
     logOfflineSync('Online/offline sync listeners started', {
       authUserId,
-      retryIntervalMs: OFFLINE_SYNC_RETRY_INTERVAL_MS,
+      retryIntervalMs: OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS,
     });
 
     const handleOnline = () => {
@@ -2895,7 +2895,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         logOfflineSync('Periodic retry tick: queued mutations detected', { authUserId });
         void flushQueuedSupabaseMutations();
       },
-      OFFLINE_SYNC_RETRY_INTERVAL_MS
+      OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS
     );
 
     return () => {
