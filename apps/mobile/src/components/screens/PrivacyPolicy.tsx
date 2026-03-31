@@ -35,32 +35,32 @@ const highlights = [
   },
 ];
 
-function ensureIubendaGlobal() {
-  if (typeof window === 'undefined') return;
+function loadIubendaScript() {
+  if (typeof document === 'undefined') return null;
 
   const iubendaWindow = window as Window & { _iub?: unknown[] };
   if (!Array.isArray(iubendaWindow._iub)) {
     iubendaWindow._iub = [];
   }
-}
 
-function ensureIubendaScript() {
-  if (typeof document === 'undefined') return;
-
-  ensureIubendaGlobal();
-
+  // Remove any existing script so it re-executes on remount, re-processing
+  // the newly inserted anchor element.
   const existing = document.querySelector<HTMLScriptElement>(`script[src="${IUBENDA_SCRIPT_SRC}"]`);
-  if (existing) return;
+  existing?.remove();
 
   const script = document.createElement('script');
   script.src = IUBENDA_SCRIPT_SRC;
   script.async = true;
   document.body.appendChild(script);
+  return script;
 }
 
 export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
   useEffect(() => {
-    ensureIubendaScript();
+    const script = loadIubendaScript();
+    return () => {
+      script?.remove();
+    };
   }, []);
 
   return (
