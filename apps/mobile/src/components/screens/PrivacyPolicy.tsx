@@ -7,7 +7,7 @@ interface PrivacyPolicyProps {
   onBack: () => void;
 }
 
-const IUBENDA_PRIVACY_POLICY_URL = 'https://www.iubenda.com/privacy-policy/78603233';
+const IUBENDA_PRIVACY_POLICY_URL = 'https://www.iubenda.com/privacy-policy/3231580';
 const IUBENDA_SCRIPT_SRC = 'https://cdn.iubenda.com/iubenda.js';
 const IUBENDA_ANCHOR_CLASSES =
   'iubenda-nostyle no-brand iubenda-noiframe iubenda-embed iubenda-noiframe iub-body-embed';
