@@ -8,8 +8,6 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-const DEFAULT_CIRCUIT = 'TicketOne';
-
 // Rome timezone offset (+01:00 CET). Matches Python generator's dt.timezone(dt.timedelta(hours=1)).
 const ROME_OFFSET = '+01:00';
 
