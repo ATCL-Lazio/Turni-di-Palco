@@ -31,6 +31,25 @@ function buildEventDatetimeIso(eventDate: string, eventTime: string): string {
 }
 
 function jsonResponse(payload: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function loadEventSnapshot(supabase: ReturnType<typeof createClient>, eventId: string | null | undefined) {
+  if (!eventId) return null;
+
+  const { data, error } = await supabase
+    .from('events')
+    .select('id,name,theatre,event_date,event_time,genre,base_rewards,focus_role')
+    .eq('id', eventId)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('Unable to load event snapshot', eventId, error.message);
+    return null;
+  }
 
   return data ?? null;
 }
