@@ -51,7 +51,7 @@ description: Guida tecnica e architettura del progetto Turni di Palco
 
 Prerequisiti:
 
-- Node.js 18+ (setup corrente: 22.14.0)
+- Node.js 18+ (setup corrente: 20.x LTS)
 - npm
 
 Installazione:
