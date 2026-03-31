@@ -21,11 +21,7 @@ async function cleanupOldEvents(daysToKeep = 7) {
     
     if (error) throw error;
     
-    const eventsToDelete = (events || []).filter(event => {
-      if (!event?.event_date) return false;
-      if (event.event_date < cutoffDateStr) return true;
-      return false;
-    });
+    const eventsToDelete = events || [];
     
     if (eventsToDelete.length === 0) {
       console.log('✅ Nessun evento da cancellare');
