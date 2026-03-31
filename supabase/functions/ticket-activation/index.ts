@@ -31,14 +31,6 @@ function buildEventDatetimeIso(eventDate: string, eventTime: string): string {
 }
 
 function jsonResponse(payload: Record<string, unknown>, status = 200) {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
-
-    return null;
-  }
 
   return data ?? null;
 }
