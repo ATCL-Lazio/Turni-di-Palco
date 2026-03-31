@@ -4512,7 +4512,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         operation: 'sendPasswordResetEmail',
         timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.sendPasswordResetEmail,
         title: 'Reset password lento',
-        message: 'L invio email per il reset password sta impiegando troppo tempo.',
+        message: "L'invio email per il reset password sta impiegando troppo tempo.",
       }
     );
   }, []);
