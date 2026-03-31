@@ -295,7 +295,7 @@ serve(async (req: Request) => {
         .from('ticket_activations')
         .select('activated_by')
         .eq('hash', targetHash)
-        .single();
+        .maybeSingle();
 
       if (!current) {
         return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
