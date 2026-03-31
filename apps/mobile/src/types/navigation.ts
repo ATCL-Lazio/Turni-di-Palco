@@ -1,4 +1,5 @@
 export type Screen =
+    | 'cookie-consent'
     | 'welcome'
     | 'login'
     | 'signup'
