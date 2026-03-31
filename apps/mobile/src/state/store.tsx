@@ -4244,7 +4244,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         return {
           ok: false,
           status: 'error',
-          error: errorMessage || 'Errore durante l acquisto shop.',
+          error: errorMessage || "Errore durante l'acquisto shop.",
         };
       }
     },
