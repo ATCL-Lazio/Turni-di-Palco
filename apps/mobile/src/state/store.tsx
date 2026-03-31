@@ -2087,11 +2087,21 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [shopCatalogLoading, setShopCatalogLoading] = useState(false);
   const [activitySlotsStatus, setActivitySlotsStatus] = useState<ActivitySlotsStatus>({
     usedToday: 0,
-    totalSlots: 3 + state.profile.extraActivitySlots,
-    remainingSlots: Math.max(0, 3 + state.profile.extraActivitySlots),
+    // Initialize with a safe default that does not depend on `state` being fully initialized.
+    totalSlots: 3,
+    remainingSlots: 3,
   });
   const [activitySlotsLoading, setActivitySlotsLoading] = useState(false);
   const [pendingBoostRequests, setPendingBoostRequests] = useState(0);
+
+  useEffect(() => {
+    const baseSlots = 3 + state.profile.extraActivitySlots;
+    setActivitySlotsStatus({
+      usedToday: 0,
+      totalSlots: baseSlots,
+      remainingSlots: Math.max(0, baseSlots),
+    });
+  }, [state.profile.extraActivitySlots]);
   const [turnSyncFeedback, setTurnSyncFeedback] = useState<TurnSyncFeedback | null>(null);
   const offlineSyncInFlightRef = useRef(false);
   const offlineServerLogSyncInFlightRef = useRef(false);
