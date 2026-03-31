@@ -1,17 +1,29 @@
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
+if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('❌ Missing required environment variables: VITE_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+  process.exit(1);
+}
+
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 async function cleanupOldEvents(daysToKeep = 7) {
+  if (!Number.isInteger(daysToKeep) || daysToKeep < 1) {
+    throw new Error('daysToKeep must be a positive integer');
+  }
+
   try {
     console.log(`🧹 Pulizia eventi più vecchi di ${daysToKeep} giorni...`);
     
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+    // Format as 'YYYY-MM-DD' (UTC), matching the format stored in the `event_date` column
+    // Note: toISOString() returns UTC date, so there may be a +/- 1 day boundary issue
+    // depending on local timezone vs UTC. Consider using a timezone-aware approach if needed.
     const cutoffDateStr = cutoffDate.toISOString().slice(0, 10);
     
     const { data: events, error } = await supabase
@@ -21,11 +33,7 @@ async function cleanupOldEvents(daysToKeep = 7) {
     
     if (error) throw error;
     
-    const eventsToDelete = (events || []).filter(event => {
-      if (!event?.event_date) return false;
-      if (event.event_date < cutoffDateStr) return true;
-      return false;
-    });
+    const eventsToDelete = events || [];
     
     if (eventsToDelete.length === 0) {
       console.log('✅ Nessun evento da cancellare');
@@ -52,5 +60,11 @@ async function cleanupOldEvents(daysToKeep = 7) {
   }
 }
 
-const days = process.argv[2] ? parseInt(process.argv[2]) : 7;
+const arg = process.argv[2];
+const parsedDays = arg !== undefined ? parseInt(arg, 10) : NaN;
+const days =
+  Number.isInteger(parsedDays) && parsedDays > 0
+    ? parsedDays
+    : 7;
+
 cleanupOldEvents(days);
