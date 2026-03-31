@@ -187,3 +187,22 @@ small {
     margin-bottom: 20px;
   }
 }
+
+/* Prevent horizontal overflow in iubenda inline embed */
+.legal-embed,
+.legal-embed * {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  word-break: break-word !important;
+}
+
+.legal-embed table {
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.legal-embed pre,
+.legal-embed code {
+  white-space: pre-wrap !important;
+  overflow-x: hidden !important;
+}

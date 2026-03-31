@@ -137,7 +137,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
               {/* Scrollable container — iubenda injects the full document inline,
                   so we constrain height and allow internal scroll. White bg for
                   readability since iubenda uses dark-on-light text. */}
-              <div className="max-h-[55vh] overflow-y-auto overscroll-contain rounded-[10px]">
+              <div className="max-h-[55vh] overflow-y-auto overflow-x-hidden overscroll-contain rounded-[10px]">
                 <div className="legal-embed bg-white p-4 text-black">
                   <a
                     href={IUBENDA_PRIVACY_POLICY_URL}
