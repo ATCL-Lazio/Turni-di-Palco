@@ -2114,11 +2114,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const baseSlots = 3 + state.profile.extraActivitySlots;
-    setActivitySlotsStatus({
-      usedToday: 0,
+    setActivitySlotsStatus((prev) => ({
+      usedToday: prev.usedToday,
       totalSlots: baseSlots,
-      remainingSlots: Math.max(0, baseSlots),
-    });
+      remainingSlots: Math.max(0, baseSlots - prev.usedToday),
+    }));
   }, [state.profile.extraActivitySlots]);
   const [turnSyncFeedback, setTurnSyncFeedback] = useState<TurnSyncFeedback | null>(null);
   const offlineSyncInFlightRef = useRef(false);
