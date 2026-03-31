@@ -548,7 +548,25 @@ const OFFLINE_SYNC_QUEUE_KEY = 'tdp-mobile-offline-sync-v1';
 // Base delay between retry attempts when flushing the offline sync queue.
 // 15 seconds is a compromise between user‑perceived latency (shorter is better)
 // and avoiding excessive battery and network usage on poor/unstable connections.
-const OFFLINE_SYNC_RETRY_INTERVAL_MS = 15000;
+const OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS = 15000;
+
+// Maximum delay between retry attempts when using exponential backoff.
+// 60 seconds caps the backoff to avoid excessively long waits once connectivity is restored.
+const OFFLINE_SYNC_MAX_RETRY_INTERVAL_MS = 60000;
+
+/**
+ * Computes the delay, in milliseconds, before the next offline sync retry.
+ * Uses exponential backoff capped at OFFLINE_SYNC_MAX_RETRY_INTERVAL_MS.
+ *
+ * @param attemptCount Zero‑based retry attempt count (0 for the first retry).
+ */
+export function getOfflineSyncRetryDelayMs(attemptCount: number): number {
+  if (attemptCount <= 0) {
+    return OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS;
+  }
+  const delay = OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS * Math.pow(2, attemptCount);
+  return Math.min(delay, OFFLINE_SYNC_MAX_RETRY_INTERVAL_MS);
+}
 
 // Upper bound on how many pending items we keep in the offline queue.
 // 300 items is large enough to cover typical offline sessions, but small enough
