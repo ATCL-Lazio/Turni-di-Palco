@@ -12,6 +12,7 @@ async function cleanupOldEvents(daysToKeep = 7) {
     
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+    // Format as 'YYYY-MM-DD' (UTC), matching the format stored in the `event_date` column
     const cutoffDateStr = cutoffDate.toISOString().slice(0, 10);
     
     const { data: events, error } = await supabase
