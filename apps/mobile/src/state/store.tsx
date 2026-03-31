@@ -457,7 +457,7 @@ export const activities: Activity[] = [
   {
     id: 'ritardo',
     title: 'Prova generale in ritardo',
-    description: "La compagnia è in ritardo di 20 minuti. Devi gestire il clima e chiudere la prova.",
+    description: 'La compagnia è in ritardo di 20 minuti. Devi gestire la situazione e chiudere la prova.',
     duration: '5 min',
     xpReward: 50,
     cachetReward: 20,
