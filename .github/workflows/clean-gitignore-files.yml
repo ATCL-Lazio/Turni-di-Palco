@@ -42,6 +42,11 @@ jobs:
           # Configura git per il commit
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
+          # Verifica che ci siano modifiche da committare
+          if git diff --cached --quiet; then
+            echo "Nessuna modifica da committare"
+            exit 0
+          fi
           
           # Crea il commit
           git commit -m "Remove tracked files matching .gitignore patterns"

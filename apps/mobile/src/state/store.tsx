@@ -457,7 +457,7 @@ export const activities: Activity[] = [
   {
     id: 'ritardo',
     title: 'Prova generale in ritardo',
-    description: "La compagnia è in ritardo di 20 minuti. Devi gestire il clima e chiudere la prova.",
+    description: 'La compagnia è in ritardo di 20 minuti. Devi gestire la situazione e chiudere la prova.',
     duration: '5 min',
     xpReward: 50,
     cachetReward: 20,
@@ -548,7 +548,25 @@ const OFFLINE_SYNC_QUEUE_KEY = 'tdp-mobile-offline-sync-v1';
 // Base delay between retry attempts when flushing the offline sync queue.
 // 15 seconds is a compromise between user‑perceived latency (shorter is better)
 // and avoiding excessive battery and network usage on poor/unstable connections.
-const OFFLINE_SYNC_RETRY_INTERVAL_MS = 15000;
+const OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS = 15000;
+
+// Maximum delay between retry attempts when using exponential backoff.
+// 60 seconds caps the backoff to avoid excessively long waits once connectivity is restored.
+const OFFLINE_SYNC_MAX_RETRY_INTERVAL_MS = 60000;
+
+/**
+ * Computes the delay, in milliseconds, before the next offline sync retry.
+ * Uses exponential backoff capped at OFFLINE_SYNC_MAX_RETRY_INTERVAL_MS.
+ *
+ * @param attemptCount Zero‑based retry attempt count (0 for the first retry).
+ */
+export function getOfflineSyncRetryDelayMs(attemptCount: number): number {
+  if (attemptCount <= 0) {
+    return OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS;
+  }
+  const delay = OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS * Math.pow(2, attemptCount);
+  return Math.min(delay, OFFLINE_SYNC_MAX_RETRY_INTERVAL_MS);
+}
 
 // Upper bound on how many pending items we keep in the offline queue.
 // 300 items is large enough to cover typical offline sessions, but small enough
@@ -2095,11 +2113,21 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [shopCatalogLoading, setShopCatalogLoading] = useState(false);
   const [activitySlotsStatus, setActivitySlotsStatus] = useState<ActivitySlotsStatus>({
     usedToday: 0,
-    totalSlots: 3 + state.profile.extraActivitySlots,
-    remainingSlots: Math.max(0, 3 + state.profile.extraActivitySlots),
+    // Initialize with a safe default that does not depend on `state` being fully initialized.
+    totalSlots: 3,
+    remainingSlots: 3,
   });
   const [activitySlotsLoading, setActivitySlotsLoading] = useState(false);
   const [pendingBoostRequests, setPendingBoostRequests] = useState(0);
+
+  useEffect(() => {
+    const baseSlots = 3 + state.profile.extraActivitySlots;
+    setActivitySlotsStatus((prev) => ({
+      usedToday: prev.usedToday,
+      totalSlots: baseSlots,
+      remainingSlots: Math.max(0, baseSlots - prev.usedToday),
+    }));
+  }, [state.profile.extraActivitySlots]);
   const [turnSyncFeedback, setTurnSyncFeedback] = useState<TurnSyncFeedback | null>(null);
   const offlineSyncInFlightRef = useRef(false);
   const offlineServerLogSyncInFlightRef = useRef(false);
@@ -2857,7 +2885,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') return;
     logOfflineSync('Online/offline sync listeners started', {
       authUserId,
-      retryIntervalMs: OFFLINE_SYNC_RETRY_INTERVAL_MS,
+      retryIntervalMs: OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS,
     });
 
     const handleOnline = () => {
@@ -2875,7 +2903,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         logOfflineSync('Periodic retry tick: queued mutations detected', { authUserId });
         void flushQueuedSupabaseMutations();
       },
-      OFFLINE_SYNC_RETRY_INTERVAL_MS
+      OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS
     );
 
     return () => {
@@ -4252,7 +4280,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         return {
           ok: false,
           status: 'error',
-          error: errorMessage || 'Errore durante l acquisto shop.',
+          error: errorMessage || "Errore durante l'acquisto shop.",
         };
       }
     },
@@ -4520,7 +4548,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         operation: 'sendPasswordResetEmail',
         timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.sendPasswordResetEmail,
         title: 'Reset password lento',
-        message: 'L invio email per il reset password sta impiegando troppo tempo.',
+        message: "L'invio email per il reset password sta impiegando troppo tempo.",
       }
     );
   }, []);

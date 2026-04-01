@@ -8,28 +8,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-const DEFAULT_CIRCUIT = 'TicketOne';
-
 // Rome timezone offset (+01:00 CET). Matches Python generator's dt.timezone(dt.timedelta(hours=1)).
 const ROME_OFFSET = '+01:00';
-
-function buildCanonicalJson(fields: {
-  circuit: string;
-  eventName: string;
-  eventID: string;
-  ticketNumber: string;
-  date: string;
-}): string {
-  // Must match Python's json.dumps(OrderedDict(...), ensure_ascii=False, separators=(",",":"))
-  // and JS client's JSON.stringify with explicit key order.
-  return JSON.stringify({
-    circuit: fields.circuit,
-    eventName: fields.eventName,
-    eventID: fields.eventID,
-    ticketNumber: fields.ticketNumber,
-    date: fields.date,
-  });
-}
 
 async function sha256Hex(input: string): Promise<string> {
   const encoded = new TextEncoder().encode(input);
@@ -315,7 +295,7 @@ serve(async (req: Request) => {
         .from('ticket_activations')
         .select('activated_by')
         .eq('hash', targetHash)
-        .single();
+        .maybeSingle();
 
       if (!current) {
         return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
