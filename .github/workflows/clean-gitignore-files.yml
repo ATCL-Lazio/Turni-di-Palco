@@ -17,6 +17,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -26,7 +31,7 @@ jobs:
       - name: Check and remove ignored files
         run: |
           # Trova i file tracciati che corrispondono al .gitignore
-          IGNORED_FILES=$(git ls-files -i --exclude-from=.gitignore)
+          IGNORED_FILES=$(git ls-files -i -c --exclude-from=.gitignore)
           
           if [ -z "$IGNORED_FILES" ]; then
             echo "Nessun file ignorato trovato nel tracking."
@@ -39,9 +44,11 @@ jobs:
           # Rimuovi i file dall'index (preserva i file locali con --cached)
           echo "$IGNORED_FILES" | xargs git rm --cached
           
-          # Configura git per il commit
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+          # Verifica che ci siano modifiche da committare
+          if git diff --cached --quiet; then
+            echo "Nessuna modifica da committare"
+            exit 0
+          fi
           
           # Crea il commit
           git commit -m "Remove tracked files matching .gitignore patterns"
