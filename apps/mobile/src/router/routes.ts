@@ -11,6 +11,9 @@ export interface RouteConfig {
 }
 
 export const routes: RouteConfig[] = [
+  // Cookie consent gate (pre-welcome, no auth required)
+  { screen: 'cookie-consent', layout: 'fullscreen', showBottomNav: false, requiresAuth: false },
+
   // Auth flow
   { screen: 'welcome', layout: 'auth', showBottomNav: false, requiresAuth: false },
   { screen: 'login', layout: 'auth', showBottomNav: false, requiresAuth: false },

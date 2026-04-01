@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Screen, Tab, LegalReturnScreen, PersistedNavState } from '../types/navigation';
 import { hasStoredAuthState, PUBLIC_SCREENS } from '../lib/auth-storage';
+import { COOKIE_CONSENT_KEY } from '../constants/privacy';
 
 const NAV_STATE_KEY = 'tdp-mobile-ui-nav';
 const NAV_STATE_VERSION = 1 as const;
 
 const VALID_SCREENS = new Set<Screen>([
+    'cookie-consent',
     'welcome', 'login', 'signup', 'install', 'role-selection',
     'home', 'turns', 'leaderboard', 'qr-scanner', 'event-confirmation',
     'event-details', 'activities', 'shop', 'activity-detail', 'activity-minigame', 'activity-result', 'profile', 'public-profile',
@@ -17,6 +19,7 @@ const VALID_SCREENS = new Set<Screen>([
 const VALID_TABS = new Set<Tab>(['home', 'turns', 'leaderboard', 'activities', 'shop', 'profile']);
 
 const VALID_LEGAL_RETURN_SCREENS = new Set<LegalReturnScreen>([
+    'cookie-consent',
     'welcome', 'login', 'signup', 'role-selection', 'home', 'turns',
     'qr-scanner', 'event-confirmation', 'activities', 'shop', 'activity-detail', 'activity-minigame', 'activity-result',
     'profile', 'account-settings', 'support', 'change-password',
@@ -62,6 +65,9 @@ function writeNavState(state: PersistedNavState) {
 }
 
 function getScreenToPersist(screen: Screen, activeTab: Tab): Screen {
+    if (screen === 'cookie-consent') {
+        return 'welcome';
+    }
     if (screen === 'install' || screen === 'qr-scanner') {
         return activeTab === 'home' ? 'home' : 'activities';
     }
@@ -126,7 +132,12 @@ export function useNavigation(initialEvents: { id: string }[], options?: UseNavi
         };
     }, [isScreenEnabled, isTabEnabled]);
 
-    const [currentScreen, setCurrentScreen] = useState<Screen>(() => persistedNavState?.screen ?? 'welcome');
+    const [currentScreen, setCurrentScreen] = useState<Screen>(() => {
+        if (typeof window !== 'undefined' && !window.localStorage.getItem(COOKIE_CONSENT_KEY)) {
+            return 'cookie-consent';
+        }
+        return persistedNavState?.screen ?? 'welcome';
+    });
     const [legalReturnScreen, setLegalReturnScreen] = useState<LegalReturnScreen>(() => persistedNavState?.legalReturnScreen ?? 'welcome');
     const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
     const [activeTab, setActiveTab] = useState<Tab>(() => persistedNavState?.activeTab ?? 'home');

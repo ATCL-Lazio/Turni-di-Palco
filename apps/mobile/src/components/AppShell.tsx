@@ -45,6 +45,7 @@ import { Career } from './screens/Career';
 import { InstallApp } from './screens/InstallApp';
 import { TermsAndConditions } from './screens/TermsAndConditions';
 import { PrivacyPolicy } from './screens/PrivacyPolicy';
+import { CookieConsent } from './screens/CookieConsent';
 import { EarnedTitles } from './screens/EarnedTitles';
 import { TicketQrActivationPrototype } from './screens/TicketQrActivationPrototype';
 import { Card } from './ui/Card';
@@ -368,6 +369,14 @@ export function AppShell() {
       ? roles.find(r => r.id === selectedLeaderboardEntry.roleId)?.name ?? 'Ruolo' : 'Ruolo';
 
     switch (nav.screen) {
+      case 'cookie-consent':
+        return (
+          <CookieConsent
+            onAccept={() => nav.navigate('welcome')}
+            onViewPrivacy={() => nav.openLegal('privacy', 'welcome')}
+          />
+        );
+
       case 'welcome':
         return <Welcome onStart={() => nav.navigate('signup')} onLogin={() => nav.navigate('login')} />;
 

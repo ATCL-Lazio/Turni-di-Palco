@@ -24,7 +24,7 @@ export const LEGACY_SUPABASE_SESSION_KEY = LEGACY_SESSION_KEY;
 export const LEGACY_SUPABASE_SESSION_ID_KEY = LEGACY_SESSION_ID_KEY;
 export const USER_STATE_KEY = 'tdp-mobile-ui-state';
 
-export const PUBLIC_SCREENS = new Set<Screen>(['welcome', 'login', 'signup', 'install', 'terms', 'privacy']);
+export const PUBLIC_SCREENS = new Set<Screen>(['cookie-consent', 'welcome', 'login', 'signup', 'install', 'terms', 'privacy']);
 
 type StoredSession = { access_token?: unknown; refresh_token?: unknown };
 type StoredUserState = { profile?: { email?: unknown } };
