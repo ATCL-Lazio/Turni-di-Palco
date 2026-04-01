@@ -36,7 +36,7 @@ const bullets = [
 export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
   const handleAccept = () => {
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(COOKIE_CONSENT_KEY, '1');
+      window.localStorage.setItem(COOKIE_CONSENT_KEY, new Date().toISOString());
     }
     onAccept();
   };
