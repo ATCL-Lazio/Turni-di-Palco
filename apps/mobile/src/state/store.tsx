@@ -8,7 +8,7 @@ import {
   SUPABASE_SESSION_KEY,
 } from '../lib/auth-storage';
 import { resolveDisplayName } from '../lib/profile-utils';
-import { GEO_CONSENT_KEY } from '../constants/privacy';
+import { COOKIE_CONSENT_KEY, GEO_CONSENT_KEY } from '../constants/privacy';
 import { formatErrorDetails, reportCriticalError } from '../services/error-handler';
 import { withMobileWatchdog } from '../services/mobile-watchdog';
 import {
@@ -668,6 +668,7 @@ type ProfileUpsertPayload = {
   role_id: RoleId;
   profile_image?: string | null;
   leaderboard_visible?: boolean;
+  cookie_consent_at?: string | null;
 };
 
 type TurnInsertPayload = {
@@ -858,7 +859,7 @@ function logOfflineSync(message: string, details?: unknown, level: OfflineSyncLo
   } else if (level === 'error') {
     if (details === undefined) console.error(formattedMessage);
     else console.error(formattedMessage, details);
-  } else {
+  } else if (import.meta.env.DEV) {
     if (details === undefined) console.info(formattedMessage);
     else console.info(formattedMessage, details);
   }
@@ -1533,6 +1534,12 @@ function shouldRetrySyncError(error: unknown) {
 }
 
 function buildProfileUpsertPayload(userId: string, profile: PlayerProfile): ProfileUpsertPayload {
+  const raw = typeof window !== 'undefined'
+    ? window.localStorage.getItem(COOKIE_CONSENT_KEY)
+    : null;
+  // Backward-compat: '1' (vecchio formato pre-timestamp) → usa "now" come best-effort
+  const cookieConsentAt = raw === '1' ? new Date().toISOString() : raw ?? undefined;
+
   return {
     id: userId,
     name: profile.name,
@@ -1540,6 +1547,7 @@ function buildProfileUpsertPayload(userId: string, profile: PlayerProfile): Prof
     role_id: profile.roleId,
     profile_image: profile.profileImage ?? null,
     leaderboard_visible: profile.leaderboardVisible,
+    ...(cookieConsentAt ? { cookie_consent_at: cookieConsentAt } : {}),
   };
 }
 
@@ -2336,7 +2344,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
     const batch = queue.slice(0, OFFLINE_SYNC_SERVER_LOG_BATCH_SIZE);
     offlineServerLogSyncInFlightRef.current = true;
-    console.info(`${OFFLINE_SYNC_LOG_PREFIX} Mirroring log batch to server`, {
+    if (import.meta.env.DEV) console.info(`${OFFLINE_SYNC_LOG_PREFIX} Mirroring log batch to server`, {
       batchSize: batch.length,
       queueSize: queue.length,
       duplicatePolicy: 'include',
@@ -2368,7 +2376,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       const acknowledgedSet = new Set(acknowledgedIds);
       const remaining = readMirroredClientLogs().filter((entry) => !acknowledgedSet.has(entry.id));
       writeMirroredClientLogs(remaining);
-      console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror ack`, {
+      if (import.meta.env.DEV) console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror ack`, {
         acknowledged: acknowledgedSet.size,
         remaining: remaining.length,
       });
@@ -2913,13 +2921,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !shouldMirrorOfflineSyncLogsToServer()) return;
     if (typeof window === 'undefined') return;
-    console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror listeners started`, {
+    if (import.meta.env.DEV) console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror listeners started`, {
       retryIntervalMs: OFFLINE_SYNC_SERVER_LOG_RETRY_INTERVAL_MS,
       batchSize: OFFLINE_SYNC_SERVER_LOG_BATCH_SIZE,
     });
 
     const handleOnline = () => {
-      console.info(`${OFFLINE_SYNC_LOG_PREFIX} Browser online: retrying server log mirror`);
+      if (import.meta.env.DEV) console.info(`${OFFLINE_SYNC_LOG_PREFIX} Browser online: retrying server log mirror`);
       void flushMirroredClientLogsToServer();
     };
 
@@ -2932,7 +2940,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.clearInterval(intervalId);
-      console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror listeners stopped`);
+      if (import.meta.env.DEV) console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror listeners stopped`);
     };
   }, [flushMirroredClientLogsToServer]);
 
