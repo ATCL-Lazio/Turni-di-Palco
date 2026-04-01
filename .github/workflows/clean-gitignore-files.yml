@@ -1,0 +1,52 @@
+name: Clean Gitignore Files
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch target per la pulizia'
+        required: true
+        default: 'main'
+        type: string
+
+jobs:
+  clean-ignored-files:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+          fetch-depth: 1
+
+      - name: Check and remove ignored files
+        run: |
+          # Trova i file tracciati che corrispondono al .gitignore
+          IGNORED_FILES=$(git ls-files -i --exclude-from=.gitignore)
+          
+          if [ -z "$IGNORED_FILES" ]; then
+            echo "Nessun file ignorato trovato nel tracking."
+            exit 0
+          fi
+          
+          echo "File ignorati trovati:"
+          echo "$IGNORED_FILES"
+          
+          # Rimuovi i file dall'index (preserva i file locali con --cached)
+          echo "$IGNORED_FILES" | xargs git rm --cached
+          
+          # Configura git per il commit
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          # Crea il commit
+          git commit -m "Remove tracked files matching .gitignore patterns"
+          
+          # Pusha sul branch
+          git push origin ${{ github.event.inputs.branch }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
