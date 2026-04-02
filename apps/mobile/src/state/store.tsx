@@ -3535,7 +3535,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           const [userRes, profileRes, turnsRes] = await Promise.all([
             supabase!.auth.getUser(),
             supabase!.from('profiles').select('*').eq('id', authUserId).maybeSingle(),
-            supabase!.from('turns').select('*').eq('user_id', authUserId).order('created_at', { ascending: false }),
+            supabase!.from('turns').select('*').eq('user_id', authUserId).order('created_at', { ascending: false }).limit(100),
           ]);
 
           if (!isMounted) return;
