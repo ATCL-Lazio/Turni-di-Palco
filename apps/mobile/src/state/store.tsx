@@ -3447,7 +3447,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             supabase!.from('roles').select('id,name,focus,stats,role_profile'),
             supabase!
               .from('events')
-              .select('id,name,theatre,event_date,event_time,genre,base_rewards,focus_role'),
+              .select('id,name,theatre,event_date,event_time,genre,base_rewards,focus_role')
+              .gte('event_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]),
             supabase!
               .from('activities')
               .select('id,title,description,duration,xp_reward,cachet_reward,difficulty'),
@@ -3535,7 +3536,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           const [userRes, profileRes, turnsRes] = await Promise.all([
             supabase!.auth.getUser(),
             supabase!.from('profiles').select('*').eq('id', authUserId).maybeSingle(),
-            supabase!.from('turns').select('*').eq('user_id', authUserId).order('created_at', { ascending: false }),
+            supabase!.from('turns').select('*').eq('user_id', authUserId).order('created_at', { ascending: false }).limit(100),
           ]);
 
           if (!isMounted) return;
