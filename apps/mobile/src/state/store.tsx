@@ -3451,7 +3451,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             supabase!.from('roles').select('id,name,focus,stats,role_profile'),
             supabase!
               .from('events')
-              .select('id,name,theatre,event_date,event_time,genre,base_rewards,focus_role'),
+              .select('id,name,theatre,event_date,event_time,genre,base_rewards,focus_role')
+              .gte('event_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]),
             supabase!
               .from('activities')
               .select('id,title,description,duration,xp_reward,cachet_reward,difficulty'),
