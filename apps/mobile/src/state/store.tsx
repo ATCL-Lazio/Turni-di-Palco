@@ -1470,6 +1470,10 @@ const TURN_REGISTRATION_ERROR_MESSAGES: Array<{ token: string; message: string }
     token: 'invalid_coordinates',
     message: 'Coordinate GPS non valide. Verifica il GPS e riprova.',
   },
+  {
+    token: 'registration_window_expired',
+    message: 'Non è più possibile registrare questo turno: la finestra di registrazione è scaduta.',
+  },
 ];
 
 export function localizeTurnRegistrationError(error: unknown): string {
