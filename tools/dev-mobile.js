@@ -28,9 +28,17 @@ const aiProc = spawn('node', [aiSupportPath], {
   env: process.env,
 });
 
+aiProc.on('error', (err) => {
+  console.error(`[dev-mobile] Failed to spawn AI support server: ${err.message}`);
+});
+
 const viteProc = spawn('node', [withHttpsPath, ...viteArgs], {
   stdio: 'inherit',
   env: process.env,
+});
+
+viteProc.on('error', (err) => {
+  console.error(`[dev-mobile] Failed to spawn Vite: ${err.message}`);
 });
 
 let shuttingDown = false;

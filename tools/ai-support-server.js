@@ -17,7 +17,27 @@ const port =
 const host = resolveHost();
 const codexBin = resolveCodexBin();
 const ghBin = resolveGhBin();
-const codexArgs = process.env.CODEX_ARGS ? process.env.CODEX_ARGS.split(' ') : [];
+/** Parse a shell-like argument string, respecting single and double quotes. */
+function parseArgs(str) {
+  const args = [];
+  let current = '';
+  let quote = null;
+  for (const ch of str) {
+    if (quote) {
+      if (ch === quote) { quote = null; } else { current += ch; }
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === ' ') {
+      if (current) { args.push(current); current = ''; }
+    } else {
+      current += ch;
+    }
+  }
+  if (current) args.push(current);
+  return args;
+}
+
+const codexArgs = process.env.CODEX_ARGS ? parseArgs(process.env.CODEX_ARGS) : [];
 const maxBodySize = 1_000_000;
 const verbose =
   process.env.AI_SUPPORT_VERBOSE !== '0' &&
