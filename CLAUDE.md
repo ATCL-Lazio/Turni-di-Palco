@@ -17,7 +17,7 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - Install deps (workspaces per PWA): `npm install` (Node 18+; repo attuale Node 22.14.0).
 
-- PWA: `npm run dev:pwa` / `npm run dev:pwa:https`, build `npm run build:pwa`, preview `npm run preview:pwa`, test `npm run test:pwa` (setup in `apps/pwa/src/test/setup.ts`).
+- PWA: `npm run dev:pwa`, build `npm run build:pwa`, preview `npm run preview:pwa`, test `npm run test:pwa` (setup in `apps/pwa/src/test/setup.ts`).
 
 - Mobile (`apps/mobile`): `npm run dev:mobile`, `npm run build:mobile`, `npm run sync:mobile`.
 
