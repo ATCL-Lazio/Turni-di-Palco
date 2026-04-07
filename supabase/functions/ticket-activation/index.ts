@@ -97,8 +97,8 @@ serve(async (req: Request) => {
         // JWT uses base64url encoding; convert to standard base64 for atob
         const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
         const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
-        const payload = JSON.parse(atob(padded));
-        userId = typeof payload.sub === 'string' ? payload.sub : undefined;
+        const jwtPayload = JSON.parse(atob(padded));
+        userId = typeof jwtPayload.sub === 'string' ? jwtPayload.sub : undefined;
         console.log('[auth] JWT sub:', userId ?? '(missing)');
       } catch (decodeErr) {
         console.error('[auth] JWT decode failed:', (decodeErr as Error).message);
