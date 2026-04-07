@@ -576,7 +576,7 @@ export function AppShell() {
 
       case 'support':
         return canViewAiSupport
-          ? <SupportChat userName={state.profile.name} onBack={() => nav.navigate('account-settings')} />
+          ? <SupportChat userName={state.profile.name} userId={authUserId} onBack={() => nav.navigate('account-settings')} />
           : <AccountSettings userName={state.profile.name} email={state.profile.email}
               showAiSupport={canViewAiSupport} showTicketPrototype={canViewTicketQrPrototype}
               leaderboardVisible={state.profile.leaderboardVisible}

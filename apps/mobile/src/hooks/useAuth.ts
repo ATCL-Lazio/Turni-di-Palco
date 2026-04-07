@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { resolveDisplayName } from '../lib/profile-utils';
 import { PlayerProfile } from '../state/store';
@@ -96,6 +96,11 @@ export function useAuth(
         onLogout();
     }, [onLogout]);
 
+    const profileNameRef = useRef(profile.name);
+    const profileEmailRef = useRef(profile.email);
+    useEffect(() => { profileNameRef.current = profile.name; }, [profile.name]);
+    useEffect(() => { profileEmailRef.current = profile.email; }, [profile.email]);
+
     const applyUserProfileFromAuth = useCallback(
         (
             user: { email?: string | null; user_metadata?: Record<string, unknown> } | null | undefined,
@@ -109,22 +114,22 @@ export function useAuth(
                 return;
             }
 
-            const email = user.email ?? profile.email;
+            const email = user.email ?? profileEmailRef.current;
             const displayName = resolveDisplayName({
                 name: (user.user_metadata?.name as string | undefined),
                 metadata: user.user_metadata,
                 email,
-                fallback: options?.fallbackName ?? profile.name,
+                fallback: options?.fallbackName ?? profileNameRef.current,
             });
 
-            const shouldSetName = shouldUpdateName(profile.name, email, displayName);
+            const shouldSetName = shouldUpdateName(profileNameRef.current, email, displayName);
             updateProfile(shouldSetName ? { name: displayName, email } : { email });
 
             if (options?.navigateTo) {
                 onAuthChange(options.navigateTo, options.navigateReplace);
             }
         },
-        [profile.name, profile.email, updateProfile, onAuthChange],
+        [updateProfile, onAuthChange],
     );
 
     useEffect(() => {
