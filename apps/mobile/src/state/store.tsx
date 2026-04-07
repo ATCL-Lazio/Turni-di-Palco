@@ -499,6 +499,25 @@ export const activities: Activity[] = [
     cachetReward: 24,
     difficulty: 'Medio',
   },
+  // Issue #469: Espansione minigiochi per ruoli specifici
+  {
+    id: 'sequenza_luci',
+    title: 'Sequenza cue luci',
+    description: 'Esegui una sequenza di cue luci in rapida successione. Precisione estrema richiesta per tecnici luci.',
+    duration: '6 min',
+    xpReward: 75,
+    cachetReward: 35,
+    difficulty: 'Difficile',
+  },
+  {
+    id: 'equalizzazione',
+    title: 'Equalizzazione frequenze',
+    description: 'Bilancia le frequenze basse, medie e alte per un mix audio perfetto. Solo per fonici esperti.',
+    duration: '5 min',
+    xpReward: 70,
+    cachetReward: 32,
+    difficulty: 'Difficile',
+  },
 ];
 
 const DEFAULT_SHOP_CATALOG: ShopCatalogItem[] = [
