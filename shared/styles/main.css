@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @source "../../apps/mobile/src/**/*.{ts,tsx,js,jsx,html}";
 @source "../../apps/mobile/index.html";
-@source "../../apps/mobile/src/**/*.{ts,tsx,js,jsx,html}";
 @source "../../apps/mobile/*.html";
 @import "./extracted-pwa-styles/tokens.css";
 @import "./extracted-pwa-styles/layout.css";

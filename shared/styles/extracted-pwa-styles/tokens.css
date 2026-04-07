@@ -1,6 +1,6 @@
 :root {
   /* Typography */
-  --font-family-base: "-apple-system", "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  --font-family-base: -apple-system, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
   --font-family-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
   --font-size-xs: 0.8rem;
   --font-size-sm: 0.95rem;
