@@ -1,7 +1,10 @@
 {
   "name": "Turni di Palco",
   "short_name": "Turni di Palco",
-  "description": "Turni di Palco",
+  "description": "App di gamification teatrale per ATCL Lazio. Scopri eventi, guadagna badge e vivi il teatro in modo interattivo.",
+  "lang": "it",
+  "orientation": "portrait",
+  "categories": ["entertainment", "games"],
   "id": "/mobile/",
   "start_url": "/mobile/",
   "scope": "/mobile/",
