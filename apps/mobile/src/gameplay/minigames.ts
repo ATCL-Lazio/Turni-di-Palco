@@ -87,6 +87,30 @@ const MINIGAME_BY_ACTIVITY: Record<string, MinigameConfig> = {
       { target: 47, tolerance: 6, label: 'Snodo 3' },
     ],
   },
+  // Issue #469: Espansione minigiochi per ruoli specifici
+  sequenza_luci: {
+    type: 'timing',
+    title: 'Sequenza cue luci',
+    subtitle: 'Esegui una sequenza di cue luci in rapida successione. Precisione estrema richiesta.',
+    allowedRoles: ['luci'],
+    rounds: [
+      { target: 45, tolerance: 4, label: 'Cue Apertura' },
+      { target: 30, tolerance: 3, label: 'Cue Transizione' },
+      { target: 70, tolerance: 4, label: 'Cue Finale' },
+      { target: 55, tolerance: 3, label: 'Cue Blackout' },
+    ],
+  },
+  equalizzazione: {
+    type: 'audio',
+    title: 'Equalizzazione frequenze',
+    subtitle: 'Bilancia le frequenze basse, medie e alte per un mix perfetto.',
+    allowedRoles: ['fonico'],
+    rounds: [
+      { target: 35, tolerance: 5, label: 'Frequenze basse (batteria)' },
+      { target: 65, tolerance: 4, label: 'Frequenze medie (voce)' },
+      { target: 50, tolerance: 5, label: 'Frequenze alte (cymbal)' },
+    ],
+  },
 };
 
 const FALLBACK_CONFIG: MinigameConfig = {
