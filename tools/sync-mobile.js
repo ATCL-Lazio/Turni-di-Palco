@@ -16,7 +16,7 @@ const {
   readFileSync,
   writeFileSync,
 } = require('node:fs');
-const { join } = require('node:path');
+const { join, relative } = require('node:path');
 
 const ROOT = join(__dirname, '..');
 const SRC = join(ROOT, 'apps/mobile/build');
@@ -41,7 +41,7 @@ function dirChecksum(dir) {
       if (entry.isDirectory()) {
         walk(full);
       } else {
-        hash.update(full.replace(dir, ''));
+        hash.update(relative(dir, full));
         hash.update(readFileSync(full));
       }
     }

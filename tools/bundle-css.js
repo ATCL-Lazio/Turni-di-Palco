@@ -27,5 +27,6 @@ files.forEach(file => {
     }
 });
 
+fs.mkdirSync(path.dirname(outputFile), { recursive: true });
 fs.writeFileSync(outputFile, content);
 console.log(`Created ${outputFile} (${content.length} bytes)`);
