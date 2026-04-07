@@ -21,6 +21,7 @@ type ChatSession = { id: string; createdAt: number; updatedAt: number; messages:
 
 interface SupportChatProps {
   userName: string;
+  userId?: string;
   onBack: () => void;
 }
 
@@ -29,7 +30,7 @@ const MAX_SESSIONS = 10;
 const MAX_MESSAGES_PER_SESSION = 120;
 const ISSUE_DRAFT_MARKER = 'ISSUE_DRAFT:';
 
-export function SupportChat({ userName, onBack }: SupportChatProps) {
+export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
   const displayName = userName || 'Utente';
   const greetingMessage = useMemo(() => buildSupportMessage('assistant',
     `Ciao ${displayName}! Sono Maxwell, pronto a darti una mano. Come posso aiutarti?`), [displayName]);
@@ -55,7 +56,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
   }, [messages, isLoading]);
 
   useEffect(() => {
-    const stored = loadChatHistory(displayName);
+    const stored = loadChatHistory(displayName, userId);
     if (stored.length) {
       setChatSessions(stored);
       setActiveSessionId(stored[0].id);
@@ -66,7 +67,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
       setChatSessions([session]);
       setActiveSessionId(sessionId);
       setMessages(session.messages);
-      saveChatHistory(displayName, [session]);
+      saveChatHistory(displayName, [session], userId);
     }
     hasLoadedRef.current = true;
   }, [displayName, greetingMessage]);
@@ -77,7 +78,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
     if (!hasLoadedRef.current || !activeSessionId) return;
     setChatSessions(prev => {
       const next = updateSessionList(prev, activeSessionId, messages);
-      saveChatHistory(displayName, next);
+      saveChatHistory(displayName, next, userId);
       return next;
     });
   }, [messages, activeSessionId, displayName]);
@@ -156,7 +157,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
     setChatSessions(next);
     setActiveSessionId(sessionId);
     setMessages(session.messages);
-    saveChatHistory(displayName, next);
+    saveChatHistory(displayName, next, userId);
     setIsHistoryOpen(false);
   };
 
@@ -419,7 +420,8 @@ function buildSupportMessage(role: SupportMessage['role'], content: string): Sup
   return { id: buildMessageId(), role, content, createdAt: Date.now() };
 }
 
-function getHistoryKey(displayName: string) {
+function getHistoryKey(displayName: string, userId?: string) {
+  if (userId) return `${HISTORY_KEY_PREFIX}${userId}`;
   return `${HISTORY_KEY_PREFIX}${displayName.trim().toLowerCase().replace(/\s+/g, '-') || 'utente'}`;
 }
 
@@ -442,10 +444,10 @@ function validateSupportMessage(raw: unknown): SupportMessage | null {
   return { id, role, content, createdAt };
 }
 
-function loadChatHistory(displayName: string): ChatSession[] {
+function loadChatHistory(displayName: string, userId?: string): ChatSession[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = window.localStorage.getItem(getHistoryKey(displayName));
+    const raw = window.localStorage.getItem(getHistoryKey(displayName, userId));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -469,10 +471,10 @@ function loadChatHistory(displayName: string): ChatSession[] {
   } catch { return []; }  
 }
 
-function saveChatHistory(displayName: string, sessions: ChatSession[]) {
+function saveChatHistory(displayName: string, sessions: ChatSession[], userId?: string) {
   if (typeof window === 'undefined') return;
   const trimmed = [...sessions].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, MAX_SESSIONS);
-  try { window.localStorage.setItem(getHistoryKey(displayName), JSON.stringify(trimmed)); } catch { /* noop */ }
+  try { window.localStorage.setItem(getHistoryKey(displayName, userId), JSON.stringify(trimmed)); } catch { /* noop */ }
 }
 
 function trimMessages(messages: SupportMessage[]) {

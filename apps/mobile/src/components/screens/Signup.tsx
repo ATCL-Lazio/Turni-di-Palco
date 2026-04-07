@@ -26,7 +26,7 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
     const newErrors: Record<string, string> = {};
     if (!name) newErrors.name = 'Nome richiesto';
     if (!email) newErrors.email = 'Email richiesta';
-    if (!password) newErrors.password = 'Password richiesta';
+    if (!password) newErrors.password = 'Password richiesta'; else if (password.length < 8) newErrors.password = 'La password deve avere almeno 8 caratteri';
     if (password !== confirmPassword) newErrors.confirmPassword = 'Le password non corrispondono';
     if (!acceptTerms) newErrors.terms = 'Devi accettare i termini e la privacy';
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }

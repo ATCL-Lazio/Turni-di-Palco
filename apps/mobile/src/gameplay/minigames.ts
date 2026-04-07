@@ -23,7 +23,6 @@ export type MinigameOutcome = {
   type: MinigameType;
   score: number;
   rating: MinigameRating;
-  accuracy: number;
   roundScores: number[];
   attempts: number;
   durationMs: number;
@@ -101,6 +100,13 @@ const FALLBACK_CONFIG: MinigameConfig = {
   ],
 };
 
+/**
+ * Check whether a minigame activity is available for the given role.
+ *
+ * When `roleId` is `null` or `undefined` (i.e. no role selected yet):
+ * - Activities without an `allowedRoles` restriction return `true` (available to everyone).
+ * - Activities restricted to specific roles return `false` (role required).
+ */
 export function isMinigameAvailableForRole(activityId: string, roleId?: RoleId | null): boolean {
   const config = MINIGAME_BY_ACTIVITY[activityId] ?? FALLBACK_CONFIG;
   if (!config.allowedRoles?.length) return true;
@@ -142,13 +148,11 @@ export function computeOutcome(
   const safeScores = roundScores.length ? roundScores : [0];
   const total = safeScores.reduce((sum, value) => sum + value, 0);
   const score = Math.round(total / safeScores.length);
-  const accuracy = Math.round(score);
   const rating = ratingFromScore(score);
 
   return {
     type,
     score,
-    accuracy,
     rating,
     roundScores,
     attempts: Math.max(1, Math.round(meta?.attempts ?? 1)),
