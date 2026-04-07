@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { resolveDisplayName } from '../lib/profile-utils';
 import { PlayerProfile } from '../state/store';
@@ -127,6 +127,12 @@ export function useAuth(
         [profile.name, profile.email, updateProfile, onAuthChange],
     );
 
+    const applyUserProfileRef = useRef(applyUserProfileFromAuth);
+    useEffect(() => { applyUserProfileRef.current = applyUserProfileFromAuth; }, [applyUserProfileFromAuth]);
+
+    const onLogoutRef = useRef(onLogout);
+    useEffect(() => { onLogoutRef.current = onLogout; }, [onLogout]);
+
     useEffect(() => {
         if (!supabase) return;
         let mounted = true;
@@ -134,7 +140,7 @@ export function useAuth(
         supabase.auth.getSession().then(({ data, error }) => {
             if (!mounted || error) return;
             if (data.session?.user) {
-                applyUserProfileFromAuth(data.session.user, {
+                applyUserProfileRef.current(data.session.user, {
                     navigateTo: 'home',
                 });
             }
@@ -143,18 +149,18 @@ export function useAuth(
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
             if (!mounted) return;
             if (event === 'SIGNED_OUT') {
-                onLogout();
+                onLogoutRef.current();
                 return;
             }
             if (event === 'PASSWORD_RECOVERY') {
-                applyUserProfileFromAuth(session?.user, {
+                applyUserProfileRef.current(session?.user, {
                     navigateTo: 'change-password',
                     navigateReplace: true,
                 });
                 return;
             }
             if (session?.user) {
-                applyUserProfileFromAuth(session.user, {
+                applyUserProfileRef.current(session.user, {
                     navigateTo: 'home',
                 });
             }
@@ -164,7 +170,7 @@ export function useAuth(
             mounted = false;
             authListener?.subscription.unsubscribe();
         };
-    }, [supabase, applyUserProfileFromAuth, onLogout]);
+    }, [supabase]);
 
     return {
         authError,

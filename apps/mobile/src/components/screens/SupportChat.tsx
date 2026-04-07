@@ -21,6 +21,7 @@ type ChatSession = { id: string; createdAt: number; updatedAt: number; messages:
 
 interface SupportChatProps {
   userName: string;
+  userId?: string;
   onBack: () => void;
 }
 
@@ -29,8 +30,9 @@ const MAX_SESSIONS = 10;
 const MAX_MESSAGES_PER_SESSION = 120;
 const ISSUE_DRAFT_MARKER = 'ISSUE_DRAFT:';
 
-export function SupportChat({ userName, onBack }: SupportChatProps) {
+export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
   const displayName = userName || 'Utente';
+  const historyId = userId || displayName;
   const greetingMessage = useMemo(() => buildSupportMessage('assistant',
     `Ciao ${displayName}! Sono Maxwell, pronto a darti una mano. Come posso aiutarti?`), [displayName]);
   const isMobile = useIsMobile();
@@ -55,7 +57,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
   }, [messages, isLoading]);
 
   useEffect(() => {
-    const stored = loadChatHistory(displayName);
+    const stored = loadChatHistory(historyId);
     if (stored.length) {
       setChatSessions(stored);
       setActiveSessionId(stored[0].id);
@@ -66,10 +68,10 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
       setChatSessions([session]);
       setActiveSessionId(sessionId);
       setMessages(session.messages);
-      saveChatHistory(displayName, [session]);
+      saveChatHistory(historyId, [session]);
     }
     hasLoadedRef.current = true;
-  }, [displayName, greetingMessage]);
+  }, [historyId, greetingMessage]);
 
   useEffect(() => () => { abortControllerRef.current?.abort(); }, []);
 
@@ -77,10 +79,10 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
     if (!hasLoadedRef.current || !activeSessionId) return;
     setChatSessions(prev => {
       const next = updateSessionList(prev, activeSessionId, messages);
-      saveChatHistory(displayName, next);
+      saveChatHistory(historyId, next);
       return next;
     });
-  }, [messages, activeSessionId, displayName]);
+  }, [messages, activeSessionId, historyId]);
 
   const hasInput = input.trim().length > 0;
   const activeSession = useMemo(
@@ -156,7 +158,7 @@ export function SupportChat({ userName, onBack }: SupportChatProps) {
     setChatSessions(next);
     setActiveSessionId(sessionId);
     setMessages(session.messages);
-    saveChatHistory(displayName, next);
+    saveChatHistory(historyId, next);
     setIsHistoryOpen(false);
   };
 
@@ -419,8 +421,8 @@ function buildSupportMessage(role: SupportMessage['role'], content: string): Sup
   return { id: buildMessageId(), role, content, createdAt: Date.now() };
 }
 
-function getHistoryKey(displayName: string) {
-  return `${HISTORY_KEY_PREFIX}${displayName.trim().toLowerCase().replace(/\s+/g, '-') || 'utente'}`;
+function getHistoryKey(id: string) {
+  return `${HISTORY_KEY_PREFIX}${id.trim().toLowerCase().replace(/\s+/g, '-') || 'utente'}`;
 }
 
 function validateSupportMessage(raw: unknown): SupportMessage | null {

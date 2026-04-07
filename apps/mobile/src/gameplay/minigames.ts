@@ -101,6 +101,14 @@ const FALLBACK_CONFIG: MinigameConfig = {
   ],
 };
 
+/**
+ * Check whether a minigame is available for the given role.
+ *
+ * When `roleId` is `null` or `undefined` (e.g. the user has not selected a
+ * role yet), the function returns `true` only if the minigame has no
+ * role restrictions (`allowedRoles` is empty or missing). If the minigame
+ * is restricted to specific roles and no role is provided, it returns `false`.
+ */
 export function isMinigameAvailableForRole(activityId: string, roleId?: RoleId | null): boolean {
   const config = MINIGAME_BY_ACTIVITY[activityId] ?? FALLBACK_CONFIG;
   if (!config.allowedRoles?.length) return true;
@@ -123,15 +131,14 @@ export function getMinigameConfig(activityId: string, roleId?: RoleId | null): M
 
 export function computeRoundScore(target: number, hit: number, tolerance: number) {
   const delta = Math.abs(target - hit);
-  const accuracy = Math.max(0, 100 - delta * 2);
-  const score = Math.round(accuracy);
+  const score = Math.round(Math.max(0, 100 - delta * 2));
   let label = 'Da migliorare';
 
   if (delta <= tolerance) label = 'Perfetto';
   else if (delta <= tolerance * 2) label = 'Ottimo';
   else if (delta <= tolerance * 3) label = 'Buono';
 
-  return { score, accuracy, delta, label };
+  return { score, delta, label };
 }
 
 export function computeOutcome(
@@ -142,13 +149,12 @@ export function computeOutcome(
   const safeScores = roundScores.length ? roundScores : [0];
   const total = safeScores.reduce((sum, value) => sum + value, 0);
   const score = Math.round(total / safeScores.length);
-  const accuracy = Math.round(score);
   const rating = ratingFromScore(score);
 
   return {
     type,
     score,
-    accuracy,
+    accuracy: score,
     rating,
     roundScores,
     attempts: Math.max(1, Math.round(meta?.attempts ?? 1)),

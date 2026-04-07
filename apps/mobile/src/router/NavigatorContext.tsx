@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useCallback } from 'react';
 import { Screen, Tab, LegalReturnScreen } from '../types/navigation';
 import { useNavigation } from '../hooks/useNavigation';
 
@@ -74,16 +74,6 @@ export function NavigatorProvider({
     scannedEventId, setScannedEventId,
     selectedActivityId, setSelectedActivityId,
   } = useNavigation(initialEvents, { isScreenEnabled, isTabEnabled });
-
-  const historyRef = useRef<Screen[]>([currentScreen]);
-
-  useEffect(() => {
-    const history = historyRef.current;
-    if (history[history.length - 1] !== currentScreen) {
-      history.push(currentScreen);
-      if (history.length > 20) history.shift();
-    }
-  }, [currentScreen]);
 
   const navigate = useCallback((screen: Screen) => {
     setCurrentScreen(screen);

@@ -35,8 +35,8 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
   useEffect(() => { isScanningRef.current = isScanning; }, [isScanning]);
 
   const stopCamera = () => {
-    clearTimeout(scanTimeoutRef.current!); scanTimeoutRef.current = null;
-    clearTimeout(resumeTimeoutRef.current!); resumeTimeoutRef.current = null;
+    if (scanTimeoutRef.current != null) { clearTimeout(scanTimeoutRef.current); scanTimeoutRef.current = null; }
+    if (resumeTimeoutRef.current != null) { clearTimeout(resumeTimeoutRef.current); resumeTimeoutRef.current = null; }
     resumeScanRef.current = null;
     if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
     if (videoRef.current) videoRef.current.srcObject = null;
