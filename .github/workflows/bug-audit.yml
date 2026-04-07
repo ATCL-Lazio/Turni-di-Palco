@@ -1,0 +1,405 @@
+name: Bug Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── 1. Security patterns in source code ────────────────────────────
+  security-patterns:
+    name: Security Pattern Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check for innerHTML usage with dynamic data
+        run: |
+          echo "::group::innerHTML with template literals (potential XSS)"
+          FOUND=0
+          # Look for innerHTML assignments with template literals
+          grep -rn '\.innerHTML\s*=' --include='*.ts' --include='*.tsx' --include='*.js' \
+            apps/ shared/ || true
+          # Flag template literal innerHTML as warnings
+          if grep -rn '\.innerHTML\s*=.*\$\{' --include='*.ts' --include='*.tsx' --include='*.js' \
+            apps/ shared/ 2>/dev/null; then
+            echo "::warning::Found innerHTML with template literal interpolation — potential XSS vector"
+            FOUND=1
+          fi
+          echo "::endgroup::"
+
+          echo "::group::Unescaped user input in HTML templates"
+          if grep -rn 'dangerouslySetInnerHTML' --include='*.tsx' --include='*.jsx' \
+            apps/ 2>/dev/null; then
+            echo "::warning::Found dangerouslySetInnerHTML usage — verify input is sanitized"
+            FOUND=1
+          fi
+          echo "::endgroup::"
+
+          # Don't fail — just warn
+          exit 0
+
+      - name: Check for hardcoded secrets patterns
+        run: |
+          echo "::group::Potential hardcoded secrets"
+          FAIL=0
+          # Check for private keys, passwords, tokens in source
+          if grep -rn --include='*.ts' --include='*.tsx' --include='*.js' --include='*.mjs' \
+            -iE '(password|secret|private.?key|api.?key)\s*[:=]\s*["\x27][^"\x27]{8,}' \
+            apps/ tools/ shared/ supabase/ 2>/dev/null | \
+            grep -v 'import\.meta\.env' | \
+            grep -v '\.example' | \
+            grep -v 'process\.env' | \
+            grep -v '// ' | \
+            grep -v 'type\b' | \
+            grep -v 'interface\b'; then
+            echo "::error::Potential hardcoded secrets found in source code"
+            FAIL=1
+          fi
+          echo "::endgroup::"
+          exit $FAIL
+
+      - name: Check for missing auth in Supabase functions
+        run: |
+          echo "::group::Supabase functions auth check"
+          WARN=0
+          for fn_dir in supabase/functions/*/; do
+            fn_file="${fn_dir}index.ts"
+            [ -f "$fn_file" ] || continue
+            fn_name=$(basename "$fn_dir")
+
+            # Check if function uses serviceKey/service_role
+            if grep -q 'serviceKey\|service_role' "$fn_file"; then
+              # Check if it also has auth verification
+              if ! grep -qE 'Authorization|auth\.getUser|verify_jwt|Bearer' "$fn_file"; then
+                echo "::warning file=${fn_file}::Function '${fn_name}' uses service role key without visible auth check"
+                WARN=1
+              fi
+            fi
+          done
+          echo "::endgroup::"
+          exit 0
+
+  # ── 2. TypeScript strict checks ────────────────────────────────────
+  typescript-audit:
+    name: TypeScript Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.14.0
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type check Mobile (strict)
+        run: npm --workspace apps/mobile run typecheck
+        continue-on-error: false
+
+      - name: Type check PWA
+        run: |
+          cd apps/pwa
+          npx tsc --noEmit --strict 2>&1 || true
+        continue-on-error: true
+
+      - name: Scan for unsafe non-null assertions
+        run: |
+          echo "::group::Non-null assertions (!) count"
+          echo "These are not errors, but high counts indicate fragile code."
+          echo ""
+          echo "=== apps/pwa/src/ ==="
+          grep -rn '!\.' --include='*.ts' apps/pwa/src/ 2>/dev/null | \
+            grep -v 'node_modules' | grep -v '!=\|!/\|!=' | wc -l || echo "0"
+          grep -rn '!\.' --include='*.ts' apps/pwa/src/ 2>/dev/null | \
+            grep -v 'node_modules' | grep -v '!=\|!/\|!=' || true
+
+          echo ""
+          echo "=== apps/mobile/src/ ==="
+          grep -rn '!\.' --include='*.ts' --include='*.tsx' apps/mobile/src/ 2>/dev/null | \
+            grep -v 'node_modules' | grep -v '!=\|!/\|!=' | wc -l || echo "0"
+          echo "::endgroup::"
+
+      - name: Scan for unsafe type casts
+        run: |
+          echo "::group::Unsafe 'as' casts"
+          echo "Files with 'as any' or 'as unknown':"
+          grep -rn 'as any\|as unknown' --include='*.ts' --include='*.tsx' \
+            apps/ shared/ 2>/dev/null | grep -v 'node_modules' || echo "None found"
+          echo "::endgroup::"
+
+  # ── 3. Async & Promise safety ──────────────────────────────────────
+  async-audit:
+    name: Async & Promise Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check for floating promises (missing await)
+        run: |
+          echo "::group::Potential floating promises"
+          WARN=0
+
+          # Pattern: void function call without await (common anti-pattern)
+          echo "--- Void-chained promises without .catch() ---"
+          grep -rn 'void .*\.\(then\|catch\)\b' --include='*.ts' --include='*.tsx' \
+            apps/ 2>/dev/null | grep -v 'node_modules' || echo "None found"
+
+          # Pattern: async event handlers without try/catch
+          echo ""
+          echo "--- Async event handlers (verify try/catch) ---"
+          grep -rn 'addEventListener.*async' --include='*.ts' --include='*.tsx' \
+            apps/ 2>/dev/null | grep -v 'node_modules' || echo "None found"
+
+          # Pattern: .then() without .catch()
+          echo ""
+          echo "--- .then() without .catch() (check manually) ---"
+          grep -rn '\.then(' --include='*.ts' --include='*.tsx' \
+            apps/ 2>/dev/null | grep -v '\.catch\|node_modules' | head -20 || echo "None found"
+
+          echo "::endgroup::"
+
+      - name: Check for promises that never resolve/reject
+        run: |
+          echo "::group::new Promise() usage — verify resolve/reject paths"
+          grep -rn 'new Promise' --include='*.ts' --include='*.tsx' --include='*.js' \
+            apps/ supabase/ tools/ 2>/dev/null | grep -v 'node_modules' || echo "None found"
+          echo "::endgroup::"
+
+  # ── 4. Data integrity & logic checks ───────────────────────────────
+  data-integrity:
+    name: Data Integrity Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check for date format consistency
+        run: |
+          echo "::group::Date format patterns"
+          echo "--- Italian month abbreviations (may break Date parsing) ---"
+          grep -rn "Gen\|Feb\|Mar\|Apr\|Mag\|Giu\|Lug\|Ago\|Set\|Ott\|Nov\|Dic" \
+            --include='*.ts' --include='*.tsx' --include='*.js' \
+            apps/ supabase/ tools/ 2>/dev/null | \
+            grep -v 'node_modules\|\.test\.\|\.spec\.' || echo "None found"
+
+          echo ""
+          echo "--- new Date() with string arg (locale-sensitive!) ---"
+          grep -rn 'new Date(' --include='*.ts' --include='*.tsx' --include='*.js' \
+            apps/ supabase/ 2>/dev/null | \
+            grep -v 'node_modules\|new Date()\|Date\.now' | head -20 || echo "None found"
+          echo "::endgroup::"
+
+      - name: Check for parseInt without radix
+        run: |
+          echo "::group::parseInt() without radix parameter"
+          if grep -rn 'parseInt([^,)]*)\s*[;,)\]]' --include='*.ts' --include='*.tsx' --include='*.js' \
+            apps/ supabase/ tools/ 2>/dev/null | grep -v 'node_modules'; then
+            echo "::warning::Found parseInt() calls without explicit radix — use parseInt(x, 10)"
+          else
+            echo "All parseInt calls include radix parameter"
+          fi
+          echo "::endgroup::"
+
+      - name: Check for timezone hardcoding
+        run: |
+          echo "::group::Hardcoded timezone offsets"
+          if grep -rn "'+01:00'\|'+02:00'\|CET\b\|CEST\b" --include='*.ts' --include='*.js' \
+            apps/ supabase/ 2>/dev/null | grep -v 'node_modules'; then
+            echo "::warning::Hardcoded timezone offsets found — use Intl.DateTimeFormat with timeZone"
+          fi
+          echo "::endgroup::"
+
+  # ── 5. Config & dependency health ──────────────────────────────────
+  config-audit:
+    name: Config & Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.14.0
+          cache: npm
+
+      - name: Verify workspaces exist on disk
+        run: |
+          echo "::group::Workspace directory check"
+          FAIL=0
+          WORKSPACES=$(node -e "const p=require('./package.json'); (p.workspaces||[]).forEach(w=>console.log(w))")
+          for ws in $WORKSPACES; do
+            if [ ! -d "$ws" ]; then
+              echo "::error::Workspace '$ws' declared in package.json but directory does not exist"
+              FAIL=1
+            else
+              echo "✓ $ws exists"
+            fi
+          done
+          echo "::endgroup::"
+          exit $FAIL
+
+      - name: Check for wildcard dependency versions
+        run: |
+          echo "::group::Wildcard versions in package.json files"
+          FAIL=0
+          for pkg in package.json apps/*/package.json; do
+            [ -f "$pkg" ] || continue
+            if node -e "
+              const p=require('./$pkg');
+              const deps={...p.dependencies,...p.devDependencies};
+              const wild=Object.entries(deps).filter(([,v])=>v==='*');
+              if(wild.length){wild.forEach(([n,v])=>console.log('::warning file=$pkg::Wildcard version for '+n));process.exit(1);}
+            " 2>/dev/null; then
+              true
+            else
+              FAIL=1
+            fi
+          done
+          echo "::endgroup::"
+          # Warn only, don't fail
+          exit 0
+
+      - name: Check for dependency version mismatches across workspaces
+        run: |
+          echo "::group::Cross-workspace dependency version check"
+          node -e "
+            const fs = require('fs');
+            const pkgs = ['package.json', 'apps/pwa/package.json', 'apps/mobile/package.json', 'apps/control-plane/package.json']
+              .filter(p => fs.existsSync(p));
+            const depMap = {};
+            for (const p of pkgs) {
+              const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
+              const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+              for (const [name, version] of Object.entries(allDeps)) {
+                if (!depMap[name]) depMap[name] = [];
+                depMap[name].push({ file: p, version });
+              }
+            }
+            let mismatches = 0;
+            for (const [name, entries] of Object.entries(depMap)) {
+              if (entries.length < 2) continue;
+              const versions = [...new Set(entries.map(e => e.version))];
+              if (versions.length > 1) {
+                const details = entries.map(e => e.file + '=' + e.version).join(', ');
+                console.log('::warning::Version mismatch for ' + name + ': ' + details);
+                mismatches++;
+              }
+            }
+            if (mismatches === 0) console.log('No cross-workspace version mismatches found');
+            else console.log(mismatches + ' mismatches found');
+          "
+          echo "::endgroup::"
+
+      - name: Check referenced scripts exist
+        run: |
+          echo "::group::Script reference validation"
+          node -e "
+            const fs = require('fs');
+            const root = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            const errors = [];
+            for (const [name, cmd] of Object.entries(root.scripts || {})) {
+              // Check --workspace run references
+              const m = cmd.match(/--workspace\s+(\S+)\s+run\s+(\S+)/);
+              if (m) {
+                const [, ws, script] = m;
+                const wsPath = ws + '/package.json';
+                if (fs.existsSync(wsPath)) {
+                  const wsPkg = JSON.parse(fs.readFileSync(wsPath, 'utf8'));
+                  if (!wsPkg.scripts || !wsPkg.scripts[script]) {
+                    console.log('::error::Root script \"' + name + '\" references \"' + script + '\" in ' + ws + ' but it does not exist');
+                    errors.push(name);
+                  }
+                }
+              }
+              // Check --prefix run references
+              const m2 = cmd.match(/--prefix\s+(\S+)\s+run\s+(\S+)/);
+              if (m2) {
+                const [, prefix, script] = m2;
+                const prefixPath = prefix + '/package.json';
+                if (fs.existsSync(prefixPath)) {
+                  const prefixPkg = JSON.parse(fs.readFileSync(prefixPath, 'utf8'));
+                  if (!prefixPkg.scripts || !prefixPkg.scripts[script]) {
+                    console.log('::error::Root script \"' + name + '\" references \"' + script + '\" in ' + prefix + ' but it does not exist');
+                    errors.push(name);
+                  }
+                }
+              }
+            }
+            if (errors.length) process.exit(1);
+            else console.log('All referenced scripts exist');
+          "
+          echo "::endgroup::"
+
+  # ── 6. Resource leak & error handling ──────────────────────────────
+  resource-audit:
+    name: Resource & Error Handling Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check for unclosed resources in tools
+        run: |
+          echo "::group::HTTP response body consumption check"
+          echo "Files using http.get/https.get without consuming response body:"
+          for f in tools/*.js apps/control-plane/src/*.mjs; do
+            [ -f "$f" ] || continue
+            if grep -q 'https\?.get\|https\?.request' "$f"; then
+              if ! grep -q 'res\.on.*data\|res\.resume\|res\.pipe\|\.json()\|\.text()' "$f"; then
+                echo "::warning file=${f}::HTTP response body may not be consumed (socket leak risk)"
+              fi
+            fi
+          done
+          echo "::endgroup::"
+
+      - name: Check for Map/Set growth without cleanup
+        run: |
+          echo "::group::Potential memory leaks (Maps without cleanup)"
+          echo "Files with 'new Map()' — verify cleanup/eviction exists:"
+          grep -rn 'new Map()' --include='*.js' --include='*.mjs' --include='*.ts' \
+            tools/ apps/control-plane/ 2>/dev/null | grep -v 'node_modules' || echo "None found"
+          echo "::endgroup::"
+
+      - name: Check for CORS wildcard in Supabase functions
+        run: |
+          echo "::group::CORS wildcard check"
+          WARN=0
+          for fn in supabase/functions/*/index.ts; do
+            [ -f "$fn" ] || continue
+            if grep -q "Allow-Origin.*\*" "$fn"; then
+              echo "::warning file=${fn}::Uses Access-Control-Allow-Origin: '*' — consider restricting to app origins"
+              WARN=1
+            fi
+          done
+          if [ $WARN -eq 0 ]; then echo "No wildcard CORS found"; fi
+          echo "::endgroup::"
+
+  # ── 7. Summary report ──────────────────────────────────────────────
+  audit-summary:
+    name: Audit Summary
+    runs-on: ubuntu-latest
+    needs: [security-patterns, typescript-audit, async-audit, data-integrity, config-audit, resource-audit]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Bug Audit Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Patterns | ${{ needs.security-patterns.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| TypeScript Audit | ${{ needs.typescript-audit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Async & Promises | ${{ needs.async-audit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Data Integrity | ${{ needs.data-integrity.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Config & Dependencies | ${{ needs.config-audit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource & Error Handling | ${{ needs.resource-audit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "_Automated bug audit — check individual job logs for details._" >> $GITHUB_STEP_SUMMARY
