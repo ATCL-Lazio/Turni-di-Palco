@@ -254,7 +254,7 @@ Tre categorie di slot acquistabili con cachet: `slot` (slot attività extra), `r
 | Content pipeline strutturato | ❌ Non avviata | Issue [#474](https://github.com/ATCL-Lazio/Turni-di-Palco/issues/474) |
 | Light theme / accessibilità avanzata | ❌ Non avviata | Issue [#476](https://github.com/ATCL-Lazio/Turni-di-Palco/issues/476) |
 | Tracking KPI / analytics | ❌ Non avviata | Issue [#477](https://github.com/ATCL-Lazio/Turni-di-Palco/issues/477) |
-| Redirect root URL → /mobile/ | ❌ Non avviata | Issue [#468](https://github.com/ATCL-Lazio/Turni-di-Palco/issues/468) |
+| Redirect root URL → /mobile/ | ✅ Implementata | Issue [#468](https://github.com/ATCL-Lazio/Turni-di-Palco/issues/468) |
 
 ---
 
