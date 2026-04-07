@@ -5,12 +5,12 @@ export default defineConfig({
   plugins: [tailwindcss()],
   build: {
     outDir: "dist",
-    emptyOutDir: false,
+    emptyOutDir: true,
   },
   server: {
     host: true,
     port: 5173,
-    allowedHosts: ["turni-di-palco.onrender.com", ".onrender.com"],
+    allowedHosts: ["turni-di-palco.onrender.com", ".onrender.com"], // PWA Render service (mobile uses turni-di-palco-fq85.onrender.com)
   },
   preview: {
     host: true,

@@ -31,7 +31,7 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@supabase/supabase-js": "^2.50.0",
     "class-variance-authority": "^0.7.1",
-    "clsx": "*",
+    "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
@@ -45,8 +45,8 @@
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.2",
     "sonner": "^2.0.3",
-    "tailwind-merge": "*",
-    "tailwindcss": "*",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^4.1.18",
     "vaul": "^1.1.2"
   },
   "devDependencies": {
@@ -74,6 +74,7 @@
     "lint": "eslint . --ext .ts,.tsx",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "format": "npx @biomejs/biome format --write src"
   }
 }
