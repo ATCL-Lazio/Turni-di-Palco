@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGameState, LeaderboardEntry, GameEvent, RoleId } from '../state/store';
 import { useNavigator } from '../router';
 import { getRouteConfig } from '../router/routes';
@@ -20,35 +20,37 @@ import { ScreenTransition } from './ui/ScreenTransition';
 import { ErrorOverlay } from './ui/ErrorOverlay';
 import { WelcomeTutorial } from './ui/WelcomeTutorial';
 
-// Screen imports
+// Critical screen imports (static — needed for first load)
 import { Welcome } from './screens/Welcome';
 import { Login } from './screens/Login';
 import { Signup } from './screens/Signup';
 import { RoleSelection } from './screens/RoleSelection';
 import { Home } from './screens/Home';
-import { ATCLTurns } from './screens/ATCLTurns';
-import { QRScanner } from './screens/QRScanner';
-import { EventConfirmation } from './screens/EventConfirmation';
-import { EventDetails } from './screens/EventDetails';
-import { Activities } from './screens/Activities';
-import { ActivitiesHub } from './screens/ActivitiesHub';
-import { ActivityDetail } from './screens/ActivityDetail';
-import { ActivityMinigame } from './screens/ActivityMinigame';
-import { ActivityResult } from './screens/ActivityResult';
-import { Shop } from './screens/Shop';
-import { Leaderboard } from './screens/Leaderboard';
-import { Profile } from './screens/Profile';
-import { PublicProfile } from './screens/PublicProfile';
-import { AccountSettings } from './screens/AccountSettings';
-import { SupportChat } from './screens/SupportChat';
-import { ChangePassword } from './screens/ChangePassword';
-import { Career } from './screens/Career';
-import { InstallApp } from './screens/InstallApp';
-import { TermsAndConditions } from './screens/TermsAndConditions';
-import { PrivacyPolicy } from './screens/PrivacyPolicy';
 import { CookieConsent } from './screens/CookieConsent';
-import { EarnedTitles } from './screens/EarnedTitles';
-import { TicketQrActivationPrototype } from './screens/TicketQrActivationPrototype';
+
+// Lazy-loaded screens (non-critical, loaded on demand)
+const ATCLTurns = React.lazy(() => import('./screens/ATCLTurns').then(m => ({ default: m.ATCLTurns })));
+const QRScanner = React.lazy(() => import('./screens/QRScanner').then(m => ({ default: m.QRScanner })));
+const EventConfirmation = React.lazy(() => import('./screens/EventConfirmation').then(m => ({ default: m.EventConfirmation })));
+const EventDetails = React.lazy(() => import('./screens/EventDetails').then(m => ({ default: m.EventDetails })));
+const Activities = React.lazy(() => import('./screens/Activities').then(m => ({ default: m.Activities })));
+const ActivitiesHub = React.lazy(() => import('./screens/ActivitiesHub').then(m => ({ default: m.ActivitiesHub })));
+const ActivityDetail = React.lazy(() => import('./screens/ActivityDetail').then(m => ({ default: m.ActivityDetail })));
+const ActivityMinigame = React.lazy(() => import('./screens/ActivityMinigame').then(m => ({ default: m.ActivityMinigame })));
+const ActivityResult = React.lazy(() => import('./screens/ActivityResult').then(m => ({ default: m.ActivityResult })));
+const Shop = React.lazy(() => import('./screens/Shop').then(m => ({ default: m.Shop })));
+const Leaderboard = React.lazy(() => import('./screens/Leaderboard').then(m => ({ default: m.Leaderboard })));
+const Profile = React.lazy(() => import('./screens/Profile').then(m => ({ default: m.Profile })));
+const PublicProfile = React.lazy(() => import('./screens/PublicProfile').then(m => ({ default: m.PublicProfile })));
+const AccountSettings = React.lazy(() => import('./screens/AccountSettings').then(m => ({ default: m.AccountSettings })));
+const SupportChat = React.lazy(() => import('./screens/SupportChat').then(m => ({ default: m.SupportChat })));
+const ChangePassword = React.lazy(() => import('./screens/ChangePassword').then(m => ({ default: m.ChangePassword })));
+const Career = React.lazy(() => import('./screens/Career').then(m => ({ default: m.Career })));
+const InstallApp = React.lazy(() => import('./screens/InstallApp').then(m => ({ default: m.InstallApp })));
+const TermsAndConditions = React.lazy(() => import('./screens/TermsAndConditions').then(m => ({ default: m.TermsAndConditions })));
+const PrivacyPolicy = React.lazy(() => import('./screens/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const EarnedTitles = React.lazy(() => import('./screens/EarnedTitles').then(m => ({ default: m.EarnedTitles })));
+const TicketQrActivationPrototype = React.lazy(() => import('./screens/TicketQrActivationPrototype').then(m => ({ default: m.TicketQrActivationPrototype })));
 import { Card } from './ui/Card';
 import { Tab } from '../types/navigation';
 
@@ -683,6 +685,7 @@ export function AppShell() {
         </div>
       )}
       <ScreenTransition animationClass={screenAnimation} animationKey={screenAnimationKey}>
+        <Suspense fallback={<div className="min-h-screen app-gradient flex items-center justify-center"><div className="animate-shimmer h-8 w-32 rounded-lg bg-[#1a1617]" /></div>}>
         {routeConfig.showBottomNav ? (
           <MainLayout activeTab={nav.activeTab} enabledTabs={enabledNavTabs} onTabChange={handleTabChange}>
             {renderScreen()}
@@ -690,6 +693,7 @@ export function AppShell() {
         ) : (
           <div className="app-frame">{renderScreen()}</div>
         )}
+        </Suspense>
       </ScreenTransition>
 
       {nav.screen === 'home' && !state.profile.tutorialCompleted && (
