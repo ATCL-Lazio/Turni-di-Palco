@@ -2100,6 +2100,7 @@ type GameContextValue = {
   changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
   completeTutorial: () => void;
+  resetTutorial: () => void;
   resetState: () => void;
 };
 
@@ -3931,6 +3932,17 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     }
   }, [persistProfile]);
 
+  const resetTutorial = useCallback(() => {
+    let nextProfile: PlayerProfile | null = null;
+    setState((prev: GameState) => {
+      nextProfile = { ...prev.profile, tutorialCompleted: false };
+      return { ...prev, profile: nextProfile };
+    });
+    if (nextProfile) {
+      persistProfile(nextProfile);
+    }
+  }, [persistProfile]);
+
   const updateProfile = useCallback(
     (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {
       let nextProfile: PlayerProfile | null = null;
@@ -4735,6 +4747,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       markBadgesSeen,
       updateProfile,
       completeTutorial,
+      resetTutorial,
       registerTurn,
       pendingBoostRequests,
       turnSyncFeedback,
@@ -4786,6 +4799,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       markBadgesSeen,
       updateProfile,
       completeTutorial,
+      resetTutorial,
       registerTurn,
       pendingBoostRequests,
       turnSyncFeedback,
