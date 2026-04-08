@@ -871,8 +871,8 @@
 }
 
 @keyframes tutorial-spotlight-pulse {
-  0%, 100% { box-shadow: 0 0 0 4px rgba(244, 191, 79, 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(244, 191, 79, 0.15); }
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(244, 191, 79, 0.4)); }
+  50% { filter: drop-shadow(0 0 8px rgba(244, 191, 79, 0.6)); }
 }
 
 .animate-tutorial-fade-in {
