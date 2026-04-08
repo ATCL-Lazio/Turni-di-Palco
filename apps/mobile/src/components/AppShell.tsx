@@ -147,7 +147,7 @@ export function AppShell() {
   );
 
   // Auth hook
-  const { authError, setAuthError, handleLogin, handleSignup, handleLogout } = useAuth(
+  const { authError, setAuthError, isDemoMode, handleLogin, handleSignup, handleLogout } = useAuth(
     state.profile,
     updateProfile,
     (screen, isRecovery) => {
@@ -675,6 +675,11 @@ export function AppShell() {
       {!isOnline && (
         <div className="fixed top-0 left-0 right-0 z-[998] bg-[#2a1f14] border-b border-[#f4bf4f]/30 px-4 py-2 text-center text-sm text-[#f4bf4f]">
           Sei offline — le modifiche saranno sincronizzate al ritorno della connessione
+        </div>
+      )}
+      {isDemoMode && (
+        <div className="fixed top-0 left-0 right-0 z-[997] bg-[#1a1617] border-b border-[#a82847]/40 px-4 py-2 text-center text-sm text-[#b8b2b3]">
+          Modalità demo — i dati non vengono salvati
         </div>
       )}
       <ScreenTransition animationClass={screenAnimation} animationKey={screenAnimationKey}>

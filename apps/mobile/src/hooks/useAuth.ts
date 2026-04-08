@@ -178,6 +178,7 @@ export function useAuth(
     return {
         authError,
         setAuthError,
+        isDemoMode,
         handleLogin,
         handleSignup,
         handleLogout: handleLogoutAction,
