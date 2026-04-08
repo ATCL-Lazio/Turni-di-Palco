@@ -124,14 +124,18 @@ export function Home({
         onDismissBadgeNotification={onDismissBadgeNotification}
       />
 
-      <StatsGrid
-        level={level}
-        xp={xp}
-        xpToNextLevel={xpToNextLevel}
-        reputation={reputation}
-      />
+      <div data-tutorial="stats">
+        <StatsGrid
+          level={level}
+          xp={xp}
+          xpToNextLevel={xpToNextLevel}
+          reputation={reputation}
+        />
+      </div>
 
-      <EconomyCard cachet={cachet} tokenAtcl={tokenAtcl} />
+      <div data-tutorial="economy">
+        <EconomyCard cachet={cachet} tokenAtcl={tokenAtcl} />
+      </div>
 
       {pendingBoostRequests > 0 && (
         <Card className="bg-[#2a1f14] border border-[#f4bf4f]/30">
@@ -184,10 +188,12 @@ export function Home({
         />
       )}
 
-      <ActivitiesCard
-        activitiesCount={activitiesCount}
-        onViewActivities={onViewActivities}
-      />
+      <div data-tutorial="activities">
+        <ActivitiesCard
+          activitiesCount={activitiesCount}
+          onViewActivities={onViewActivities}
+        />
+      </div>
     </Screen>
   );
 }
