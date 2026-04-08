@@ -887,6 +887,23 @@
   animation: tutorial-spotlight-pulse 1.5s ease-in-out infinite;
 }
 
+/* Tutorial tooltip arrow */
+.tutorial-arrow-up {
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 10px solid #1a1617;
+}
+
+.tutorial-arrow-down {
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid #1a1617;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-tutorial-fade-in,
   .animate-tutorial-tooltip-in,

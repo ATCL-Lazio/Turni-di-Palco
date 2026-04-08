@@ -199,17 +199,22 @@ export function WelcomeTutorial({ userName, onComplete }: WelcomeTutorialProps) 
     // Clearance per dots + pulsanti + safe-area (~220px)
     const BOTTOM_CONTROLS_MIN = 220;
     const isBottomHalf = spotlightRect.top + spotlightRect.height / 2 > window.innerHeight / 2;
+    const spotlightCenterX = spotlightRect.left + spotlightRect.width / 2;
     if (isBottomHalf) {
       return {
         bottom: Math.max(window.innerHeight - spotlightRect.top + 24, BOTTOM_CONTROLS_MIN),
         left: 16,
         right: 16,
+        arrowDirection: 'down' as const,
+        spotlightCenterX,
       };
     }
     return {
       top: spotlightRect.bottom + 24,
       left: 16,
       right: 16,
+      arrowDirection: 'up' as const,
+      spotlightCenterX,
     };
   })();
 
