@@ -46,7 +46,13 @@ export function ProgressBar({
           <span>{max}</span>
         </div>
       )}
-      <div className={`w-full bg-[#241f20] rounded-full overflow-hidden ${heights[size]}`}>
+      <div
+        className={`w-full bg-[#241f20] rounded-full overflow-hidden ${heights[size]}`}
+        role="progressbar"
+        aria-valuenow={value}
+        aria-valuemin={0}
+        aria-valuemax={max}
+      >
         <div
           className={`${heights[size]} ${colors[color]} rounded-full`}
           style={{

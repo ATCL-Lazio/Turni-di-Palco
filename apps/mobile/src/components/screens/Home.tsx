@@ -284,7 +284,7 @@ function NotificationBell({
               <p className="text-xs text-[#f4bf4f] mb-1 font-semibold">Nuovo titolo ottenuto</p>
               <p className="text-white text-sm">{newBadgeTitle ?? 'Hai sbloccato un nuovo badge'}</p>
             </div>
-            <button onClick={onDismiss} className="text-[#7a7577] p-1 hover:text-white flex-shrink-0 transition-colors">
+            <button onClick={onDismiss} className="text-[#9a9697] p-1 hover:text-white flex-shrink-0 transition-colors">
               <X size={16} />
             </button>
           </div>
@@ -341,9 +341,9 @@ function EconomyCard({ cachet, tokenAtcl }: { cachet: number; tokenAtcl: number 
         <div className="rounded-xl bg-[#241f20] border border-[#3d3a3b] p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs text-[#b8b2b3]">Token ATCL</p>
-            <Zap size={14} className={tokenAtcl === 0 ? 'text-[#7a7577]' : 'text-[#f4bf4f]'} />
+            <Zap size={14} className={tokenAtcl === 0 ? 'text-[#9a9697]' : 'text-[#f4bf4f]'} />
           </div>
-          <p className={`text-lg font-semibold mt-1 ${tokenAtcl === 0 ? 'text-[#7a7577]' : 'text-[#f4bf4f]'}`}>{tokenAtcl}</p>
+          <p className={`text-lg font-semibold mt-1 ${tokenAtcl === 0 ? 'text-[#9a9697]' : 'text-[#f4bf4f]'}`}>{tokenAtcl}</p>
         </div>
       </div>
     </Card>
@@ -380,7 +380,7 @@ function TurnSyncFeedbackCard({
           )}
         </div>
         {onDismiss && (
-          <button type="button" onClick={onDismiss} className="text-[#7a7577] hover:text-white transition-colors p-1" aria-label="Chiudi notifica boost">
+          <button type="button" onClick={onDismiss} className="text-[#9a9697] hover:text-white transition-colors p-1" aria-label="Chiudi notifica boost">
             <X size={16} />
           </button>
         )}
@@ -592,7 +592,7 @@ function ActivitiesCard({
           <div className="flex-1">
             <h4 className="text-white mb-1">{activitiesCount} attività disponibili</h4>
           </div>
-          <ChevronRight className="text-[#7a7577]" size={20} />
+          <ChevronRight className="text-[#9a9697]" size={20} />
         </div>
       </Card>
     </section>

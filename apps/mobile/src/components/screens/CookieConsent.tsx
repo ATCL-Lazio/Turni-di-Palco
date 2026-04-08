@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Cookie, MapPin, Lock, Trash2 } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { CopyrightNotice } from '../ui/CopyrightNotice';
@@ -34,6 +34,8 @@ const bullets = [
 ] as const;
 
 export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
+  const [rejected, setRejected] = useState(false);
+
   const handleAccept = () => {
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(COOKIE_CONSENT_KEY, new Date().toISOString());
@@ -63,7 +65,7 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
             >
               Cookie e Privacy
             </p>
-            <p className="text-[12px] leading-none text-[#7a7577] tracking-[0.10em] uppercase font-semibold">
+            <p className="text-[12px] leading-none text-[#9a9697] tracking-[0.10em] uppercase font-semibold">
               Prima di iniziare
             </p>
           </div>
@@ -82,7 +84,7 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
                 </div>
                 <div className="text-left">
                   <p className="text-[12px] font-semibold text-[#f5f5f5] leading-[17px]">{title}</p>
-                  <p className="text-[11px] leading-[16px] text-[#7a7577] mt-0.5">{desc}</p>
+                  <p className="text-[11px] leading-[16px] text-[#9a9697] mt-0.5">{desc}</p>
                 </div>
               </div>
             ))}
@@ -101,6 +103,20 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
 
           <button
             type="button"
+            onClick={() => setRejected(true)}
+            className="text-[#8a7a7b] text-sm underline"
+          >
+            Rifiuta
+          </button>
+
+          {rejected && (
+            <p className="text-[12px] leading-[16px] text-[#a82847] max-w-[280px]">
+              Per utilizzare l'app è necessario accettare i cookie tecnici.
+            </p>
+          )}
+
+          <button
+            type="button"
             onClick={onViewPrivacy}
             className="h-[44px] w-full max-w-[300px] flex items-center justify-center"
           >
@@ -109,7 +125,7 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
             </span>
           </button>
 
-          <p className="text-[11px] leading-[16px] text-[#7a7577] max-w-[280px]">
+          <p className="text-[11px] leading-[16px] text-[#9a9697] max-w-[280px]">
             Cliccando "Accetta e continua" acconsenti all'uso dei cookie tecnici necessari al funzionamento dell'app.
           </p>
 

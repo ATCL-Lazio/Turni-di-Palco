@@ -109,13 +109,13 @@ export function EarnedTitles({ badges, turnStats, onBack, onViewed }: EarnedTitl
                   {glyph ? (
                     <span
                       className={`font-mono text-[16px] leading-none font-bold tracking-[-0.08em] ${
-                        badge.unlocked ? 'text-[#0f0d0e]' : 'text-[#7a7577]'
+                        badge.unlocked ? 'text-[#0f0d0e]' : 'text-[#9a9697]'
                       } relative z-[1]`}
                     >
                       {glyph}
                     </span>
                   ) : Icon ? (
-                    <Icon className={`${badge.unlocked ? 'text-[#0f0d0e]' : 'text-[#7a7577]'} relative z-[1]`} size={24} />
+                    <Icon className={`${badge.unlocked ? 'text-[#0f0d0e]' : 'text-[#9a9697]'} relative z-[1]`} size={24} />
                   ) : null}
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
@@ -125,7 +125,7 @@ export function EarnedTitles({ badges, turnStats, onBack, onViewed }: EarnedTitl
                   {badge.description ? (
                     <p className="text-xs leading-snug text-[#9b9496]">{badge.description}</p>
                   ) : null}
-                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#7a7577]">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#9a9697]">
                     {badge.unlocked ? 'Sbloccato' : (
                       <span className="inline-flex items-center gap-1">
                         <Lock size={10} />
@@ -165,7 +165,7 @@ export function EarnedTitles({ badges, turnStats, onBack, onViewed }: EarnedTitl
         </div>
 
         {!visibleBadges.length ? (
-          <p className="mt-6 text-sm text-[#7a7577]">Nessun badge disponibile in questo momento.</p>
+          <p className="mt-6 text-sm text-[#9a9697]">Nessun badge disponibile in questo momento.</p>
         ) : null}
       </div>
     </Screen>

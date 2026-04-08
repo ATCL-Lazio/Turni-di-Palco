@@ -4671,6 +4671,21 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   // GDPR Art. 15/20 – Diritto di accesso e portabilità: scarica tutti i dati in formato JSON.
   const exportUserData = useCallback(() => {
+    // Collect chat history from localStorage (tdp-maxwell-history:* keys)
+    const chatHistory: Record<string, unknown> = {};
+    if (typeof window !== 'undefined') {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('tdp-maxwell-history:')) {
+          try {
+            chatHistory[key] = JSON.parse(localStorage.getItem(key) || '[]');
+          } catch {
+            chatHistory[key] = localStorage.getItem(key);
+          }
+        }
+      }
+    }
+
     const data = {
       exportDate: new Date().toISOString(),
       profile: {
@@ -4691,6 +4706,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       badges,
       theatreReputation,
       plannedEvents: eventPlans,
+      chatHistory,
     };
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });

@@ -1,5 +1,5 @@
-import React from 'react';
-import { ArrowLeft, Shield, MapPin, Trash2, Eye, Lock, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Shield, MapPin, Trash2, Eye, Lock, FileText, WifiOff } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { CopyrightNotice } from '../ui/CopyrightNotice';
 
@@ -33,6 +33,18 @@ const highlights = [
 ];
 
 export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   return (
     <Screen
       withBottomNavPadding={false}
@@ -103,23 +115,34 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
                 <span className="text-[#f5f5f5] font-medium">Iubenda</span>
               </p>
             </div>
-            <div className="p-2">
-              {/* iframe embed — no script dependency, no remount issues,
-                  works on iubenda free plan. White bg matches iubenda's
-                  default light-theme document. */}
-              <iframe
-                src={IUBENDA_PRIVACY_POLICY_URL}
-                className="w-full rounded-[10px] bg-white"
-                style={{ height: '55vh', border: 'none' }}
-                title="Privacy Policy"
-                loading="lazy"
-              />
-            </div>
-            <div className="px-4 pb-3">
-              <p className="text-[11px] leading-[16px] text-[#b8b2b3]/50">
-                Richiesta connessione internet per caricare il documento.
-              </p>
-            </div>
+            {isOnline ? (
+              <>
+                <div className="p-2">
+                  {/* iframe embed — no script dependency, no remount issues,
+                      works on iubenda free plan. White bg matches iubenda's
+                      default light-theme document. */}
+                  <iframe
+                    src={IUBENDA_PRIVACY_POLICY_URL}
+                    className="w-full rounded-[10px] bg-white"
+                    style={{ height: '55vh', border: 'none' }}
+                    title="Privacy Policy"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="px-4 pb-3">
+                  <p className="text-[11px] leading-[16px] text-[#b8b2b3]/50">
+                    Richiesta connessione internet per caricare il documento.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
+                <WifiOff size={32} className="text-[#b8b2b3]/50" />
+                <p className="text-sm text-[#b8b2b3]">
+                  La privacy policy completa non è disponibile offline. Connettiti a internet per visualizzarla.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

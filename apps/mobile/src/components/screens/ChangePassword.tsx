@@ -98,7 +98,7 @@ export function ChangePassword({
             Account: <span className="text-white">{email || '—'}</span>
           </p>
           {isRecovery ? (
-            <p className="text-[14px] leading-[20px] text-[#7a7577] !m-0 mt-2">
+            <p className="text-[14px] leading-[20px] text-[#9a9697] !m-0 mt-2">
               Hai richiesto una reimpostazione: imposta una nuova password per completare.
             </p>
           ) : null}
@@ -108,7 +108,7 @@ export function ChangePassword({
           <div className="flex flex-col gap-4 w-full">
             {!isRecovery ? (
               <div className="flex flex-col gap-2 w-full">
-                <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
+                <label htmlFor="current-password" className="text-[16px] leading-[24px] text-[#b8b2b3]">
                   Password attuale
                 </label>
                 <div
@@ -117,13 +117,14 @@ export function ChangePassword({
                   } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
                 >
                   <input
+                    id="current-password"
                     type="password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     autoComplete="current-password"
                     aria-invalid={Boolean(errors.currentPassword)}
                     placeholder="••••••••"
-                    className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
+                    className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#9a9697] focus:outline-none"
                     disabled={isSubmitting}
                   />
                 </div>
@@ -149,7 +150,7 @@ export function ChangePassword({
                 {resetEmailError ? (
                   <p className="text-[14px] leading-[20px] text-[#ff4d4f] !m-0">{resetEmailError}</p>
                 ) : resetEmailStatus === 'sent' ? (
-                  <p className="text-[14px] leading-[20px] text-[#7a7577] !m-0">
+                  <p className="text-[14px] leading-[20px] text-[#9a9697] !m-0">
                     Controlla la posta e segui il link per reimpostare la password.
                   </p>
                 ) : null}
@@ -157,7 +158,7 @@ export function ChangePassword({
             ) : null}
 
             <div className="flex flex-col gap-2 w-full">
-              <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
+              <label htmlFor="new-password" className="text-[16px] leading-[24px] text-[#b8b2b3]">
                 Nuova password
               </label>
               <div
@@ -166,13 +167,14 @@ export function ChangePassword({
                 } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
               >
                 <input
+                  id="new-password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="new-password"
                   aria-invalid={Boolean(errors.password)}
                   placeholder="••••••••"
-                  className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
+                  className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#9a9697] focus:outline-none"
                   disabled={isSubmitting}
                 />
               </div>
@@ -181,12 +183,12 @@ export function ChangePassword({
                   {errors.password}
                 </p>
               ) : (
-                <p className="text-[14px] leading-[20px] text-[#7a7577] !m-0">Almeno 8 caratteri</p>
+                <p className="text-[14px] leading-[20px] text-[#9a9697] !m-0">Almeno 8 caratteri</p>
               )}
             </div>
 
             <div className="flex flex-col gap-2 w-full">
-              <label className="text-[16px] leading-[24px] text-[#b8b2b3]">
+              <label htmlFor="confirm-password" className="text-[16px] leading-[24px] text-[#b8b2b3]">
                 Conferma password
               </label>
               <div
@@ -195,13 +197,14 @@ export function ChangePassword({
                 } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
               >
                 <input
+                  id="confirm-password"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   autoComplete="new-password"
                   aria-invalid={Boolean(errors.confirmPassword)}
                   placeholder="••••••••"
-                  className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none"
+                  className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#9a9697] focus:outline-none"
                   disabled={isSubmitting}
                 />
               </div>
