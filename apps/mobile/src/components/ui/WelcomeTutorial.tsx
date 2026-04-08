@@ -34,21 +34,16 @@ function useReducedMotion(): boolean {
 }
 
 function SpotlightHighlight({ rect, reducedMotion }: { rect: DOMRect; reducedMotion: boolean }) {
-  const padded = {
-    top: rect.top - 8,
-    left: rect.left - 8,
-    width: rect.width + 16,
-    height: rect.height + 16,
-  };
-
   return (
     <div
       className={`absolute border-2 border-[#f4bf4f] rounded-xl ${reducedMotion ? '' : 'animate-tutorial-spotlight-pulse'}`}
       style={{
-        top: padded.top,
-        left: padded.left,
-        width: padded.width,
-        height: padded.height,
+        top: rect.top - 8,
+        left: rect.left - 8,
+        width: rect.width + 16,
+        height: rect.height + 16,
+        borderRadius: 12,
+        boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.75)',
         pointerEvents: 'none',
       }}
     />
@@ -63,7 +58,7 @@ function StepCard({
 }: {
   step: TutorialStep;
   userName: string;
-  position: { top?: number; bottom?: number; left: number; right: number } | null;
+  position: { top?: number; bottom?: number; left: number; right: number; arrowDirection: 'up' | 'down'; spotlightCenterX: number } | null;
   reducedMotion: boolean;
 }) {
   const description = step.description.replace('{nome}', userName);
@@ -84,13 +79,30 @@ function StepCard({
         transform: 'translateY(-50%)',
       };
 
+  // Calculate arrow horizontal position relative to the card
+  const arrowLeft = position
+    ? Math.min(Math.max(position.spotlightCenterX - position.left - 10, 12), window.innerWidth - position.left - position.right - 32 - 12)
+    : 0;
+
   return (
     <div
-      className={`rounded-2xl border border-[#3a2f30] bg-[#1a1617] p-5 shadow-[0px_16px_40px_rgba(0,0,0,0.45)] ${reducedMotion ? '' : (position ? 'animate-tutorial-tooltip-in' : 'animate-tutorial-fade-in')}`}
+      className={`relative rounded-2xl border border-[#3a2f30] bg-[#1a1617] p-5 shadow-[0px_16px_40px_rgba(0,0,0,0.45)] ${reducedMotion ? '' : (position ? 'animate-tutorial-tooltip-in' : 'animate-tutorial-fade-in')}`}
       style={positionStyle}
     >
+      {position && position.arrowDirection === 'up' && (
+        <div
+          className="tutorial-arrow-up"
+          style={{ position: 'absolute', top: -10, left: arrowLeft }}
+        />
+      )}
       <h3 className="text-lg font-semibold text-white">{step.title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-[#c9b8b9]">{description}</p>
+      {position && position.arrowDirection === 'down' && (
+        <div
+          className="tutorial-arrow-down"
+          style={{ position: 'absolute', bottom: -10, left: arrowLeft }}
+        />
+      )}
     </div>
   );
 }
@@ -187,17 +199,22 @@ export function WelcomeTutorial({ userName, onComplete }: WelcomeTutorialProps) 
     // Clearance per dots + pulsanti + safe-area (~220px)
     const BOTTOM_CONTROLS_MIN = 220;
     const isBottomHalf = spotlightRect.top + spotlightRect.height / 2 > window.innerHeight / 2;
+    const spotlightCenterX = spotlightRect.left + spotlightRect.width / 2;
     if (isBottomHalf) {
       return {
         bottom: Math.max(window.innerHeight - spotlightRect.top + 24, BOTTOM_CONTROLS_MIN),
         left: 16,
         right: 16,
+        arrowDirection: 'down' as const,
+        spotlightCenterX,
       };
     }
     return {
       top: spotlightRect.bottom + 24,
       left: 16,
       right: 16,
+      arrowDirection: 'up' as const,
+      spotlightCenterX,
     };
   })();
 
@@ -208,9 +225,11 @@ export function WelcomeTutorial({ userName, onComplete }: WelcomeTutorialProps) 
       aria-label="Tutorial di benvenuto"
       className={`fixed inset-0 z-[999] ${reducedMotion ? '' : 'animate-tutorial-fade-in'}`}
     >
-      <div className="absolute inset-0 bg-black/75" />
-
-      {spotlightRect && <SpotlightHighlight rect={spotlightRect} reducedMotion={reducedMotion} />}
+      {spotlightRect ? (
+        <SpotlightHighlight rect={spotlightRect} reducedMotion={reducedMotion} />
+      ) : (
+        <div className="absolute inset-0 bg-black/75" />
+      )}
 
       <StepCard
         key={currentStep.id}

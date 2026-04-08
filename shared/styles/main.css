@@ -871,8 +871,8 @@
 }
 
 @keyframes tutorial-spotlight-pulse {
-  0%, 100% { box-shadow: 0 0 0 4px rgba(244, 191, 79, 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(244, 191, 79, 0.15); }
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(244, 191, 79, 0.4)); }
+  50% { filter: drop-shadow(0 0 8px rgba(244, 191, 79, 0.6)); }
 }
 
 .animate-tutorial-fade-in {
@@ -885,6 +885,23 @@
 
 .animate-tutorial-spotlight-pulse {
   animation: tutorial-spotlight-pulse 1.5s ease-in-out infinite;
+}
+
+/* Tutorial tooltip arrow */
+.tutorial-arrow-up {
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 10px solid #1a1617;
+}
+
+.tutorial-arrow-down {
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid #1a1617;
 }
 
 @media (prefers-reduced-motion: reduce) {
