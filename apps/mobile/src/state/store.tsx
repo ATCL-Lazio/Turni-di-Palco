@@ -190,6 +190,8 @@ export type PlayerProfile = {
   lastActivityAt: number;
   /** GDPR Art. 21 – se false il profilo non compare nella classifica pubblica. Default: true. */
   leaderboardVisible: boolean;
+  /** Indica se il tutorial di benvenuto è stato completato. Default: false. */
+  tutorialCompleted: boolean;
 };
 
 export type RegisterTurnInput = {
@@ -1771,6 +1773,7 @@ function createInitialState(): GameState {
       profileImage: undefined,
       lastActivityAt: Date.now(),
       leaderboardVisible: true,
+      tutorialCompleted: false,
     },
     turns: [],
     eventPlans: [],
@@ -1795,6 +1798,7 @@ function createDemoState(): GameState {
       profileImage: undefined,
       lastActivityAt: Date.now(),
       leaderboardVisible: true,
+      tutorialCompleted: false,
     },
     turns: [
       {
@@ -2095,6 +2099,7 @@ type GameContextValue = {
   exportUserData: () => void;
   changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
+  completeTutorial: () => void;
   resetState: () => void;
 };
 
@@ -3915,6 +3920,17 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     [authUserId, enqueueSupabaseMutation, hasHydratedRemote]
   );
 
+  const completeTutorial = useCallback(() => {
+    let nextProfile: PlayerProfile | null = null;
+    setState((prev: GameState) => {
+      nextProfile = { ...prev.profile, tutorialCompleted: true };
+      return { ...prev, profile: nextProfile };
+    });
+    if (nextProfile) {
+      persistProfile(nextProfile);
+    }
+  }, [persistProfile]);
+
   const updateProfile = useCallback(
     (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {
       let nextProfile: PlayerProfile | null = null;
@@ -4718,6 +4734,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       isEventFollowed,
       markBadgesSeen,
       updateProfile,
+      completeTutorial,
       registerTurn,
       pendingBoostRequests,
       turnSyncFeedback,
@@ -4768,6 +4785,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       isEventFollowed,
       markBadgesSeen,
       updateProfile,
+      completeTutorial,
       registerTurn,
       pendingBoostRequests,
       turnSyncFeedback,

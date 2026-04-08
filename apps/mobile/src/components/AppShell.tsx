@@ -18,6 +18,7 @@ import type { ActivatedEventPayload } from '../services/ticket-activation';
 import { MainLayout } from '../layouts/MainLayout';
 import { ScreenTransition } from './ui/ScreenTransition';
 import { ErrorOverlay } from './ui/ErrorOverlay';
+import { WelcomeTutorial } from './ui/WelcomeTutorial';
 
 // Screen imports
 import { Welcome } from './screens/Welcome';
@@ -661,6 +662,13 @@ export function AppShell() {
           <div className="app-frame">{renderScreen()}</div>
         )}
       </ScreenTransition>
+
+      {nav.screen === 'home' && !state.profile.tutorialCompleted && (
+        <WelcomeTutorial
+          userName={state.profile.name}
+          onComplete={() => gameState.completeTutorial()}
+        />
+      )}
 
       {normalizedError && (
         <ErrorOverlay
