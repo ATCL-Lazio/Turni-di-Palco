@@ -31,10 +31,12 @@ export function useAuth(
     onLogout: () => void
 ) {
     const [authError, setAuthError] = useState<string | null>(null);
+    const [isDemoMode, setIsDemoMode] = useState(false);
 
     const handleLogin = useCallback(async (email: string, password: string) => {
         setAuthError(null);
         if (!isSupabaseConfigured || !supabase) {
+            setIsDemoMode(true);
             updateProfile({ email });
             onAuthChange('home');
             return;
@@ -60,6 +62,7 @@ export function useAuth(
     const handleSignup = useCallback(async (name: string, email: string, password: string) => {
         setAuthError(null);
         if (!isSupabaseConfigured || !supabase) {
+            setIsDemoMode(true);
             updateProfile({ name, email });
             onAuthChange('welcome'); // Flow will continue to role-selection
             return;
@@ -148,6 +151,7 @@ export function useAuth(
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
             if (!mounted) return;
             if (event === 'SIGNED_OUT') {
+                window.alert('Sessione scaduta. Effettua nuovamente l\'accesso.');
                 onLogout();
                 return;
             }

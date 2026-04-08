@@ -52,6 +52,21 @@ import { TicketQrActivationPrototype } from './screens/TicketQrActivationPrototy
 import { Card } from './ui/Card';
 import { Tab } from '../types/navigation';
 
+function useOnlineStatus() {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+  return isOnline;
+}
+
 export function AppShell() {
   const gameState = useGameState();
   const {
@@ -92,6 +107,9 @@ export function AppShell() {
   const [screenAnimation, setScreenAnimation] = useState('');
   const [screenAnimationKey, setScreenAnimationKey] = useState(0);
   const previousTabRef = useRef(nav.activeTab);
+
+  // Online status
+  const isOnline = useOnlineStatus();
 
   // Error overlay
   const [criticalError, setCriticalError] = useState<{ title?: string; message?: string; details?: string } | null>(null);
@@ -654,6 +672,11 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen app-gradient app-shell">
+      {!isOnline && (
+        <div className="fixed top-0 left-0 right-0 z-[998] bg-[#2a1f14] border-b border-[#f4bf4f]/30 px-4 py-2 text-center text-sm text-[#f4bf4f]">
+          Sei offline — le modifiche saranno sincronizzate al ritorno della connessione
+        </div>
+      )}
       <ScreenTransition animationClass={screenAnimation} animationKey={screenAnimationKey}>
         {routeConfig.showBottomNav ? (
           <MainLayout activeTab={nav.activeTab} enabledTabs={enabledNavTabs} onTabChange={handleTabChange}>

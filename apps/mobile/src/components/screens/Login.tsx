@@ -6,7 +6,7 @@ import { Button } from '../ui/Button';
 
 interface LoginProps {
   onBack: () => void;
-  onLogin: (email: string, password: string) => void;
+  onLogin: (email: string, password: string) => void | Promise<void>;
   onSignup: () => void;
   onForgotPassword: () => void;
   errorMessage?: string | null;
@@ -16,14 +16,20 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({ email: '', password: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors = { email: '', password: '' };
     if (!email) newErrors.email = 'Email richiesta';
     if (!password) newErrors.password = 'Password richiesta';
     if (newErrors.email || newErrors.password) { setErrors(newErrors); return; }
-    onLogin(email, password);
+    setIsSubmitting(true);
+    try {
+      await onLogin(email, password);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -73,7 +79,9 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
             <p className="text-sm text-[#ff4d4f] text-center">{errorMessage}</p>
           )}
 
-          <Button type="submit" fullWidth>Accedi</Button>
+          <Button type="submit" fullWidth disabled={isSubmitting} className={isSubmitting ? 'opacity-50 pointer-events-none' : ''}>
+            {isSubmitting ? 'Accesso in corso...' : 'Accedi'}
+          </Button>
         </form>
 
         <div className="mt-auto pt-6 text-center">

@@ -6,7 +6,7 @@ import { Button } from '../ui/Button';
 
 interface SignupProps {
   onBack: () => void;
-  onSignup: (name: string, email: string, password: string) => void;
+  onSignup: (name: string, email: string, password: string) => void | Promise<void>;
   onLogin: () => void;
   onViewTerms: () => void;
   onViewPrivacy: () => void;
@@ -20,8 +20,9 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
   const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
     if (!name) newErrors.name = 'Nome richiesto';
@@ -30,7 +31,12 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
     if (password !== confirmPassword) newErrors.confirmPassword = 'Le password non corrispondono';
     if (!acceptTerms) newErrors.terms = 'Devi accettare i termini e la privacy';
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
-    onSignup(name, email, password);
+    setIsSubmitting(true);
+    try {
+      await onSignup(name, email, password);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -86,7 +92,9 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
             <p className="text-sm text-[#ff4d4f] text-center">{errorMessage}</p>
           )}
 
-          <Button type="submit" fullWidth>Registrati</Button>
+          <Button type="submit" fullWidth disabled={isSubmitting} className={isSubmitting ? 'opacity-50 pointer-events-none' : ''}>
+            {isSubmitting ? 'Registrazione in corso...' : 'Registrati'}
+          </Button>
         </form>
 
         <div className="mt-auto pt-6 text-center">
