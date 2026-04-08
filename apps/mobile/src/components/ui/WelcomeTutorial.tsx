@@ -86,7 +86,7 @@ function StepCard({
 
   return (
     <div
-      className={`rounded-2xl border border-[#3a2f30] bg-[#1a1617] p-5 shadow-[0px_16px_40px_rgba(0,0,0,0.45)] ${reducedMotion ? '' : 'animate-tutorial-tooltip-in'}`}
+      className={`rounded-2xl border border-[#3a2f30] bg-[#1a1617] p-5 shadow-[0px_16px_40px_rgba(0,0,0,0.45)] ${reducedMotion ? '' : (position ? 'animate-tutorial-tooltip-in' : 'animate-tutorial-fade-in')}`}
       style={positionStyle}
     >
       <h3 className="text-lg font-semibold text-white">{step.title}</h3>
@@ -184,16 +184,18 @@ export function WelcomeTutorial({ userName, onComplete }: WelcomeTutorialProps) 
 
   const tooltipPosition = (() => {
     if (!spotlightRect) return null;
+    // Clearance per dots + pulsanti + safe-area (~220px)
+    const BOTTOM_CONTROLS_MIN = 220;
     const isBottomHalf = spotlightRect.top + spotlightRect.height / 2 > window.innerHeight / 2;
     if (isBottomHalf) {
       return {
-        bottom: window.innerHeight - spotlightRect.top + 16 + 8,
+        bottom: Math.max(window.innerHeight - spotlightRect.top + 24, BOTTOM_CONTROLS_MIN),
         left: 16,
         right: 16,
       };
     }
     return {
-      top: spotlightRect.bottom + 16 + 8,
+      top: spotlightRect.bottom + 24,
       left: 16,
       right: 16,
     };
@@ -211,6 +213,7 @@ export function WelcomeTutorial({ userName, onComplete }: WelcomeTutorialProps) 
       {spotlightRect && <SpotlightHighlight rect={spotlightRect} reducedMotion={reducedMotion} />}
 
       <StepCard
+        key={currentStep.id}
         step={currentStep}
         userName={userName}
         position={tooltipPosition}
