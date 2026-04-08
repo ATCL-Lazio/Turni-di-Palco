@@ -164,7 +164,7 @@ function ShopItemCard({
         )}
 
         <div className="flex items-center justify-between gap-3">
-          <div className="text-xs text-[#7a7577]">
+          <div className="text-xs text-[#9a9697]">
             {maxReached ? 'Limite acquisti raggiunto'
               : !canPurchase ? 'Acquisti temporaneamente disattivati'
               : insufficientCachet ? `Ti mancano ${item.costCachet - cachet} cachet`

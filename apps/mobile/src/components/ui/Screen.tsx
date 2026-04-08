@@ -22,7 +22,7 @@ export function Screen({
   style
 }: ScreenProps) {
   return (
-    <div
+    <main
       className={cn('min-h-screen min-h-[100dvh] flex flex-col items-center justify-center', className)}
       style={style}
     >
@@ -36,7 +36,7 @@ export function Screen({
       >
         {children}
       </div>
-    </div>
+    </main>
   );
 }
 

@@ -240,13 +240,13 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
           />
         </div>
 
-        <div className="flex items-center justify-between mt-2 text-xs text-[#7a7577]">
+        <div className="flex items-center justify-between mt-2 text-xs text-[#9a9697]">
           <span>0</span>
           <span>100</span>
         </div>
 
         {isPlaying ? (
-          <p className="mt-3 text-xs text-center text-[#7a7577]">
+          <p className="mt-3 text-xs text-center text-[#9a9697]">
             Tocca ovunque sul pannello per bloccare subito
           </p>
         ) : null}
@@ -399,7 +399,7 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
             rangeClassName="bg-[#f4bf4f]"
             thumbClassName="size-6 border-[#f4bf4f] bg-[#f4bf4f] shadow-[0_0_10px_rgba(244,191,79,0.6)]"
           />
-          <div className="flex items-center justify-between text-xs text-[#7a7577]">
+          <div className="flex items-center justify-between text-xs text-[#9a9697]">
             <span>0</span>
             <span>100</span>
           </div>

@@ -237,7 +237,7 @@ function ChatHeader({ onBack, sessionCount, isLoading, isCreatingIssue, onOpenHi
             {isLoading && <Badge variant="default" size="sm"><Loader2 size={12} className="animate-spin" /> Risposta in corso</Badge>}
             {isCreatingIssue && <Badge variant="outline" size="sm"><Clock3 size={12} /> Segnalazione in preparazione</Badge>}
           </div>
-          <p className="text-[13px] leading-[19px] text-[#7a7577]">
+          <p className="text-[13px] leading-[19px] text-[#9a9697]">
             Descrivi il problema con parole semplici. Maxwell ti risponde e, se serve, prepara automaticamente una segnalazione.
           </p>
         </div>
@@ -256,7 +256,7 @@ function ChatMessageArea({ messages, isLoading, errorMessage, activeSession, scr
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[#b8b2b3]">
           <span className="inline-flex items-center gap-1.5 text-[#f4bf4f]"><Bot size={14} /> Chat attiva</span>
           {activeSession && (
-            <span className="inline-flex items-center gap-1 text-[#7a7577]">
+            <span className="inline-flex items-center gap-1 text-[#9a9697]">
               <Clock3 size={12} /> Aggiornata: {formatSessionDate(activeSession.updatedAt)}
             </span>
           )}
@@ -343,7 +343,7 @@ function ChatInputBar({ input, onInputChange, hasInput, isLoading, isCreatingIss
             <span className="hidden md:inline">{isLoading ? 'Invio...' : 'Invia'}</span>
           </Button>
         </div>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#7a7577]">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#9a9697]">
           <span>Invio: Enter - Nuova riga: Shift + Enter</span>
           {isCreatingIssue && <span className="text-[#f4bf4f]">Segnalazione automatica in corso</span>}
         </div>

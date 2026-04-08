@@ -71,7 +71,7 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
             <FormField label="Password" error={errors.password}>
               <FormInput type="password" value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 autoComplete="new-password" hasError={!!errors.password} placeholder="••••••••" />
-              <p className="mt-2 !mb-0 text-base text-[#7a7577]">Almeno 8 caratteri</p>
+              <p className="mt-2 !mb-0 text-base text-[#9a9697]">Almeno 8 caratteri</p>
             </FormField>
 
             <FormField label="Conferma password" error={errors.confirmPassword}>

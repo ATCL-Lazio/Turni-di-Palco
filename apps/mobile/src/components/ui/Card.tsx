@@ -26,9 +26,17 @@ export function Card({
   'aria-label': ariaLabel,
   'aria-disabled': ariaDisabled,
 }: CardProps) {
-  const hoverClass = hoverable || onClick ? 'mobile-card-hover cursor-pointer active:scale-[0.985] active:shadow-none' : '';
+  const isClickable = hoverable || onClick;
+  const hoverClass = isClickable ? 'mobile-card-hover cursor-pointer active:scale-[0.985] active:shadow-none' : '';
   const animationClass = animateOnMount ? 'animate-card-in' : '';
-  
+
+  const handleKeyDown = onClick ? (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
+  } : undefined;
+
   const defaultStyles: React.CSSProperties = {
     backgroundColor: 'rgb(26, 22, 23)',
     borderRadius: '16.4px',
@@ -43,7 +51,9 @@ export function Card({
       className={cn('relative transition-all duration-200 p-4', hoverClass, animationClass, className)}
       onClick={onClick}
       onPointerDown={onPointerDown}
-      role={role}
+      onKeyDown={handleKeyDown}
+      role={role ?? (onClick ? 'button' : undefined)}
+      tabIndex={onClick ? 0 : undefined}
       aria-label={ariaLabel}
       aria-disabled={ariaDisabled}
       style={defaultStyles}
