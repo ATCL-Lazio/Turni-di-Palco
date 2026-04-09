@@ -62,26 +62,31 @@ serve(async (req) => {
   });
 
   // 1. Delete game data (cascade-safe: ordered by FK dependencies)
-  const tables = [
-    'activity_completions',
-    'user_badges',
-    'planned_participations',
-    'turns',
-    'profiles',
+  const tablesToDelete = [
+    { table: 'activity_completions', key: 'user_id' },
+    { table: 'user_badges', key: 'user_id' },
+    { table: 'planned_participations', key: 'user_id' },
+    { table: 'turns', key: 'user_id' },
+    { table: 'profiles', key: 'id' },
   ] as const;
 
-  for (const table of tables) {
-    const { error } = await adminClient.from(table).delete().eq('user_id', userId);
-    // profiles uses id as PK, not user_id
-    if (error && table !== 'profiles') {
+  const failedTables: string[] = [];
+
+  for (const { table, key } of tablesToDelete) {
+    const { error } = await adminClient.from(table).delete().eq(key, userId);
+    if (error) {
       console.error(`delete-my-account: error deleting from ${table}`, error.message);
+      failedTables.push(table);
     }
   }
 
-  // profiles table uses id, not user_id
-  const { error: profileError } = await adminClient.from('profiles').delete().eq('id', userId);
-  if (profileError) {
-    console.error('delete-my-account: error deleting profile', profileError.message);
+  // Abort before deleting auth user if critical data remains
+  if (failedTables.length > 0) {
+    console.error(`delete-my-account: aborting for user ${userId}, orphaned tables: ${failedTables.join(', ')}`);
+    return errorResponse(
+      `Cancellazione parziale: dati rimasti in ${failedTables.join(', ')}. L'account non è stato eliminato. Riprova o contatta il supporto.`,
+      500,
+    );
   }
 
   // 2. Delete profile image from storage (non-fatal)
@@ -93,11 +98,11 @@ serve(async (req) => {
     await adminClient.storage.from('profile-images').remove(paths);
   }
 
-  // 3. Delete the auth user (must be last)
+  // 3. Delete the auth user (must be last — only reached if all data was cleaned)
   const { error: deleteUserError } = await adminClient.auth.admin.deleteUser(userId);
   if (deleteUserError) {
     console.error('delete-my-account: error deleting auth user', deleteUserError.message);
-    return errorResponse('Impossibile eliminare il profilo di autenticazione', 500);
+    return errorResponse('Dati eliminati ma impossibile rimuovere l\'account auth. Contatta il supporto.', 500);
   }
 
   return jsonResponse({ ok: true });
