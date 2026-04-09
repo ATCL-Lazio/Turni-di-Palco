@@ -1298,7 +1298,13 @@ function buildDashboardHtml({ protocol }) {
     credentials: buildCredentialSummary(),
   };
 
-  const safe = (value) => String(value ?? '');
+  const safe = (value) =>
+    String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   const json = JSON.stringify({
     startedAt: data.startedAt.toISOString(),
     now: data.now.toISOString(),
@@ -1625,7 +1631,7 @@ function buildDashboardHtml({ protocol }) {
           <div class="list">
             <div>Login <span id="codex-auth-status" data-auth="${data.codexAuth.hasApiKey}">${data.codexAuth.hasApiKey ? '✅ Autenticato' : '❌ Non autenticato'}</span></div>
             <div>Metodo <span id="codex-auth-source">${safe(data.codexAuth.sourceLabel)}</span></div>
-            <div>Binario <span>${data.codexAuth.codexBin}</span></div>
+            <div>Binario <span>${safe(data.codexAuth.codexBin)}</span></div>
           </div>
           <div class="row" style="margin-top: 12px; flex-direction: column; align-items: flex-start;">
             ${!data.codexAuth.hasApiKey ? `
@@ -1646,7 +1652,7 @@ function buildDashboardHtml({ protocol }) {
           <div class="list">
             <div>Login <span id="gh-auth-status" data-auth="${data.ghAuth.hasToken}">${data.ghAuth.hasToken ? '✅ Autenticato' : '❌ Non autenticato'}</span></div>
             <div>Metodo <span id="gh-auth-source">${safe(data.ghAuth.sourceLabel)}</span></div>
-            <div>Binario <span>${data.ghAuth.ghBin}</span></div>
+            <div>Binario <span>${safe(data.ghAuth.ghBin)}</span></div>
           </div>
           <div class="row" style="margin-top: 12px; flex-direction: column; align-items: flex-start;">
             ${!data.ghAuth.hasToken ? `
@@ -2585,6 +2591,7 @@ const requestHandler = (req, res) => {
         res.writeHead(413);
         res.end();
         req.destroy();
+        return;
       }
     });
 
