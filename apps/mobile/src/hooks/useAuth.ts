@@ -94,7 +94,11 @@ export function useAuth(
 
     const handleLogoutAction = useCallback(async () => {
         if (supabase) {
-            await supabase.auth.signOut();
+            try {
+                await supabase.auth.signOut();
+            } catch {
+                // signOut failure must not block local logout
+            }
         }
         onLogout();
     }, [onLogout]);
