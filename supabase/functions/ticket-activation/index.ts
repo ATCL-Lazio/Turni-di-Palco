@@ -73,8 +73,31 @@ serve(async (req: Request) => {
     const { action, hash, payload, userId: requestedUserId } = await req.json();
 
     const activationActions = ['activate_hash', 'activate_by_details', 'activate_by_ticket_number'];
+    const authRequiredActions = [...activationActions, 'reserve_hash', 'resolve_hash'];
     const needsAuthenticatedUser = activationActions.includes(action);
+    const needsAuth = authRequiredActions.includes(action);
     let resolvedUserId = typeof requestedUserId === 'string' ? requestedUserId.trim() : '';
+
+    if (needsAuth && !needsAuthenticatedUser) {
+      // reserve_hash / resolve_hash: require a valid JWT but don't enforce user ID extraction
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
+      }
+      const token = authHeader.slice('Bearer '.length);
+      try {
+        const parts = token.split('.');
+        if (parts.length !== 3) throw new Error('Malformed JWT');
+        const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
+        const jwtPayload = JSON.parse(atob(padded));
+        if (typeof jwtPayload.sub !== 'string' || !jwtPayload.sub) {
+          throw new Error('Missing sub claim');
+        }
+      } catch {
+        return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
+      }
+    }
 
     if (needsAuthenticatedUser) {
       const authHeader = req.headers.get('Authorization');
