@@ -1166,6 +1166,15 @@ function createRateLimiter() {
     return { ok: true, remaining: Math.max(0, limit - entry.count), resetAt: entry.resetAt };
   };
 
+  const cleanup = () => {
+    const now = Date.now();
+    for (const [key, entry] of store) {
+      if (now >= entry.resetAt) store.delete(key);
+    }
+  };
+  const cleanupInterval = setInterval(cleanup, windowMs * 2);
+  cleanupInterval.unref();
+
   return { consume, limit, windowMs };
 }
 
