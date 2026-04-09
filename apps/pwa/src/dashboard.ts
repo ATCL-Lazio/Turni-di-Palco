@@ -2,6 +2,15 @@ import { supabase } from "./services/supabase";
 
 type FeatureFlag = { key: string; enabled: boolean; label: string; description: string };
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 async function fetchFeatureFlags(): Promise<FeatureFlag[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
@@ -25,8 +34,8 @@ function flagRow(flag: FeatureFlag): string {
   return `
     <div class="flex items-center justify-between gap-4 py-2.5 border-b border-neutral-800 last:border-0">
       <div class="min-w-0">
-        <p class="text-sm text-neutral-100 font-mono truncate">${flag.key}</p>
-        <p class="text-xs text-neutral-500 truncate">${flag.label}${flag.description ? ` — ${flag.description}` : ""}</p>
+        <p class="text-sm text-neutral-100 font-mono truncate">${escapeHtml(flag.key)}</p>
+        <p class="text-xs text-neutral-500 truncate">${escapeHtml(flag.label)}${flag.description ? ` — ${escapeHtml(flag.description)}` : ""}</p>
       </div>
       ${pill}
     </div>
