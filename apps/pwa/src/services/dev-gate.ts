@@ -1,8 +1,8 @@
 import type { User } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "./supabase";
 
-const allowedRoles = parseEnvList(import.meta.env.VITE_PWA_DEV_ROLES ?? "dev");
-const allowedEmails = parseEnvList(import.meta.env.VITE_PWA_DEV_EMAILS ?? "");
+const allowedRoles = parseEnvList(import.meta.env.VITE_PWA_DEV_ROLES || "dev");
+const allowedEmails = parseEnvList(import.meta.env.VITE_PWA_DEV_EMAILS || "");
 
 function parseEnvList(value: string): string[] {
   return value.split(",").map((s) => s.trim()).filter(Boolean);
