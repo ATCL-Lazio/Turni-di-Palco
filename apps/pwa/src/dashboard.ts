@@ -2,8 +2,8 @@ import { supabase } from "./services/supabase";
 
 type FeatureFlag = { key: string; enabled: boolean; label: string; description: string };
 
-function escapeHtml(text: string): string {
-  return text
+function escapeHtml(str: string): string {
+  return str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
