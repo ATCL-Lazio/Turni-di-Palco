@@ -9,20 +9,6 @@ const EVENTS_API_URL =
   'https://www.spaziorossellini.it/wp-json/tribe/events/v1/events?per_page=50';
 
 const DEFAULT_REWARDS = { xp: 140, reputation: 20, cachet: 100 };
-const MONTHS_IT = [
-  'Gen',
-  'Feb',
-  'Mar',
-  'Apr',
-  'Mag',
-  'Giu',
-  'Lug',
-  'Ago',
-  'Set',
-  'Ott',
-  'Nov',
-  'Dic',
-];
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,20 +30,18 @@ const normalizeUrl = (value: string) => value.replace(/\/+$/, '').trim();
 
 const formatDate = (details?: SpazioEvent['start_date_details'], fallback?: string) => {
   if (details?.year && details?.month && details?.day) {
+    const month = String(details.month).padStart(2, '0');
     const day = String(details.day).padStart(2, '0');
-    const monthIndex = Number(details.month) - 1;
-    const monthLabel = MONTHS_IT[monthIndex] ?? 'Gen';
-    return `${day} ${monthLabel} ${details.year}`;
+    return `${details.year}-${month}-${day}`;
   }
   if (fallback) {
     const [datePart] = fallback.split(' ');
     const [year, month, day] = datePart.split('-').map(Number);
     if (year && month && day) {
-      const monthLabel = MONTHS_IT[month - 1] ?? 'Gen';
-      return `${String(day).padStart(2, '0')} ${monthLabel} ${year}`;
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
   }
-  return '01 Gen 2026';
+  return '2026-01-01';
 };
 
 const formatTime = (details?: SpazioEvent['start_date_details'], fallback?: string) => {
