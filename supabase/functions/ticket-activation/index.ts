@@ -62,8 +62,9 @@ serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
 
-  if (!supabaseUrl || !serviceKey) {
+  if (!supabaseUrl || !serviceKey || !anonKey) {
     return jsonResponse({ error: 'Missing environment variables' }, 500);
   }
 
@@ -73,45 +74,32 @@ serve(async (req: Request) => {
     const { action, hash, payload, userId: requestedUserId } = await req.json();
 
     const activationActions = ['activate_hash', 'activate_by_details', 'activate_by_ticket_number'];
+    const authRequiredActions = [...activationActions, 'reserve_hash', 'resolve_hash'];
     const needsAuthenticatedUser = activationActions.includes(action);
+    const needsAuth = authRequiredActions.includes(action);
     let resolvedUserId = typeof requestedUserId === 'string' ? requestedUserId.trim() : '';
 
-    if (needsAuthenticatedUser) {
+    if (needsAuth) {
+      // Verify JWT signature via Supabase auth (covers reserve_hash, resolve_hash, and activation actions)
       const authHeader = req.headers.get('Authorization');
-      console.log('[auth] Header present:', Boolean(authHeader), 'starts-with-Bearer:', authHeader?.startsWith('Bearer ') ?? false);
-
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        console.warn('[auth] Missing or invalid Authorization header');
         return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
       }
 
-      const token = authHeader.slice('Bearer '.length);
-      console.log('[auth] Token length:', token.length, 'prefix:', token.slice(0, 20));
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
 
-      // The gateway already verified the JWT signature and expiry via verify_jwt: true.
-      // Decode the payload to extract the sub claim (user ID) without a redundant getUser call.
-      let userId: string | undefined;
-      try {
-        const parts = token.split('.');
-        if (parts.length !== 3) throw new Error('Malformed JWT');
-        // JWT uses base64url encoding; convert to standard base64 for atob
-        const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
-        const jwtPayload = JSON.parse(atob(padded));
-        userId = typeof jwtPayload.sub === 'string' ? jwtPayload.sub : undefined;
-        console.log('[auth] JWT sub:', userId ?? '(missing)');
-      } catch (decodeErr) {
-        console.error('[auth] JWT decode failed:', (decodeErr as Error).message);
+      const { data: { user }, error: authError } = await userClient.auth.getUser();
+      if (authError || !user) {
         return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
       }
 
-      if (!userId) {
-        console.error('[auth] JWT has no sub claim (anon key or service key passed as user token)');
-        return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
+      if (needsAuthenticatedUser) {
+        // Do not trust userId sent by client payload: use the verified identity.
+        resolvedUserId = user.id;
       }
-
-      // Do not trust userId sent by client payload if we have an authenticated user.
-      resolvedUserId = userId;
     }
 
     if (action === 'reserve_hash') {

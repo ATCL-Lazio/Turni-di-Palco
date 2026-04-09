@@ -92,9 +92,13 @@ export function useAuth(
         onAuthChange('welcome'); // Flow will continue to role-selection
     }, [onAuthChange, updateProfile]);
 
-    const handleLogoutAction = useCallback(() => {
+    const handleLogoutAction = useCallback(async () => {
         if (supabase) {
-            supabase.auth.signOut();
+            try {
+                await supabase.auth.signOut();
+            } catch {
+                // signOut failure must not block local logout
+            }
         }
         onLogout();
     }, [onLogout]);

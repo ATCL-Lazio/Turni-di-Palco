@@ -165,6 +165,46 @@ const rateLimitState = new Map();
 const pendingByCommandId = new Map();
 const pendingByTokenHash = new Map();
 
+const PENDING_STORE_PATH = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "data",
+  "pending-confirmations.json"
+);
+
+function savePendingToDisk() {
+  try {
+    const entries = Array.from(pendingByCommandId.values());
+    const dir = path.dirname(PENDING_STORE_PATH);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(PENDING_STORE_PATH, JSON.stringify(entries, null, 2), "utf8");
+  } catch (err) {
+    console.warn("[control-plane] failed to persist pending confirmations:", err.message);
+  }
+}
+
+function loadPendingFromDisk() {
+  try {
+    if (!fs.existsSync(PENDING_STORE_PATH)) return;
+    const raw = fs.readFileSync(PENDING_STORE_PATH, "utf8");
+    const entries = JSON.parse(raw);
+    const now = Date.now();
+    for (const entry of entries) {
+      if (!entry?.commandId || !entry?.tokenHash) continue;
+      if (entry.expiresAtMs <= now) continue;
+      pendingByCommandId.set(entry.commandId, entry);
+      pendingByTokenHash.set(entry.tokenHash, entry.commandId);
+    }
+    if (pendingByCommandId.size > 0) {
+      console.log(`[control-plane] restored ${pendingByCommandId.size} pending confirmation(s) from disk`);
+    }
+  } catch (err) {
+    console.warn("[control-plane] failed to load pending confirmations:", err.message);
+  }
+}
+
+loadPendingFromDisk();
+
 const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", true);
@@ -856,6 +896,7 @@ function removePending(commandId) {
 
   pendingByCommandId.delete(commandId);
   pendingByTokenHash.delete(found.tokenHash);
+  savePendingToDisk();
   return found;
 }
 
@@ -863,6 +904,7 @@ function restorePending(entry) {
   if (!entry?.commandId || !entry?.tokenHash) return;
   pendingByCommandId.set(entry.commandId, entry);
   pendingByTokenHash.set(entry.tokenHash, entry.commandId);
+  savePendingToDisk();
 }
 
 async function markPendingExpired(entry) {
@@ -1225,6 +1267,7 @@ async function commandsPrepareHandler(req, res) {
 
   pendingByCommandId.set(commandId, pendingEntry);
   pendingByTokenHash.set(tokenHash, commandId);
+  savePendingToDisk();
 
   await insertAudit({
     actorUserId: auth.userId,

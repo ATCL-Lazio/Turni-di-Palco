@@ -1166,6 +1166,15 @@ function createRateLimiter() {
     return { ok: true, remaining: Math.max(0, limit - entry.count), resetAt: entry.resetAt };
   };
 
+  const cleanup = () => {
+    const now = Date.now();
+    for (const [key, entry] of store) {
+      if (now >= entry.resetAt) store.delete(key);
+    }
+  };
+  const cleanupInterval = setInterval(cleanup, windowMs * 2);
+  cleanupInterval.unref();
+
   return { consume, limit, windowMs };
 }
 
@@ -1298,7 +1307,13 @@ function buildDashboardHtml({ protocol }) {
     credentials: buildCredentialSummary(),
   };
 
-  const safe = (value) => String(value ?? '');
+  const safe = (value) =>
+    String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   const json = JSON.stringify({
     startedAt: data.startedAt.toISOString(),
     now: data.now.toISOString(),
@@ -1625,7 +1640,7 @@ function buildDashboardHtml({ protocol }) {
           <div class="list">
             <div>Login <span id="codex-auth-status" data-auth="${data.codexAuth.hasApiKey}">${data.codexAuth.hasApiKey ? '✅ Autenticato' : '❌ Non autenticato'}</span></div>
             <div>Metodo <span id="codex-auth-source">${safe(data.codexAuth.sourceLabel)}</span></div>
-            <div>Binario <span>${data.codexAuth.codexBin}</span></div>
+            <div>Binario <span>${safe(data.codexAuth.codexBin)}</span></div>
           </div>
           <div class="row" style="margin-top: 12px; flex-direction: column; align-items: flex-start;">
             ${!data.codexAuth.hasApiKey ? `
@@ -1646,7 +1661,7 @@ function buildDashboardHtml({ protocol }) {
           <div class="list">
             <div>Login <span id="gh-auth-status" data-auth="${data.ghAuth.hasToken}">${data.ghAuth.hasToken ? '✅ Autenticato' : '❌ Non autenticato'}</span></div>
             <div>Metodo <span id="gh-auth-source">${safe(data.ghAuth.sourceLabel)}</span></div>
-            <div>Binario <span>${data.ghAuth.ghBin}</span></div>
+            <div>Binario <span>${safe(data.ghAuth.ghBin)}</span></div>
           </div>
           <div class="row" style="margin-top: 12px; flex-direction: column; align-items: flex-start;">
             ${!data.ghAuth.hasToken ? `
@@ -2578,17 +2593,21 @@ const requestHandler = (req, res) => {
       return;
     }
     let authBody = '';
+    let authAborted = false;
     req.on('data', (chunk) => {
       authBody += chunk.toString();
       if (authBody.length > maxBodySize) {
+        authAborted = true;
         logLine(`${requestId} auth payload too large (${authBody.length} bytes)`);
         res.writeHead(413);
         res.end();
         req.destroy();
+        return;
       }
     });
 
     req.on('end', async () => {
+      if (authAborted) return;
       let payload;
       try {
         payload = authBody ? JSON.parse(authBody) : {};
@@ -2686,17 +2705,21 @@ const requestHandler = (req, res) => {
   }
 
   let body = '';
+  let bodyAborted = false;
   req.on('data', (chunk) => {
     body += chunk.toString();
     if (body.length > maxBodySize) {
+      bodyAborted = true;
       logLine(`${requestId} payload too large (${body.length} bytes)`);
       res.writeHead(413);
       res.end();
       req.destroy();
+      return;
     }
   });
 
   req.on('end', async () => {
+    if (bodyAborted) return;
     logLine(
       `${requestId} POST ${req.url}\n  client=${clientIp}\n  origin=${origin ?? 'unknown'}\n  size=${body.length}`
     );

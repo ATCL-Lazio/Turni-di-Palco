@@ -1,8 +1,8 @@
 import type { User } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "./supabase";
 
-const allowedRoles = parseEnvList(import.meta.env.VITE_PWA_DEV_ROLES ?? "dev");
-const allowedEmails = parseEnvList(import.meta.env.VITE_PWA_DEV_EMAILS ?? "");
+const allowedRoles = parseEnvList(import.meta.env.VITE_PWA_DEV_ROLES || "dev");
+const allowedEmails = parseEnvList(import.meta.env.VITE_PWA_DEV_EMAILS || "");
 
 function parseEnvList(value: string): string[] {
   return value.split(",").map((s) => s.trim()).filter(Boolean);
@@ -108,34 +108,40 @@ export async function requireDevAccess(): Promise<boolean> {
   const gate = renderGate(root);
   if (data.user) setMessage(gate.message, "Account non autorizzato per la dev dashboard.", "error");
 
-  return new Promise<boolean>((resolve) => {
+  return new Promise<boolean>((resolve, reject) => {
     gate.form.addEventListener("submit", async (e) => {
       e.preventDefault();
       setBusy(gate, true);
       setMessage(gate.message, "Verifico le credenziali...", "info");
 
-      const { error } = await supabase!.auth.signInWithPassword({
-        email: gate.emailInput.value.trim(),
-        password: gate.passwordInput.value,
-      });
+      try {
+        const { error } = await supabase!.auth.signInWithPassword({
+          email: gate.emailInput.value.trim(),
+          password: gate.passwordInput.value,
+        });
 
-      if (error) {
+        if (error) {
+          setBusy(gate, false);
+          setMessage(gate.message, error.message, "error");
+          return;
+        }
+
+        const { data: fresh } = await supabase!.auth.getUser();
+        if (!isUserAllowed(fresh.user)) {
+          await supabase!.auth.signOut();
+          setBusy(gate, false);
+          setMessage(gate.message, "Utente non autorizzato.", "error");
+          return;
+        }
+
+        setMessage(gate.message, "Accesso autorizzato.", "success");
+        root.innerHTML = "";
+        resolve(true);
+      } catch (err) {
         setBusy(gate, false);
-        setMessage(gate.message, error.message, "error");
-        return;
+        setMessage(gate.message, "Errore imprevisto. Riprova.", "error");
+        reject(err);
       }
-
-      const { data: fresh } = await supabase!.auth.getUser();
-      if (!isUserAllowed(fresh.user)) {
-        await supabase!.auth.signOut();
-        setBusy(gate, false);
-        setMessage(gate.message, "Utente non autorizzato.", "error");
-        return;
-      }
-
-      setMessage(gate.message, "Accesso autorizzato.", "success");
-      root.innerHTML = "";
-      resolve(true);
     });
   });
 }

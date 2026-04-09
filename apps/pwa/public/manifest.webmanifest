@@ -1,0 +1,33 @@
+{
+  "name": "Turni di Palco – Dev Dashboard",
+  "short_name": "TdP Dev",
+  "description": "Dashboard sviluppatori Turni di Palco",
+  "lang": "it",
+  "orientation": "portrait",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f0d0e",
+  "theme_color": "#0f0d0e",
+  "icons": [
+    {
+      "src": "icons/pwa-48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

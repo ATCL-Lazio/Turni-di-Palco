@@ -27,11 +27,14 @@ async function resolveFunctionErrorMessage(error: unknown, fallback: string): Pr
 
   if (context && typeof context === 'object') {
     const cloneFn = typeof context.clone === 'function' ? context.clone.bind(context) : null;
-    const source = cloneFn ? (cloneFn() as typeof context) : context;
 
-    if (source && typeof source.json === 'function') {
+    // Attempt JSON first; use a clone so the body stream is not consumed before the text fallback.
+    const jsonSource = cloneFn ? (cloneFn() as typeof context) : context;
+    let jsonParsed = false;
+    if (jsonSource && typeof jsonSource.json === 'function') {
       try {
-        const body = await source.json();
+        const body = await jsonSource.json();
+        jsonParsed = true;
         if (body && typeof body === 'object') {
           const payload = body as { error?: unknown; message?: unknown };
           const bodyMessage =
@@ -43,19 +46,22 @@ async function resolveFunctionErrorMessage(error: unknown, fallback: string): Pr
           }
         }
       } catch {
-        // fall back to text/message below
+        // fall back to text below
       }
     }
 
-    const sourceForText = cloneFn ? (cloneFn() as typeof context) : context;
-    if (sourceForText && typeof sourceForText.text === 'function') {
-      try {
-        const text = (await sourceForText.text()).trim();
-        if (text) {
-          return text;
+    // Only attempt text() if JSON parsing failed (body not yet consumed) or a fresh clone is available.
+    if (!jsonParsed || cloneFn) {
+      const textSource = cloneFn ? (cloneFn() as typeof context) : context;
+      if (textSource && typeof textSource.text === 'function') {
+        try {
+          const text = (await textSource.text()).trim();
+          if (text) {
+            return text;
+          }
+        } catch {
+          // ignore and continue fallback
         }
-      } catch {
-        // ignore and continue fallback
       }
     }
 

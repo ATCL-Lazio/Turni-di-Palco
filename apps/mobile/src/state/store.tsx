@@ -937,7 +937,21 @@ function resolveEventPlanningRoleId(value: unknown, fallbackRoleId: RoleId): Rol
   return isRoleId(value) ? value : fallbackRoleId;
 }
 
+const ITALIAN_MONTHS: Record<string, string> = {
+  gen: '01', feb: '02', mar: '03', apr: '04', mag: '05', giu: '06',
+  lug: '07', ago: '08', set: '09', ott: '10', nov: '11', dic: '12',
+};
+
 function parseEventScheduleTimestamp(event: Pick<GameEvent, 'date' | 'time'>) {
+  const parts = event.date.trim().split(/\s+/);
+  if (parts.length === 3) {
+    const [day, monthStr, year] = parts;
+    const month = ITALIAN_MONTHS[monthStr.toLowerCase()];
+    if (month) {
+      const timestamp = new Date(`${year}-${month}-${day.padStart(2, '0')}T${event.time || '00:00'}`).getTime();
+      return Number.isFinite(timestamp) ? timestamp : 0;
+    }
+  }
   const timestamp = new Date(`${event.date} ${event.time}`).getTime();
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
