@@ -159,8 +159,30 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseUrl || !serviceKey) {
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  if (!supabaseUrl || !serviceKey || !anonKey) {
     return jsonResponse({ error: 'Missing Supabase env vars' }, 500);
+  }
+
+  // Verify caller JWT and require admin role before allowing bulk import
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return jsonResponse({ error: 'Autenticazione richiesta' }, 401);
+  }
+
+  const userClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const { data: { user }, error: userError } = await userClient.auth.getUser();
+  if (userError || !user) {
+    return jsonResponse({ error: 'Sessione non valida' }, 401);
+  }
+
+  const userRole = (user.app_metadata as Record<string, unknown>)?.role as string | undefined;
+  if (userRole !== 'admin') {
+    return jsonResponse({ error: 'Accesso negato: ruolo admin richiesto' }, 403);
   }
 
   const supabase = createClient(supabaseUrl, serviceKey);
