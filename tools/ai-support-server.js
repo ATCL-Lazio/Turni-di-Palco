@@ -2584,9 +2584,11 @@ const requestHandler = (req, res) => {
       return;
     }
     let authBody = '';
+    let authAborted = false;
     req.on('data', (chunk) => {
       authBody += chunk.toString();
       if (authBody.length > maxBodySize) {
+        authAborted = true;
         logLine(`${requestId} auth payload too large (${authBody.length} bytes)`);
         res.writeHead(413);
         res.end();
@@ -2596,6 +2598,7 @@ const requestHandler = (req, res) => {
     });
 
     req.on('end', async () => {
+      if (authAborted) return;
       let payload;
       try {
         payload = authBody ? JSON.parse(authBody) : {};
@@ -2693,17 +2696,21 @@ const requestHandler = (req, res) => {
   }
 
   let body = '';
+  let bodyAborted = false;
   req.on('data', (chunk) => {
     body += chunk.toString();
     if (body.length > maxBodySize) {
+      bodyAborted = true;
       logLine(`${requestId} payload too large (${body.length} bytes)`);
       res.writeHead(413);
       res.end();
       req.destroy();
+      return;
     }
   });
 
   req.on('end', async () => {
+    if (bodyAborted) return;
     logLine(
       `${requestId} POST ${req.url}\n  client=${clientIp}\n  origin=${origin ?? 'unknown'}\n  size=${body.length}`
     );
