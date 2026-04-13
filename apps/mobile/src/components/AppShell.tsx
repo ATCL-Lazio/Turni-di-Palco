@@ -598,7 +598,7 @@ export function AppShell() {
 
       case 'support':
         return canViewAiSupport
-          ? <SupportChat userName={state.profile.name} userId={authUserId} onBack={() => nav.navigate('account-settings')} />
+          ? <SupportChat userName={state.profile.name} userId={authUserId ?? undefined} onBack={() => nav.navigate('account-settings')} />
           : <AccountSettings userName={state.profile.name} email={state.profile.email}
               showAiSupport={canViewAiSupport} showTicketPrototype={canViewTicketQrPrototype}
               leaderboardVisible={state.profile.leaderboardVisible}
@@ -607,6 +607,7 @@ export function AppShell() {
               onViewSupport={openSupport} onViewTicketPrototype={openTicketQrPrototype}
               onChangePassword={() => { nav.setIsPasswordRecovery(false); nav.navigate('change-password'); }}
               onResetProgress={async () => { await resetProgress(); handleTabChange('home'); nav.navigate('role-selection'); }}
+              onResetTutorial={() => { gameState.resetTutorial(); nav.navigate('home'); }}
               onDeleteAccount={deleteAccount}
               onExportData={exportUserData}
               onToggleLeaderboard={(visible) => updateProfile({ leaderboardVisible: visible })}
@@ -650,6 +651,7 @@ export function AppShell() {
               onViewSupport={openSupport} onViewTicketPrototype={openTicketQrPrototype}
               onChangePassword={() => { nav.setIsPasswordRecovery(false); nav.navigate('change-password'); }}
               onResetProgress={async () => { await resetProgress(); handleTabChange('home'); nav.navigate('role-selection'); }}
+              onResetTutorial={() => { gameState.resetTutorial(); nav.navigate('home'); }}
               onDeleteAccount={deleteAccount}
               onExportData={exportUserData}
               onToggleLeaderboard={(visible) => updateProfile({ leaderboardVisible: visible })}
