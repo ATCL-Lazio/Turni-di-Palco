@@ -10,7 +10,7 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    allowedHosts: ["turni-di-palco.onrender.com", ".onrender.com"], // PWA Render service (mobile uses turni-di-palco-fq85.onrender.com)
+    allowedHosts: ["turni-di-palco.onrender.com", "turni-di-palco-fq85.onrender.com"],
   },
   preview: {
     host: true,
