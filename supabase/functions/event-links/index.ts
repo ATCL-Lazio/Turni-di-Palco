@@ -2,8 +2,10 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.0';
 
+const allowedOrigin = Deno.env.get('SITE_URL') ?? 'https://turnidipalco.it';
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': allowedOrigin,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
@@ -48,6 +50,30 @@ function extractEventId(payload: string | null | undefined) {
 
   const textMatch = raw.match(EVENT_ID_PATTERN)?.[1];
   return normalizeEventId(textMatch ?? raw);
+}
+
+const ALLOWED_HOSTS = [
+  'turnidipalco.it',
+  'www.turnidipalco.it',
+  'turni-di-palco.onrender.com',
+  'turni-di-palco-fq85.onrender.com',
+  'maxwell-ai-support.onrender.com',
+];
+
+const DEFAULT_BASE_URL = 'https://turnidipalco.it/mobile/index.html';
+
+function isAllowedBaseUrl(raw: string): boolean {
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:') return false;
+    return ALLOWED_HOSTS.some((h) => url.hostname === h || url.hostname.endsWith('.netlify.app'));
+  } catch {
+    return false;
+  }
+}
+
+function sanitizeBaseUrl(raw: string): string {
+  return isAllowedBaseUrl(raw) ? raw : DEFAULT_BASE_URL;
 }
 
 function buildDeepLink(baseUrl: string, eventId: string, roleId: string | null) {
@@ -113,7 +139,7 @@ serve(async (req) => {
       return json({ valid: false, error: 'Evento non trovato.', eventId: extractedId }, 404);
     }
 
-    const baseUrl = String(body.baseUrl ?? 'https://turnidipalco.it/mobile/index.html');
+    const baseUrl = sanitizeBaseUrl(String(body.baseUrl ?? DEFAULT_BASE_URL));
     return json({
       valid: true,
       eventId: data.id,
@@ -125,7 +151,7 @@ serve(async (req) => {
   if (action === 'create_deep_link') {
     const eventId = normalizeEventId(String(body.eventId ?? ''));
     const roleId = String(body.roleId ?? '').trim() || null;
-    const baseUrl = String(body.baseUrl ?? 'https://turnidipalco.it/mobile/index.html');
+    const baseUrl = sanitizeBaseUrl(String(body.baseUrl ?? DEFAULT_BASE_URL));
 
     if (!eventId) {
       return json({ error: 'eventId obbligatorio' }, 400);

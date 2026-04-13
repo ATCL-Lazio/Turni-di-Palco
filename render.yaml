@@ -34,7 +34,7 @@ services:
   - key: AI_SUPPORT_ALLOWED_ORIGINS
     value: https://turni-di-palco-fq85.onrender.com,https://turni-di-palco-fq85.onrender.com/mobile
   region: frankfurt
-  buildCommand: npm ci && npm install -g @openai/codex && npm install -g gh
+  buildCommand: npm ci && npm install -g @openai/codex@0.1.1505 && npm install -g gh
   startCommand: npm run ai:support
   autoDeployTrigger: commit
   previews:

@@ -10,8 +10,10 @@ const EVENTS_API_URL =
 
 const DEFAULT_REWARDS = { xp: 140, reputation: 20, cachet: 100 };
 
+const allowedOrigin = Deno.env.get('SITE_URL') ?? 'https://turnidipalco.it';
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': allowedOrigin,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
