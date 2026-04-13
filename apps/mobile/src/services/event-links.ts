@@ -26,42 +26,31 @@ async function resolveFunctionErrorMessage(error: unknown, fallback: string): Pr
   const context = candidate.context;
 
   if (context && typeof context === 'object') {
-    const cloneFn = typeof context.clone === 'function' ? context.clone.bind(context) : null;
-
-    // Attempt JSON first; use a clone so the body stream is not consumed before the text fallback.
-    const jsonSource = cloneFn ? (cloneFn() as typeof context) : context;
-    let jsonParsed = false;
-    if (jsonSource && typeof jsonSource.json === 'function') {
+    // Read body once as text, then attempt JSON.parse to avoid double-consuming the stream.
+    const source = typeof context.clone === 'function' ? context.clone() : context;
+    if (source && typeof source.text === 'function') {
       try {
-        const body = await jsonSource.json();
-        jsonParsed = true;
-        if (body && typeof body === 'object') {
-          const payload = body as { error?: unknown; message?: unknown };
-          const bodyMessage =
-            (typeof payload.error === 'string' && payload.error.trim()) ||
-            (typeof payload.message === 'string' && payload.message.trim()) ||
-            '';
-          if (bodyMessage) {
-            return bodyMessage;
+        const text = (await source.text()).trim();
+        if (text) {
+          try {
+            const body = JSON.parse(text);
+            if (body && typeof body === 'object') {
+              const payload = body as { error?: unknown; message?: unknown };
+              const bodyMessage =
+                (typeof payload.error === 'string' && payload.error.trim()) ||
+                (typeof payload.message === 'string' && payload.message.trim()) ||
+                '';
+              if (bodyMessage) {
+                return bodyMessage;
+              }
+            }
+          } catch {
+            // Not JSON — use raw text
           }
+          return text;
         }
       } catch {
-        // fall back to text below
-      }
-    }
-
-    // Only attempt text() if JSON parsing failed (body not yet consumed) or a fresh clone is available.
-    if (!jsonParsed || cloneFn) {
-      const textSource = cloneFn ? (cloneFn() as typeof context) : context;
-      if (textSource && typeof textSource.text === 'function') {
-        try {
-          const text = (await textSource.text()).trim();
-          if (text) {
-            return text;
-          }
-        } catch {
-          // ignore and continue fallback
-        }
+        // ignore and continue fallback
       }
     }
 
