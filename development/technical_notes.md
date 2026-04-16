@@ -65,9 +65,8 @@ description: Architettura, integrazioni e note operative di Turni di Palco.
 - In produzione, `tools/serve-dist.js` risolve `/mobile/*` su `apps/pwa/dist/public/mobile/*`.
 - Se si usa hosting statico esterno, garantire che `/mobile` punti a `dist/public/mobile` (o aggiungere rewrite equivalente), altrimenti `/mobile` va in 404.
 
-## Header di sicurezza (Netlify/Render)
+## Header di sicurezza (Render)
 
-- Netlify: gli header sono configurati in `netlify.toml` nella sezione `[[headers]]`.
 - Nota CSP: al momento `index.html` contiene uno script inline per il redirect mobile; per questo `script-src` include temporaneamente `'unsafe-inline'` finche' il bootstrap non viene spostato in un modulo esterno.
 - Render: il servizio PWA usa `tools/serve-dist.js` (startCommand in `render.yaml`), quindi gli header e la cache vanno configurati li.
   - Se si migra la PWA a "Static Site" su Render, utilizzare il supporto ai `headers` del manifest Render.

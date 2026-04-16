@@ -989,14 +989,7 @@ function resolveHttpsOptions() {
 function resolveHost() {
   const configuredHost = process.env.AI_SUPPORT_HOST;
   const runningOnRender = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID);
-  const runningOnRailway = Boolean(
-    process.env.RAILWAY_PROJECT_ID ||
-      process.env.RAILWAY_SERVICE_ID ||
-      process.env.RAILWAY_ENVIRONMENT_ID ||
-      process.env.RAILWAY_ENVIRONMENT_NAME ||
-      process.env.RAILWAY_STATIC_URL
-  );
-  const runningOnManagedPlatform = runningOnRender || runningOnRailway;
+  const runningOnManagedPlatform = runningOnRender;
   const allowLocalhostOnManagedPlatform =
     process.env.AI_SUPPORT_ALLOW_LOCALHOST_ON_RENDER === '1' ||
     process.env.AI_SUPPORT_ALLOW_LOCALHOST_ON_RENDER === 'true' ||
