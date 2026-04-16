@@ -2467,20 +2467,15 @@ const requestHandler = (req, res) => {
 
   if (req.url === '/api/ai/issue') {
     const requiredToken = resolveIssueAuthToken();
-    if (!requiredToken) {
-      logLine(
-        `${requestId} POST /api/ai/issue\n  client=${clientIp}\n  status=${formatStatus(503)}\n  duration=${Date.now() - start}ms`
-      );
-      sendJson(res, 503, { error: 'Issue auth token not configured' });
-      return;
-    }
-    const providedToken = getRequestAuthToken(req);
-    if (!providedToken || providedToken !== requiredToken) {
-      logLine(
-        `${requestId} POST /api/ai/issue\n  client=${clientIp}\n  status=${formatStatus(401)}\n  duration=${Date.now() - start}ms`
-      );
-      sendJson(res, 401, { error: 'Unauthorized' });
-      return;
+    if (requiredToken) {
+      const providedToken = getRequestAuthToken(req);
+      if (!providedToken || providedToken !== requiredToken) {
+        logLine(
+          `${requestId} POST /api/ai/issue\n  client=${clientIp}\n  status=${formatStatus(401)}\n  duration=${Date.now() - start}ms`
+        );
+        sendJson(res, 401, { error: 'Unauthorized' });
+        return;
+      }
     }
   }
 
