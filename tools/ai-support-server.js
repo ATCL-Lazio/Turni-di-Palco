@@ -15,23 +15,7 @@ const port =
   Number(process.env.AI_SUPPORT_PORT || process.env.VITE_AI_SUPPORT_PORT) ||
   defaultPort;
 const host = resolveHost();
-const codexBin = resolveCodexBin();
 const ghBin = resolveGhBin();
-/** Parse a shell-like argument string, respecting single and double quotes. */
-function parseShellArgs(str) {
-  const args = [];
-  const re = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\S+)/g;
-  let m;
-  while ((m = re.exec(str)) !== null) {
-    let arg = m[1];
-    if ((arg.startsWith('"') && arg.endsWith('"')) || (arg.startsWith("'") && arg.endsWith("'"))) {
-      arg = arg.slice(1, -1);
-    }
-    args.push(arg);
-  }
-  return args;
-}
-const codexArgs = process.env.CODEX_ARGS ? parseShellArgs(process.env.CODEX_ARGS) : [];
 const maxBodySize = 1_000_000;
 const verbose =
   process.env.AI_SUPPORT_VERBOSE !== '0' &&
@@ -45,7 +29,6 @@ const enableColor =
   process.stdout.isTTY;
 const authStorage = resolveAuthStorage();
 const maxwellCredentials = resolveMaxwellCredentials();
-hydrateMaxwellCredentials(maxwellCredentials);
 
 function isTruthy(value) {
   if (value === undefined || value === null) return false;
@@ -150,7 +133,6 @@ function resolveAuthStorage() {
       enabled: false,
       authDir: null,
       source: null,
-      codexDir: null,
       githubDir: null,
       envFile: envFilePath,
       envFileStatus,
@@ -159,9 +141,7 @@ function resolveAuthStorage() {
   }
 
   const resolvedAuthDir = path.resolve(authDir);
-  const codexDir = path.join(resolvedAuthDir, 'codex');
   const githubDir = path.join(resolvedAuthDir, 'github');
-  fs.mkdirSync(codexDir, { recursive: true });
   fs.mkdirSync(githubDir, { recursive: true });
 
   if (envFilePath) {
@@ -177,7 +157,6 @@ function resolveAuthStorage() {
     enabled: true,
     authDir: resolvedAuthDir,
     source,
-    codexDir,
     githubDir,
     envFile: envFilePath,
     envFileStatus,
@@ -261,7 +240,6 @@ function resolveMaxwellCredentialsDirs() {
   if (authStorage?.enabled && authStorage.authDir) {
     return {
       runtimeDir: authStorage.authDir,
-      codexHomeDir: authStorage.codexDir,
       githubConfigDir: authStorage.githubDir,
     };
   }
@@ -269,7 +247,6 @@ function resolveMaxwellCredentialsDirs() {
   const runtimeDir = path.join(repoRoot, '.temp', 'ai-support-auth');
   return {
     runtimeDir,
-    codexHomeDir: path.join(runtimeDir, 'codex'),
     githubConfigDir: path.join(runtimeDir, 'github'),
   };
 }
@@ -285,25 +262,12 @@ function resolveMaxwellCredentials() {
       filePath: data.filePath,
       reason: data.reason ?? null,
       dirs,
-      codex: null,
       github: null,
     };
   }
 
   const payload = data.payload;
-  const codexRaw = payload?.credentials?.codex_cli ?? payload?.codex_cli ?? null;
   const githubRaw = payload?.credentials?.github_cli ?? payload?.github_cli ?? null;
-
-  const codex = codexRaw
-    ? {
-        authMode: readCredentialString(codexRaw.auth_mode) || 'chatgpt',
-        accountId: readCredentialString(codexRaw.account_id),
-        idToken: readCredentialString(codexRaw.id_token),
-        accessToken: readCredentialString(codexRaw.access_token),
-        refreshToken: readCredentialString(codexRaw.refresh_token),
-        lastRefresh: readCredentialString(codexRaw.last_refresh),
-      }
-    : null;
 
   const github = githubRaw
     ? {
@@ -317,121 +281,23 @@ function resolveMaxwellCredentials() {
     filePath: data.filePath,
     reason: null,
     dirs,
-    codex,
     github,
   };
 }
 
 function buildCredentialSummary() {
   const dirs = maxwellCredentials?.dirs ?? null;
-  const codex = maxwellCredentials?.codex;
   const github = maxwellCredentials?.github;
-  const codexAuthPath = dirs?.codexHomeDir
-    ? path.join(dirs.codexHomeDir, '.codex', 'auth.json')
-    : null;
-  let codexAuthExists = false;
-  let codexAuthSize = null;
-  try {
-    if (codexAuthPath && fs.existsSync(codexAuthPath)) {
-      codexAuthExists = true;
-      codexAuthSize = fs.statSync(codexAuthPath).size;
-    }
-  } catch {
-    // Ignore credential inspection errors.
-  }
   return {
     status: maxwellCredentials?.status ?? 'missing',
     filePath: maxwellCredentials?.filePath ?? null,
     reason: maxwellCredentials?.reason ?? null,
-    codex: {
-      available: Boolean(codex?.accessToken && codex?.refreshToken && codex?.accountId),
-      homeDir: dirs?.codexHomeDir ?? null,
-      authJson: codexAuthPath,
-      authJsonExists: codexAuthExists,
-      authJsonSize: codexAuthSize,
-    },
     github: {
       available: Boolean(github?.token),
       host: github?.hostname || null,
       configDir: dirs?.githubConfigDir ?? null,
     },
   };
-}
-
-function ensureCodexAuthJson(homeDir, codex) {
-  if (!homeDir || !codex) return false;
-  const authDir = path.join(homeDir, '.codex');
-  fs.mkdirSync(authDir, { recursive: true });
-
-  const authFilePath = path.join(authDir, 'auth.json');
-  const payload = {
-    auth_mode: codex.authMode || 'chatgpt',
-    OPENAI_API_KEY: null,
-    tokens: {
-      id_token: codex.idToken || codex.accessToken,
-      access_token: codex.accessToken,
-      refresh_token: codex.refreshToken,
-      account_id: codex.accountId,
-    },
-    last_refresh: codex.lastRefresh || new Date().toISOString(),
-  };
-
-  fs.writeFileSync(authFilePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
-  return true;
-}
-
-function hydrateMaxwellCredentials(credentials) {
-  if (!credentials || credentials.status !== 'loaded') return;
-
-  const dirs = credentials.dirs;
-  try {
-    fs.mkdirSync(dirs.runtimeDir, { recursive: true });
-    fs.mkdirSync(dirs.githubConfigDir, { recursive: true });
-  } catch (error) {
-    logError(`Failed to prepare credential directories: ${error.message}`);
-  }
-
-  const codex = credentials.codex;
-  if (!codex?.accessToken || !codex?.refreshToken || !codex?.accountId) return;
-
-  try {
-    ensureCodexAuthJson(dirs.codexHomeDir, codex);
-  } catch (error) {
-    logError(`Failed to hydrate Codex credentials: ${error.message}`);
-  }
-}
-
-function buildCodexEnv() {
-  const credentialDirs = maxwellCredentials?.dirs ?? null;
-  const credentialCodex = maxwellCredentials?.codex ?? null;
-  const canUseCredentialFile =
-    maxwellCredentials?.status === 'loaded' &&
-    credentialCodex?.accessToken &&
-    credentialCodex?.refreshToken &&
-    credentialCodex?.accountId &&
-    credentialDirs?.codexHomeDir;
-
-  if (!authStorage?.enabled && !canUseCredentialFile) return null;
-
-  const env = {
-    ...process.env,
-  };
-
-  const homeDir = canUseCredentialFile
-    ? credentialDirs.codexHomeDir
-    : authStorage.codexDir;
-
-  if (homeDir) {
-    env.HOME = homeDir;
-    if (process.platform === 'win32') {
-      env.USERPROFILE = homeDir;
-    }
-    env.XDG_CONFIG_HOME = homeDir;
-    env.XDG_STATE_HOME = homeDir;
-    env.XDG_DATA_HOME = homeDir;
-  }
-
-  return env;
 }
 
 function buildGhEnv() {
@@ -487,42 +353,6 @@ function sendJson(res, statusCode, payload) {
 function sendHtml(res, statusCode, html) {
   res.writeHead(statusCode, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(html);
-}
-
-function resolveCodexBin() {
-  if (process.env.CODEX_BIN) {
-    return process.env.CODEX_BIN;
-  }
-
-  if (process.platform === 'win32') {
-    const whereResult = spawnSync('where.exe', ['codex'], { encoding: 'utf8' });
-    if (whereResult.status === 0 && whereResult.stdout) {
-      const candidates = whereResult.stdout
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean);
-      const exeCandidate = candidates.find((line) => line.toLowerCase().endsWith('.exe'));
-      if (exeCandidate) return exeCandidate;
-      const cmdCandidate = candidates.find((line) => line.toLowerCase().endsWith('.cmd'));
-      if (cmdCandidate) return cmdCandidate;
-      if (candidates[0]) {
-        const base = candidates[0];
-        if (fs.existsSync(`${base}.exe`)) return `${base}.exe`;
-        if (fs.existsSync(`${base}.cmd`)) return `${base}.cmd`;
-        return base;
-      }
-    }
-
-    const appData = process.env.APPDATA;
-    if (appData) {
-      const exeCandidate = path.join(appData, 'npm', 'codex.exe');
-      if (fs.existsSync(exeCandidate)) return exeCandidate;
-      const candidate = path.join(appData, 'npm', 'codex.cmd');
-      if (fs.existsSync(candidate)) return candidate;
-    }
-  }
-
-  return 'codex';
 }
 
 function resolveGhBin() {
@@ -802,24 +632,7 @@ async function addIssueLabelsViaApi({ number, labels }) {
   });
 }
 
-let codexLoginProcess = null;
 let ghLoginProcess = null;
-
-function spawnCodexSync(args) {
-  const env = buildCodexEnv();
-  const safeCodexBin = preferWindowsExecutable(validateBinaryPath(codexBin, 'codex'));
-  
-  if (process.platform === 'win32') {
-    const lower = safeCodexBin.toLowerCase();
-    if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
-      return spawnSync('cmd.exe', ['/c', safeCodexBin, ...args], {
-        encoding: 'utf8',
-        env: env ?? process.env,
-      });
-    }
-  }
-  return spawnSync(safeCodexBin, args, { encoding: 'utf8', env: env ?? process.env });
-}
 
 function spawnGhSync(args) {
   const env = buildGhEnv();
@@ -834,25 +647,6 @@ function spawnGhSync(args) {
     }
   }
   return spawnSync(safeGhBin, args, { encoding: 'utf8', env: env ?? process.env });
-}
-
-function spawnCodexLoginProcess(args) {
-  const env = buildCodexEnv();
-  const safeCodexBin = preferWindowsExecutable(validateBinaryPath(codexBin, 'codex'));
-  
-  if (process.platform === 'win32') {
-    const lower = safeCodexBin.toLowerCase();
-    if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
-      return spawn('cmd.exe', ['/c', safeCodexBin, ...args], {
-        stdio: ['ignore', 'pipe', 'pipe'],
-        env: env ?? process.env,
-      });
-    }
-  }
-  return spawn(safeCodexBin, args, {
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: env ?? process.env,
-  });
 }
 
 function spawnGhLoginProcess(args) {
@@ -968,21 +762,6 @@ function trackLoginProcess({ label, child, onDone }) {
   });
 }
 
-function startCodexLogin() {
-  if (codexLoginProcess) {
-    return Promise.resolve({ started: false, reason: 'Codex login already running.' });
-  }
-  const child = spawnCodexLoginProcess(['login', '--device-auth']);
-  codexLoginProcess = child;
-  return trackLoginProcess({
-    label: 'Codex',
-    child,
-    onDone: () => {
-      codexLoginProcess = null;
-    },
-  });
-}
-
 function startGhLogin() {
   if (ghLoginProcess) {
     return Promise.resolve({ started: false, reason: 'GitHub login already running.' });
@@ -1008,34 +787,16 @@ function startGhLogin() {
   });
 }
 
-function checkCodexAuth() {
-  const result = spawnCodexSync(['login', 'status']);
-  if (result?.error) {
-    return {
-      hasApiKey: false,
-      apiKeyLength: 0,
-      codexBin,
-      source: 'cli',
-      sourceLabel: 'Codex CLI',
-      status: 'unavailable',
-      detail: result.error.message,
-    };
-  }
-
-  const output = readCliOutput(result);
-  const normalized = output.toLowerCase();
-  const loggedIn =
-    result.status === 0 &&
-    normalized.includes('logged in') &&
-    !normalized.includes('not logged');
+function checkGroqAuth() {
+  const apiKey = process.env.GROQ_API_KEY;
+  const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
   return {
-    hasApiKey: loggedIn,
-    apiKeyLength: 0,
-    codexBin,
-    source: 'cli',
-    sourceLabel: 'Codex CLI',
-    status: loggedIn ? 'authenticated' : 'unauthenticated',
-    detail: output || null,
+    hasApiKey: Boolean(apiKey),
+    apiKeyLength: apiKey ? apiKey.length : 0,
+    model,
+    source: apiKey ? 'env' : 'missing',
+    sourceLabel: apiKey ? 'API Key (env)' : 'Non configurata',
+    status: apiKey ? 'configured' : 'missing',
   };
 }
 
@@ -1285,7 +1046,7 @@ function getLocalIPv4Addresses() {
 
 function buildDashboardHtml({ protocol }) {
   const now = new Date();
-  const codexAuth = checkCodexAuth();
+  const groqAuth = checkGroqAuth();
   const ghAuth = checkGhAuth();
   const data = {
     startedAt: new Date(Date.now() - Math.round(process.uptime() * 1000)),
@@ -1301,7 +1062,7 @@ function buildDashboardHtml({ protocol }) {
     port,
     host,
     protocol,
-    codexAuth,
+    groqAuth,
     ghAuth,
     authStorage,
     credentials: buildCredentialSummary(),
@@ -1328,7 +1089,7 @@ function buildDashboardHtml({ protocol }) {
     port: data.port,
     host: data.host,
     protocol: data.protocol,
-    codexAuth: data.codexAuth,
+    groqAuth: data.groqAuth,
     ghAuth: data.ghAuth,
     authStorage: data.authStorage,
     credentials: data.credentials,
@@ -1636,25 +1397,13 @@ function buildDashboardHtml({ protocol }) {
 
       <section class="grid">
         <article class="card">
-          <h3>Autenticazione Codex</h3>
+          <h3>Autenticazione Groq</h3>
           <div class="list">
-            <div>Login <span id="codex-auth-status" data-auth="${data.codexAuth.hasApiKey}">${data.codexAuth.hasApiKey ? '✅ Autenticato' : '❌ Non autenticato'}</span></div>
-            <div>Metodo <span id="codex-auth-source">${safe(data.codexAuth.sourceLabel)}</span></div>
-            <div>Binario <span>${safe(data.codexAuth.codexBin)}</span></div>
+            <div>API Key <span id="groq-auth-status" data-auth="${data.groqAuth.hasApiKey}">${data.groqAuth.hasApiKey ? '✅ Configurata' : '❌ Non configurata'}</span></div>
+            <div>Modello <span id="groq-model">${safe(data.groqAuth.model)}</span></div>
+            <div>Sorgente <span id="groq-auth-source">${safe(data.groqAuth.sourceLabel)}</span></div>
           </div>
-          <div class="row" style="margin-top: 12px; flex-direction: column; align-items: flex-start;">
-            ${!data.codexAuth.hasApiKey ? `
-              <div class="command">
-                <code>codex login --device-auth</code>
-                <button type="button" class="tag" data-auth-type="codex" title="Avvia login">
-                  Avvia login
-                </button>
-              </div>
-              <div class="hint" data-auth-note="codex">Il link di login si apre in una nuova scheda (ed e' nei log).</div>
-            ` : `
-              <span class="tag" data-state="online">✅ Autenticato</span>
-            `}
-          </div>
+          ${!data.groqAuth.hasApiKey ? '<div class="hint" style="margin-top:8px">Imposta <code>GROQ_API_KEY</code>. <a href="https://console.groq.com/keys" target="_blank" style="color:var(--color-gold-400)">Crea una API key</a></div>' : ''}
         </article>
         <article class="card">
           <h3>Autenticazione GitHub</h3>
@@ -1791,9 +1540,7 @@ function buildDashboardHtml({ protocol }) {
           
           // Fallback URLs if not provided by API
           if (!authUrl) {
-            if (type === 'codex') {
-              authUrl = 'https://auth.openai.com/codex/device';
-            } else if (type === 'github') {
+            if (type === 'github') {
               authUrl = 'https://github.com/login/device';
             }
           }
@@ -1811,16 +1558,12 @@ function buildDashboardHtml({ protocol }) {
             // Popup was blocked, provide manual link
             if (type === 'github') {
               updateAuthNote(type, 'GitHub CLI ha problemi su questo server. Esegui manualmente: <code>gh auth login --device</code><br><small>Oppure usa <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--color-gold-400);">Personal Access Token</a></small>');
-            } else if (type === 'codex') {
-              updateAuthNote(type, 'Codex CLI ha problemi su questo server. Esegui manualmente: <code>codex login --device-auth</code><br><small>Oppure usa <a href="https://platform.openai.com/api-keys" target="_blank" style="color: var(--color-gold-400);">API Key</a></small>');
             } else {
               updateAuthNote(type, 'Popup bloccato. Apri manualmente: <a href="' + authUrl + '" target="_blank" style="color: var(--color-gold-400);">' + authUrl + '</a>');
             }
           } else {
             if (type === 'github') {
               updateAuthNote(type, "GitHub CLI non disponibile su questo server. Usa <a href='https://github.com/settings/tokens' target='_blank' style='color: var(--color-gold-400);'>Personal Access Token</a> o esegui <code>gh auth login --device</code> localmente.");
-            } else if (type === 'codex') {
-              updateAuthNote(type, "Codex CLI non disponibile su questo server. Usa <a href='https://platform.openai.com/api-keys' target='_blank' style='color: var(--color-gold-400);'>API Key</a> o esegui <code>codex login --device-auth</code> localmente.");
             } else {
               updateAuthNote(type, "Link disponibile nei log della console.");
             }
@@ -1904,18 +1647,21 @@ function buildDashboardHtml({ protocol }) {
       if (storageEnvStatusEl) storageEnvStatusEl.textContent = storageEnvStatus;
 
       // Update authentication status
-      const codexAuthStatus = el("codex-auth-status");
-      const codexAuthSource = el("codex-auth-source");
+      const groqAuthStatus = el("groq-auth-status");
+      const groqModel = el("groq-model");
+      const groqAuthSource = el("groq-auth-source");
       const ghAuthStatus = el("gh-auth-status");
       const ghAuthSource = el("gh-auth-source");
 
-      if (codexAuthStatus) {
-        const codexStatus = data.codexAuth.hasApiKey ? '✅ Autenticato' : '❌ Non autenticato';
-        codexAuthStatus.textContent = codexStatus;
-        codexAuthStatus.dataset.auth = data.codexAuth.hasApiKey;
-        codexAuthStatus.dataset.source = data.codexAuth.source;
-        if (codexAuthSource) {
-          codexAuthSource.textContent = data.codexAuth.sourceLabel || 'Codex CLI';
+      if (groqAuthStatus) {
+        const groqStatus = data.groqAuth.hasApiKey ? '✅ Configurata' : '❌ Non configurata';
+        groqAuthStatus.textContent = groqStatus;
+        groqAuthStatus.dataset.auth = data.groqAuth.hasApiKey;
+        if (groqModel) {
+          groqModel.textContent = data.groqAuth.model || 'llama-3.3-70b-versatile';
+        }
+        if (groqAuthSource) {
+          groqAuthSource.textContent = data.groqAuth.sourceLabel || 'Non configurata';
         }
       }
 
@@ -1961,7 +1707,7 @@ function buildDashboardHtml({ protocol }) {
 </html>`;
 }
 
-function buildPrompt({ prompt, messages, context }) {
+function buildMessages({ prompt, messages, context }) {
   const systemParts = [];
   if (typeof prompt === 'string' && prompt.trim()) {
     systemParts.push(prompt.trim());
@@ -1973,89 +1719,71 @@ function buildPrompt({ prompt, messages, context }) {
     systemParts.push(`Memoria utente:\n${context.memory}`);
   }
 
+  const result = [];
   const systemPrompt = systemParts.join('\n\n');
-  const history = Array.isArray(messages) ? messages : [];
-  const lines = [];
   if (systemPrompt) {
-    lines.push(`System: ${systemPrompt}`);
+    result.push({ role: 'system', content: systemPrompt });
   }
 
+  const history = Array.isArray(messages) ? messages : [];
   for (const message of history) {
     if (!message || typeof message.content !== 'string') continue;
-    const role = message.role === 'assistant' ? 'Assistant' : 'User';
     if (message.role === 'system') continue;
-    lines.push(`${role}: ${message.content}`);
+    result.push({
+      role: message.role === 'assistant' ? 'assistant' : 'user',
+      content: message.content,
+    });
   }
 
-  lines.push('Assistant:');
-  return lines.join('\n');
+  return result;
 }
 
-function buildTempReplyPath() {
-  const id = crypto.randomUUID().replace(/-/g, '');
-  return path.join(os.tmpdir(), `codex-reply-${id}.txt`);
-}
+async function callGroqChat(messages) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY not configured');
+  const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+  const body = JSON.stringify({ model, messages, temperature: 0.7, max_tokens: 2048 });
 
-async function readReplyFile(filePath) {
-  const data = await fs.promises.readFile(filePath, 'utf8');
-  return data.trim();
-}
-
-async function cleanupFile(filePath) {
-  try {
-    await fs.promises.unlink(filePath);
-  } catch {
-    // Ignore cleanup errors.
-  }
-}
-
-function runCodex(prompt) {
   return new Promise((resolve, reject) => {
-    const replyPath = buildTempReplyPath();
-    const args = [
-      'exec',
-      ...codexArgs,
-      '--output-last-message',
-      replyPath,
-      '--color',
-      'never',
-      '-',
-    ];
-    const child = spawnCodexProcess(args);
+    const options = {
+      hostname: 'api.groq.com',
+      path: '/openai/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Length': Buffer.byteLength(body),
+      },
+    };
 
-    let stdout = '';
-    let stderr = '';
-
-    child.stdout.on('data', (chunk) => {
-      stdout += chunk.toString();
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        if (res.statusCode === 429) {
+          reject(new Error('Groq rate limit exceeded'));
+          return;
+        }
+        if (res.statusCode !== 200) {
+          reject(new Error(`Groq API error ${res.statusCode}: ${data}`));
+          return;
+        }
+        try {
+          const parsed = JSON.parse(data);
+          const reply = parsed.choices?.[0]?.message?.content ?? '';
+          resolve(reply.trim());
+        } catch (e) {
+          reject(new Error(`Failed to parse Groq response: ${e.message}`));
+        }
+      });
     });
 
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
+    req.on('error', reject);
+    req.setTimeout(60000, () => {
+      req.destroy(new Error('Groq API request timeout'));
     });
-
-    child.on('error', (error) => {
-      reject(error);
-    });
-
-    child.on('close', async (code) => {
-      if (code !== 0) {
-        await cleanupFile(replyPath);
-        reject(new Error(stderr || `Codex exited with code ${code}`));
-        return;
-      }
-      try {
-        const reply = await readReplyFile(replyPath);
-        await cleanupFile(replyPath);
-        resolve(reply);
-      } catch (error) {
-        await cleanupFile(replyPath);
-        reject(error);
-      }
-    });
-
-    child.stdin.write(prompt);
-    child.stdin.end();
+    req.write(body);
+    req.end();
   });
 }
 
@@ -2384,7 +2112,6 @@ function validateBinaryPath(binaryPath, binaryName) {
   // Use allowlist approach for maximum security
   const allowedBinaries = {
     'gh': ['gh', 'gh.exe', 'gh.cmd'],
-    'codex': ['codex', 'codex.exe', 'codex.cmd']
   };
   
   const baseName = sanitized.split(/[\\\/]/).pop().toLowerCase();
@@ -2428,25 +2155,6 @@ function preferWindowsExecutable(binaryPath) {
   }
 
   return trimmed;
-}
-
-function spawnCodexProcess(args) {
-  const env = buildCodexEnv();
-  const safeCodexBin = preferWindowsExecutable(validateBinaryPath(codexBin, 'codex'));
-  
-  if (process.platform === 'win32') {
-    const lower = safeCodexBin.toLowerCase();
-    if (lower.endsWith('.cmd') || lower.endsWith('.bat')) {
-      return spawn('cmd.exe', ['/c', safeCodexBin, ...args], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        env: env ?? process.env,
-      });
-    }
-  }
-  return spawn(safeCodexBin, args, {
-    stdio: ['pipe', 'pipe', 'pipe'],
-    env: env ?? process.env,
-  });
 }
 
 function spawnGhProcess(args) {
@@ -2545,20 +2253,18 @@ const requestHandler = (req, res) => {
       sendJson(res, 403, { error: 'Admin endpoints disabled' });
       return;
     }
-    const codexAuth = checkCodexAuth();
+    const groqAuth = checkGroqAuth();
     const ghAuth = checkGhAuth();
     logLine(
       `${requestId} GET /auth\n  client=${clientIp}\n  status=${formatStatus(200)}\n  duration=${Date.now() - start}ms`
     );
     sendJson(res, 200, {
-      codex: {
-        hasApiKey: codexAuth.hasApiKey,
-        apiKeyLength: codexAuth.apiKeyLength,
-        bin: codexAuth.codexBin,
-        source: codexAuth.source,
-        sourceLabel: codexAuth.sourceLabel,
-        status: codexAuth.status,
-        loginCommand: 'codex login --device-auth'
+      groq: {
+        hasApiKey: groqAuth.hasApiKey,
+        model: groqAuth.model,
+        source: groqAuth.source,
+        sourceLabel: groqAuth.sourceLabel,
+        status: groqAuth.status,
       },
       github: {
         hasToken: ghAuth.hasToken,
@@ -2572,7 +2278,6 @@ const requestHandler = (req, res) => {
       storage: {
         enabled: authStorage.enabled,
         authDir: authStorage.authDir,
-        codexDir: authStorage.codexDir,
         githubDir: authStorage.githubDir,
         source: authStorage.source,
         envFile: authStorage.envFile,
@@ -2618,13 +2323,12 @@ const requestHandler = (req, res) => {
       }
 
       const type = payload?.type;
-      if (type !== 'codex' && type !== 'github') {
+      if (type !== 'github') {
         sendJson(res, 400, { error: 'Invalid auth type' });
         return;
       }
 
-      const result =
-        type === 'codex' ? await startCodexLogin() : await startGhLogin();
+      const result = await startGhLogin();
       if (!result.started) {
         const status = result.reason?.includes('already running') ? 409 : 500;
         sendJson(res, status, { error: result.reason || 'Login failed' });
@@ -2823,13 +2527,13 @@ const requestHandler = (req, res) => {
           .slice(0, 10);
         logLine(`${requestId} messages ${JSON.stringify(preview)}`);
       }
-      const prompt = buildPrompt(payload ?? {});
-      logLine(`${requestId} codex exec start`);
-      const codexStart = Date.now();
-      const reply = await runCodex(prompt);
-      const codexElapsed = Date.now() - codexStart;
+      const chatMessages = buildMessages(payload ?? {});
+      logLine(`${requestId} groq api start`);
+      const groqStart = Date.now();
+      const reply = await callGroqChat(chatMessages);
+      const groqElapsed = Date.now() - groqStart;
       logLine(
-        `${requestId} codex exec done ${codexElapsed}ms reply=${reply.length}`
+        `${requestId} groq api done ${groqElapsed}ms reply=${reply.length}`
       );
       sendJson(res, 200, { reply });
       logLine(
@@ -2840,7 +2544,7 @@ const requestHandler = (req, res) => {
       logError(
         `${requestId} POST ${route}\n  status=${formatStatus(500)}\n  duration=${Date.now() - start}ms\n  error=${error.message}`
       );
-      sendJson(res, 500, { error: error.message || 'Codex failed' });
+      sendJson(res, 500, { error: error.message || 'AI request failed' });
     }
   });
 };
@@ -3092,7 +2796,6 @@ function shutdownServer(signal) {
   keepAliveTimer = stopTimer(keepAliveTimer);
   watchdogTimer = stopTimer(watchdogTimer);
 
-  codexLoginProcess = terminateChild(codexLoginProcess);
   ghLoginProcess = terminateChild(ghLoginProcess);
 
   if (server.listening) {
@@ -3128,7 +2831,8 @@ server.listen(port, host, () => {
     if (logMessages) {
       logLine(`Message length logging enabled`);
     }
-    logLine(`Codex binary: ${codexBin}`);
+    logLine(`Groq model: ${process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'}`);
+    logLine(`Groq API key: ${process.env.GROQ_API_KEY ? 'configured' : 'MISSING - set GROQ_API_KEY'}`);
   }
   
   // Avvia il keep-alive integrato

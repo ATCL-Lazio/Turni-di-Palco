@@ -17,7 +17,7 @@ Nel `README.md` è presente anche un link pubblico alla versione deployata (con 
 Il file `render.yaml` (esportato con timestamp **2026-01-16T13:19:18Z**) definisce una topologia a **due servizi web** su Render, entrambi runtime Node e collocati in region `frankfurt`:
 
 - **Turni-di-Palco**: servizio principale, build `npm ci && npm run build:mobile && npm run build:pwa`, start tramite uno script di preview/serve della PWA che ascolta su `0.0.0.0` e porta `$PORT`.
-- **Maxwell-AI-Support**: servizio dedicato (Maxwell), build `npm ci` + install global di `@openai/codex` e `gh`, start `npm run ai:support`.
+- **Maxwell-AI-Support**: servizio dedicato (Maxwell), build `npm ci` + install global di `gh`, start `npm run ai:support`.
 
 Entrambi i servizi leggono variabili `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (in Maxwell sono interpolate da variabili “sorelle”, mentre nel servizio Turni sono dichiarate con `sync: false`). Il significato operativo di `sync: false` (“Render ignora variabili con sync: false quando si aggiorna un Blueprint; e non le include nei preview environments”) è esplicitato nella spec del blueprint Render.
 
@@ -27,13 +27,12 @@ Maxwell, sempre in `render.yaml`, definisce `AI_SUPPORT_ALLOWED_ORIGINS` include
 
 **Maxwell** nel repository è implementato principalmente nello script `tools/ai-support-server.js`, che è un server Node “puro” (usa `node:http` / `node:https`), non un framework tipo Express. Il servizio nasce per fare da **control-plane** di supporto, con due funzioni centrali:
 
-- una **chat API** (`/api/ai/chat`) che costruisce un prompt testuale a partire da `messages` + contesto e invoca **Codex CLI** come motore di risposta;
+- una **chat API** (`/api/ai/chat`) che costruisce un prompt testuale a partire da `messages` + contesto e invoca la **Groq REST API** (modello `llama-3.3-70b-versatile`) come motore di risposta;
 - una **issue API** (`/api/ai/issue`) che crea o aggiorna issue su GitHub usando **GitHub CLI** (`gh`) come prima scelta e una **fallback** su GitHub REST API quando la CLI fallisce.
 
 Dal punto di vista “di prodotto”, Maxwell è una specie di “stanza regia”: si mette tra UI (probabilmente `/mobile`) e automazioni/strumenti (Codex, GitHub), e fornisce anche un **dashboard HTML** (route `/`) per monitorare stato, uptime, memoria, autenticazione e health.
 
-Maxwell incentra la parte LLM su **Codex CLI**: dalla documentazione ufficiale, Codex CLI è un “coding agent” eseguibile da terminale, installabile via `npm i -g @openai/codex`, con modalità interactive e scripting (`exec`).  
-L’autenticazione di Codex CLI su ambienti headless supporta un flusso device-code con comando `codex login --device-auth` e caching dei token in `~/.codex/auth.json`.
+Maxwell usa la **Groq REST API** (modello `llama-3.3-70b-versatile`) per generare risposte. La chiamata avviene via HTTPS diretto (nessuna dipendenza esterna) a `api.groq.com/openai/v1/chat/completions`. L’autenticazione è gestita tramite un singolo env var `GROQ_API_KEY`.
 
 ## Surface API e flussi operativi di Maxwell
 
@@ -45,17 +44,15 @@ Dallo script `tools/ai-support-server.js`, Maxwell espone (almeno) queste route:
 - `GET /health` → JSON `{ status: 'ok', service: 'ai-support', uptime: ... }`.
 - `POST /api/ai/chat` → JSON con `reply` generata da Codex CLI.
 - `POST /api/ai/issue` → crea/commenta issue e risponde con metadati (URL, flag `existing`, azione eseguita).
-- `GET /auth` e `POST /auth/command` → endpoint admin (protetti da flag) per controllare/avviare login Codex e GitHub.
+- `GET /auth` e `POST /auth/command` → endpoint admin (protetti da flag) per controllare/avviare login GitHub.
 
 La porta è determinata in modo “cloud-friendly”: prima `process.env.PORT`, poi `AI_SUPPORT_PORT` o `VITE_AI_SUPPORT_PORT`, fallback su porta locale predefinita. L’host è risolto in modo diverso in locale vs Render: su Render viene forzato `0.0.0.0` per consentire il binding corretto della porta del servizio.
 
-### Flusso chat: costruzione prompt e invocazione Codex CLI
+### Flusso chat: costruzione prompt e chiamata Groq API
 
-Il flusso `/api/ai/chat` è deliberatamente semplice (e robusto da deployare): Maxwell prende `prompt`, `messages[]` e `context` (supporta almeno `userName` e `memory`), compone un testo lineare Multi-turn con prefissi `System:`, `User:` e `Assistant:` e poi invoca `codex exec ... -` passando il prompt su `stdin`.
+Il flusso `/api/ai/chat` è deliberatamente semplice (e robusto da deployare): Maxwell prende `prompt`, `messages[]` e `context` (supporta almeno `userName` e `memory`), costruisce un array di messaggi `[{role, content}]` (system prompt + history della conversazione) e chiama la Groq API con una POST HTTPS a `api.groq.com/openai/v1/chat/completions`.
 
-L’invocazione di Codex CLI avviene in modalità “scripting” con `exec`, e Maxwell usa un file temporaneo di output per recuperare “l’ultimo messaggio” tramite flag `--output-last-message <path>`. Questo è coerente con l’idea di “automatizzare workflow ripetibili” via `exec` (Codex CLI come tool invocabile da processi esterni).
-
-Per l’autenticazione, Maxwell include una parte piuttosto articolata: può “idratare” un set token/credenziali in un file `auth.json` nello stile `~/.codex/auth.json` e/o avviare un device-flow (`codex login --device-auth`) quando gira in ambienti headless. La doc ufficiale spiega esplicitamente sia la posizione `~/.codex/auth.json` sia la modalità device-code per contesti remoti/headless.
+Niente file temporanei, niente processi figli, niente risoluzione di binari: la comunicazione avviene interamente via rete con autenticazione tramite header `Authorization: Bearer $GROQ_API_KEY`. La risposta viene estratta dal JSON restituito e inoltrata al client.
 
 ### Flusso issue: GitHub CLI come preferenza, REST API come fallback
 
@@ -89,16 +86,11 @@ Maxwell usa diverse variabili per definire sicurezza e comportamento:
 
 Dal punto di vista della “politica CORS”, Maxwell applica CORS alle rotte in base ai `allowedOrigins`, ma fa un’eccezione pragmatica: se l’origin non è consentito, `GET /health` viene comunque reso leggibile da probe esterni impostando `Access-Control-Allow-Origin: *`. Questo è molto orientato alla vita reale (monitoring) e coerente con servizi su hosting managed.
 
-### Strategia credenziali: file JSON ignorato + directory auth
+### Strategia credenziali
 
-La repo evidenzia (anche indirettamente) la presenza di credenziali locali:
+**Groq API**: l’autenticazione avviene tramite un singolo env var `GROQ_API_KEY`, impostato come variabile d’ambiente nel servizio Render (con `sync: false`). Non sono necessari file di credenziali locali, device-flow login, o gestione di token persistenti per la parte LLM.
 
-- `.gitignore` ignora esplicitamente `maxwell-ai-credentials.json`, quindi il repository si aspetta un file credenziali locale/non versionato per Maxwell.
-- `tools/ai-support-server.js` cerca credenziali in diversi path possibili nel repo root (`maxwell-ai-credentials.json`, varianti con `@`), oppure in directory tipiche di secret file mounts quando rileva un ambiente Render (include `/etc/secrets`, `/run/secrets`, ecc., e anche env come `RENDER_SECRET_FILES_DIR` se presenti).
-- Maxwell può costruire directory “runtime” dove tenere configurazioni CLI isolate (`codex` e `github`), e può anche usare un `AI_SUPPORT_AUTH_DIR` persistente e un env file (`AI_SUPPORT_AUTH_ENV_FILE`) per ricordarsi dove sono state salvate.
-
-Questa strategia si allinea bene con la doc ufficiale di Codex CLI: Codex conserva login localmente in `~/.codex/auth.json` (plaintext file) o cred store; e su headless consiglia device-code auth.  
-Sul lato GitHub CLI, la doc chiarisce che `gh` memorizza token in credential store o, in mancanza, può cadere su file plaintext; e che l’ambiente (`GH_TOKEN`) è una modalità consigliata per headless/automation.
+**GitHub CLI**: la doc chiarisce che `gh` memorizza token in credential store o, in mancanza, può cadere su file plaintext; e che l’ambiente (`GH_TOKEN`) è una modalità consigliata per headless/automation. Maxwell può anche usare un `AI_SUPPORT_AUTH_DIR` persistente e un env file (`AI_SUPPORT_AUTH_ENV_FILE`) per la configurazione GitHub.
 
 ## Osservazioni di copertura e cosa non è stato possibile ricostruire qui
 
