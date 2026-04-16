@@ -1,4 +1,4 @@
-const CACHE_VERSION = "pwa-v1";
+const CACHE_VERSION = "pwa-v2";
 const PRECACHE_URLS = ["/"];
 
 self.addEventListener("install", (event) => {
@@ -23,6 +23,18 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
+  // Navigation requests (HTML pages): network-first so Vite deploys with new
+  // chunk hashes are never blocked by a stale cached HTML entry.
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(() =>
+        caches.match(event.request).then((cached) => cached || caches.match("/"))
+      )
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request))
   );
