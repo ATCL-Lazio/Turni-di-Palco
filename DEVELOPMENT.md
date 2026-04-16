@@ -7,7 +7,6 @@ description: Guida tecnica e architettura del progetto Turni di Palco
 
 # Turni di Palco — Documentazione tecnica
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/82f90be3-aaed-4dcc-8a21-8ee00395d6eb/deploy-status)](https://app.netlify.com/projects/turni-di-palco/deploys)
 [![Cleanup Old Events](https://github.com/Heartran/Turni-di-Palco/actions/workflows/cleanup-events.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/cleanup-events.yml)
 [![CI](https://github.com/Heartran/Turni-di-Palco/actions/workflows/ci.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/ci.yml)
 [![Sync Deploy Branches](https://github.com/Heartran/Turni-di-Palco/actions/workflows/sync-deploy-branches.yml/badge.svg)](https://github.com/Heartran/Turni-di-Palco/actions/workflows/sync-deploy-branches.yml)
@@ -32,9 +31,7 @@ description: Guida tecnica e architettura del progetto Turni di Palco
 | Piattaforma | Stato | URL | QR |
 |-------------|-------|-----|-----|
 | Render | [![Render](https://turni-di-palco-badges.onrender.com/website?url=https%3A%2F%2Fturni-di-palco-fq85.onrender.com&label=stato&logo=render&logoColor=white&up_message=online&down_message=offline&up_color=brightgreen&down_color=red)](https://turni-di-palco-fq85.onrender.com) | [turni-di-palco-fq85.onrender.com](https://turni-di-palco-fq85.onrender.com) | ![QR Render](https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https%3A%2F%2Fturni-di-palco-fq85.onrender.com) |
-| Railway | [![Railway](https://turni-di-palco-badges.onrender.com/website?url=https%3A%2F%2Fturni-di-palco-production.up.railway.app&label=stato&logo=railway&logoColor=white&up_message=online&down_message=offline&up_color=brightgreen&down_color=red)](https://turni-di-palco-production.up.railway.app) | [turni-di-palco-production.up.railway.app](https://turni-di-palco-production.up.railway.app) | ![QR Railway](https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https%3A%2F%2Fturni-di-palco-production.up.railway.app) |
 | Vercel | [![Vercel](https://turni-di-palco-badges.onrender.com/website?url=https%3A%2F%2Fturni-di-palco.vercel.app&label=stato&logo=vercel&logoColor=white&up_message=online&down_message=offline&up_color=brightgreen&down_color=red)](https://turni-di-palco.vercel.app) | [turni-di-palco.vercel.app](https://turni-di-palco.vercel.app) | ![QR Vercel](https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https%3A%2F%2Fturni-di-palco.vercel.app) |
-| Netlify | [![Netlify](https://turni-di-palco-badges.onrender.com/website?url=https%3A%2F%2Fturni-di-palco.netlify.app&label=stato&logo=netlify&logoColor=white&up_message=online&down_message=offline&up_color=brightgreen&down_color=red)](https://turni-di-palco.netlify.app) | [turni-di-palco.netlify.app](https://turni-di-palco.netlify.app) | ![QR Netlify](https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https%3A%2F%2Fturni-di-palco.netlify.app) |
 
 ---
 

@@ -66,7 +66,7 @@ function isAllowedBaseUrl(raw: string): boolean {
   try {
     const url = new URL(raw);
     if (url.protocol !== 'https:') return false;
-    return ALLOWED_HOSTS.some((h) => url.hostname === h || url.hostname.endsWith('.netlify.app'));
+    return ALLOWED_HOSTS.some((h) => url.hostname === h);
   } catch {
     return false;
   }

@@ -126,8 +126,6 @@ export function renderDashboard(root: HTMLElement): void {
     linksContainer.innerHTML = [
       linkCard("Supabase", "https://supabase.com/dashboard", "Database, auth, edge functions"),
       linkCard("GitHub", "https://github.com/ATCL-Lazio/Turni-di-Palco", "Repository sorgente"),
-      linkCard("Netlify", "https://app.netlify.com", "Deploy app mobile"),
-      linkCard("Railway", "https://railway.app", "Deploy servizi backend"),
       linkCard("Render", "https://dashboard.render.com", "Deploy server control-plane"),
     ].join("");
   }
