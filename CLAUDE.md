@@ -87,4 +87,4 @@ Template developed by [Heartran](https://github.com/heartran)
 
 Qualora sia necessario entrare all'interno del sito web i dati di accesso sono:
 - Email: `noreply@anthropic.com`
-- Password: `Codex`
+- Password: `Claude`
