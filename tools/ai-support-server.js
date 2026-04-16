@@ -427,9 +427,29 @@ function resolveGithubToken() {
 function resolveGitHubAppCredentials() {
   const appId = stripEnvValue(process.env.GITHUB_APP_ID);
   const installationId = stripEnvValue(process.env.GITHUB_APP_INSTALLATION_ID);
+  if (!appId || !installationId) return null;
+
+  // Priorità 1: file PEM (Render Secret Files, Railway volume, path esplicito)
+  const keyFilePath =
+    stripEnvValue(process.env.GITHUB_APP_PRIVATE_KEY_FILE) ||
+    (() => {
+      // Render monta i secret file in /etc/secrets/
+      const candidates = [
+        '/etc/secrets/maxwell-private-key.pem',
+        '/run/secrets/maxwell-private-key.pem',
+        path.join(repoRoot, 'maxwell-private-key.pem'),
+      ];
+      return candidates.find((p) => fs.existsSync(p)) ?? null;
+    })();
+
+  if (keyFilePath && fs.existsSync(keyFilePath)) {
+    const privateKey = fs.readFileSync(keyFilePath, 'utf8');
+    return { appId, installationId, privateKey };
+  }
+
+  // Priorità 2: env var inline (con supporto \n escaped)
   const privateKeyRaw = process.env.GITHUB_APP_PRIVATE_KEY;
-  if (!appId || !installationId || !privateKeyRaw) return null;
-  // Le env var spesso serializzano i newline come \n letterali
+  if (!privateKeyRaw) return null;
   const privateKey = privateKeyRaw.replace(/\\n/g, '\n');
   return { appId, installationId, privateKey };
 }
