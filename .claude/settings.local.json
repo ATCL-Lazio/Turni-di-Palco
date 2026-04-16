@@ -15,7 +15,9 @@
       "mcp__plugin_claude-mem_mcp-search__smart_outline",
       "mcp__claude_ai_Render__list_services",
       "mcp__claude_ai_Render__list_workspaces",
-      "mcp__claude_ai_Render__get_selected_workspace"
+      "mcp__claude_ai_Render__get_selected_workspace",
+      "Bash(rm -f .git/HEAD.lock)",
+      "Bash(git checkout *)"
     ]
   },
   "enableAllProjectMcpServers": true,
