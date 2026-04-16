@@ -18,7 +18,7 @@ async function resolveFunctionErrorMessage(error: unknown, fallback: string): Pr
       status?: number;
       json?: () => Promise<unknown>;
       text?: () => Promise<string>;
-      clone?: () => unknown;
+      clone?: () => { text?: () => Promise<string> };
     };
   };
 
