@@ -123,10 +123,11 @@ serve(async (req) => {
       }
     )
     
-  } catch (error: any) {
-    console.error('❌ Errore durante la pulizia:', error.message)
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('❌ Errore durante la pulizia:', msg)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: msg }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 

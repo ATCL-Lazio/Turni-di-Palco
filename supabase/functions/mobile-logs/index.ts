@@ -143,7 +143,7 @@ serve(async (req: Request) => {
       ? body.clientUserId.trim().slice(0, 200)
       : null;
 
-    const rawLogs = Array.isArray(body.logs) ? body.logs : [];
+    const rawLogs = Array.isArray(body.logs) ? body.logs.slice(0, 100) : [];
     const normalizedLogs = rawLogs
       .map((entry, index) => normalizeLogEntry(entry, index))
       .filter((entry): entry is NormalizedLogEntry => !!entry);
