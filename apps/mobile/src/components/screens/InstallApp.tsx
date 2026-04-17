@@ -66,12 +66,12 @@ export function InstallApp({ onContinue, onDismiss }: InstallAppProps) {
 
       <section
         aria-labelledby="install-steps-heading"
-        className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 space-y-2"
+        className="bg-[--color-bg-surface] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 space-y-2"
       >
         <p id="install-steps-heading" className="text-white font-semibold">
           Installazione ({platform === 'ios' ? 'iOS' : platform === 'android' ? 'Android' : 'Desktop'})
         </p>
-        <ol className="list-decimal pl-5 space-y-1 text-[#b8b2b3]" aria-describedby="install-steps-heading">
+        <ol className="list-decimal pl-5 space-y-1 text-[--color-text-secondary]" aria-describedby="install-steps-heading">
           {steps.map((step) => (
             <li key={step}>{step}</li>
           ))}
@@ -79,7 +79,7 @@ export function InstallApp({ onContinue, onDismiss }: InstallAppProps) {
       </section>
 
       {platform === 'desktop' ? (
-        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 flex flex-col items-center gap-3">
+        <div className="bg-[--color-bg-surface] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 flex flex-col items-center gap-3">
           <p className="text-white font-semibold">QR</p>
           <img
             src={qrSrc}
@@ -91,7 +91,7 @@ export function InstallApp({ onContinue, onDismiss }: InstallAppProps) {
       ) : null}
 
       {standalone ? (
-        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4">
+        <div className="bg-[--color-bg-surface] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4">
           <p className="text-white font-semibold">Gia installata</p>
         </div>
       ) : null}
@@ -101,7 +101,7 @@ export function InstallApp({ onContinue, onDismiss }: InstallAppProps) {
           type="button"
           onClick={onContinue}
           aria-label="Apri Turni di Palco senza installare"
-          className="w-full bg-gradient-to-b from-[#8c1c38] to-[#a82847] rounded-[16.4px] h-[54px] flex items-center justify-center text-white font-semibold active:scale-[0.99] transition-transform"
+          className="w-full bg-gradient-to-b from-[--color-burgundy-700] to-[--color-burgundy-600] rounded-[16.4px] h-[54px] flex items-center justify-center text-white font-semibold active:scale-[0.99] transition-transform"
         >
           Apri l'app
         </button>
@@ -109,7 +109,7 @@ export function InstallApp({ onContinue, onDismiss }: InstallAppProps) {
           type="button"
           onClick={handleDismiss}
           aria-label="Rimanda l'installazione dell'app"
-          className="w-full h-[48px] rounded-[16.4px] border border-[#2d2728] text-[#f4bf4f] font-semibold"
+          className="w-full h-[48px] rounded-[16.4px] border border-[--color-bg-surface-hover] text-[--color-gold-400] font-semibold"
         >
           Non ora
         </button>
