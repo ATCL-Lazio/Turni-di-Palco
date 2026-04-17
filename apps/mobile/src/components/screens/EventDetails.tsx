@@ -52,7 +52,7 @@ export function EventDetails({
   const planningStatusLabel = planning ? getPlanningStatusLabel(planning.status) : 'Da pianificare';
   const planningStatusClassName = planning
     ? getPlanningStatusClassName(planning.status)
-    : 'border-white/10 bg-white/5 text-[#b8b2b3]';
+    : 'border-white/10 bg-white/5 text-[--color-text-secondary]';
 
   if (!event) {
     return (
@@ -60,7 +60,7 @@ export function EventDetails({
         <div className="app-content px-6 space-y-6 pt-6">
           <div>
             <h2 className="text-white mb-2">Dettagli evento</h2>
-            <p className="text-[#b8b2b3]">Nessun evento disponibile.</p>
+            <p className="text-[--color-text-secondary]">Nessun evento disponibile.</p>
           </div>
           <Button variant="ghost" size="lg" fullWidth onClick={onBack}>
             Torna indietro
@@ -126,7 +126,7 @@ export function EventDetails({
       <div className="app-content px-6 space-y-6 pt-6">
         <div>
           <h2 className="text-white mb-2">Dettagli evento</h2>
-          <p className="text-[#b8b2b3]">Informazioni sull'evento selezionato</p>
+          <p className="text-[--color-text-secondary]">Informazioni sull'evento selezionato</p>
         </div>
 
         <Card>
@@ -135,47 +135,47 @@ export function EventDetails({
               <h3 id="event-info-heading" className="text-white text-lg leading-tight">{event.name}</h3>
               {event.genre ? <Badge variant="default" size="sm">{event.genre}</Badge> : null}
             </div>
-            <div className="flex items-center gap-3 text-[#b8b2b3]">
-              <MapPin aria-hidden="true" size={18} className="text-[#f4bf4f]" />
+            <div className="flex items-center gap-3 text-[--color-text-secondary]">
+              <MapPin aria-hidden="true" size={18} className="text-[--color-gold-400]" />
               <span aria-label={`Teatro: ${event.theatre}`}>{event.theatre}</span>
             </div>
-            <div className="flex items-center gap-3 text-[#b8b2b3]">
-              <Calendar aria-hidden="true" size={18} className="text-[#f4bf4f]" />
+            <div className="flex items-center gap-3 text-[--color-text-secondary]">
+              <Calendar aria-hidden="true" size={18} className="text-[--color-gold-400]" />
               <span aria-label={`Data: ${event.date}`}>{event.date}</span>
             </div>
-            <div className="flex items-center gap-3 text-[#b8b2b3]">
-              <Clock aria-hidden="true" size={18} className="text-[#f4bf4f]" />
+            <div className="flex items-center gap-3 text-[--color-text-secondary]">
+              <Clock aria-hidden="true" size={18} className="text-[--color-gold-400]" />
               <span aria-label={`Orario: ${event.time}`}>{event.time}</span>
             </div>
           </section>
         </Card>
 
-        <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+        <Card className="bg-gradient-to-br from-[--color-bg-surface] to-[--color-bg-surface-elevated]">
           <section aria-labelledby="event-base-rewards-heading">
-            <h4 id="event-base-rewards-heading" className="text-[#f4bf4f] mb-4">Ricompense base</h4>
+            <h4 id="event-base-rewards-heading" className="text-[--color-gold-400] mb-4">Ricompense base</h4>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div aria-label={`Esperienza: ${event.baseRewards.xp} XP`}>
                 <p className="text-white text-lg">+{event.baseRewards.xp}</p>
-                <p className="text-xs text-[#b8b2b3]">XP</p>
+                <p className="text-xs text-[--color-text-secondary]">XP</p>
               </div>
               <div aria-label={`Reputazione: ${event.baseRewards.reputation}`}>
                 <p className="text-white text-lg">+{event.baseRewards.reputation}</p>
-                <p className="text-xs text-[#b8b2b3]">Reputazione</p>
+                <p className="text-xs text-[--color-text-secondary]">Reputazione</p>
               </div>
               <div aria-label={`Cachet: ${event.baseRewards.cachet}`}>
                 <p className="text-white text-lg">+{event.baseRewards.cachet}</p>
-                <p className="text-xs text-[#b8b2b3]">Cachet</p>
+                <p className="text-xs text-[--color-text-secondary]">Cachet</p>
               </div>
             </div>
           </section>
         </Card>
 
-        <Card className="border border-[#f4bf4f]/10 bg-[#151112]">
+        <Card className="border border-[--color-gold-400]/10 bg-[--color-bg-primary]">
           <section aria-labelledby="event-planning-heading">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h4 id="event-planning-heading" className="text-white">Pianificazione partecipazione</h4>
-              <p className="text-sm text-[#b8b2b3] mt-1">
+              <p className="text-sm text-[--color-text-secondary] mt-1">
                 Salva il ruolo che intendi coprire per questo evento e mantieni lo stato visibile nella lista.
               </p>
             </div>
@@ -188,7 +188,7 @@ export function EventDetails({
           </div>
 
           <div className="mt-5 space-y-3">
-            <label className="block text-sm text-[#b8b2b3]" htmlFor="event-role-select">
+            <label className="block text-sm text-[--color-text-secondary]" htmlFor="event-role-select">
               Ruolo previsto
             </label>
             <Select
@@ -197,7 +197,7 @@ export function EventDetails({
             >
               <SelectTrigger
                 id="event-role-select"
-                className="w-full border-[#2d2728] bg-[#241f20] text-white"
+                className="w-full border-[--color-bg-surface-hover] bg-[--color-bg-surface-elevated] text-white"
               >
                 <SelectValue placeholder="Scegli un ruolo" />
               </SelectTrigger>
@@ -209,13 +209,13 @@ export function EventDetails({
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-sm text-[#b8b2b3]">
+            <p className="text-sm text-[--color-text-secondary]">
               {planning
                 ? `Stato attuale: ${planningStatusLabel.toLowerCase()} come ${savedRoleName}.`
                 : 'Nessuna pianificazione salvata per questo evento.'}
             </p>
             {planning && planning.roleId !== selectedRoleId ? (
-              <p className="text-sm text-[#f4bf4f]">
+              <p className="text-sm text-[--color-gold-400]">
                 Modifica pronta da salvare: {selectedRoleName}.
               </p>
             ) : null}
@@ -278,9 +278,9 @@ function getPlanningStatusClassName(status: EventPlanning['status']) {
     case 'confirmed':
       return 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300';
     case 'cancelled':
-      return 'border-white/10 bg-white/5 text-[#b8b2b3]';
+      return 'border-white/10 bg-white/5 text-[--color-text-secondary]';
     default:
-      return 'border-[#f4bf4f]/40 bg-[#f4bf4f]/10 text-[#f4bf4f]';
+      return 'border-[--color-gold-400]/40 bg-[--color-gold-400]/10 text-[--color-gold-400]';
   }
 }
 

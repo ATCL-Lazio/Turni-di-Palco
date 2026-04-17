@@ -138,7 +138,7 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
 
   return (
     <div className="fixed inset-0 app-gradient z-50 flex flex-col"
-      style={{ '--qrscanner-header-bg': '#1a1617', '--qrscanner-header-hover-bg': '#241f20', '--qrscanner-accent': '#f4bf4f' } as React.CSSProperties}>
+      style={{ '--qrscanner-header-bg': 'var(--color-bg-surface)', '--qrscanner-header-hover-bg': 'var(--color-bg-surface-elevated)', '--qrscanner-accent': 'var(--color-gold-400)' } as React.CSSProperties}>
       <ScannerHeader onClose={onClose} isScanning={isScanning} />
 
       <div className="flex-1 relative overflow-hidden">
@@ -212,24 +212,24 @@ function CameraView({ videoRef, canvasRef, isStartingCamera, isHandlingScan, sca
           aria-label="Anteprima fotocamera per scansione biglietto"
         />
         <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
-        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-[#1a1617]/60 to-[#0f0d0e]/80" />
+        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-[--color-bg-surface]/60 to-[--color-bg-primary]/80" />
         <ScanningFrame />
         {isStartingCamera && <Overlay text="Avvio fotocamera..." />}
         {isHandlingScan && <Overlay text="Verifica biglietto..." />}
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0f0d0e] to-transparent p-6">
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[--color-bg-primary] to-transparent p-6">
         <div className="app-content text-center" aria-live="polite" aria-atomic="true">
           {scanError && (
             <>
               <p className="text-white mb-2">Biglietto non valido</p>
-              <p className="text-sm text-[#b8b2b3] mb-6">{scanError}</p>
+              <p className="text-sm text-[--color-text-secondary] mb-6">{scanError}</p>
             </>
           )}
           {cameraError ? (
             <>
               <p className="text-white mb-2">Impossibile avviare la fotocamera</p>
-              <p className="text-sm text-[#b8b2b3] mb-6">{cameraError}</p>
+              <p className="text-sm text-[--color-text-secondary] mb-6">{cameraError}</p>
               <div className="flex flex-col items-center gap-3">
                 <Button variant="primary" onClick={onRetryCamera} className="w-full max-w-xs">Riprova</Button>
                 <ManualSwitchButton onClick={onSwitchToManual} />
@@ -238,7 +238,7 @@ function CameraView({ videoRef, canvasRef, isStartingCamera, isHandlingScan, sca
           ) : (
             <>
               <p className="text-white mb-2">Inquadra il codice sul tuo biglietto ATCL</p>
-              <p className="text-sm text-[#b8b2b3] mb-6">Posiziona il codice al centro del riquadro</p>
+              <p className="text-sm text-[--color-text-secondary] mb-6">Posiziona il codice al centro del riquadro</p>
               <ManualSwitchButton onClick={onSwitchToManual} />
             </>
           )}
@@ -252,12 +252,12 @@ function ScanningFrame() {
   return (
     <div aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
       <div className="relative w-64 h-64">
-        <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-[#f4bf4f] rounded-tl-lg" />
-        <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-[#f4bf4f] rounded-tr-lg" />
-        <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-[#f4bf4f] rounded-bl-lg" />
-        <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-[#f4bf4f] rounded-br-lg" />
+        <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-[--color-gold-400] rounded-tl-lg" />
+        <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-[--color-gold-400] rounded-tr-lg" />
+        <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-[--color-gold-400] rounded-bl-lg" />
+        <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-[--color-gold-400] rounded-br-lg" />
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-full h-1 bg-[#f4bf4f] animate-pulse" />
+          <div className="w-full h-1 bg-[--color-gold-400] animate-pulse" />
         </div>
       </div>
     </div>
@@ -269,9 +269,9 @@ function Overlay({ text }: { text: string }) {
     <div
       role="status"
       aria-live="polite"
-      className="absolute inset-0 flex items-center justify-center bg-[#0f0d0e]/60"
+      className="absolute inset-0 flex items-center justify-center bg-[--color-bg-primary]/60"
     >
-      <p className="text-sm text-[#b8b2b3]">{text}</p>
+      <p className="text-sm text-[--color-text-secondary]">{text}</p>
     </div>
   );
 }
@@ -282,7 +282,7 @@ function ManualSwitchButton({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       aria-label="Inserisci manualmente il numero del biglietto"
-      className="inline-flex items-center justify-center gap-2 rounded-md px-2 py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+      className="inline-flex items-center justify-center gap-2 rounded-md px-2 py-[10px] text-[--color-gold-400] hover:text-[--color-gold-500] transition-colors"
     >
       <Ticket aria-hidden="true" size={16} />
       Inserisci numero biglietto
@@ -299,15 +299,15 @@ function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHan
   return (
     <div className="p-6 app-content h-full overflow-y-auto pb-20">
       <div className="mb-6 text-center">
-        <div className="w-16 h-16 bg-[#241f20] rounded-full flex items-center justify-center mx-auto mb-4">
-          <Ticket className="text-[#f4bf4f]" size={32} />
+        <div className="w-16 h-16 bg-[--color-bg-surface-elevated] rounded-full flex items-center justify-center mx-auto mb-4">
+          <Ticket className="text-[--color-gold-400]" size={32} />
         </div>
         <h3 className="text-white mb-2">Attiva il tuo Biglietto</h3>
-        <p className="text-sm text-[#b8b2b3]">Inserisci il numero di biglietto pre-registrato</p>
+        <p className="text-sm text-[--color-text-secondary]">Inserisci il numero di biglietto pre-registrato</p>
       </div>
 
       <div className="mb-6 text-center">
-        <div className="inline-block px-3 py-1 bg-[#241f20] rounded-full text-[10px] text-[#f4bf4f] font-bold uppercase tracking-wider">
+        <div className="inline-block px-3 py-1 bg-[--color-bg-surface-elevated] rounded-full text-[10px] text-[--color-gold-400] font-bold uppercase tracking-wider">
           Attivazione Biglietto
         </div>
       </div>
@@ -316,33 +316,33 @@ function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHan
         <div
           role="alert"
           aria-live="assertive"
-          className="mb-4 rounded-xl border border-[#d32f2f]/30 bg-[#d32f2f]/10 px-4 py-3 text-center"
+          className="mb-4 rounded-xl border border-[--color-error]/30 bg-[--color-error]/10 px-4 py-3 text-center"
         >
-          <p className="text-[#ff5252] text-xs">{scanError}</p>
+          <p className="text-[--color-error] text-xs">{scanError}</p>
         </div>
       )}
 
       <form onSubmit={onSubmit} className="space-y-4" aria-label="Attivazione manuale biglietto">
         <div className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="qr-manual-event" className="text-xs text-[#7f797a] ml-1 uppercase font-bold tracking-wider">Seleziona Evento</label>
+            <label htmlFor="qr-manual-event" className="text-xs text-[--color-text-tertiary] ml-1 uppercase font-bold tracking-wider">Seleziona Evento</label>
             <div className="relative">
               <select
                 id="qr-manual-event"
                 value={manualEventId}
                 onChange={e => onEventChange(e.target.value)}
-                className="w-full bg-[#1a1617] border border-[#2d2728] rounded-xl px-4 py-3 text-sm text-white appearance-none focus:outline-none focus:border-[#f4bf4f] transition-colors"
+                className="w-full bg-[--color-bg-surface] border border-[--color-bg-surface-hover] rounded-xl px-4 py-3 text-sm text-white appearance-none focus:outline-none focus:border-[--color-gold-400] transition-colors"
               >
                 <option value="" disabled>Scegli l'evento...</option>
                 {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name} ({ev.date})</option>)}
               </select>
-              <div aria-hidden="true" className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#f4bf4f]">
+              <div aria-hidden="true" className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[--color-gold-400]">
                 <X size={14} className="rotate-45" />
               </div>
             </div>
           </div>
           <div className="space-y-2">
-            <label htmlFor="qr-manual-ticket" className="text-xs text-[#7f797a] ml-1 uppercase font-bold tracking-wider">Numero Biglietto</label>
+            <label htmlFor="qr-manual-ticket" className="text-xs text-[--color-text-tertiary] ml-1 uppercase font-bold tracking-wider">Numero Biglietto</label>
             <Input
               id="qr-manual-ticket"
               type="text"
@@ -352,7 +352,7 @@ function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHan
               className="text-center"
               aria-describedby="qr-manual-ticket-help"
             />
-            <p id="qr-manual-ticket-help" className="text-[10px] text-[#7f797a] text-center px-2 italic">
+            <p id="qr-manual-ticket-help" className="text-[10px] text-[--color-text-tertiary] text-center px-2 italic">
               Il biglietto deve essere stato pre-registrato dalla biglietteria autorizzata
             </p>
           </div>
@@ -366,7 +366,7 @@ function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHan
             type="button"
             onClick={onSwitchToScanner}
             aria-label="Passa alla scansione con fotocamera"
-            className="w-full inline-flex items-center justify-center gap-2 rounded-md py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-md py-[10px] text-[--color-gold-400] hover:text-[--color-gold-500] transition-colors"
           >
             <Camera aria-hidden="true" size={16} />
             Usa la fotocamera

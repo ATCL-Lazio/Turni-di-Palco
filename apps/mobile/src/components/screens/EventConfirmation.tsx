@@ -94,8 +94,8 @@ export function EventConfirmation({
         />
 
         {pendingBoostRequests > 0 && (
-          <Card className="bg-[#2a1f14] border border-[#f4bf4f]/30">
-            <div className="flex items-center gap-2 text-[#f4bf4f]">
+          <Card className="bg-[--color-warning-soft-bg] border border-[--color-gold-400]/30">
+            <div className="flex items-center gap-2 text-[--color-gold-400]">
               <AlertTriangle size={16} />
               <p className="text-sm">{pendingBoostRequests} richiesta/e boost in verifica in coda offline.</p>
             </div>
@@ -133,20 +133,20 @@ function SuccessView({ feedbackTitle, feedbackMessage, rewards }: {
       className="min-h-screen flex items-center justify-center p-6"
     >
       <div className="app-content w-full text-center animate-fade-in">
-        <div aria-hidden="true" className="w-24 h-24 bg-gradient-to-br from-[#52c41a] to-[#389e0d] rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+        <div aria-hidden="true" className="w-24 h-24 bg-gradient-to-br from-[--color-success] to-[--color-success] rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
           <CheckCircle2 className="text-white" size={48} />
         </div>
         <h2 className="text-white mb-3">{feedbackTitle}</h2>
-        <p className="text-[#b8b2b3] mb-8">{feedbackMessage}</p>
-        <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20] mb-6">
-          <h4 className="text-[#f4bf4f] mb-4">Ricompense registrate</h4>
+        <p className="text-[--color-text-secondary] mb-8">{feedbackMessage}</p>
+        <Card className="bg-gradient-to-br from-[--color-bg-surface] to-[--color-bg-surface-elevated] mb-6">
+          <h4 className="text-[--color-gold-400] mb-4">Ricompense registrate</h4>
           <div className="grid grid-cols-3 gap-4">
-            <RewardCell icon={TrendingUp} value={rewards.xp} label="XP" iconBg="from-[#e6a23c] to-[#f4bf4f]" />
-            <RewardCell icon={Award} value={rewards.reputation} label="Reputazione" iconBg="from-[#a82847] to-[#6b1529]" />
+            <RewardCell icon={TrendingUp} value={rewards.xp} label="XP" iconBg="from-[--color-gold-500] to-[--color-gold-400]" />
+            <RewardCell icon={Award} value={rewards.reputation} label="Reputazione" iconBg="from-[--color-burgundy-600] to-[--color-burgundy-800]" />
             <RewardCell icon={Coins} value={rewards.cachet} label="Cachet" iconBg="" plain />
           </div>
         </Card>
-        <p className="text-sm text-[#b8b2b3]">Reindirizzamento alla home...</p>
+        <p className="text-sm text-[--color-text-secondary]">Reindirizzamento alla home...</p>
       </div>
     </div>
   );
@@ -158,12 +158,12 @@ function RewardCell({ icon: Icon, value, label, iconBg, plain }: {
   return (
     <div className="text-center">
       <div className={`w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2 ${
-        plain ? 'bg-[#241f20]' : `bg-gradient-to-br ${iconBg}`
+        plain ? 'bg-[--color-bg-surface-elevated]' : `bg-gradient-to-br ${iconBg}`
       }`}>
-        <Icon className={plain ? 'text-[#f4bf4f]' : 'text-[#0f0d0e]'} size={24} />
+        <Icon className={plain ? 'text-[--color-gold-400]' : 'text-[--color-bg-primary]'} size={24} />
       </div>
       <p className="text-2xl text-white mb-1">+{value}</p>
-      <p className="text-xs text-[#b8b2b3]">{label}</p>
+      <p className="text-xs text-[--color-text-secondary]">{label}</p>
     </div>
   );
 }
@@ -176,9 +176,9 @@ function EventInfoCard({ event }: { event: { name: string; theatre: string; date
         {event.genre && <Badge variant="default" size="sm">{event.genre}</Badge>}
       </div>
       <div className="space-y-3">
-        <div className="flex items-center gap-3 text-[#b8b2b3]"><MapPin size={18} className="text-[#f4bf4f]" /><span>{event.theatre}</span></div>
-        <div className="flex items-center gap-3 text-[#b8b2b3]"><Calendar size={18} className="text-[#f4bf4f]" /><span>{event.date}</span></div>
-        <div className="flex items-center gap-3 text-[#b8b2b3]"><Clock size={18} className="text-[#f4bf4f]" /><span>{event.time}</span></div>
+        <div className="flex items-center gap-3 text-[--color-text-secondary]"><MapPin size={18} className="text-[--color-gold-400]" /><span>{event.theatre}</span></div>
+        <div className="flex items-center gap-3 text-[--color-text-secondary]"><Calendar size={18} className="text-[--color-gold-400]" /><span>{event.date}</span></div>
+        <div className="flex items-center gap-3 text-[--color-text-secondary]"><Clock size={18} className="text-[--color-gold-400]" /><span>{event.time}</span></div>
       </div>
     </Card>
   );
@@ -186,11 +186,11 @@ function EventInfoCard({ event }: { event: { name: string; theatre: string; date
 
 function RoleCard({ role }: { role?: Role }) {
   return (
-    <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+    <Card className="bg-gradient-to-br from-[--color-bg-surface] to-[--color-bg-surface-elevated]">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h4 className="text-white mb-1">Ruolo registrato</h4>
-          <p className="text-sm text-[#b8b2b3]">{role?.focus ?? 'Selezionato in fase di registrazione'}</p>
+          <p className="text-sm text-[--color-text-secondary]">{role?.focus ?? 'Selezionato in fase di registrazione'}</p>
         </div>
         <Badge variant="outline" size="md">{role?.name ?? 'Ruolo'}</Badge>
       </div>
@@ -202,12 +202,12 @@ function BoostCard({ cachet, tokenAtcl, boostRequested, allowBoost, isOffline, o
   cachet: number; tokenAtcl: number; boostRequested: boolean; allowBoost: boolean; isOffline: boolean; onToggleBoost: () => void;
 }) {
   return (
-    <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+    <Card className="bg-gradient-to-br from-[--color-bg-surface] to-[--color-bg-surface-elevated]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h4 className="text-[#f4bf4f] mb-1">Boost token ATCL</h4>
-          <p className="text-sm text-[#b8b2b3]">Costo 1 token. Effetto: +10% XP e +10% Cachet.</p>
-          <p className="text-xs text-[#b8b2b3] mt-2">Saldo economico: Cachet {cachet} - Token {tokenAtcl}</p>
+          <h4 className="text-[--color-gold-400] mb-1">Boost token ATCL</h4>
+          <p className="text-sm text-[--color-text-secondary]">Costo 1 token. Effetto: +10% XP e +10% Cachet.</p>
+          <p className="text-xs text-[--color-text-secondary] mt-2">Saldo economico: Cachet {cachet} - Token {tokenAtcl}</p>
         </div>
         <button
           type="button"
@@ -216,13 +216,13 @@ function BoostCard({ cachet, tokenAtcl, boostRequested, allowBoost, isOffline, o
           aria-pressed={boostRequested}
           aria-label={boostRequested ? 'Disattiva boost token ATCL' : 'Attiva boost token ATCL'}
           className={`rounded-full px-4 py-2 text-sm transition-colors ${
-            boostRequested ? 'bg-[#f4bf4f] text-[#0f0d0e]' : 'bg-[#241f20] text-[#b8b2b3]'
+            boostRequested ? 'bg-[--color-gold-400] text-[--color-bg-primary]' : 'bg-[--color-bg-surface-elevated] text-[--color-text-secondary]'
           }`}
         >
           {boostRequested ? 'Boost ON' : 'Boost OFF'}
         </button>
       </div>
-      <div className="mt-3 rounded-lg bg-[#241f20] px-3 py-2 text-xs text-[#b8b2b3]">
+      <div className="mt-3 rounded-lg bg-[--color-bg-surface-elevated] px-3 py-2 text-xs text-[--color-text-secondary]">
         {!allowBoost ? 'Boost temporaneamente disattivato da configurazione.'
           : isOffline ? 'Offline: richiesta boost in coda, verifica solo online.'
           : boostRequested ? 'Online: la verifica token avviene lato server al momento della registrazione.'
@@ -237,27 +237,27 @@ function RewardsPreviewCard({ resolvedRewards, boostedRewards, boostRequested, a
 }) {
   const showBoosted = boostRequested && allowBoost;
   return (
-    <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
-      <h4 className="text-[#f4bf4f] mb-4">Ricompense previste</h4>
+    <Card className="bg-gradient-to-br from-[--color-bg-surface] to-[--color-bg-surface-elevated]">
+      <h4 className="text-[--color-gold-400] mb-4">Ricompense previste</h4>
       <div className="flex items-center justify-around">
         <div className="text-center">
-          <TrendingUp className="text-[#f4bf4f] mx-auto mb-2" size={24} />
+          <TrendingUp className="text-[--color-gold-400] mx-auto mb-2" size={24} />
           <p className="text-white mb-1">+{showBoosted ? boostedRewards.xp : resolvedRewards.xp}</p>
-          <p className="text-xs text-[#b8b2b3]">XP</p>
+          <p className="text-xs text-[--color-text-secondary]">XP</p>
         </div>
         <div className="text-center">
-          <Award className="text-[#f4bf4f] mx-auto mb-2" size={24} />
+          <Award className="text-[--color-gold-400] mx-auto mb-2" size={24} />
           <p className="text-white mb-1">+{resolvedRewards.reputation}</p>
-          <p className="text-xs text-[#b8b2b3]">Reputazione</p>
+          <p className="text-xs text-[--color-text-secondary]">Reputazione</p>
         </div>
         <div className="text-center">
-          <Coins className="text-[#f4bf4f] mx-auto mb-2" size={24} />
+          <Coins className="text-[--color-gold-400] mx-auto mb-2" size={24} />
           <p className="text-white mb-1">+{showBoosted ? boostedRewards.cachet : resolvedRewards.cachet}</p>
-          <p className="text-xs text-[#b8b2b3]">Cachet</p>
+          <p className="text-xs text-[--color-text-secondary]">Cachet</p>
         </div>
       </div>
       {showBoosted && (
-        <div className="mt-3 text-xs text-[#f4bf4f] flex items-center gap-2">
+        <div className="mt-3 text-xs text-[--color-gold-400] flex items-center gap-2">
           <Zap size={14} /> Richiesta boost attiva (conferma finale solo lato server).
         </div>
       )}
