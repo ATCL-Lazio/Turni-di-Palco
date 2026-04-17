@@ -16,6 +16,13 @@ const ACTIVITY_PRIMARY_STAT: Partial<Record<string, keyof RoleStats>> = {
   equalizzazione: 'precision',
 };
 
+const DEFAULT_TIMING_SPEED = 0.045;
+const ACCESSIBLE_SPEED_MULTIPLIER = 0.6;
+const ACCESSIBLE_TOLERANCE_MULTIPLIER = 1.5;
+const TIMING_FEEDBACK_DELAY_MS = 900;
+const ACCESSIBLE_FEEDBACK_DELAY_MS = 1400;
+const MAX_TOLERANCE = 20;
+
 export type MinigameType = 'timing' | 'audio';
 
 export type MinigameRound = {
@@ -161,7 +168,17 @@ function withRandomTargets(config: MinigameConfig): MinigameConfig {
   return { ...config, rounds: config.rounds.map(r => ({ ...r, target: randomTarget() }) ) };
 }
 
-export function getMinigameConfig(activityId: string, roleId?: RoleId | null, roleStats?: RoleStats | null): MinigameConfig {
+export type ResolvedMinigameConfig = MinigameConfig & {
+  speed: number;
+  feedbackDelayMs: number;
+};
+
+export function getMinigameConfig(
+  activityId: string,
+  roleId?: RoleId | null,
+  roleStats?: RoleStats | null,
+  opts?: { accessibleMode?: boolean }
+): ResolvedMinigameConfig {
   const config = MINIGAME_BY_ACTIVITY[activityId] ?? FALLBACK_CONFIG;
 
   // Applica override narrativo/tematico specifico del ruolo
@@ -171,22 +188,40 @@ export function getMinigameConfig(activityId: string, roleId?: RoleId | null, ro
     : config;
 
   // Adatta la tolleranza alla stat primaria del ruolo (closes #471)
+  let statAdjustedBase = base;
   if (roleStats) {
     const statKey = ACTIVITY_PRIMARY_STAT[activityId];
     const statValue = statKey ? roleStats[statKey] : null;
     if (statValue != null) {
       const factor = 1 + (statValue - STAT_EFFECTS.statBaseline) / 200;
-      return withRandomTargets({
+      statAdjustedBase = {
         ...base,
         rounds: base.rounds.map(r => ({
           ...r,
           tolerance: Math.max(1, Math.round(r.tolerance * factor)),
         })),
-      });
+      };
     }
   }
 
-  return withRandomTargets(base);
+  // Accessible mode multipliers (issue #476)
+  const accessibleMode = opts?.accessibleMode ?? false;
+  const speedMultiplier = accessibleMode ? ACCESSIBLE_SPEED_MULTIPLIER : 1;
+  const toleranceMultiplier = accessibleMode ? ACCESSIBLE_TOLERANCE_MULTIPLIER : 1;
+  const feedbackDelayMs = accessibleMode ? ACCESSIBLE_FEEDBACK_DELAY_MS : TIMING_FEEDBACK_DELAY_MS;
+
+  const accessibleRounds = statAdjustedBase.rounds.map((r) => ({
+    ...r,
+    tolerance: Math.min(r.tolerance * toleranceMultiplier, MAX_TOLERANCE),
+  }));
+
+  const withTargets = withRandomTargets({ ...statAdjustedBase, rounds: accessibleRounds });
+
+  return {
+    ...withTargets,
+    speed: DEFAULT_TIMING_SPEED * speedMultiplier,
+    feedbackDelayMs,
+  };
 }
 
 export function computeRoundScore(target: number, hit: number, tolerance: number) {
