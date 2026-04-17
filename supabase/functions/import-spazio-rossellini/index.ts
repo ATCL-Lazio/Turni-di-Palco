@@ -47,7 +47,7 @@ const formatDate = (details?: SpazioEvent['start_date_details'], fallback?: stri
 };
 
 const formatTime = (details?: SpazioEvent['start_date_details'], fallback?: string) => {
-  if (details?.hour && details?.minutes != null) {
+  if (details?.hour != null && details?.minutes != null) {
     return `${String(details.hour).padStart(2, '0')}:${String(details.minutes).padStart(2, '0')}`;
   }
   if (fallback) {
