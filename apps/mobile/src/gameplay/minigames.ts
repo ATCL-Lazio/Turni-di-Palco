@@ -1,5 +1,12 @@
 import type { RoleId } from '../state/store';
 
+const DEFAULT_TIMING_SPEED = 0.045;
+const ACCESSIBLE_SPEED_MULTIPLIER = 0.6;
+const ACCESSIBLE_TOLERANCE_MULTIPLIER = 1.5;
+const TIMING_FEEDBACK_DELAY_MS = 900;
+const ACCESSIBLE_FEEDBACK_DELAY_MS = 1400;
+const MAX_TOLERANCE = 20;
+
 export type MinigameType = 'timing' | 'audio';
 
 export type MinigameRound = {
@@ -137,17 +144,36 @@ export function isMinigameAvailableForRole(activityId: string, roleId?: RoleId |
   return roleId ? config.allowedRoles.includes(roleId) : false;
 }
 
-export function getMinigameConfig(activityId: string, roleId?: RoleId | null): MinigameConfig {
-  const config = MINIGAME_BY_ACTIVITY[activityId] ?? FALLBACK_CONFIG;
-  if (!roleId) return config;
+export type ResolvedMinigameConfig = MinigameConfig & {
+  speed: number;
+  feedbackDelayMs: number;
+};
 
-  const override = config.roleOverrides?.[roleId];
-  if (!override) return config;
+export function getMinigameConfig(
+  activityId: string,
+  roleId?: RoleId | null,
+  opts?: { accessibleMode?: boolean }
+): ResolvedMinigameConfig {
+  const config = MINIGAME_BY_ACTIVITY[activityId] ?? FALLBACK_CONFIG;
+  const override = roleId ? config.roleOverrides?.[roleId] : undefined;
+
+  const accessibleMode = opts?.accessibleMode ?? false;
+  const speedMultiplier = accessibleMode ? ACCESSIBLE_SPEED_MULTIPLIER : 1;
+  const toleranceMultiplier = accessibleMode ? ACCESSIBLE_TOLERANCE_MULTIPLIER : 1;
+  const feedbackDelayMs = accessibleMode ? ACCESSIBLE_FEEDBACK_DELAY_MS : TIMING_FEEDBACK_DELAY_MS;
+
+  const baseRounds = override?.rounds ?? config.rounds;
+  const rounds = baseRounds.map((r) => ({
+    ...r,
+    tolerance: Math.min(r.tolerance * toleranceMultiplier, MAX_TOLERANCE),
+  }));
 
   return {
     ...config,
-    ...override,
-    rounds: override.rounds ?? config.rounds,
+    ...(override ?? {}),
+    rounds,
+    speed: DEFAULT_TIMING_SPEED * speedMultiplier,
+    feedbackDelayMs,
   };
 }
 
