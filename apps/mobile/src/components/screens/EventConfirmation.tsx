@@ -126,9 +126,14 @@ function SuccessView({ feedbackTitle, feedbackMessage, rewards }: {
   feedbackTitle: string; feedbackMessage: string; rewards: Rewards;
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      className="min-h-screen flex items-center justify-center p-6"
+    >
       <div className="app-content w-full text-center animate-fade-in">
-        <div className="w-24 h-24 bg-gradient-to-br from-[#52c41a] to-[#389e0d] rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+        <div aria-hidden="true" className="w-24 h-24 bg-gradient-to-br from-[#52c41a] to-[#389e0d] rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
           <CheckCircle2 className="text-white" size={48} />
         </div>
         <h2 className="text-white mb-3">{feedbackTitle}</h2>
@@ -204,10 +209,16 @@ function BoostCard({ cachet, tokenAtcl, boostRequested, allowBoost, isOffline, o
           <p className="text-sm text-[#b8b2b3]">Costo 1 token. Effetto: +10% XP e +10% Cachet.</p>
           <p className="text-xs text-[#b8b2b3] mt-2">Saldo economico: Cachet {cachet} - Token {tokenAtcl}</p>
         </div>
-        <button type="button" onClick={onToggleBoost} disabled={!allowBoost}
+        <button
+          type="button"
+          onClick={onToggleBoost}
+          disabled={!allowBoost}
+          aria-pressed={boostRequested}
+          aria-label={boostRequested ? 'Disattiva boost token ATCL' : 'Attiva boost token ATCL'}
           className={`rounded-full px-4 py-2 text-sm transition-colors ${
             boostRequested ? 'bg-[#f4bf4f] text-[#0f0d0e]' : 'bg-[#241f20] text-[#b8b2b3]'
-          }`}>
+          }`}
+        >
           {boostRequested ? 'Boost ON' : 'Boost OFF'}
         </button>
       </div>

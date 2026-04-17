@@ -33,11 +33,19 @@ export function ActivityResult({ activity, rewards, outcome, onDone }: ActivityR
     }
   }, [outcome.rating]);
 
+  const resultSummary = `Attività ${activity.title} completata. Valutazione ${outcome.rating}, punteggio ${outcome.score} su 100. Ricompense: ${rewards.xp} XP, ${rewards.reputation} reputazione, ${rewards.cachet} cachet.`;
+
   return (
     <div className="min-h-screen pb-24">
       <div className="app-content px-6 pt-6 space-y-6">
-        <div className="text-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-[#52c41a] to-[#389e0d] rounded-full flex items-center justify-center mx-auto mb-4">
+        <div
+          className="text-center"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          aria-label={resultSummary}
+        >
+          <div aria-hidden="true" className="w-20 h-20 bg-gradient-to-br from-[#52c41a] to-[#389e0d] rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="text-white" size={40} />
           </div>
           <h2 className="text-white mb-2">Attivita completata</h2>
@@ -105,7 +113,7 @@ export function ActivityResult({ activity, rewards, outcome, onDone }: ActivityR
           </div>
         </Card>
 
-        <Button variant="primary" size="lg" fullWidth onClick={onDone}>
+        <Button variant="primary" size="lg" fullWidth onClick={onDone} aria-label="Torna alla lista attività">
           Torna alle attivita
         </Button>
       </div>
