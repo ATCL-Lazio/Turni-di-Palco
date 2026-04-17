@@ -1,12 +1,12 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Timer, SlidersHorizontal, Target } from 'lucide-react';
-import { Activity, RoleId } from '../../state/store';
+import { Activity, RoleId, useGameState } from '../../state/store';
 import {
   computeOutcome,
   computeRoundScore,
   getMinigameConfig,
-  MinigameConfig,
   MinigameOutcome,
+  ResolvedMinigameConfig,
 } from '../../gameplay/minigames';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -83,14 +83,17 @@ function MinigameShell({
 }
 
 interface TimingMinigameProps {
-  config: MinigameConfig;
+  config: ResolvedMinigameConfig;
   activityTitle: string;
+  accessibleMode: boolean;
   onComplete: (outcome: MinigameOutcome) => void;
   onCancel: () => void;
 }
 
-function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingMinigameProps) {
+function TimingMinigame({ config, activityTitle, accessibleMode, onComplete, onCancel }: TimingMinigameProps) {
   const rounds = config.rounds;
+  const speed = config.speed;
+  const feedbackDelayMs = config.feedbackDelayMs;
   const [phase, setPhase] = useState<'intro' | 'playing' | 'feedback' | 'done'>('intro');
   const [roundIndex, setRoundIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -102,7 +105,6 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
   const hasStoppedRef = useRef(false);
   const attemptCountRef = useRef(0);
   const startedAtRef = useRef<number | null>(null);
-  const speed = 0.045;
 
   const round = rounds[roundIndex];
   const roundLabel = `Round ${roundIndex + 1}/${rounds.length}`;
@@ -202,7 +204,7 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
           })
         );
       }
-    }, 900);
+    }, feedbackDelayMs);
   };
 
   return (
@@ -213,6 +215,14 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
       icon={<Timer className="text-[#f4bf4f]" size={24} />}
       onCancel={onCancel}
     >
+      {accessibleMode && (
+        <span
+          className="inline-block text-xs bg-amber-900/50 text-amber-200 px-2 py-0.5 rounded-full"
+          aria-label="Modalità accessibile attiva: tempi più lunghi"
+        >
+          Modalità accessibile
+        </span>
+      )}
       <Card
         className={`bg-gradient-to-br from-[#1a1617] to-[#241f20] ${isPlaying ? 'touch-none select-none' : ''}`}
         onPointerDown={isPlaying ? handleStop : undefined}
@@ -297,7 +307,7 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
 }
 
 interface AudioMinigameProps {
-  config: MinigameConfig;
+  config: ResolvedMinigameConfig;
   activityTitle: string;
   onComplete: (outcome: MinigameOutcome) => void;
   onCancel: () => void;
@@ -471,11 +481,24 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
 }
 
 export function ActivityMinigame({ activity, roleId, onComplete, onCancel }: ActivityMinigameProps) {
-  const config = useMemo(() => getMinigameConfig(activity.id, roleId), [activity.id, roleId]);
+  const { state } = useGameState();
+  const accessibleMode = state.profile.accessibleMode ?? false;
+  const config = useMemo(
+    () => getMinigameConfig(activity.id, roleId, { accessibleMode }),
+    [activity.id, roleId, accessibleMode]
+  );
 
   if (config.type === 'audio') {
     return <AudioMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
   }
 
-  return <TimingMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
+  return (
+    <TimingMinigame
+      config={config}
+      activityTitle={activity.title}
+      accessibleMode={accessibleMode}
+      onComplete={onComplete}
+      onCancel={onCancel}
+    />
+  );
 }
