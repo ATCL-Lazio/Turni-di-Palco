@@ -23,7 +23,11 @@ async function fetchFeatureFlags(): Promise<FeatureFlag[]> {
 
 async function getUserEmail(): Promise<string> {
   if (!supabase) return "—";
-  const { data } = await supabase.auth.getUser();
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    console.warn("[dashboard] getUser failed, treating as unauthenticated:", error.message);
+    return "—";
+  }
   return data.user?.email ?? "—";
 }
 
