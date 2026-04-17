@@ -402,7 +402,7 @@ export function AppShell() {
         return <Welcome onStart={() => nav.navigate('signup')} onLogin={() => nav.navigate('login')} />;
 
       case 'login':
-        return <Login onBack={() => nav.navigate('welcome')} onLogin={handleLogin} onSignup={() => nav.navigate('signup')} onForgotPassword={() => {}} errorMessage={authError} />;
+        return <Login onBack={() => nav.navigate('welcome')} onLogin={handleLogin} onSignup={() => nav.navigate('signup')} onForgotPassword={() => nav.navigate('change-password')} errorMessage={authError} />;
 
       case 'signup':
         return <Signup onBack={() => nav.navigate('welcome')} onSignup={handleSignup} onLogin={() => nav.navigate('login')} onViewTerms={() => nav.openLegal('terms', 'signup')} onViewPrivacy={() => nav.openLegal('privacy', 'signup')} errorMessage={authError} />;
