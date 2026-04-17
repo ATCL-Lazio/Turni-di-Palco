@@ -20,7 +20,7 @@ const loadEnv = () => {
     const index = trimmed.indexOf('=');
     if (index === -1) return;
     const key = trimmed.slice(0, index).trim();
-    const value = trimmed.slice(index + 1).trim();
+    const value = trimmed.slice(index + 1).trim().replace(/^["']|["']$/g, '');
     if (!process.env[key]) {
       process.env[key] = value;
     }
