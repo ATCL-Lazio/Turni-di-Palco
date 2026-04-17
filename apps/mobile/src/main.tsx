@@ -22,4 +22,12 @@ if ("serviceWorker" in navigator && isLocalHost) {
   }
 }
 
+if ("serviceWorker" in navigator && import.meta.env.PROD && !isLocalHost) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/mobile/sw.js", { scope: "/mobile/" })
+      .catch(() => undefined);
+  });
+}
+
 createRoot(document.getElementById("root")!).render(<App />);
