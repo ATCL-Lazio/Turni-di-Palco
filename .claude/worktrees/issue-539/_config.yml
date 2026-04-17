@@ -1,0 +1,29 @@
+title: Turni di Palco
+description: Il teatro come percorso. La cultura come gioco.
+lang: it
+baseurl: /Turni-di-Palco
+
+remote_theme: pages-themes/cayman@v0.2.0
+plugins:
+  - jekyll-remote-theme
+
+logo: assets/images/pwa-192.png
+app_url: https://turni-di-palco.vercel.app
+show_downloads: false
+
+# Exclude dev/build artifacts from the Jekyll site
+exclude:
+  - apps/
+  - shared/
+  - tools/
+  - docs/
+  - node_modules/
+  - "*.lock"
+  - "*.sh"
+  - ".env*"
+  - AGENTS.md
+  - CLAUDE.md
+  - SECURITY.md
+  - supabase/
+  - render.yaml
+  - vercel.json

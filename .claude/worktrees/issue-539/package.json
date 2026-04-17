@@ -1,0 +1,55 @@
+{
+  "name": "turni-di-palco-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/mobile",
+    "apps/pwa",
+    "apps/control-plane"
+  ],
+  "scripts": {
+    "dev:control-plane": "npm --workspace apps/control-plane run dev",
+    "dev:control-plane:https": "npm run dev:control-plane",
+    "start:control-plane": "npm --workspace apps/control-plane run start",
+    "test:mobile": "npm --workspace apps/mobile run test",
+    "lint": "npm --workspace apps/mobile run lint",
+    "lint:mobile": "npm --workspace apps/mobile run lint",
+    "lint:pwa": "echo '[PLACEHOLDER] PWA lint not configured — see issue #574'",
+    "typecheck:pwa": "echo '[PLACEHOLDER] PWA typecheck not configured — see issue #574'",
+    "test:pwa": "echo '[PLACEHOLDER] PWA tests not configured — see issue #574'",
+    "typecheck": "npm --workspace apps/mobile run typecheck",
+    "prepare": "husky",
+    "format": "npm --workspace apps/mobile run format",
+    "dev:mobile": "npm --workspace apps/mobile run dev",
+    "dev:pwa": "npm --prefix apps/pwa install && npm --prefix apps/pwa run dev",
+    "sync:mobile": "node tools/sync-mobile.js",
+    "build:mobile": "npm --workspace apps/mobile run build && npm run sync:mobile",
+    "build:pwa": "npm --prefix apps/pwa install && npm --prefix apps/pwa run build",
+    "ai:codex": "node tools/ai-codex.js",
+    "ai:support": "node tools/ai-support-server.js",
+    "cleanup:events": "node tools/cleanup-old-events.js",
+    "keep-alive": "node tools/keep-alive-reciprocal.js",
+    "watchdog": "node tools/maxwell-watchdog.js"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.4",
+    "@eslint/js": "^10.0.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "lint-staged": {
+    "apps/mobile/**/*.{ts,tsx}": "eslint --fix"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.50.0",
+    "ajv": "^8.18.0",
+    "dotenv": "^16.3.1"
+  },
+  "//overrides": "Security pins driven by Dependabot advisories. minimatch ^10.2.3 and rollup ^4.59.0 added in 3633dee (Feb 27 2026). picomatch 4.0.4 pinned in 97cf1b3 (Mar 26 2026) for CVE-2026-33672. All three are still consumed by transitive deps (eslint, vite, vitest, typescript-eslint) — do not remove without re-running npm audit.",
+  "overrides": {
+    "minimatch": "^10.2.3",
+    "picomatch": "4.0.4",
+    "rollup": "^4.59.0"
+  }
+}
