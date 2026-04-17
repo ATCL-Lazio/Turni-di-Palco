@@ -178,7 +178,7 @@ export function useAuth(
             mounted = false;
             authListener?.subscription.unsubscribe();
         };
-    }, [supabase, applyUserProfileFromAuth, onLogout]);
+    }, [applyUserProfileFromAuth, onLogout]);
 
     return {
         authError,
