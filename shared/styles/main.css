@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @source "../../apps/mobile/src/**/*.{ts,tsx,js,jsx,html}";
 @source "../../apps/mobile/index.html";
 @source "../../apps/mobile/*.html";
@@ -6,7 +6,8 @@
 @import "./extracted-pwa-styles/layout.css";
 @import "./extracted-pwa-styles/style.css";
 
-:root {
+:root,
+[data-theme='dark'] {
   --color-burgundy-950: #2d0a0f;
   --color-burgundy-900: #4a0e1a;
   --color-burgundy-800: #6b1529;
@@ -26,6 +27,11 @@
   --color-success: #52c41a;
   --color-error: #ff4d4f;
   --color-warning: #faad14;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.15);
+  --color-surface-overlay: rgba(0, 0, 0, 0.4);
+  --color-text-on-burgundy: #ffffff;
+  --color-focus-ring: #f4bf4f;
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
   --space-md: 1rem;
@@ -342,8 +348,7 @@ html[data-theme="light"] .text-white {
    that need a guaranteed-white text in either theme should use the
    semantic `.text-on-accent` class below instead of `text-white`. */
 .text-on-accent { color: #ffffff; }
-
-@layer base {
+@layer base {
   * {
     margin: 0;
     padding: 0;
@@ -461,7 +466,7 @@ html[data-theme="light"] .text-white {
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-gold-400);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
   }
 
@@ -502,6 +507,26 @@ html[data-theme="light"] .text-white {
     outline: 2px solid var(--color-gold-400);
     outline-offset: 2px;
   }
+}
+
+[data-theme='light'] body.mobile-fixed-bg::before {
+  background-color: var(--color-bg-primary);
+  background-image: linear-gradient(
+    180deg,
+    rgba(250, 249, 249, 1) 0%,
+    rgba(244, 240, 241, 1) 52%,
+    rgba(232, 220, 224, 1) 100%
+  );
+}
+
+[data-theme='light'] .app-gradient {
+  background-color: var(--color-bg-primary);
+  background-image: linear-gradient(
+    180deg,
+    rgba(250, 249, 249, 1) 0%,
+    rgba(244, 240, 241, 1) 52%,
+    rgba(232, 220, 224, 1) 100%
+  );
 }
 
 @keyframes fadeIn {
@@ -1233,4 +1258,25 @@ html[data-theme="light"] .text-white {
   .animate-tutorial-spotlight-pulse {
     animation: none;
   }
+}
+
+@theme {
+  --color-surface: var(--color-bg-surface);
+  --color-surface-elevated: var(--color-bg-surface-elevated);
+  --color-surface-hover: var(--color-bg-surface-hover);
+  --color-primary-bg: var(--color-bg-primary);
+  --color-text-default: var(--color-text-primary);
+  --color-text-muted: var(--color-text-secondary);
+  --color-text-subtle: var(--color-text-tertiary);
+  --color-accent: var(--color-gold-400);
+  --color-accent-hover: var(--color-gold-500);
+  --color-accent-strong: var(--color-gold-600);
+  --color-brand: var(--color-burgundy-700);
+  --color-brand-dark: var(--color-burgundy-900);
+  --color-brand-darkest: var(--color-burgundy-950);
+  --color-border-default: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-overlay: var(--color-surface-overlay);
+  --color-on-brand: var(--color-text-on-burgundy);
+  --color-focus: var(--color-focus-ring);
 }
