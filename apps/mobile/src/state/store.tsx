@@ -242,7 +242,7 @@ export type PlayerProfile = {
   completedCourses: Record<string, string>;
   /** Corsi attualmente in corso: courseId → timestamp ISO di avvio. */
   activeCourses: Record<string, string>;
-  /** Tema UI preferito dall'utente. 'system' segue il tema del dispositivo. Default: 'dark'. */
+  /** Tema UI preferito dall'utente. 'system' segue il tema del dispositivo. Default: 'system'. */
   theme: 'dark' | 'light' | 'system';
   /** Modalità accessibile per i minigiochi timing (velocità ridotta, tolleranza maggiore). Default: false. */
   accessibleMode: boolean;
@@ -840,7 +840,7 @@ type ProfileUpsertPayload = {
   role_id: RoleId;
   profile_image?: string | null;
   leaderboard_visible?: boolean;
-  theme?: 'dark' | 'light';
+  theme?: 'dark' | 'light' | 'system';
   accessible_mode?: boolean;
   cookie_consent_at?: string | null;
   onboarding_completed_at?: string | null;
@@ -1973,7 +1973,7 @@ function createInitialState(): GameState {
       skills: { precision: 0, presence: 0, creativity: 0, leadership: 0 },
       completedCourses: {},
       activeCourses: {},
-      theme: 'dark',
+      theme: 'system',
       accessibleMode: false,
     },
     turns: [],
@@ -2047,7 +2047,9 @@ function loadState(): GameState {
     const parsed = JSON.parse(raw) as GameState;
     if (!parsed.profile) return createDefaultState();
     const safeRole = isRoleId(parsed.profile.roleId) ? parsed.profile.roleId : createDefaultState().profile.roleId;
-    const parsedTheme = parsed.profile.theme === 'light' ? 'light' : 'dark';
+    const rawTheme = parsed.profile.theme;
+    const parsedTheme: 'dark' | 'light' | 'system' =
+      rawTheme === 'light' || rawTheme === 'dark' || rawTheme === 'system' ? rawTheme : 'system';
     const parsedAccessibleMode =
       typeof parsed.profile.accessibleMode === 'boolean' ? parsed.profile.accessibleMode : false;
     return {

@@ -168,8 +168,7 @@ html[data-theme="light"] body.mobile-fixed-bg::before {
     #f3ecdc 0%,
     #ede5d6 55%,
     #e6dcc7 100%
-  );
-}
+  );}
 
 html[data-theme="light"] .app-gradient {
   background-color: var(--color-bg-primary);
