@@ -47,13 +47,13 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
     >
       <AuthFormLayout>
         <button type="button" onClick={onBack}
-          className="flex items-center justify-center size-[44px] text-[#f4bf4f]" aria-label="Indietro">
+          className="flex items-center justify-center size-[44px] text-[--color-gold-400]" aria-label="Indietro">
           <ArrowLeft size={24} />
         </button>
 
         <div className="mt-4 flex flex-col items-start gap-1">
-          <h1 className="text-2xl font-bold tracking-[-0.24px] text-[#f5f5f5]">Crea il tuo account</h1>
-          <p className="text-base text-[#b8b2b3]">Inizia la tua carriera teatrale</p>
+          <h1 className="text-2xl font-bold tracking-[-0.24px] text-[--color-text-primary]">Crea il tuo account</h1>
+          <p className="text-base text-[--color-text-secondary]">Inizia la tua carriera teatrale</p>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-8 flex w-full max-w-[300px] flex-col gap-6 mx-auto">
@@ -71,7 +71,7 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
             <FormField label="Password" error={errors.password}>
               <FormInput type="password" value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 autoComplete="new-password" hasError={!!errors.password} placeholder="••••••••" />
-              <p className="mt-2 !mb-0 text-base text-[#9a9697]">Almeno 8 caratteri</p>
+              <p className="mt-2 !mb-0 text-base text-[--color-text-tertiary]">Almeno 8 caratteri</p>
             </FormField>
 
             <FormField label="Conferma password" error={errors.confirmPassword}>
@@ -89,7 +89,7 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
           />
 
           {errorMessage && (
-            <p className="text-sm text-[#ff4d4f] text-center">{errorMessage}</p>
+            <p className="text-sm text-[--color-error] text-center">{errorMessage}</p>
           )}
 
           <Button type="submit" fullWidth disabled={isSubmitting} className={isSubmitting ? 'opacity-50 pointer-events-none' : ''}>
@@ -98,9 +98,9 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
         </form>
 
         <div className="mt-auto pt-6 text-center">
-          <p className="text-base text-[#b8b2b3]">Hai già un account?</p>
+          <p className="text-base text-[--color-text-secondary]">Hai già un account?</p>
           <button type="button" onClick={onLogin}
-            className="inline-flex items-center justify-center rounded-md px-2 py-2.5 text-base text-[#f4bf4f]">
+            className="inline-flex items-center justify-center rounded-md px-2 py-2.5 text-base text-[--color-gold-400]">
             Accedi
           </button>
         </div>
@@ -124,20 +124,20 @@ function TermsCheckbox({
 }) {
   return (
     <div>
-      <label htmlFor="terms" className="flex gap-3 items-start rounded-md py-1.5 text-sm text-[#b8b2b3]">
+      <label htmlFor="terms" className="flex gap-3 items-start rounded-md py-1.5 text-sm text-[--color-text-secondary]">
         <input id="terms" type="checkbox" checked={checked}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.checked)}
-          className="bg-[#241f20] border border-[#2d2728] size-6 accent-[#a82847]" />
+          className="bg-[--color-bg-surface-elevated] border border-[--color-bg-surface-hover] size-6 accent-[--color-burgundy-600]" />
         <span>
           Accetto i{' '}
           <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onViewTerms(); }}
-            className="text-[#f4bf4f] underline underline-offset-2">Termini e Condizioni</button>{' '}
+            className="text-[--color-gold-400] underline underline-offset-2">Termini e Condizioni</button>{' '}
           e la{' '}
           <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onViewPrivacy(); }}
-            className="text-[#f4bf4f] underline underline-offset-2">Privacy Policy</button>
+            className="text-[--color-gold-400] underline underline-offset-2">Privacy Policy</button>
         </span>
       </label>
-      {error && <p className="text-sm text-[#ff4d4f] mt-1">{error}</p>}
+      {error && <p className="text-sm text-[--color-error] mt-1">{error}</p>}
     </div>
   );
 }

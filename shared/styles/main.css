@@ -153,8 +153,7 @@ html[data-theme="light"] {
   --color-burgundy-700:         #a82847;
   /* Light-theme podium base: near-opaque white so the metallic gold/
      silver/bronze tints fade onto a paper card instead of into black. */
-  --color-podium-base:          rgba(255, 255, 255, 0.95);
-}
+  --color-podium-base:          rgba(255, 255, 255, 0.95);}
 
 html[data-theme="light"] body,
 html[data-theme="light"] body.mobile-fixed-bg {
