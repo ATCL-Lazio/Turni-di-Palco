@@ -115,7 +115,7 @@ export function useAuth(
             options?: {
                 fallbackName?: string;
                 navigateTo?: 'home' | 'change-password';
-                navigateReplace?: boolean;
+                isRecovery?: boolean;
             },
         ) => {
             if (!user) {
@@ -134,7 +134,7 @@ export function useAuth(
             updateProfile(shouldSetName ? { name: displayName, email } : { email });
 
             if (options?.navigateTo) {
-                onAuthChange(options.navigateTo, options.navigateReplace);
+                onAuthChange(options.navigateTo, options.isRecovery);
             }
         },
         [updateProfile, onAuthChange],
@@ -163,7 +163,7 @@ export function useAuth(
             if (event === 'PASSWORD_RECOVERY') {
                 applyUserProfileFromAuth(session?.user, {
                     navigateTo: 'change-password',
-                    navigateReplace: true,
+                    isRecovery: true,
                 });
                 return;
             }
