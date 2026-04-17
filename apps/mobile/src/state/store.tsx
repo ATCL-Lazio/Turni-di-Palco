@@ -192,6 +192,10 @@ export type PlayerProfile = {
   leaderboardVisible: boolean;
   /** Indica se il tutorial di benvenuto è stato completato. Default: false. */
   tutorialCompleted: boolean;
+  /** Tema UI preferito dall'utente. Default: 'dark'. */
+  theme: 'dark' | 'light';
+  /** Modalità accessibile per i minigiochi timing (velocità ridotta, tolleranza maggiore). Default: false. */
+  accessibleMode: boolean;
 };
 
 export type RegisterTurnInput = {
@@ -337,6 +341,8 @@ type DbProfileRow = {
   profile_image?: string | null;
   last_activity_at?: string | null;
   leaderboard_visible?: boolean | null;
+  theme?: string | null;
+  accessible_mode?: boolean | null;
 };
 
 type DbBadgeRow = {
@@ -689,6 +695,8 @@ type ProfileUpsertPayload = {
   role_id: RoleId;
   profile_image?: string | null;
   leaderboard_visible?: boolean;
+  theme?: 'dark' | 'light';
+  accessible_mode?: boolean;
   cookie_consent_at?: string | null;
 };
 
@@ -1586,6 +1594,8 @@ function buildProfileUpsertPayload(userId: string, profile: PlayerProfile): Prof
     role_id: profile.roleId,
     profile_image: profile.profileImage ?? null,
     leaderboard_visible: profile.leaderboardVisible,
+    theme: profile.theme,
+    accessible_mode: profile.accessibleMode,
     ...(cookieConsentAt ? { cookie_consent_at: cookieConsentAt } : {}),
   };
 }
@@ -1788,6 +1798,8 @@ function createInitialState(): GameState {
       lastActivityAt: Date.now(),
       leaderboardVisible: true,
       tutorialCompleted: false,
+      theme: 'dark',
+      accessibleMode: false,
     },
     turns: [],
     eventPlans: [],
@@ -1813,6 +1825,8 @@ function createDemoState(): GameState {
       lastActivityAt: Date.now(),
       leaderboardVisible: true,
       tutorialCompleted: false,
+      theme: 'dark',
+      accessibleMode: false,
     },
     turns: [
       {
@@ -1853,11 +1867,16 @@ function loadState(): GameState {
     const parsed = JSON.parse(raw) as GameState;
     if (!parsed.profile) return createDefaultState();
     const safeRole = isRoleId(parsed.profile.roleId) ? parsed.profile.roleId : createDefaultState().profile.roleId;
+    const parsedTheme = parsed.profile.theme === 'light' ? 'light' : 'dark';
+    const parsedAccessibleMode =
+      typeof parsed.profile.accessibleMode === 'boolean' ? parsed.profile.accessibleMode : false;
     return {
       profile: {
         ...createDefaultState().profile,
         ...parsed.profile,
         roleId: safeRole,
+        theme: parsedTheme,
+        accessibleMode: parsedAccessibleMode,
       },
       turns: Array.isArray(parsed.turns) ? parsed.turns : [],
       eventPlans: Array.isArray(parsed.eventPlans)
@@ -2097,7 +2116,7 @@ type GameContextValue = {
   unfollowEvent: (eventId: string) => Promise<void>;
   isEventFollowed: (eventId: string) => boolean;
   markBadgesSeen: () => void;
-  updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => void;
+  updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible' | 'theme' | 'accessibleMode'>>) => void;
   registerTurn: (input: RegisterTurnInput) => Promise<RegisterTurnResult>;
   pendingBoostRequests: number;
   turnSyncFeedback: TurnSyncFeedback | null;
@@ -3667,6 +3686,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                   ? parsedLastActivityAt
                   : prev.profile.lastActivityAt,
                 leaderboardVisible: profileRow.leaderboard_visible ?? prev.profile.leaderboardVisible,
+                theme: profileRow.theme === 'light' ? 'light' : 'dark',
+                accessibleMode: profileRow.accessible_mode ?? false,
               },
               eventPlans: prev.eventPlans,
               turns: remoteTurns,
@@ -3774,6 +3795,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 profile.leaderboard_visible != null
                   ? profile.leaderboard_visible
                   : prev.profile.leaderboardVisible,
+              theme:
+                profile.theme === 'light' || profile.theme === 'dark'
+                  ? profile.theme
+                  : prev.profile.theme,
+              accessibleMode:
+                profile.accessible_mode != null
+                  ? profile.accessible_mode
+                  : prev.profile.accessibleMode,
             },
           }));
           setHasHydratedRemote(true);
@@ -3958,7 +3987,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   }, [persistProfile]);
 
   const updateProfile = useCallback(
-    (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {
+    (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible' | 'theme' | 'accessibleMode'>>) => {
       let nextProfile: PlayerProfile | null = null;
       setState((prev: GameState) => {
         const nextRole =
@@ -4715,6 +4744,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         tokenAtcl: state.profile.tokenAtcl,
         lastActivityAt: new Date(state.profile.lastActivityAt).toISOString(),
         leaderboardVisible: state.profile.leaderboardVisible,
+        theme: state.profile.theme,
+        accessibleMode: state.profile.accessibleMode,
       },
       turns: state.turns,
       badges,
