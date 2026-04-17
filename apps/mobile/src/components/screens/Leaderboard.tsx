@@ -11,7 +11,7 @@ interface LeaderboardProps {
 export function Leaderboard({ onSelectEntry }: LeaderboardProps) {
   const { authUserId, leaderboard, leaderboardLoading, refreshLeaderboard, roles } = useGameState();
   const [hasBootstrapped, setHasBootstrapped] = useState(false);
-  const rowRefs = useRef(new Map<string, HTMLDivElement>());
+  const rowRefs = useRef(new Map<string, HTMLLIElement>());
   const previousRowTops = useRef(new Map<string, number>());
 
   useEffect(() => {
@@ -174,7 +174,7 @@ function getRankClass(position: number) {
 
 function animateRowTransitions(
   sorted: { id: string }[],
-  rowRefs: React.MutableRefObject<Map<string, HTMLDivElement>>,
+  rowRefs: React.MutableRefObject<Map<string, HTMLLIElement>>,
   previousRowTops: React.MutableRefObject<Map<string, number>>,
 ) {
   const nextRowIds = new Set(sorted.map(e => e.id));
