@@ -3,6 +3,7 @@ import { GameStateProvider, useGameState } from './state/store';
 import { NavigatorProvider } from './router';
 import { useFeatureGates } from './handlers';
 import { AppShell } from './components/AppShell';
+import { ThemeProvider } from './providers/ThemeProvider';
 
 function AppWithNavigator() {
   const { events, featureFlags, isFeatureEnabled } = useGameState();
@@ -24,7 +25,9 @@ function AppWithNavigator() {
 export default function App() {
   return (
     <GameStateProvider>
-      <AppWithNavigator />
+      <ThemeProvider>
+        <AppWithNavigator />
+      </ThemeProvider>
     </GameStateProvider>
   );
 }
