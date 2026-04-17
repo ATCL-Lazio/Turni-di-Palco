@@ -64,20 +64,20 @@ serve(async (req) => {
     const parsedDays = parseInt(rawDays, 10)
     // Validate: must be a positive integer; default to 7 if absent or invalid
     const daysToKeep = (!rawDays || isNaN(parsedDays) || parsedDays <= 0) ? 7 : parsedDays
-    
+
     console.log(`🧹 Pulizia eventi più vecchi di ${daysToKeep} giorni...`)
-    
+
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep)
     const cutoffDateStr = cutoffDate.toISOString().slice(0, 10)
-    
+
     const { data: events, error } = await supabaseClient
       .from('events')
       .select('id, name, event_date, event_time')
       .lt('event_date', cutoffDateStr)
-    
+
     if (error) throw error
-    
+
     interface Event {
       id: string;
       name: string;
@@ -88,49 +88,49 @@ serve(async (req) => {
       if (!event?.event_date) return false
       return event.event_date < cutoffDateStr
     })
-    
+
     if (eventsToDelete.length === 0) {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           message: 'Nessun evento da cancellare',
-          deleted: 0 
+          deleted: 0
         }),
-        { 
+        {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
+          status: 200
         }
       )
     }
-    
+
     console.log(`🗑️ Trovati ${eventsToDelete.length} eventi da cancellare`)
-    
+
     const { error: deleteError } = await supabaseClient
       .from('events')
       .delete()
       .in('id', eventsToDelete.map(e => e.id))
-    
+
     if (deleteError) throw deleteError
-    
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         message: `Cancellati ${eventsToDelete.length} eventi con successo`,
         deleted: eventsToDelete.length,
         events: eventsToDelete.map(e => ({ id: e.id, name: e.name, date: e.event_date }))
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
+        status: 200
       }
     )
-    
+
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error('❌ Errore durante la pulizia:', msg)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { 
+      JSON.stringify({ error: msg }),
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
+        status: 500
       }
     )
   }

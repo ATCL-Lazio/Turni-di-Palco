@@ -65,7 +65,11 @@ const formatDate = (details, fallback) => {
       return `${String(day).padStart(2, '0')} ${monthLabel} ${year}`;
     }
   }
-  return '01 Gen 2026';
+  // Fallback to today's date to avoid events being immediately cleaned up
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, '0');
+  const monthLabel = MONTHS_IT[today.getMonth()] ?? 'Gen';
+  return `${day} ${monthLabel} ${today.getFullYear()}`;
 };
 
 const formatTime = (details, fallback) => {
@@ -187,9 +191,11 @@ const upsertEvents = async (rows) => {
 };
 
 const run = async () => {
-  const sitemapUrls = await fetchSitemapUrls();
-  const categorySlugs = await fetchCategorySlugs();
-  const apiEvents = await fetchAllEvents();
+  const [sitemapUrls, categorySlugs, apiEvents] = await Promise.all([
+    fetchSitemapUrls(),
+    fetchCategorySlugs(),
+    fetchAllEvents(),
+  ]);
   const filtered = apiEvents.filter((event) =>
     sitemapUrls.has(normalizeUrl(event.url ?? ''))
   );

@@ -176,9 +176,11 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   try {
-    const sitemapUrls = await fetchSitemapUrls();
-    const categorySlugs = await fetchCategorySlugs();
-    const apiEvents = await fetchAllEvents();
+    const [sitemapUrls, categorySlugs, apiEvents] = await Promise.all([
+      fetchSitemapUrls(),
+      fetchCategorySlugs(),
+      fetchAllEvents(),
+    ]);
     const matched = apiEvents.filter((event) =>
       sitemapUrls.has(normalizeUrl(event.url ?? ''))
     );
