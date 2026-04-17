@@ -33,7 +33,7 @@ export function BottomNav({ activeTab, onTabChange, enabledTabs }: BottomNavProp
   } : undefined;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 w-full z-50 bg-[#0f0d0e]/90 backdrop-blur-2xl border-t border-white/[0.05]">
+    <nav data-tutorial="bottom-nav" role="tablist" className="fixed bottom-0 left-0 right-0 w-full z-50 bg-[#0f0d0e]/90 backdrop-blur-2xl border-t border-white/[0.05]">
       <div className="relative app-content flex items-stretch justify-around px-2 pt-1 min-h-[54px]" style={{ paddingBottom: 'calc(4px + env(safe-area-inset-bottom, 0px))' }}>
 
           {indicatorStyle && (
@@ -70,10 +70,12 @@ const TabButton = React.memo(function TabButton({ id, icon: Icon, label, isActiv
   return (
     <button
       onClick={() => onPress(id)}
+      role="tab"
+      aria-selected={isActive}
       className={`relative flex flex-1 min-w-0 flex-col items-center justify-center gap-[3px] py-1 rounded-xl transition-colors duration-150 ${
         isActive
           ? 'text-[#f4bf4f] tab-button-active'
-          : 'text-[#3d393a] hover:text-[#7a7577] active:text-[#b8b2b3]'
+          : 'text-[#6a6566] hover:text-[#9a9697] active:text-[#b8b2b3]'
       }`}
     >
       <Icon

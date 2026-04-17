@@ -54,10 +54,10 @@ export function RoleSelection({ roles, showRoleJourney = true, onComplete }: Rol
 
                 <div className="flex-1 min-w-0">
                   <h4 className="mb-1 text-white">{role.name}</h4>
-                  <p className="text-xs text-[#7a7577]">{role.focus}</p>
+                  <p className="text-xs text-[#9a9697]">{role.focus}</p>
                 </div>
 
-                <ChevronRight className="text-[#7a7577] flex-shrink-0" size={20} />
+                <ChevronRight className="text-[#9a9697] flex-shrink-0" size={20} />
               </Card>
             );
           })}

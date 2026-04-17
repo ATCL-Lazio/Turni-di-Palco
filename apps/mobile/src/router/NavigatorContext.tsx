@@ -1,10 +1,6 @@
-import React, { createContext, useContext, useCallback, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useCallback } from 'react';
 import { Screen, Tab, LegalReturnScreen } from '../types/navigation';
 import { useNavigation } from '../hooks/useNavigation';
-
-type NavigateOptions = {
-  replace?: boolean;
-};
 
 interface NavigatorContextValue {
   // Current state
@@ -16,7 +12,7 @@ interface NavigatorContextValue {
   selectedActivityId: string;
 
   // Navigation actions
-  navigate: (screen: Screen, options?: NavigateOptions) => void;
+  navigate: (screen: Screen) => void;
   switchTab: (tab: Tab) => void;
   goBack: () => void;
 
@@ -75,16 +71,6 @@ export function NavigatorProvider({
     selectedActivityId, setSelectedActivityId,
   } = useNavigation(initialEvents, { isScreenEnabled, isTabEnabled });
 
-  const historyRef = useRef<Screen[]>([currentScreen]);
-
-  useEffect(() => {
-    const history = historyRef.current;
-    if (history[history.length - 1] !== currentScreen) {
-      history.push(currentScreen);
-      if (history.length > 20) history.shift();
-    }
-  }, [currentScreen]);
-
   const navigate = useCallback((screen: Screen) => {
     setCurrentScreen(screen);
   }, [setCurrentScreen]);
@@ -95,19 +81,20 @@ export function NavigatorProvider({
   }, [handleTabChange, onTabChange]);
 
   const goBack = useCallback(() => {
-    const backScreen = SCREENS_WITH_BACK[currentScreen];
+    const screen = currentScreenRef.current;
+    const backScreen = SCREENS_WITH_BACK[screen];
     if (backScreen) {
       setCurrentScreen(backScreen);
       return;
     }
     // For legal screens, return to where we came from
-    if (currentScreen === 'terms' || currentScreen === 'privacy') {
+    if (screen === 'terms' || screen === 'privacy') {
       setCurrentScreen(legalReturnScreen);
       return;
     }
     // Default: go to home tab
     handleTabChange('home');
-  }, [currentScreen, handleTabChange, legalReturnScreen, setCurrentScreen]);
+  }, [currentScreenRef, handleTabChange, legalReturnScreen, setCurrentScreen]);
 
   const openLegal = useCallback((screen: 'terms' | 'privacy', returnTo: LegalReturnScreen) => {
     setLegalReturnScreen(returnTo);

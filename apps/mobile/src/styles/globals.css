@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/*
+ * Mobile-specific styles.
+ * Design tokens (:root custom properties), base resets, typography,
+ * scrollbar, focus-visible, and core animations are defined in
+ * shared/styles/main.css and should NOT be duplicated here.
+ */
+
 /* Welcome Screen Button Styles */
 .welcome-button-primary {
   max-width: 400px;

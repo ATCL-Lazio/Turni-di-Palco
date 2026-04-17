@@ -5,27 +5,33 @@ export function useNotifications(upcomingEvent?: { id: string, name: string, dat
     const lastNotifiedBadgeId = useRef<string | null>(null);
     const lastNotifiedEventId = useRef<string | null>(null);
 
+    const newestNewBadgeId = newestNewBadge?.id;
+    const newestNewBadgeTitle = newestNewBadge?.title;
     useEffect(() => {
-        if (!newestNewBadge) return;
-        if (lastNotifiedBadgeId.current === newestNewBadge.id) return;
+        if (!newestNewBadgeId) return;
+        if (lastNotifiedBadgeId.current === newestNewBadgeId) return;
         if (getPermission() !== 'granted') return;
 
         notify('Nuovo badge sbloccato', {
-            body: newestNewBadge.title,
-            tag: `badge-${newestNewBadge.id}`,
+            body: newestNewBadgeTitle ?? '',
+            tag: `badge-${newestNewBadgeId}`,
         });
-        lastNotifiedBadgeId.current = newestNewBadge.id;
-    }, [newestNewBadge]);
+        lastNotifiedBadgeId.current = newestNewBadgeId;
+    }, [newestNewBadgeId, newestNewBadgeTitle]);
 
+    const upcomingEventId = upcomingEvent?.id;
+    const upcomingEventName = upcomingEvent?.name;
+    const upcomingEventDate = upcomingEvent?.date;
+    const upcomingEventTime = upcomingEvent?.time;
     useEffect(() => {
-        if (!upcomingEvent) return;
-        if (lastNotifiedEventId.current === upcomingEvent.id) return;
+        if (!upcomingEventId) return;
+        if (lastNotifiedEventId.current === upcomingEventId) return;
         if (getPermission() !== 'granted') return;
 
         notify('Nuovo evento in agenda', {
-            body: `${upcomingEvent.name} · ${upcomingEvent.date} ${upcomingEvent.time}`,
-            tag: `event-${upcomingEvent.id}`,
+            body: `${upcomingEventName} · ${upcomingEventDate} ${upcomingEventTime}`,
+            tag: `event-${upcomingEventId}`,
         });
-        lastNotifiedEventId.current = upcomingEvent.id;
-    }, [upcomingEvent]);
+        lastNotifiedEventId.current = upcomingEventId;
+    }, [upcomingEventId, upcomingEventName, upcomingEventDate, upcomingEventTime]);
 }
