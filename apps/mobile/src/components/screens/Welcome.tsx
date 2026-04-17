@@ -22,8 +22,8 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
       >
         <WelcomeBranding />
 
-        <div className="animate-stagger-4 mt-6 mb-5 w-full max-w-[300px] bg-[#1a1617] border border-[#2d2728] rounded-2xl px-4 py-3">
-          <p id="welcome-description" className="!m-0 text-sm leading-relaxed text-center text-[#9a9697]">
+        <div className="animate-stagger-4 mt-6 mb-5 w-full max-w-[300px] bg-surface border border-surface-hover rounded-2xl px-4 py-3">
+          <p id="welcome-description" className="!m-0 text-sm leading-relaxed text-center text-subtle">
             Simula la carriera di un professionista del teatro e registra la tua
             partecipazione agli eventi reali ATCL registrando il numero del biglietto.
           </p>
@@ -55,7 +55,7 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
 function WelcomeBranding() {
   return (
     <div className="flex flex-col items-center gap-5 pt-3">
-      <div className="animate-stagger-1 animate-float welcome-logo-pulse bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-[28px] size-[120px] flex items-center justify-center ring-1 ring-[#a82847]/30">
+      <div className="animate-stagger-1 animate-float welcome-logo-pulse bg-gradient-to-b from-burgundy-600 to-burgundy-800 rounded-[28px] size-[120px] flex items-center justify-center ring-1 ring-burgundy-600/30">
         <img alt="" className="size-[60px]" src={welcomeLogo} />
       </div>
       <div className="flex flex-col items-center gap-2">
@@ -69,7 +69,7 @@ function WelcomeBranding() {
         >
           Turni di Palco
         </p>
-        <p className="animate-stagger-3 text-[11px] leading-none text-[#9a9697] tracking-[0.14em] uppercase font-semibold">
+        <p className="animate-stagger-3 text-[11px] leading-none text-subtle tracking-[0.14em] uppercase font-semibold">
           Costruisci la tua carriera a teatro
         </p>
       </div>
@@ -91,8 +91,8 @@ function WelcomeButton({
   ariaLabel?: string;
 }) {
   const styles = variant === 'primary'
-    ? 'bg-gradient-to-b from-[#a82847] to-[#8c1c38] shadow-[0_4px_20px_rgba(168,40,71,0.35)] active:shadow-none text-white'
-    : 'border border-[#2d2728] bg-[#1a1617] active:bg-[#241f20] text-[#f4bf4f]';
+    ? 'bg-gradient-to-b from-burgundy-600 to-burgundy-700 shadow-[0_4px_20px_rgba(168,40,71,0.35)] active:shadow-none text-white'
+    : 'border border-surface-hover bg-surface active:bg-surface-elevated text-accent';
 
   return (
     <button
