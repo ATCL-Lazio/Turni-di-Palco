@@ -10,8 +10,22 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// Rome timezone offset (+01:00 CET). Matches Python generator's dt.timezone(dt.timedelta(hours=1)).
-const ROME_OFFSET = '+01:00';
+// Rome timezone offset: CET (+01:00) in winter, CEST (+02:00) in summer.
+// Computed dynamically so DST transitions don't shift event datetimes by one hour.
+function getRomeOffset(dateIso: string): string {
+  const probe = new Date(`${dateIso}T12:00:00Z`);
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Rome',
+    timeZoneName: 'shortOffset',
+  }).formatToParts(probe);
+  const offsetPart = parts.find((part) => part.type === 'timeZoneName')?.value ?? 'GMT+1';
+  const match = offsetPart.match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/);
+  if (!match) return '+01:00';
+  const sign = match[1];
+  const hours = match[2].padStart(2, '0');
+  const minutes = (match[3] ?? '00').padStart(2, '0');
+  return `${sign}${hours}:${minutes}`;
+}
 
 async function sha256Hex(input: string): Promise<string> {
   const encoded = new TextEncoder().encode(input);
@@ -29,7 +43,7 @@ function buildEventDatetimeIso(eventDate: string, eventTime: string): string {
   const timeParts = time.split(':');
   const normalizedTime =
     timeParts.length === 2 ? `${time}:00` : time;
-  return `${date}T${normalizedTime}${ROME_OFFSET}`;
+  return `${date}T${normalizedTime}${getRomeOffset(date)}`;
 }
 
 function jsonResponse(payload: Record<string, unknown>, status = 200) {
@@ -201,16 +215,7 @@ serve(async (req: Request) => {
         (action === 'activate_by_details' && (!payload?.eventID || !payload?.ticketNumber)) ||
         (action === 'activate_by_ticket_number' && !payload?.ticketNumber)
       ) {
-        return jsonResponse({
-          error: 'Missing required parameters',
-          received: {
-            action,
-            hasHash: !!hash,
-            hasPayload: !!payload,
-            hasTicketNumber: !!payload?.ticketNumber,
-            hasUserId: !!resolvedUserId,
-          },
-        }, 400);
+        return jsonResponse({ error: 'Parametri mancanti o non validi.' }, 400);
       }
 
       // 1. Resolve hash if using details or ticket number

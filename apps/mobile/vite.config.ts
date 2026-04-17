@@ -40,7 +40,7 @@ function resolveHttps(): ServerOptions | undefined {
     }
   }
 
-  return flag ? ({} as ServerOptions) : ({} as ServerOptions);
+  return flag ? ({} as ServerOptions) : undefined;
 }
 
 const DEFAULT_ALLOWED_HOSTS = ['turni-di-palco-fq85.onrender.com'];

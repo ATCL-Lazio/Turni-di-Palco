@@ -29,11 +29,11 @@ export function EventConfirmation({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [boostRequested, setBoostRequested] = useState(false);
   const [confirmResult, setConfirmResult] = useState<Extract<ConfirmTurnResult, { ok: true }> | null>(null);
-  const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const successTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
-      if (successTimeoutRef.current !== null) clearTimeout(successTimeoutRef.current);
+      if (successTimeoutRef.current !== null) window.clearTimeout(successTimeoutRef.current);
     };
   }, []);
 
@@ -59,7 +59,7 @@ export function EventConfirmation({
       if (!result.ok) { window.alert(result.error); return; }
       setConfirmResult(result);
       setIsSuccess(true);
-      successTimeoutRef.current = setTimeout(() => onSuccess(), 1500);
+      successTimeoutRef.current = window.setTimeout(() => onSuccess(), 1500);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : 'Errore durante la registrazione turno.');
     } finally {
