@@ -178,7 +178,8 @@ export function useAuth(
             mounted = false;
             authListener?.subscription.unsubscribe();
         };
-    }, [supabase, applyUserProfileFromAuth, onLogout]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is a module-level constant
+    }, [applyUserProfileFromAuth, onLogout]);
 
     return {
         authError,
