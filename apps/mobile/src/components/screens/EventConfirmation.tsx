@@ -29,7 +29,7 @@ export function EventConfirmation({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [boostRequested, setBoostRequested] = useState(false);
   const [confirmResult, setConfirmResult] = useState<Extract<ConfirmTurnResult, { ok: true }> | null>(null);
-  const successTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const successTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
