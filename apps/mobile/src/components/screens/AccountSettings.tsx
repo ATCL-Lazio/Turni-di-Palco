@@ -131,13 +131,21 @@ export function AccountSettings({
         <div className="mt-auto flex flex-col gap-4">
           {deleteError && <p className="text-[14px] leading-[20px] text-[#ff4d4f] text-center">{deleteError}</p>}
           <CopyrightNotice />
-          <button type="button" onClick={handleDeleteAccount}
-            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[14px] leading-[20px] text-[#ff4d4f]/70 w-full">
-            <UserX size={16} /> Elimina account
+          <button
+            type="button"
+            onClick={handleDeleteAccount}
+            aria-label="Elimina definitivamente il tuo account"
+            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[14px] leading-[20px] text-[#ff4d4f]/70 w-full"
+          >
+            <UserX aria-hidden="true" size={16} /> Elimina account
           </button>
-          <button type="button" onClick={onLogout}
-            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[18px] leading-[28px] text-[#ff4d4f] w-full">
-            <LogOut size={20} /> Esci
+          <button
+            type="button"
+            onClick={onLogout}
+            aria-label="Disconnetti dal tuo account"
+            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[18px] leading-[28px] text-[#ff4d4f] w-full"
+          >
+            <LogOut aria-hidden="true" size={20} /> Esci
           </button>
         </div>
       </div>
@@ -238,8 +246,13 @@ function PermissionsSection({ permissionStatuses, permissionMessages, onRequest 
                 )}
               </div>
             </div>
-            <button type="button" onClick={() => onRequest(key)} disabled={!canRequest[key]}
-              className="text-[12px] leading-[18px] px-[10px] py-[6px] rounded-[10px] border border-[#2d2728] text-white disabled:opacity-50">
+            <button
+              type="button"
+              onClick={() => onRequest(key)}
+              disabled={!canRequest[key]}
+              aria-label={`Richiedi permesso: ${label}`}
+              className="text-[12px] leading-[18px] px-[10px] py-[6px] rounded-[10px] border border-[#2d2728] text-white disabled:opacity-50"
+            >
               Richiedi
             </button>
           </div>
@@ -263,7 +276,12 @@ function NotificationToggleCard({ notificationPermission, notificationStatusLabe
             <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">Aggiornamenti su badge ed eventi</p>
           </div>
         </div>
-        <Switch checked={notificationPermission === 'granted'} onCheckedChange={onToggle} disabled={notificationPermission === 'unsupported'} />
+        <Switch
+          checked={notificationPermission === 'granted'}
+          onCheckedChange={onToggle}
+          disabled={notificationPermission === 'unsupported'}
+          aria-label={notificationPermission === 'granted' ? 'Disattiva notifiche di sistema' : 'Attiva notifiche di sistema'}
+        />
       </div>
       <p className="text-[14px] leading-[20px] text-[#b8b2b3]">Stato: {notificationStatusLabel}</p>
       {notificationPermission === 'unsupported' && (
@@ -302,16 +320,21 @@ function LinkRow({ icon: Icon, label, subtitle, onClick, disabled }: {
   icon: React.ElementType; label: string; subtitle: string; onClick: () => void; disabled?: boolean;
 }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled}
-      className="min-h-[56px] py-[2px] flex items-center justify-between disabled:opacity-60 disabled:cursor-not-allowed">
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={`${label}: ${subtitle}`}
+      className="min-h-[56px] py-[2px] flex items-center justify-between disabled:opacity-60 disabled:cursor-not-allowed"
+    >
       <div className="flex items-center gap-[12px]">
-        <Icon className="text-[#f4bf4f]" size={24} />
+        <Icon aria-hidden="true" className="text-[#f4bf4f]" size={24} />
         <div className="text-left">
           <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">{label}</p>
           <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">{subtitle}</p>
         </div>
       </div>
-      <ChevronRight className="text-[#9a9697]" size={20} />
+      <ChevronRight aria-hidden="true" className="text-[#9a9697]" size={20} />
     </button>
   );
 }
@@ -321,15 +344,20 @@ function SettingsActionCard({ icon: Icon, label, subtitle, onClick, iconColor = 
 }) {
   return (
     <SettingsCard className="gap-[8px]">
-      <button type="button" onClick={onClick} className="h-[51px] flex items-center justify-between">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={`${label}: ${subtitle}`}
+        className="h-[51px] flex items-center justify-between"
+      >
         <div className="flex items-center gap-[12px]">
-          <Icon className={iconColor} size={24} />
+          <Icon aria-hidden="true" className={iconColor} size={24} />
           <div className="text-left">
             <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">{label}</p>
             <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">{subtitle}</p>
           </div>
         </div>
-        <ChevronRight className="text-[#9a9697]" size={20} />
+        <ChevronRight aria-hidden="true" className="text-[#9a9697]" size={20} />
       </button>
     </SettingsCard>
   );
@@ -562,7 +590,11 @@ function GdprPrivacyCard({
             <p className="text-[16px] leading-[25.6px] text-white !m-0">Visibile in classifica</p>
             <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Il tuo profilo appare nella classifica pubblica</p>
           </div>
-          <Switch checked={leaderboardVisible} onCheckedChange={onToggleLeaderboard} />
+          <Switch
+            checked={leaderboardVisible}
+            onCheckedChange={onToggleLeaderboard}
+            aria-label={leaderboardVisible ? 'Nascondi profilo dalla classifica pubblica' : 'Mostra profilo nella classifica pubblica'}
+          />
         </div>
 
         {/* Geo consent */}
@@ -576,23 +608,37 @@ function GdprPrivacyCard({
             </div>
           </div>
           <div className="flex gap-[8px]">
-            <button type="button" onClick={onGrantGeoConsent}
+            <button
+              type="button"
+              onClick={onGrantGeoConsent}
               disabled={geoConsent === 'granted'}
-              className="flex-1 py-[6px] px-[10px] rounded-[10px] border border-[#2d2728] text-[12px] text-white disabled:opacity-40">
+              aria-label="Consenti la verifica GPS ai turni"
+              aria-pressed={geoConsent === 'granted'}
+              className="flex-1 py-[6px] px-[10px] rounded-[10px] border border-[#2d2728] text-[12px] text-white disabled:opacity-40"
+            >
               Consenti
             </button>
-            <button type="button" onClick={onDenyGeoConsent}
+            <button
+              type="button"
+              onClick={onDenyGeoConsent}
               disabled={geoConsent === 'denied'}
-              className="flex-1 py-[6px] px-[10px] rounded-[10px] border border-[#2d2728] text-[12px] text-white disabled:opacity-40">
+              aria-label="Nega la verifica GPS ai turni"
+              aria-pressed={geoConsent === 'denied'}
+              className="flex-1 py-[6px] px-[10px] rounded-[10px] border border-[#2d2728] text-[12px] text-white disabled:opacity-40"
+            >
               Nega
             </button>
           </div>
         </div>
 
         {/* Export data */}
-        <button type="button" onClick={onExportData}
-          className="flex items-center gap-[10px] py-[6px]">
-          <Download className="text-[#f4bf4f]" size={20} />
+        <button
+          type="button"
+          onClick={onExportData}
+          aria-label="Scarica i miei dati: esporta profilo, turni e badge in JSON"
+          className="flex items-center gap-[10px] py-[6px]"
+        >
+          <Download aria-hidden="true" className="text-[#f4bf4f]" size={20} />
           <div className="text-left">
             <p className="text-[16px] leading-[25.6px] font-semibold text-white !m-0">Scarica i miei dati</p>
             <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Esporta profilo, turni e badge in JSON</p>
