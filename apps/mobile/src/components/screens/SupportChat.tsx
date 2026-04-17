@@ -32,6 +32,7 @@ const ISSUE_DRAFT_MARKER = 'ISSUE_DRAFT:';
 
 export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
   const displayName = userName || 'Utente';
+  const historyId = userId || displayName;
   const greetingMessage = useMemo(() => buildSupportMessage('assistant',
     `Ciao ${displayName}! Sono Maxwell, pronto a darti una mano. Come posso aiutarti?`), [displayName]);
   const isMobile = useIsMobile();
@@ -70,7 +71,7 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
       saveChatHistory(displayName, [session], userId);
     }
     hasLoadedRef.current = true;
-  }, [displayName, greetingMessage]);
+  }, [historyId, greetingMessage]);
 
   useEffect(() => () => { abortControllerRef.current?.abort(); }, []);
 
@@ -81,7 +82,7 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
       saveChatHistory(displayName, next, userId);
       return next;
     });
-  }, [messages, activeSessionId, displayName]);
+  }, [messages, activeSessionId, historyId]);
 
   const hasInput = input.trim().length > 0;
   const activeSession = useMemo(

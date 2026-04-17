@@ -140,6 +140,12 @@ export function useAuth(
         [updateProfile, onAuthChange],
     );
 
+    const applyUserProfileRef = useRef(applyUserProfileFromAuth);
+    useEffect(() => { applyUserProfileRef.current = applyUserProfileFromAuth; }, [applyUserProfileFromAuth]);
+
+    const onLogoutRef = useRef(onLogout);
+    useEffect(() => { onLogoutRef.current = onLogout; }, [onLogout]);
+
     useEffect(() => {
         if (!supabase) return;
         let mounted = true;
@@ -147,7 +153,7 @@ export function useAuth(
         supabase.auth.getSession().then(({ data, error }) => {
             if (!mounted || error) return;
             if (data.session?.user) {
-                applyUserProfileFromAuth(data.session.user, {
+                applyUserProfileRef.current(data.session.user, {
                     navigateTo: 'home',
                 });
             }
@@ -161,14 +167,14 @@ export function useAuth(
                 return;
             }
             if (event === 'PASSWORD_RECOVERY') {
-                applyUserProfileFromAuth(session?.user, {
+                applyUserProfileRef.current(session?.user, {
                     navigateTo: 'change-password',
                     isRecovery: true,
                 });
                 return;
             }
             if (session?.user) {
-                applyUserProfileFromAuth(session.user, {
+                applyUserProfileRef.current(session.user, {
                     navigateTo: 'home',
                 });
             }

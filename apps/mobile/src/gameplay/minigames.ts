@@ -153,15 +153,14 @@ export function getMinigameConfig(activityId: string, roleId?: RoleId | null): M
 
 export function computeRoundScore(target: number, hit: number, tolerance: number) {
   const delta = Math.abs(target - hit);
-  const accuracy = Math.max(0, 100 - delta * 2);
-  const score = Math.round(accuracy);
+  const score = Math.round(Math.max(0, 100 - delta * 2));
   let label = 'Da migliorare';
 
   if (delta <= tolerance) label = 'Perfetto';
   else if (delta <= tolerance * 2) label = 'Ottimo';
   else if (delta <= tolerance * 3) label = 'Buono';
 
-  return { score, accuracy, delta, label };
+  return { score, delta, label };
 }
 
 export function computeOutcome(
