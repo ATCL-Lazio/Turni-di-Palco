@@ -242,6 +242,10 @@ export type PlayerProfile = {
   completedCourses: Record<string, string>;
   /** Corsi attualmente in corso: courseId → timestamp ISO di avvio. */
   activeCourses: Record<string, string>;
+  /** Tema UI preferito dall'utente. 'system' segue il tema del dispositivo. Default: 'dark'. */
+  theme: 'dark' | 'light' | 'system';
+  /** Modalità accessibile per i minigiochi timing (velocità ridotta, tolleranza maggiore). Default: false. */
+  accessibleMode: boolean;
 };
 
 export type RegisterTurnInput = {
@@ -393,6 +397,8 @@ type DbProfileRow = {
   skills?: { precision: number; presence: number; creativity: number; leadership: number } | null;
   active_courses?: Record<string, string> | null;
   completed_courses?: Record<string, string> | null;
+  theme?: string | null;
+  accessible_mode?: boolean | null;
 };
 
 type DbBadgeRow = {
@@ -834,6 +840,8 @@ type ProfileUpsertPayload = {
   role_id: RoleId;
   profile_image?: string | null;
   leaderboard_visible?: boolean;
+  theme?: 'dark' | 'light';
+  accessible_mode?: boolean;
   cookie_consent_at?: string | null;
   onboarding_completed_at?: string | null;
   onboarding_variant?: 'full' | 'skipped_qr' | 'skipped_manual' | null;
@@ -1750,6 +1758,8 @@ function buildProfileUpsertPayload(userId: string, profile: PlayerProfile): Prof
     role_id: profile.roleId,
     profile_image: profile.profileImage ?? null,
     leaderboard_visible: profile.leaderboardVisible,
+    theme: profile.theme,
+    accessible_mode: profile.accessibleMode,
     ...(cookieConsentAt ? { cookie_consent_at: cookieConsentAt } : {}),
     onboarding_completed_at: profile.onboardingCompletedAt ?? null,
     onboarding_variant: profile.onboardingVariant ?? null,
@@ -1963,6 +1973,8 @@ function createInitialState(): GameState {
       skills: { precision: 0, presence: 0, creativity: 0, leadership: 0 },
       completedCourses: {},
       activeCourses: {},
+      theme: 'dark',
+      accessibleMode: false,
     },
     turns: [],
     eventPlans: [],
@@ -1993,6 +2005,8 @@ function createDemoState(): GameState {
       skills: { precision: 0, presence: 0, creativity: 0, leadership: 0 },
       completedCourses: {},
       activeCourses: {},
+      theme: 'dark',
+      accessibleMode: false,
     },
     turns: [
       {
@@ -2033,11 +2047,16 @@ function loadState(): GameState {
     const parsed = JSON.parse(raw) as GameState;
     if (!parsed.profile) return createDefaultState();
     const safeRole = isRoleId(parsed.profile.roleId) ? parsed.profile.roleId : createDefaultState().profile.roleId;
+    const parsedTheme = parsed.profile.theme === 'light' ? 'light' : 'dark';
+    const parsedAccessibleMode =
+      typeof parsed.profile.accessibleMode === 'boolean' ? parsed.profile.accessibleMode : false;
     return {
       profile: {
         ...createDefaultState().profile,
         ...parsed.profile,
         roleId: safeRole,
+        theme: parsedTheme,
+        accessibleMode: parsedAccessibleMode,
       },
       turns: Array.isArray(parsed.turns) ? parsed.turns : [],
       eventPlans: Array.isArray(parsed.eventPlans)
@@ -2277,7 +2296,7 @@ type GameContextValue = {
   unfollowEvent: (eventId: string) => Promise<void>;
   isEventFollowed: (eventId: string) => boolean;
   markBadgesSeen: () => void;
-  updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => void;
+  updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible' | 'theme' | 'accessibleMode'>>) => void;
   registerTurn: (input: RegisterTurnInput) => Promise<RegisterTurnResult>;
   pendingBoostRequests: number;
   turnSyncFeedback: TurnSyncFeedback | null;
@@ -3924,6 +3943,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 skills: profileRow.skills ?? prev.profile.skills,
                 activeCourses: profileRow.active_courses ?? prev.profile.activeCourses,
                 completedCourses: profileRow.completed_courses ?? prev.profile.completedCourses,
+                theme: (profileRow.theme === 'light' || profileRow.theme === 'dark' || profileRow.theme === 'system')
+                  ? profileRow.theme
+                  : prev.profile.theme,
+                accessibleMode: profileRow.accessible_mode ?? prev.profile.accessibleMode,
               },
               eventPlans: prev.eventPlans,
               turns: remoteTurns,
@@ -4033,6 +4056,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               onboardingVariant: (profile.onboarding_variant === 'full' || profile.onboarding_variant === 'skipped_qr' || profile.onboarding_variant === 'skipped_manual')
                 ? profile.onboarding_variant
                 : prev.profile.onboardingVariant,
+              theme:
+                profile.theme === 'light' || profile.theme === 'dark' || profile.theme === 'system'
+                  ? profile.theme
+                  : prev.profile.theme,
+              accessibleMode:
+                profile.accessible_mode != null
+                  ? profile.accessible_mode
+                  : prev.profile.accessibleMode,
             },
           }));
           setHasHydratedRemote(true);
@@ -4238,7 +4269,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateProfile = useCallback(
-    (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {
+    (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible' | 'theme' | 'accessibleMode'>>) => {
       let nextProfile: PlayerProfile | null = null;
       setState((prev: GameState) => {
         const nextRole =
@@ -5236,6 +5267,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         tokenAtcl: state.profile.tokenAtcl,
         lastActivityAt: new Date(state.profile.lastActivityAt).toISOString(),
         leaderboardVisible: state.profile.leaderboardVisible,
+        theme: state.profile.theme,
+        accessibleMode: state.profile.accessibleMode,
       },
       turns: state.turns,
       badges,
