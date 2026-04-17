@@ -4,6 +4,7 @@ import { NavigatorProvider } from './router';
 import { useFeatureGates } from './handlers';
 import { AppShell } from './components/AppShell';
 import { ThemeProvider } from './providers/ThemeProvider';
+import { LiveRegion } from './components/ui/LiveRegion';
 
 function AppWithNavigator() {
   const { events, featureFlags, isFeatureEnabled } = useGameState();
@@ -26,6 +27,7 @@ export default function App() {
   return (
     <GameStateProvider>
       <ThemeProvider>
+        <LiveRegion />
         <AppWithNavigator />
       </ThemeProvider>
     </GameStateProvider>
