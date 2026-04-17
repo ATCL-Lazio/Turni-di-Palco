@@ -5,7 +5,9 @@ import { renderDashboard } from "./dashboard";
 const start = async () => {
   const allowed = await requireDevAccess();
   if (!allowed) return;
-  renderDashboard(document.querySelector<HTMLElement>("#app")!);
+  const root = document.querySelector<HTMLElement>("#app");
+  if (!root) return;
+  renderDashboard(root);
 };
 
 void start();

@@ -134,6 +134,9 @@ export function renderDashboard(root: HTMLElement): void {
   void getUserEmail().then((email) => {
     const el = root.querySelector<HTMLElement>("[data-user-email]");
     if (el) el.textContent = email;
+  }).catch(() => {
+    const el = root.querySelector<HTMLElement>("[data-user-email]");
+    if (el) el.textContent = "—";
   });
 
   // Feature flags
@@ -149,7 +152,11 @@ export function renderDashboard(root: HTMLElement): void {
 
   // Sign out
   root.querySelector<HTMLButtonElement>("[data-signout]")?.addEventListener("click", async () => {
-    if (supabase) await supabase.auth.signOut();
+    try {
+      if (supabase) await supabase.auth.signOut();
+    } catch {
+      // sign-out failure must not block reload
+    }
     window.location.reload();
   });
 }
