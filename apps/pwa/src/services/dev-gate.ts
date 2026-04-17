@@ -112,7 +112,7 @@ export async function requireDevAccess(): Promise<boolean> {
   const gate = renderGate(root);
   if (data.user) setMessage(gate.message, "Account non autorizzato per la dev dashboard.", "error");
 
-  return new Promise<boolean>((resolve, reject) => {
+  return new Promise<boolean>((resolve) => {
     gate.form.addEventListener("submit", async (e) => {
       e.preventDefault();
       setBusy(gate, true);
@@ -141,10 +141,9 @@ export async function requireDevAccess(): Promise<boolean> {
         setMessage(gate.message, "Accesso autorizzato.", "success");
         root.innerHTML = "";
         resolve(true);
-      } catch (err) {
+      } catch {
         setBusy(gate, false);
         setMessage(gate.message, "Errore imprevisto. Riprova.", "error");
-        reject(err);
       }
     });
   });
