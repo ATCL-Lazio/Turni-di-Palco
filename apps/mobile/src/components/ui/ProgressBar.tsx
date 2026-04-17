@@ -20,11 +20,14 @@ export function ProgressBar({
   // Animate fill from 0 to percentage on mount / value change
   const [displayWidth, setDisplayWidth] = useState(0);
   useEffect(() => {
-    const id = requestAnimationFrame(() => {
-      const timer = setTimeout(() => setDisplayWidth(percentage), 30);
-      return () => clearTimeout(timer);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const rafId = requestAnimationFrame(() => {
+      timer = setTimeout(() => setDisplayWidth(percentage), 30);
     });
-    return () => cancelAnimationFrame(id);
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (timer !== null) clearTimeout(timer);
+    };
   }, [percentage]);
 
   const heights = {
