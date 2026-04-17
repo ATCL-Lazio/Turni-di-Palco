@@ -8,13 +8,13 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-gradient-to-b from-[#8c1c38] to-[#a82847] text-white shadow-md hover:shadow-lg hover:from-[#6b1529] hover:to-[#8c1c38] active:scale-95',
-        primary: 'bg-gradient-to-b from-[#8c1c38] to-[#a82847] text-white shadow-md hover:shadow-lg hover:from-[#6b1529] hover:to-[#8c1c38] active:scale-95',
+        default: 'bg-gradient-to-b from-[--color-burgundy-700] to-[--color-burgundy-600] text-white shadow-md hover:shadow-lg hover:from-[--color-burgundy-800] hover:to-[--color-burgundy-700] active:scale-95',
+        primary: 'bg-gradient-to-b from-[--color-burgundy-700] to-[--color-burgundy-600] text-white shadow-md hover:shadow-lg hover:from-[--color-burgundy-800] hover:to-[--color-burgundy-700] active:scale-95',
         destructive: 'bg-red-600 text-white hover:bg-red-700 active:scale-95',
-        outline: 'border border-[#2d2728] bg-transparent text-[#f7f3f4] hover:bg-[#241f20] active:scale-95',
-        secondary: 'border-2 border-[#a82847] text-[#f4bf4f] bg-transparent hover:bg-[#a82847]/10 active:scale-95',
-        ghost: 'text-[#f4bf4f] hover:bg-[#241f20] active:scale-95',
-        link: 'text-[#f4bf4f] underline-offset-4 hover:underline',
+        outline: 'border border-[--color-bg-surface-hover] bg-transparent text-[--color-text-primary] hover:bg-[--color-bg-surface-elevated] active:scale-95',
+        secondary: 'border-2 border-[--color-burgundy-600] text-[--color-gold-400] bg-transparent hover:bg-[--color-burgundy-600]/10 active:scale-95',
+        ghost: 'text-[--color-gold-400] hover:bg-[--color-bg-surface-elevated] active:scale-95',
+        link: 'text-[--color-gold-400] underline-offset-4 hover:underline',
       },
       size: {
         default: 'px-6 py-3 text-base',

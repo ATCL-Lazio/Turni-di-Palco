@@ -9,7 +9,7 @@ export function CopyrightNotice({ className }: CopyrightNoticeProps) {
   return (
     <p
       className={cn(
-        'text-center text-[11px] leading-[16px] text-[#9a9697] !m-0',
+        'text-center text-[11px] leading-[16px] text-[--color-text-tertiary] !m-0',
         className
       )}
     >

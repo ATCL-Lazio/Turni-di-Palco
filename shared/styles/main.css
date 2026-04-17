@@ -46,6 +46,9 @@
   --color-error-soft-text: #ff9aac;
   --color-warning-soft-bg: #2a1f14;
   --color-warning-soft-text: #f4bf4f;
+  --color-tutorial-border: #3a2f30;
+  --color-tutorial-description: #c9b8b9;
+  --color-code-bg: #141112;
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
   --space-md: 1rem;
@@ -120,6 +123,9 @@
   --color-error-soft-text: #a0111f;
   --color-warning-soft-bg: #fdf0dd;
   --color-warning-soft-text: #a05a00;
+  --color-tutorial-border: #d4cfd0;
+  --color-tutorial-description: #4a4446;
+  --color-code-bg: #f4f0f1;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.06);
