@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ArrowLeft, Bell, Camera, ChevronRight, Download, FileText, History, KeyRound,
-  LogOut, MapPin, MessageCircle, QrCode, RotateCcw, Shield, ShieldCheck, Trash2, UserX,
+  Accessibility, ArrowLeft, Bell, Camera, ChevronRight, Download, FileText, History, KeyRound,
+  LogOut, MapPin, MessageCircle, QrCode, RotateCcw, Shield, ShieldCheck, Sun, Trash2, UserX,
 } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
@@ -10,6 +10,7 @@ import { getPermission, requestPermission, type NotificationPermissionState } fr
 import { checkAiSupportAvailability } from '../../services/ai';
 import { CopyrightNotice } from '../ui/CopyrightNotice';
 import { GEO_CONSENT_KEY } from '../../constants/privacy';
+import { useGameState } from '../../state/store';
 
 interface AccountSettingsProps {
   userName: string;
@@ -113,6 +114,7 @@ export function AccountSettings({
           onDenyGeoConsent={denyGeoConsent}
           onExportData={onExportData}
         />
+        <AccessibilityCard />
         <LinksSection
           showAiSupport={showAiSupport}
           showTicketPrototype={showTicketPrototype}
@@ -596,6 +598,53 @@ function GdprPrivacyCard({
             <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Esporta profilo, turni e badge in JSON</p>
           </div>
         </button>
+      </div>
+    </SettingsCard>
+  );
+}
+
+function AccessibilityCard() {
+  const { state, updateProfile } = useGameState();
+  const isLight = state.profile.theme === 'light';
+  const accessibleMode = state.profile.accessibleMode;
+
+  return (
+    <SettingsCard className="gap-[14px]">
+      <div className="flex items-center gap-[12px]">
+        <Accessibility className="text-[#f4bf4f]" size={24} />
+        <div className="text-left">
+          <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">Accessibilità</p>
+          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">Tema e aiuti nei minigiochi</p>
+        </div>
+      </div>
+
+      <div className="border-t border-[#2d2728] pt-[12px] flex flex-col gap-[16px]">
+        <div className="flex items-center justify-between gap-[12px]">
+          <div className="flex items-start gap-[10px] flex-1">
+            <Sun className="text-[#f4bf4f]" size={20} />
+            <div>
+              <p className="text-[16px] leading-[25.6px] text-white !m-0">Tema chiaro</p>
+              <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Interfaccia su sfondo chiaro per contrasti migliori</p>
+            </div>
+          </div>
+          <Switch
+            checked={isLight}
+            onCheckedChange={(checked) => updateProfile({ theme: checked ? 'light' : 'dark' })}
+            aria-label="Attiva tema chiaro"
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-[12px]">
+          <div className="flex-1">
+            <p className="text-[16px] leading-[25.6px] text-white !m-0">Modalità accessibile (minigiochi)</p>
+            <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Rallenta la velocità e amplia la tolleranza nei minigiochi timing</p>
+          </div>
+          <Switch
+            checked={accessibleMode}
+            onCheckedChange={(checked) => updateProfile({ accessibleMode: checked })}
+            aria-label="Attiva modalità accessibile nei minigiochi"
+          />
+        </div>
       </div>
     </SettingsCard>
   );
