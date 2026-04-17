@@ -69,7 +69,7 @@ const formatDate = (details, fallback) => {
 };
 
 const formatTime = (details, fallback) => {
-  if (details?.hour && details?.minutes != null) {
+  if (details?.hour != null && details?.minutes != null) {
     return `${String(details.hour).padStart(2, '0')}:${String(details.minutes).padStart(2, '0')}`;
   }
   if (fallback) {
