@@ -103,6 +103,7 @@ function normalizeEndpoint(endpoint: string) {
       isLocalHost(url.hostname)
     ) {
       url.hostname = currentHost;
+      url.port = ''; // clear localhost port when rewriting to production host
       if (window.location.protocol === 'https:') {
         url.protocol = 'https:';
       }
