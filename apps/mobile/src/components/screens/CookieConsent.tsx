@@ -58,7 +58,7 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
       >
         {/* Logo e titolo */}
         <div className="flex flex-col items-center gap-5 pt-3">
-          <div className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-[28px] size-[96px] flex items-center justify-center ring-1 ring-[#a82847]/30">
+          <div className="bg-gradient-to-b from-[--color-burgundy-600] to-[--color-burgundy-800] rounded-[28px] size-[96px] flex items-center justify-center ring-1 ring-[--color-burgundy-600]/30">
             <img alt="" className="size-[48px]" src={welcomeLogo} />
           </div>
           <div className="flex flex-col items-center gap-1">
@@ -72,7 +72,7 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
             >
               Cookie e Privacy
             </p>
-            <p className="text-[12px] leading-none text-[#9a9697] tracking-[0.10em] uppercase font-semibold">
+            <p className="text-[12px] leading-none text-[--color-text-tertiary] tracking-[0.10em] uppercase font-semibold">
               Prima di iniziare
             </p>
           </div>
@@ -81,24 +81,24 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
         {/* Card informativa */}
         <div
           id="cookie-dialog-description"
-          className="mt-6 w-full bg-[#1a1617] border border-[#2d2728] rounded-2xl p-4"
+          className="mt-6 w-full bg-[--color-bg-surface] border border-[--color-bg-surface-hover] rounded-2xl p-4"
         >
           <div className="grid grid-cols-2 gap-2" role="list">
             {bullets.map(({ icon: Icon, title, desc }) => (
               <div
                 key={title}
                 role="listitem"
-                className="flex flex-col gap-2 rounded-[14px] bg-[#0f0d0e] p-3"
+                className="flex flex-col gap-2 rounded-[14px] bg-[--color-bg-primary] p-3"
               >
                 <div
                   aria-hidden="true"
-                  className="flex items-center justify-center size-[32px] rounded-[9px] bg-[#f4bf4f]/10 self-start"
+                  className="flex items-center justify-center size-[32px] rounded-[9px] bg-[--color-gold-400]/10 self-start"
                 >
-                  <Icon size={15} className="text-[#f4bf4f]" />
+                  <Icon size={15} className="text-[--color-gold-400]" />
                 </div>
                 <div className="text-left">
-                  <p className="text-[12px] font-semibold text-[#f5f5f5] leading-[17px]">{title}</p>
-                  <p className="text-[11px] leading-[16px] text-[#9a9697] mt-0.5">{desc}</p>
+                  <p className="text-[12px] font-semibold text-[--color-text-primary] leading-[17px]">{title}</p>
+                  <p className="text-[11px] leading-[16px] text-[--color-text-tertiary] mt-0.5">{desc}</p>
                 </div>
               </div>
             ))}
@@ -111,7 +111,7 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
             type="button"
             onClick={handleAccept}
             aria-label="Accetta i cookie tecnici e continua"
-            className="h-[50px] w-full max-w-[300px] rounded-2xl bg-gradient-to-b from-[#f4bf4f] to-[#e6a23c] shadow-[0_4px_20px_rgba(244,191,79,0.25)] active:shadow-none active:scale-[0.98] transition-all duration-150 text-[#0f0d0e]"
+            className="h-[50px] w-full max-w-[300px] rounded-2xl bg-gradient-to-b from-[--color-gold-400] to-[--color-gold-500] shadow-[0_4px_20px_rgba(244,191,79,0.25)] active:shadow-none active:scale-[0.98] transition-all duration-150 text-[--color-bg-primary]"
           >
             <span className="block text-[17px] font-semibold leading-none">Accetta e continua</span>
           </button>
@@ -120,7 +120,7 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
             type="button"
             onClick={() => setRejected(true)}
             aria-label="Rifiuta i cookie"
-            className="text-[#8a7a7b] text-sm underline"
+            className="text-[--color-text-tertiary] text-sm underline"
           >
             Rifiuta
           </button>
@@ -129,7 +129,7 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
             <p
               role="alert"
               aria-live="assertive"
-              className="text-[12px] leading-[16px] text-[#a82847] max-w-[280px]"
+              className="text-[12px] leading-[16px] text-[--color-burgundy-600] max-w-[280px]"
             >
               Per utilizzare l'app è necessario accettare i cookie tecnici.
             </p>
@@ -141,12 +141,12 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
             aria-label="Leggi la Privacy Policy"
             className="h-[44px] w-full max-w-[300px] flex items-center justify-center"
           >
-            <span className="text-[14px] text-[#b8b2b3] underline underline-offset-2">
+            <span className="text-[14px] text-[--color-text-secondary] underline underline-offset-2">
               Leggi la Privacy Policy
             </span>
           </button>
 
-          <p className="text-[11px] leading-[16px] text-[#9a9697] max-w-[280px]">
+          <p className="text-[11px] leading-[16px] text-[--color-text-tertiary] max-w-[280px]">
             Cliccando "Accetta e continua" acconsenti all'uso dei cookie tecnici necessari al funzionamento dell'app.
           </p>
 

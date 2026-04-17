@@ -78,25 +78,25 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
       className="app-gradient justify-start"
       contentClassName="max-w-3xl space-y-6"
     >
-      <div className="flex items-center justify-between rounded-2xl border border-[#2d2728] bg-[#1a1617] px-4 py-3">
+      <div className="flex items-center justify-between rounded-2xl border border-[--color-bg-surface-hover] bg-[--color-bg-surface] px-4 py-3">
         <button
           type="button"
           onClick={onBack}
           aria-label="Torna indietro"
-          className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-[#f4bf4f] hover:text-[#e6a23c]"
+          className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-[--color-gold-400] hover:text-[--color-gold-500]"
         >
           <ArrowLeft aria-hidden="true" size={18} />
           Indietro
         </button>
-        <p className="text-xs text-[#b8b2b3]">Prototipo mobile ticket office + attivazione</p>
+        <p className="text-xs text-[--color-text-secondary]">Prototipo mobile ticket office + attivazione</p>
       </div>
 
-      <section className="rounded-2xl border border-[#2d2728] bg-[#1a1617] p-4 space-y-4">
+      <section className="rounded-2xl border border-[--color-bg-surface-hover] bg-[--color-bg-surface] p-4 space-y-4">
         <div className="flex items-center gap-2 text-white">
-          <QrCode size={18} className="text-[#f4bf4f]" />
+          <QrCode size={18} className="text-[--color-gold-400]" />
           <h3 className="text-base !m-0">1) Generazione payload e hash QR</h3>
         </div>
-        <p className="text-sm text-[#b8b2b3]">
+        <p className="text-sm text-[--color-text-secondary]">
           Struttura JSON richiesta: circuit, eventName, eventID, ticketNumber, date.
         </p>
         <div className="grid grid-cols-1 gap-3">
@@ -112,11 +112,11 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
         </Button>
 
         {generateMessage ? (
-          <p className="text-sm text-[#b8b2b3]" role="status" aria-live="polite">{generateMessage}</p>
+          <p className="text-sm text-[--color-text-secondary]" role="status" aria-live="polite">{generateMessage}</p>
         ) : null}
 
         {generated ? (
-          <div className="rounded-xl border border-[#2d2728] bg-[#0f0d0e] p-3 text-xs text-[#d9d4d5] space-y-2">
+          <div className="rounded-xl border border-[--color-bg-surface-hover] bg-[--color-bg-primary] p-3 text-xs text-[--color-text-secondary] space-y-2">
             <p className="!m-0"><strong>QR value (hash):</strong> {generated.qrValue}</p>
             <p className="!m-0 break-all"><strong>Hash SHA-256:</strong> {generated.hash}</p>
             <p className="!m-0 break-all"><strong>JSON:</strong> {generated.json}</p>
@@ -124,7 +124,7 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
         ) : null}
       </section>
 
-      <section className="rounded-2xl border border-[#2d2728] bg-[#1a1617] p-4 space-y-4">
+      <section className="rounded-2xl border border-[--color-bg-surface-hover] bg-[--color-bg-surface] p-4 space-y-4">
         <h3 className="text-base text-white !m-0">2) Scansione e attivazione one-shot</h3>
           <Input
             value={scanInput}
@@ -136,19 +136,19 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
           Verifica e attiva
         </Button>
         {scanMessage ? (
-          <p className="text-sm text-[#b8b2b3]" role="status" aria-live="polite">{scanMessage}</p>
+          <p className="text-sm text-[--color-text-secondary]" role="status" aria-live="polite">{scanMessage}</p>
         ) : null}
       </section>
 
-      <section className="rounded-2xl border border-[#2d2728] bg-[#1a1617] p-4 space-y-3">
+      <section className="rounded-2xl border border-[--color-bg-surface-hover] bg-[--color-bg-surface] p-4 space-y-3">
         <div className="flex items-center gap-2 text-white">
-          <Database size={18} className="text-[#f4bf4f]" />
+          <Database size={18} className="text-[--color-gold-400]" />
           <h3 className="text-base !m-0">Stato archivio locale prototipo</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left text-[#d9d4d5]">
+          <table className="w-full text-xs text-left text-[--color-text-secondary]">
             <thead>
-              <tr className="text-[#b8b2b3]">
+              <tr className="text-[--color-text-secondary]">
                 <th className="pb-2">Hash</th>
                 <th className="pb-2">Ticket</th>
                 <th className="pb-2">Stato</th>
@@ -158,11 +158,11 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
             <tbody>
               {records.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-2 text-[#7f797a]">Nessun ticket generato.</td>
+                  <td colSpan={4} className="py-2 text-[--color-text-tertiary]">Nessun ticket generato.</td>
                 </tr>
               ) : (
                 records.map((record) => (
-                  <tr key={record.hash} className="border-t border-[#2d2728]">
+                  <tr key={record.hash} className="border-t border-[--color-bg-surface-hover]">
                     <td className="py-2 pr-2">{record.hash.slice(0, 12)}…</td>
                     <td className="py-2 pr-2">{record.ticketNumber}</td>
                     <td className="py-2 pr-2">{record.status}</td>
