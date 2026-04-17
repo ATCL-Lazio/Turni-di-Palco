@@ -348,7 +348,8 @@ html[data-theme="light"] .text-white {
    that need a guaranteed-white text in either theme should use the
    semantic `.text-on-accent` class below instead of `text-white`. */
 .text-on-accent { color: #ffffff; }
-@layer base {
+
+@layer base {
   * {
     margin: 0;
     padding: 0;
@@ -1279,4 +1280,4 @@ html[data-theme="light"] .text-white {
   --color-overlay: var(--color-surface-overlay);
   --color-on-brand: var(--color-text-on-burgundy);
   --color-focus: var(--color-focus-ring);
-}
+}
