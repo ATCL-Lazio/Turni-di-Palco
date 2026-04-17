@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+﻿﻿@import "tailwindcss";
 @source "../../apps/mobile/src/**/*.{ts,tsx,js,jsx,html}";
 @source "../../apps/mobile/index.html";
 @source "../../apps/mobile/*.html";
@@ -1279,4 +1279,4 @@ html[data-theme="light"] .text-white {
   --color-overlay: var(--color-surface-overlay);
   --color-on-brand: var(--color-text-on-burgundy);
   --color-focus: var(--color-focus-ring);
-}
+}
