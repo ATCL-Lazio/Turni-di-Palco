@@ -40,7 +40,7 @@ export function Activities({
     <>
       <header className="space-y-2">
         <h2 className="text-white">Attività simulate</h2>
-        <p className="text-[#b8b2b3]">Migliora le tue skill e guadagna ricompense</p>
+        <p className="text-muted">Migliora le tue skill e guadagna ricompense</p>
       </header>
 
       <TrainingBanner />
@@ -77,8 +77,8 @@ export function Activities({
 
       {totalActivities === 0 && (
         <Card className="text-center">
-          <p className="text-sm text-[#9a9697]">Nuove attività in arrivo</p>
-          <p className="text-sm text-[#b8b2b3]">Stiamo preparando nuove sfide e attività</p>
+          <p className="text-sm text-subtle">Nuove attività in arrivo</p>
+          <p className="text-sm text-muted">Stiamo preparando nuove sfide e attività</p>
         </Card>
       )}
     </>
@@ -95,14 +95,14 @@ export function Activities({
 
 function TrainingBanner() {
   return (
-    <Card className="border border-[#f4bf4f]/30 bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+    <Card className="border border-accent/30 bg-gradient-to-br from-surface to-surface-elevated">
       <div className="flex items-start gap-4">
-        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
-          <TrendingUp className="text-[#f4bf4f]" size={22} />
+        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-burgundy-600 to-burgundy-800 rounded-xl flex items-center justify-center">
+          <TrendingUp className="text-accent" size={22} />
         </div>
         <div className="space-y-1">
           <h3 className="text-white">Allenati ogni giorno</h3>
-          <p className="text-sm text-[#b8b2b3]">
+          <p className="text-sm text-muted">
             Completa le attività per migliorare le tue competenze e prepararti per gli eventi reali
           </p>
         </div>
@@ -120,15 +120,15 @@ function DailyProgressCard({
   slotsLoading: boolean;
 }) {
   return (
-    <Card className="border border-[#2d2728] bg-[#1a1617]">
+    <Card className="border border-surface-hover bg-surface">
       <div className="flex items-center justify-between gap-4">
         <div className="space-y-1">
-          <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Missioni giornaliere</p>
+          <p className="text-xs uppercase tracking-wide text-muted">Missioni giornaliere</p>
           <h3 className="text-white text-lg font-semibold">{completedToday}/{dailyGoal} completate oggi</h3>
-          {slotsLoading && <p className="text-sm text-[#b8b2b3]">Verifica slot in corso...</p>}
+          {slotsLoading && <p className="text-sm text-muted">Verifica slot in corso...</p>}
         </div>
-        <div className="w-12 h-12 rounded-full bg-[#241f20] flex items-center justify-center">
-          <Flag className="text-[#f4bf4f]" size={22} />
+        <div className="w-12 h-12 rounded-full bg-surface-elevated flex items-center justify-center">
+          <Flag className="text-accent" size={22} />
         </div>
       </div>
       <div className="mt-4">
@@ -164,24 +164,24 @@ function ActivityCard({
       onClick={canStart ? onStart : undefined}
       aria-label={cardLabel}
       aria-disabled={!canStart}
-      className="border border-white/5 bg-gradient-to-br from-[#1a1617] via-[#1d1819] to-[#221d1e]"
+      className="border border-white/5 bg-gradient-to-br from-surface via-surface to-surface-elevated"
     >
       <div className="flex items-start gap-4">
-        <div aria-hidden="true" className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl flex items-center justify-center">
-          <Play className="text-[#f4bf4f]" size={22} />
+        <div aria-hidden="true" className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-burgundy-600 to-burgundy-800 rounded-2xl flex items-center justify-center">
+          <Play className="text-accent" size={22} />
         </div>
         <div className="flex-1 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Missione {index + 1}</p>
+              <p className="text-xs uppercase tracking-wide text-muted">Missione {index + 1}</p>
               <h4 className="text-white text-lg">{activity.title}</h4>
             </div>
-            <div aria-hidden="true" className="flex items-center gap-2 text-[#f4bf4f]"><Play size={18} /></div>
+            <div aria-hidden="true" className="flex items-center gap-2 text-accent"><Play size={18} /></div>
           </div>
 
-          <p className="text-sm text-[#b8b2b3]">{activity.description}</p>
+          <p className="text-sm text-muted">{activity.description}</p>
 
-          <div className="flex flex-wrap items-center gap-2 text-sm text-[#b8b2b3]">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
             <span className="inline-flex items-center gap-2"><Clock size={14} />{activity.duration}</span>
             <Badge variant="outline" size="sm">{difficultyLabel}</Badge>
             {isRecommended && (
@@ -193,7 +193,7 @@ function ActivityCard({
           <RewardTags xp={rewardPreview.xp} cachet={rewardPreview.cachet} />
 
           {!canStart && (
-            <p className="text-xs text-[#ff9aac]">
+            <p className="text-xs text-[--color-error]">
               {!canStartActivities ? 'Funzione temporaneamente disattivata.'
                 : !isOnline ? 'Per completare attività serve connessione online.'
                 : 'Limite slot giornalieri raggiunto.'}
@@ -209,10 +209,10 @@ function RewardTags({ xp, cachet }: { xp: number; cachet: number }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/90 backdrop-blur">
-        <TrendingUp size={12} className="text-[#f4bf4f]" /> +{xp} XP
+        <TrendingUp size={12} className="text-accent" /> +{xp} XP
       </span>
       <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/90 backdrop-blur">
-        <Coins size={12} className="text-[#f4bf4f]" /> +{cachet}
+        <Coins size={12} className="text-accent" /> +{cachet}
       </span>
     </div>
   );
