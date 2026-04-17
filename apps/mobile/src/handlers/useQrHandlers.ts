@@ -114,41 +114,37 @@ export function useQrHandlers(deps: QrHandlerDeps) {
       return { ok: true as const };
     }
 
-    // Ticket hash (QR scan path — requires qr_scan enabled)
-    if (qrScanEnabled) {
-      const ticketHash = parseTicketQrValue(code);
-      if (ticketHash) {
-        if (!activationUserId) {
-          return { ok: false as const, error: 'Utente non disponibile per l\'attivazione ticket.' };
-        }
-        if (isTicketHashActivatedInSession(ticketHash)) {
-          return { ok: false as const, error: 'Ticket già attivato in questa sessione.' };
-        }
-
-        const preview = await resolveTicketHashPreview(ticketHash);
-        if (!preview.ok) return { ok: false as const, error: preview.error };
-
-        setPendingTicketActivation({ mode: 'hash', hash: ticketHash, eventId: preview.eventId, event: preview.event });
-        setConfirmationEventOverride(mapActivatedEvent(preview.eventId, events, preview.event) ?? null);
-        setScannedEventId(preview.eventId);
-        navigate('event-confirmation');
-        return { ok: true as const };
+    // Ticket hash (QR scan path)
+    const ticketHash = parseTicketQrValue(code);
+    if (ticketHash) {
+      if (!activationUserId) {
+        return { ok: false as const, error: 'Utente non disponibile per l\'attivazione ticket.' };
+      }
+      if (isTicketHashActivatedInSession(ticketHash)) {
+        return { ok: false as const, error: 'Ticket già attivato in questa sessione.' };
       }
 
-      // Standard QR validation
-      const result = await validateQrPayload(code, events.map(event => event.id));
-      if (!result.valid || !result.eventId) {
-        return { ok: false as const, error: result.error ?? 'QR non valido.' };
-      }
+      const preview = await resolveTicketHashPreview(ticketHash);
+      if (!preview.ok) return { ok: false as const, error: preview.error };
 
-      setPendingTicketActivation(null);
-      setConfirmationEventOverride(null);
-      setScannedEventId(result.eventId);
+      setPendingTicketActivation({ mode: 'hash', hash: ticketHash, eventId: preview.eventId, event: preview.event });
+      setConfirmationEventOverride(mapActivatedEvent(preview.eventId, events, preview.event) ?? null);
+      setScannedEventId(preview.eventId);
       navigate('event-confirmation');
       return { ok: true as const };
     }
 
-    return { ok: false as const, error: 'Formato non riconosciuto.' };
+    // Standard QR validation
+    const result = await validateQrPayload(code, events.map(event => event.id));
+    if (!result.valid || !result.eventId) {
+      return { ok: false as const, error: result.error ?? 'QR non valido.' };
+    }
+
+    setPendingTicketActivation(null);
+    setConfirmationEventOverride(null);
+    setScannedEventId(result.eventId);
+    navigate('event-confirmation');
+    return { ok: true as const };
   }, [authReady, authUserId, events, isAuthValid, isFeatureEnabled, navigate, profileEmail, setConfirmationEventOverride, setPendingTicketActivation, setScannedEventId]);
 
   const handleEventConfirm = useCallback(async ({ boostRequested }: { boostRequested: boolean }): Promise<
