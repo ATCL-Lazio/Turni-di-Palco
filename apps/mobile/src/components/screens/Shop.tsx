@@ -55,7 +55,7 @@ export function Shop({
     <Screen contentClassName="px-6 pt-6 pb-8 space-y-5">
       <header className="space-y-2">
         <h2 className="text-white">Shop</h2>
-        <p className="text-[#b8b2b3]">Spendi cachet per potenziamenti strategici.</p>
+        <p className="text-[--color-text-secondary]">Spendi cachet per potenziamenti strategici.</p>
       </header>
 
       <BalanceCard cachet={cachet} />
@@ -63,7 +63,7 @@ export function Shop({
       {feedback && <FeedbackCard feedback={feedback} />}
 
       {loading && (
-        <Card><p className="text-[#b8b2b3] text-sm">Caricamento catalogo shop...</p></Card>
+        <Card><p className="text-[--color-text-secondary] text-sm">Caricamento catalogo shop...</p></Card>
       )}
 
       {items.map(item => (
@@ -82,10 +82,10 @@ export function Shop({
       ))}
 
       {!items.length && !loading && (
-        <Card className="border border-[#3d3a3b] bg-[#1a1617]">
+        <Card className="border border-[--color-border-strong] bg-[--color-bg-surface]">
           <div className="flex items-start gap-3">
-            <AlertCircle className="text-[#f4bf4f] flex-shrink-0" size={18} />
-            <p className="text-sm text-[#b8b2b3]">Catalogo shop non disponibile al momento.</p>
+            <AlertCircle className="text-[--color-gold-400] flex-shrink-0" size={18} />
+            <p className="text-sm text-[--color-text-secondary]">Catalogo shop non disponibile al momento.</p>
           </div>
         </Card>
       )}
@@ -97,7 +97,7 @@ export function Shop({
 
 function BalanceCard({ cachet }: { cachet: number }) {
   return (
-    <Card className="border border-[#2d2728] bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+    <Card className="border border-[--color-bg-surface-hover] bg-gradient-to-br from-[--color-bg-surface] to-[--color-bg-surface-elevated]">
       <div
         className="flex items-start justify-between gap-4"
         role="status"
@@ -105,11 +105,11 @@ function BalanceCard({ cachet }: { cachet: number }) {
         aria-label={`Saldo disponibile: ${cachet} cachet`}
       >
         <div>
-          <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Saldo disponibile</p>
+          <p className="text-xs uppercase tracking-wide text-[--color-text-secondary]">Saldo disponibile</p>
           <p className="text-2xl text-white font-semibold mt-1">{cachet} Cachet</p>
         </div>
-        <div aria-hidden="true" className="w-12 h-12 rounded-xl bg-[#241f20] border border-[#3d3a3b] flex items-center justify-center">
-          <ShoppingBag className="text-[#f4bf4f]" size={22} />
+        <div aria-hidden="true" className="w-12 h-12 rounded-xl bg-[--color-bg-surface-elevated] border border-[--color-border-strong] flex items-center justify-center">
+          <ShoppingBag className="text-[--color-gold-400]" size={22} />
         </div>
       </div>
     </Card>
@@ -119,13 +119,13 @@ function BalanceCard({ cachet }: { cachet: number }) {
 function FeedbackCard({ feedback }: { feedback: { type: 'ok' | 'error'; message: string } }) {
   return (
     <Card className={feedback.type === 'ok'
-      ? 'border border-[#52c41a]/40 bg-[#1d2a1d]'
-      : 'border border-[#a82847]/50 bg-[#2a1a1f]'
+      ? 'border border-[--color-success]/40 bg-[--color-success-soft-bg]'
+      : 'border border-[--color-burgundy-600]/50 bg-[--color-error-soft-bg]'
     }>
       <p
         role={feedback.type === 'error' ? 'alert' : 'status'}
         aria-live={feedback.type === 'error' ? 'assertive' : 'polite'}
-        className={feedback.type === 'ok' ? 'text-[#9be274]' : 'text-[#ff9aac]'}
+        className={feedback.type === 'ok' ? 'text-[--color-success-soft-text]' : 'text-[--color-error-soft-text]'}
       >
         {feedback.message}
       </p>
@@ -158,13 +158,13 @@ function ShopItemCard({
   return (
     <Card
       aria-label={`${item.title}: ${item.description}. Costo ${item.costCachet} cachet.`}
-      className="border border-white/5 bg-gradient-to-br from-[#1a1617] via-[#1d1819] to-[#221d1e]"
+      className="border border-white/5 bg-gradient-to-br from-[--color-bg-surface] via-[--color-bg-surface] to-[--color-bg-surface-elevated]"
     >
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-white text-lg">{item.title}</h3>
-            <p className="text-sm text-[#b8b2b3] mt-1">{item.description}</p>
+            <p className="text-sm text-[--color-text-secondary] mt-1">{item.description}</p>
           </div>
           {categoryLabel && <Badge variant="outline" size="sm">{categoryLabel}</Badge>}
         </div>
@@ -180,7 +180,7 @@ function ShopItemCard({
         )}
 
         <div className="flex items-center justify-between gap-3">
-          <div className="text-xs text-[#9a9697]">
+          <div className="text-xs text-[--color-text-tertiary]">
             {maxReached ? 'Limite acquisti raggiunto'
               : !canPurchase ? 'Acquisti temporaneamente disattivati'
               : insufficientCachet ? `Ti mancano ${item.costCachet - cachet} cachet`
@@ -200,10 +200,10 @@ function ItemMetaTags({ item }: { item: ShopCatalogItem }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs">
       <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/90">
-        <Coins size={12} className="text-[#f4bf4f]" /> {item.costCachet} cachet
+        <Coins size={12} className="text-[--color-gold-400]" /> {item.costCachet} cachet
       </span>
       <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/90">
-        <Sparkles size={12} className="text-[#f4bf4f]" /> +{item.effectValue}
+        <Sparkles size={12} className="text-[--color-gold-400]" /> +{item.effectValue}
       </span>
       {item.category === 'slot' && item.maxPurchasesPerUser != null && (
         <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/90">
@@ -223,7 +223,7 @@ function TheatreSelector({
 }) {
   return (
     <div className="space-y-2">
-      <label htmlFor="shop-theatre-select" className="text-xs uppercase tracking-wide text-[#b8b2b3] block">
+      <label htmlFor="shop-theatre-select" className="text-xs uppercase tracking-wide text-[--color-text-secondary] block">
         Teatro target
       </label>
       {theatreOptions.length ? (
@@ -232,14 +232,14 @@ function TheatreSelector({
           value={selectedTheatre}
           onChange={e => onSelectTheatre(e.target.value)}
           aria-label="Seleziona teatro target per il pack di reputazione"
-          className="w-full rounded-xl border border-[#3d3a3b] bg-[#241f20] px-3 py-2 text-white outline-none focus:border-[#f4bf4f]"
+          className="w-full rounded-xl border border-[--color-border-strong] bg-[--color-bg-surface-elevated] px-3 py-2 text-white outline-none focus:border-[--color-gold-400]"
         >
           {theatreOptions.map(o => (
             <option key={o.theatre} value={o.theatre}>{o.theatre} ({o.reputation}/100)</option>
           ))}
         </select>
       ) : (
-        <div className="rounded-xl border border-[#a82847]/40 bg-[#2a1a1f] p-3 text-sm text-[#ff9aac]">
+        <div className="rounded-xl border border-[--color-burgundy-600]/40 bg-[--color-error-soft-bg] p-3 text-sm text-[--color-error-soft-text]">
           Nessun teatro idoneo: devi registrare almeno un turno.
         </div>
       )}

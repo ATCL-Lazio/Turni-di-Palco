@@ -40,13 +40,13 @@ export function Leaderboard({ onSelectEntry }: LeaderboardProps) {
     <Screen contentClassName="px-6 pt-6 pb-8 space-y-6">
       <header className="space-y-2">
         <h2 className="text-2xl text-white font-semibold leading-tight">Classifica</h2>
-        <p className="text-sm text-[#b8b2b3]">Top giocatori per XP</p>
+        <p className="text-sm text-[--color-text-secondary]">Top giocatori per XP</p>
       </header>
 
       {showInitialLoading ? (
-        <p className="text-[#b8b2b3]">Caricamento...</p>
+        <p className="text-[--color-text-secondary]">Caricamento...</p>
       ) : sorted.length === 0 ? (
-        <Card><p className="text-[#b8b2b3]">Nessun dato disponibile.</p></Card>
+        <Card><p className="text-[--color-text-secondary]">Nessun dato disponibile.</p></Card>
       ) : (
         <ol className="space-y-3 list-none p-0 m-0" aria-label="Classifica giocatori per XP">
           {sorted.map((entry, index) => {
@@ -103,8 +103,8 @@ function LeaderboardRow({
 
         <div
           aria-hidden="true"
-          className={`flex items-center justify-center w-12 h-12 rounded-xl bg-[#241f20] overflow-hidden ${
-            isMe ? 'ring-2 ring-[#f4bf4f]/45 shadow-[0_0_16px_rgba(244,191,79,0.16)]' : ''
+          className={`flex items-center justify-center w-12 h-12 rounded-xl bg-[--color-bg-surface-elevated] overflow-hidden ${
+            isMe ? 'ring-2 ring-[--color-gold-400]/45 shadow-[0_0_16px_rgba(244,191,79,0.16)]' : ''
           }`}
         >
           {entry.profileImage ? (
@@ -119,10 +119,10 @@ function LeaderboardRow({
             {isMe && <CurrentUserIndicator />}
             <p className="text-white font-semibold truncate min-w-0" style={{ marginBottom: 0 }}>{entry.name}</p>
           </div>
-          <p className="text-xs text-[#b8b2b3] truncate">{roleName}</p>
+          <p className="text-xs text-[--color-text-secondary] truncate">{roleName}</p>
         </div>
 
-        <div className="flex items-center gap-2 text-[#f4bf4f] shrink-0" aria-hidden="true">
+        <div className="flex items-center gap-2 text-[--color-gold-400] shrink-0" aria-hidden="true">
           <Trophy size={18} />
           <span className="text-white font-semibold">{entry.xpTotal}</span>
         </div>
@@ -142,8 +142,8 @@ function RankBadge({ position }: { position: number }) {
 function CurrentUserIndicator() {
   return (
     <span className="relative inline-flex w-2.5 h-2.5 shrink-0" aria-hidden="true">
-      <span className="absolute inset-0 rounded-full bg-[#f4bf4f]/35 animate-ping" />
-      <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-[#f4bf4f] shadow-[0_0_10px_rgba(244,191,79,0.28)]" />
+      <span className="absolute inset-0 rounded-full bg-[--color-gold-400]/35 animate-ping" />
+      <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-[--color-gold-400] shadow-[0_0_10px_rgba(244,191,79,0.28)]" />
     </span>
   );
 }
@@ -151,24 +151,24 @@ function CurrentUserIndicator() {
 // === Helpers ===
 
 const PODIUM_CLASSES = [
-  'border border-[#f4bf4f]/35 bg-[linear-gradient(135deg,rgba(244,191,79,0.08),rgba(26,22,23,0.95))] shadow-[0_0_0_1px_rgba(244,191,79,0.10),0_0_24px_rgba(244,191,79,0.14)]',
-  'border border-[#d0d5dd]/28 bg-[linear-gradient(135deg,rgba(208,213,221,0.07),rgba(26,22,23,0.95))] shadow-[0_0_0_1px_rgba(208,213,221,0.08),0_0_20px_rgba(208,213,221,0.10)]',
-  'border border-[#c97a3d]/28 bg-[linear-gradient(135deg,rgba(201,122,61,0.08),rgba(26,22,23,0.95))] shadow-[0_0_0_1px_rgba(201,122,61,0.08),0_0_20px_rgba(201,122,61,0.10)]',
+  'border border-[--color-gold-400]/35 bg-[linear-gradient(135deg,rgba(244,191,79,0.08),rgba(26,22,23,0.95))] shadow-[0_0_0_1px_rgba(244,191,79,0.10),0_0_24px_rgba(244,191,79,0.14)]',
+  'border border-[--color-podium-silver-border]/28 bg-[linear-gradient(135deg,rgba(208,213,221,0.07),rgba(26,22,23,0.95))] shadow-[0_0_0_1px_rgba(208,213,221,0.08),0_0_20px_rgba(208,213,221,0.10)]',
+  'border border-[--color-podium-bronze-border]/28 bg-[linear-gradient(135deg,rgba(201,122,61,0.08),rgba(26,22,23,0.95))] shadow-[0_0_0_1px_rgba(201,122,61,0.08),0_0_20px_rgba(201,122,61,0.10)]',
 ];
 
 function getPodiumCardClass(position: number, isMe: boolean) {
   if (position < 3) {
-    return `${PODIUM_CLASSES[position]}${isMe ? ' ring-1 ring-[#f4bf4f]/18' : ''}`;
+    return `${PODIUM_CLASSES[position]}${isMe ? ' ring-1 ring-[--color-gold-400]/18' : ''}`;
   }
-  return isMe ? 'border border-[#f4bf4f]/25 shadow-[0_0_0_1px_rgba(244,191,79,0.08),0_0_18px_rgba(244,191,79,0.10)]' : '';
+  return isMe ? 'border border-[--color-gold-400]/25 shadow-[0_0_0_1px_rgba(244,191,79,0.08),0_0_18px_rgba(244,191,79,0.10)]' : '';
 }
 
 function getRankClass(position: number) {
   switch (position) {
-    case 0: return 'bg-gradient-to-b from-[#f6c85f] to-[#d89a1f] text-[#0f0d0e] shadow-[0_8px_18px_rgba(244,191,79,0.24)]';
-    case 1: return 'bg-gradient-to-b from-[#e5e7eb] to-[#aeb6c2] text-[#0f0d0e] shadow-[0_8px_18px_rgba(208,213,221,0.18)]';
-    case 2: return 'bg-gradient-to-b from-[#d7996a] to-[#a95e27] text-white shadow-[0_8px_18px_rgba(201,122,61,0.18)]';
-    default: return 'text-[#b8b2b3]';
+    case 0: return 'bg-gradient-to-b from-[--color-podium-gold-top] to-[--color-podium-gold-bottom] text-[--color-bg-primary] shadow-[0_8px_18px_rgba(244,191,79,0.24)]';
+    case 1: return 'bg-gradient-to-b from-[--color-podium-silver-top] to-[--color-podium-silver-bottom] text-[--color-bg-primary] shadow-[0_8px_18px_rgba(208,213,221,0.18)]';
+    case 2: return 'bg-gradient-to-b from-[--color-podium-bronze-top] to-[--color-podium-bronze-bottom] text-white shadow-[0_8px_18px_rgba(201,122,61,0.18)]';
+    default: return 'text-[--color-text-secondary]';
   }
 }
 
