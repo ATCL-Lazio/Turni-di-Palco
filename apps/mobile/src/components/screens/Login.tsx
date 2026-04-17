@@ -40,13 +40,13 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
     >
       <AuthFormLayout>
         <button type="button" onClick={onBack}
-          className="flex items-center justify-center size-[44px] text-[#f4bf4f]" aria-label="Indietro">
+          className="flex items-center justify-center size-[44px] text-[--color-gold-400]" aria-label="Indietro">
           <ArrowLeft size={24} />
         </button>
 
         <div className="mt-4 flex flex-col items-start gap-1">
-          <h1 className="text-2xl font-bold tracking-[-0.24px] text-[#f5f5f5]">Accedi</h1>
-          <p className="text-base text-[#b8b2b3]">Inizia la tua carriera teatrale</p>
+          <h1 className="text-2xl font-bold tracking-[-0.24px] text-[--color-text-primary]">Accedi</h1>
+          <p className="text-base text-[--color-text-secondary]">Inizia la tua carriera teatrale</p>
         </div>
 
         <form onSubmit={handleSubmit} method="post" action="/login" autoComplete="on"
@@ -70,13 +70,13 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
               placeholder="••••••••" enterKeyHint="go"
             />
             <button type="button" onClick={onForgotPassword}
-              className="self-start rounded-md px-2 py-2.5 mt-2 text-base text-[#f4bf4f]">
+              className="self-start rounded-md px-2 py-2.5 mt-2 text-base text-[--color-gold-400]">
               Password dimenticata?
             </button>
           </FormField>
 
           {errorMessage && (
-            <p className="text-sm text-[#ff4d4f] text-center">{errorMessage}</p>
+            <p className="text-sm text-[--color-error] text-center">{errorMessage}</p>
           )}
 
           <Button type="submit" fullWidth disabled={isSubmitting} className={isSubmitting ? 'opacity-50 pointer-events-none' : ''}>
@@ -85,9 +85,9 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
         </form>
 
         <div className="mt-auto pt-6 text-center">
-          <p className="text-base text-[#b8b2b3]">Non hai un account?</p>
+          <p className="text-base text-[--color-text-secondary]">Non hai un account?</p>
           <button type="button" onClick={onSignup}
-            className="inline-flex items-center justify-center rounded-md px-2 py-2.5 text-base text-[#f4bf4f]">
+            className="inline-flex items-center justify-center rounded-md px-2 py-2.5 text-base text-[--color-gold-400]">
             Registrati
           </button>
         </div>

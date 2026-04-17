@@ -57,7 +57,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
           <button
             type="button"
             onClick={onBack}
-            className="flex items-center justify-center size-[44px] text-[#f4bf4f] shrink-0"
+            className="flex items-center justify-center size-[44px] text-[--color-gold-400] shrink-0"
             aria-label="Indietro"
           >
             <ArrowLeft size={24} />
@@ -66,14 +66,14 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
 
         {/* Title block */}
         <div className="flex items-start gap-3">
-          <div className="flex items-center justify-center size-[48px] rounded-[14px] bg-[#f4bf4f]/10 shrink-0">
-            <Shield size={24} className="text-[#f4bf4f]" />
+          <div className="flex items-center justify-center size-[48px] rounded-[14px] bg-[--color-gold-400]/10 shrink-0">
+            <Shield size={24} className="text-[--color-gold-400]" />
           </div>
           <div className="flex flex-col gap-0.5">
-            <h1 className="text-[22px] leading-[28px] font-bold tracking-[-0.2px] text-[#f5f5f5]">
+            <h1 className="text-[22px] leading-[28px] font-bold tracking-[-0.2px] text-[--color-text-primary]">
               Privacy Policy
             </h1>
-            <p className="text-[14px] leading-[20px] text-[#b8b2b3]">
+            <p className="text-[14px] leading-[20px] text-[--color-text-secondary]">
               Come trattiamo i tuoi dati
             </p>
           </div>
@@ -81,21 +81,21 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
 
         {/* Highlights */}
         <div className="flex flex-col gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-[#b8b2b3]/60 px-1">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-[--color-text-secondary]/60 px-1">
             In sintesi
           </p>
           <div className="grid grid-cols-2 gap-2">
             {highlights.map(({ icon: Icon, title, desc }) => (
               <div
                 key={title}
-                className="bg-[#1a1617] rounded-[14px] p-3.5 flex flex-col gap-2"
+                className="bg-[--color-bg-surface] rounded-[14px] p-3.5 flex flex-col gap-2"
               >
-                <div className="flex items-center justify-center size-[32px] rounded-[9px] bg-[#f4bf4f]/10">
-                  <Icon size={16} className="text-[#f4bf4f]" />
+                <div className="flex items-center justify-center size-[32px] rounded-[9px] bg-[--color-gold-400]/10">
+                  <Icon size={16} className="text-[--color-gold-400]" />
                 </div>
                 <div>
-                  <p className="text-[13px] font-semibold text-[#f5f5f5] leading-[18px]">{title}</p>
-                  <p className="text-[12px] leading-[17px] text-[#b8b2b3] mt-0.5">{desc}</p>
+                  <p className="text-[13px] font-semibold text-[--color-text-primary] leading-[18px]">{title}</p>
+                  <p className="text-[12px] leading-[17px] text-[--color-text-secondary] mt-0.5">{desc}</p>
                 </div>
               </div>
             ))}
@@ -104,15 +104,15 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
 
         {/* Full document */}
         <div className="flex flex-col gap-3">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-[#b8b2b3]/60 px-1">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-[--color-text-secondary]/60 px-1">
             Documento completo
           </p>
-          <div className="bg-[#1a1617] rounded-[16px] overflow-hidden">
+          <div className="bg-[--color-bg-surface] rounded-[16px] overflow-hidden">
             <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.06]">
-              <FileText size={15} className="text-[#f4bf4f]" />
-              <p className="text-[13px] text-[#b8b2b3]">
+              <FileText size={15} className="text-[--color-gold-400]" />
+              <p className="text-[13px] text-[--color-text-secondary]">
                 Pubblicata e mantenuta tramite{' '}
-                <span className="text-[#f5f5f5] font-medium">Iubenda</span>
+                <span className="text-[--color-text-primary] font-medium">Iubenda</span>
               </p>
             </div>
             {isOnline ? (
@@ -130,15 +130,15 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
                   />
                 </div>
                 <div className="px-4 pb-3">
-                  <p className="text-[11px] leading-[16px] text-[#b8b2b3]/50">
+                  <p className="text-[11px] leading-[16px] text-[--color-text-secondary]/50">
                     Richiesta connessione internet per caricare il documento.
                   </p>
                 </div>
               </>
             ) : (
               <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
-                <WifiOff size={32} className="text-[#b8b2b3]/50" />
-                <p className="text-sm text-[#b8b2b3]">
+                <WifiOff size={32} className="text-[--color-text-secondary]/50" />
+                <p className="text-sm text-[--color-text-secondary]">
                   La privacy policy completa non è disponibile offline. Connettiti a internet per visualizzarla.
                 </p>
               </div>

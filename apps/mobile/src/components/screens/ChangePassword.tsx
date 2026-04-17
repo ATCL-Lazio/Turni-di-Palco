@@ -84,21 +84,21 @@ export function ChangePassword({
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
+          className="flex items-center justify-center size-[44px] text-[--color-gold-400]"
           aria-label="Indietro"
         >
           <ArrowLeft size={24} />
         </button>
 
         <div className="mt-4 flex flex-col items-start gap-1">
-          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[#f5f5f5]">
+          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[--color-text-primary]">
             Cambia password
           </p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3]">
+          <p className="text-[16px] leading-[25.6px] text-[--color-text-secondary]">
             Account: <span className="text-white">{email || '—'}</span>
           </p>
           {isRecovery ? (
-            <p className="text-[14px] leading-[20px] text-[#9a9697] !m-0 mt-2">
+            <p className="text-[14px] leading-[20px] text-[--color-text-tertiary] !m-0 mt-2">
               Hai richiesto una reimpostazione: imposta una nuova password per completare.
             </p>
           ) : null}
@@ -108,13 +108,13 @@ export function ChangePassword({
           <div className="flex flex-col gap-4 w-full">
             {!isRecovery ? (
               <div className="flex flex-col gap-2 w-full">
-                <label htmlFor="current-password" className="text-[16px] leading-[24px] text-[#b8b2b3]">
+                <label htmlFor="current-password" className="text-[16px] leading-[24px] text-[--color-text-secondary]">
                   Password attuale
                 </label>
                 <div
-                  className={`bg-[#241f20] border-2 ${
-                    errors.currentPassword ? 'border-[#ff4d4f]' : 'border-[#2d2728]'
-                  } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
+                  className={`bg-[--color-bg-surface-elevated] border-2 ${
+                    errors.currentPassword ? 'border-[--color-error]' : 'border-[--color-bg-surface-hover]'
+                  } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[--color-gold-400]`}
                 >
                   <input
                     id="current-password"
@@ -124,12 +124,12 @@ export function ChangePassword({
                     autoComplete="current-password"
                     aria-invalid={Boolean(errors.currentPassword)}
                     placeholder="••••••••"
-                    className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#9a9697] focus:outline-none"
+                    className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[--color-text-primary] placeholder:text-[--color-text-tertiary] focus:outline-none"
                     disabled={isSubmitting}
                   />
                 </div>
                 {errors.currentPassword ? (
-                  <p className="text-[14px] leading-[20px] text-[#ff4d4f] !m-0">
+                  <p className="text-[14px] leading-[20px] text-[--color-error] !m-0">
                     {errors.currentPassword}
                   </p>
                 ) : null}
@@ -138,7 +138,7 @@ export function ChangePassword({
                   type="button"
                   onClick={handleSendResetEmail}
                   disabled={isSubmitting || resetEmailStatus === 'sending'}
-                  className="self-end text-[14px] leading-[20px] text-[#f4bf4f] underline underline-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="self-end text-[14px] leading-[20px] text-[--color-gold-400] underline underline-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {resetEmailStatus === 'sending'
                     ? 'Invio email...'
@@ -148,9 +148,9 @@ export function ChangePassword({
                 </button>
 
                 {resetEmailError ? (
-                  <p className="text-[14px] leading-[20px] text-[#ff4d4f] !m-0">{resetEmailError}</p>
+                  <p className="text-[14px] leading-[20px] text-[--color-error] !m-0">{resetEmailError}</p>
                 ) : resetEmailStatus === 'sent' ? (
-                  <p className="text-[14px] leading-[20px] text-[#9a9697] !m-0">
+                  <p className="text-[14px] leading-[20px] text-[--color-text-tertiary] !m-0">
                     Controlla la posta e segui il link per reimpostare la password.
                   </p>
                 ) : null}
@@ -158,13 +158,13 @@ export function ChangePassword({
             ) : null}
 
             <div className="flex flex-col gap-2 w-full">
-              <label htmlFor="new-password" className="text-[16px] leading-[24px] text-[#b8b2b3]">
+              <label htmlFor="new-password" className="text-[16px] leading-[24px] text-[--color-text-secondary]">
                 Nuova password
               </label>
               <div
-                className={`bg-[#241f20] border-2 ${
-                  errors.password ? 'border-[#ff4d4f]' : 'border-[#2d2728]'
-                } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
+                className={`bg-[--color-bg-surface-elevated] border-2 ${
+                  errors.password ? 'border-[--color-error]' : 'border-[--color-bg-surface-hover]'
+                } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[--color-gold-400]`}
               >
                 <input
                   id="new-password"
@@ -174,27 +174,27 @@ export function ChangePassword({
                   autoComplete="new-password"
                   aria-invalid={Boolean(errors.password)}
                   placeholder="••••••••"
-                  className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#9a9697] focus:outline-none"
+                  className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[--color-text-primary] placeholder:text-[--color-text-tertiary] focus:outline-none"
                   disabled={isSubmitting}
                 />
               </div>
               {errors.password ? (
-                <p className="text-[14px] leading-[20px] text-[#ff4d4f] !m-0">
+                <p className="text-[14px] leading-[20px] text-[--color-error] !m-0">
                   {errors.password}
                 </p>
               ) : (
-                <p className="text-[14px] leading-[20px] text-[#9a9697] !m-0">Almeno 8 caratteri</p>
+                <p className="text-[14px] leading-[20px] text-[--color-text-tertiary] !m-0">Almeno 8 caratteri</p>
               )}
             </div>
 
             <div className="flex flex-col gap-2 w-full">
-              <label htmlFor="confirm-password" className="text-[16px] leading-[24px] text-[#b8b2b3]">
+              <label htmlFor="confirm-password" className="text-[16px] leading-[24px] text-[--color-text-secondary]">
                 Conferma password
               </label>
               <div
-                className={`bg-[#241f20] border-2 ${
-                  errors.confirmPassword ? 'border-[#ff4d4f]' : 'border-[#2d2728]'
-                } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[#f4bf4f]`}
+                className={`bg-[--color-bg-surface-elevated] border-2 ${
+                  errors.confirmPassword ? 'border-[--color-error]' : 'border-[--color-bg-surface-hover]'
+                } rounded-[10px] flex h-[44px] items-center overflow-clip w-full transition-colors focus-within:border-[--color-gold-400]`}
               >
                 <input
                   id="confirm-password"
@@ -204,12 +204,12 @@ export function ChangePassword({
                   autoComplete="new-password"
                   aria-invalid={Boolean(errors.confirmPassword)}
                   placeholder="••••••••"
-                  className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[#f5f5f5] placeholder:text-[#9a9697] focus:outline-none"
+                  className="w-full h-full bg-transparent px-[10px] py-0 text-[16px] leading-[28px] text-[--color-text-primary] placeholder:text-[--color-text-tertiary] focus:outline-none"
                   disabled={isSubmitting}
                 />
               </div>
               {errors.confirmPassword ? (
-                <p className="text-[14px] leading-[20px] text-[#ff4d4f] !m-0">
+                <p className="text-[14px] leading-[20px] text-[--color-error] !m-0">
                   {errors.confirmPassword}
                 </p>
               ) : null}
@@ -217,7 +217,7 @@ export function ChangePassword({
           </div>
 
           {errorMessage ? (
-            <p className="text-[14px] leading-[20px] text-[#ff4d4f] text-center">
+            <p className="text-[14px] leading-[20px] text-[--color-error] text-center">
               {errorMessage}
             </p>
           ) : null}
@@ -225,7 +225,7 @@ export function ChangePassword({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="bg-gradient-to-b from-[#8c1c38] to-[#a82847] h-[44px] w-full rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] disabled:opacity-60 disabled:cursor-not-allowed"
+            className="bg-gradient-to-b from-[--color-burgundy-700] to-[--color-burgundy-600] h-[44px] w-full rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span className="block text-[18px] leading-[28px] text-center text-white">
               {isSubmitting ? 'Aggiornamento...' : 'Aggiorna password'}

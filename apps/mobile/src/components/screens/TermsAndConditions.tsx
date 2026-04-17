@@ -18,25 +18,25 @@ export function TermsAndConditions({ onBack }: TermsAndConditionsProps) {
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
+          className="flex items-center justify-center size-[44px] text-[--color-gold-400]"
           aria-label="Indietro"
         >
           <ArrowLeft size={24} />
         </button>
 
         <div className="flex flex-col items-start gap-1">
-          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[#f5f5f5]">
+          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[--color-text-primary]">
             Termini e Condizioni
           </p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3]">Condizioni d’uso</p>
+          <p className="text-[16px] leading-[25.6px] text-[--color-text-secondary]">Condizioni d’uso</p>
         </div>
 
-        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 flex flex-col gap-4">
-          <p className="text-[14px] leading-[20px] text-[#b8b2b3] !m-0">
+        <div className="bg-[--color-bg-surface] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 flex flex-col gap-4">
+          <p className="text-[14px] leading-[20px] text-[--color-text-secondary] !m-0">
             Ultimo aggiornamento: 31 Dic 2025
           </p>
 
-          <div className="flex flex-col gap-3 text-[14px] leading-[20px] text-[#b8b2b3]">
+          <div className="flex flex-col gap-3 text-[14px] leading-[20px] text-[--color-text-secondary]">
             <p className="!m-0">
               Questo documento descrive le regole di utilizzo di Turni di Palco. Il testo è una base
               iniziale e potrà essere aggiornato.

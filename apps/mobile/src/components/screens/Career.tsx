@@ -63,13 +63,13 @@ export function Career({
     >
       <div className="flex flex-col">
         <button type="button" onClick={onBack}
-          className="flex items-center justify-center size-[44px] text-[#f4bf4f]" aria-label="Indietro">
+          className="flex items-center justify-center size-[44px] text-[--color-gold-400]" aria-label="Indietro">
           <ArrowLeft size={24} />
         </button>
 
         <div className="mt-4">
           <h2 className="text-white mb-2">Carriera completa</h2>
-          <p className="text-[#b8b2b3]">Il tuo percorso professionale a teatro</p>
+          <p className="text-[--color-text-secondary]">Il tuo percorso professionale a teatro</p>
         </div>
 
         <div className="mt-6 space-y-5">
@@ -91,21 +91,21 @@ function RoleOverviewCard({ RoleIcon, userRole, level, xp, xpToNextLevel }: {
   RoleIcon: React.ElementType; userRole: string; level: number; xp: number; xpToNextLevel: number;
 }) {
   return (
-    <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+    <Card className="bg-gradient-to-br from-[--color-bg-surface] to-[--color-bg-surface-elevated]">
       <div className="flex items-center gap-4 mb-6">
-        <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl flex items-center justify-center">
-          <RoleIcon className="text-[#f4bf4f]" size={32} />
+        <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-[--color-burgundy-600] to-[--color-burgundy-800] rounded-2xl flex items-center justify-center">
+          <RoleIcon className="text-[--color-gold-400]" size={32} />
         </div>
         <div className="flex-1">
           <h3 className="text-white mb-1">{userRole}</h3>
           <div className="flex items-center gap-2">
             <Badge variant="gold" size="md">Livello {level}</Badge>
-            <span className="text-[#b8b2b3]">{xp} XP</span>
+            <span className="text-[--color-text-secondary]">{xp} XP</span>
           </div>
         </div>
       </div>
       <div>
-        <div className="flex justify-between text-sm text-[#b8b2b3] mb-2">
+        <div className="flex justify-between text-sm text-[--color-text-secondary] mb-2">
           <span>Progressione livello</span>
           <span>{xpToNextLevel - xp} XP al prossimo</span>
         </div>
@@ -125,7 +125,7 @@ function RoleStatsCard({ roleStats }: { roleStats: Role['stats'] }) {
           return (
             <div key={key}>
               <div className="flex justify-between mb-2">
-                <span className="text-[#b8b2b3]">{ROLE_STAT_LABELS[key]}</span>
+                <span className="text-[--color-text-secondary]">{ROLE_STAT_LABELS[key]}</span>
                 <span className="text-white">{value}/100</span>
               </div>
               <ProgressBar value={value} max={100} color="burgundy" size="sm" />
@@ -143,29 +143,29 @@ function ExperienceCard({ xpTotal, xpSulCampo }: { xpTotal: number; xpSulCampo: 
       <h4 className="text-white mb-4">Esperienza accumulata</h4>
       <div className="space-y-4">
         <XpRow icon={TrendingUp} label="XP totale" sub="Tutte le fonti" value={xpTotal}
-          iconBg="bg-gradient-to-br from-[#e6a23c] to-[#f4bf4f]" valueColor="text-white" />
+          iconBg="bg-gradient-to-br from-[--color-gold-500] to-[--color-gold-400]" valueColor="text-white" />
         <XpRow icon={Theater} label="XP sul campo" sub="Eventi ATCL reali" value={xpSulCampo}
-          iconBg="bg-gradient-to-br from-[#a82847] to-[#6b1529]" valueColor="text-[#f4bf4f]" />
+          iconBg="bg-gradient-to-br from-[--color-burgundy-600] to-[--color-burgundy-800]" valueColor="text-[--color-gold-400]" />
         <XpRow icon={TrendingUp} label="XP da attività" sub="Simulazioni" value={xpTotal - xpSulCampo}
-          iconBg="bg-[#241f20] border-2 border-[#9a9697]" valueColor="text-white" iconColor="text-[#9a9697]" />
+          iconBg="bg-[--color-bg-surface-elevated] border-2 border-[--color-text-tertiary]" valueColor="text-white" iconColor="text-[--color-text-tertiary]" />
       </div>
     </Card>
   );
 }
 
-function XpRow({ icon: Icon, label, sub, value, iconBg, valueColor, iconColor = 'text-[#0f0d0e]' }: {
+function XpRow({ icon: Icon, label, sub, value, iconBg, valueColor, iconColor = 'text-[--color-bg-primary]' }: {
   icon: LucideIcon; label: string; sub: string; value: number;
   iconBg: string; valueColor: string; iconColor?: string;
 }) {
   return (
-    <div className="flex items-center justify-between p-4 bg-[#241f20] rounded-lg">
+    <div className="flex items-center justify-between p-4 bg-[--color-bg-surface-elevated] rounded-lg">
       <div className="flex items-center gap-3">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBg}`}>
           <Icon className={iconColor} size={20} />
         </div>
         <div>
           <p className="text-white">{label}</p>
-          <p className="text-xs text-[#b8b2b3]">{sub}</p>
+          <p className="text-xs text-[--color-text-secondary]">{sub}</p>
         </div>
       </div>
       <p className={`text-2xl ${valueColor}`}>{value}</p>
@@ -177,19 +177,19 @@ function ReputationCard({ reputationGlobal }: { reputationGlobal: number }) {
   return (
     <Card>
       <h4 className="text-white mb-4">Reputazione</h4>
-      <div className="flex items-center justify-between p-4 bg-gradient-to-br from-[#241f20] to-[#1a1617] rounded-lg mb-4">
+      <div className="flex items-center justify-between p-4 bg-gradient-to-br from-[--color-bg-surface-elevated] to-[--color-bg-surface] rounded-lg mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
-            <Award className="text-[#f4bf4f]" size={24} />
+          <div className="w-12 h-12 bg-gradient-to-br from-[--color-burgundy-600] to-[--color-burgundy-800] rounded-xl flex items-center justify-center">
+            <Award className="text-[--color-gold-400]" size={24} />
           </div>
           <div>
             <p className="text-white">Reputazione ATCL</p>
-            <p className="text-xs text-[#b8b2b3]">Globale</p>
+            <p className="text-xs text-[--color-text-secondary]">Globale</p>
           </div>
         </div>
         <div className="text-right">
           <p className="text-3xl text-white">{reputationGlobal}</p>
-          <p className="text-xs text-[#b8b2b3]">/ 100</p>
+          <p className="text-xs text-[--color-text-secondary]">/ 100</p>
         </div>
       </div>
       <ProgressBar value={reputationGlobal} max={100} color="burgundy" />
@@ -205,7 +205,7 @@ function MilestonesCard({ milestones, turnStats }: { milestones: GameBadge[]; tu
         {milestones.length ? milestones.map(m => (
           <MilestoneRow key={m.id} milestone={m} turnStats={turnStats} />
         )) : (
-          <p className="text-sm text-[#b8b2b3]">Nessun traguardo disponibile</p>
+          <p className="text-sm text-[--color-text-secondary]">Nessun traguardo disponibile</p>
         )}
       </div>
     </Card>
@@ -219,10 +219,10 @@ function MilestoneRow({ milestone, turnStats }: { milestone: GameBadge; turnStat
 
   return (
     <div className={`flex items-center gap-3 p-3 rounded-lg ${
-      unlocked ? 'bg-[#52c41a]/10 border border-[#52c41a]/30' : 'bg-[#241f20] border border-[#2d2728] opacity-60'
+      unlocked ? 'bg-[--color-success]/10 border border-[--color-success]/30' : 'bg-[--color-bg-surface-elevated] border border-[--color-bg-surface-hover] opacity-60'
     } ${milestone.isHidden ? 'secret-badge-frame' : ''}`}>
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-        unlocked ? 'bg-[#52c41a]' : 'bg-[#9a9697]'
+        unlocked ? 'bg-[--color-success]' : 'bg-[--color-text-tertiary]'
       } ${milestone.isHidden ? 'secret-badge-shimmer' : ''}`}>
         {glyph ? (
           <span className="font-mono text-[10px] leading-none font-bold tracking-[-0.08em] text-white relative z-[1]">{glyph}</span>
@@ -233,10 +233,10 @@ function MilestoneRow({ milestone, turnStats }: { milestone: GameBadge; turnStat
       <div className="flex-1">
         <p className="text-white text-sm">{milestone.title}</p>
         {milestone.isHidden && (
-          <p className="secret-badge-label text-[10px] font-medium uppercase tracking-[0.14em] text-[#f4bf4f]">Traguardo segreto</p>
+          <p className="secret-badge-label text-[10px] font-medium uppercase tracking-[0.14em] text-[--color-gold-400]">Traguardo segreto</p>
         )}
-        {milestone.description && <p className="text-xs text-[#9b9496]">{milestone.description}</p>}
-        <p className="text-xs text-[#b8b2b3]">{getBadgeProgressText(milestone, turnStats)}</p>
+        {milestone.description && <p className="text-xs text-[--color-text-tertiary]">{milestone.description}</p>}
+        <p className="text-xs text-[--color-text-secondary]">{getBadgeProgressText(milestone, turnStats)}</p>
       </div>
     </div>
   );
@@ -252,15 +252,15 @@ function TurnHistoryCard({ sortedTurns, resolveRoleName }: {
         <div className="space-y-3">
           {sortedTurns.map(turno => (
             <div key={turno.id} className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-[#241f20] rounded-lg flex items-center justify-center">
-                <Theater className="text-[#f4bf4f]" size={24} />
+              <div className="flex-shrink-0 w-12 h-12 bg-[--color-bg-surface-elevated] rounded-lg flex items-center justify-center">
+                <Theater className="text-[--color-gold-400]" size={24} />
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="text-white mb-1">{turno.eventName}</h4>
-                <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mb-2">
+                <div className="flex items-center gap-2 text-sm text-[--color-text-secondary] mb-2">
                   <MapPin size={14} /><span>{turno.theatre}</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-[#b8b2b3] mb-3">
+                <div className="flex items-center gap-2 text-sm text-[--color-text-secondary] mb-3">
                   <Calendar size={14} /><span>{turno.date} · {turno.time}</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -273,7 +273,7 @@ function TurnHistoryCard({ sortedTurns, resolveRoleName }: {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-[#b8b2b3]">Nessun turno registrato</p>
+        <p className="text-sm text-[--color-text-secondary]">Nessun turno registrato</p>
       )}
     </Card>
   );
