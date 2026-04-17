@@ -32,9 +32,13 @@ services:
   - key: VITE_SUPABASE_URL
     sync: false
   - key: AI_SUPPORT_ALLOWED_ORIGINS
-    value: https://turni-di-palco-fq85.onrender.com,https://turni-di-palco-fq85.onrender.com/mobile
+    value: https://turni-di-palco-fq85.onrender.com,https://turni-di-palco-fq85.onrender.com/mobile,https://turni-di-palco.vercel.app
+  - key: GROQ_API_KEY
+    sync: false
+  - key: GROQ_MODEL
+    value: llama-3.3-70b-versatile
   region: frankfurt
-  buildCommand: npm ci && npm install -g @openai/codex && npm install -g gh
+  buildCommand: npm ci && npm install -g gh
   startCommand: npm run ai:support
   autoDeployTrigger: commit
   previews:
@@ -57,7 +61,7 @@ services:
   - key: RENDER_SERVICE_IDS_JSON
     sync: false
   - key: CONTROL_PLANE_ALLOWED_ORIGINS
-    value: https://turni-di-palco-fq85.onrender.com,https://turni-di-palco-fq85.onrender.com/mobile
+    value: https://turni-di-palco-fq85.onrender.com,https://turni-di-palco-fq85.onrender.com/mobile,https://turni-di-palco.vercel.app
   - key: CONTROL_PLANE_ALLOWED_EMAILS
     sync: false
   - key: CONTROL_PLANE_RATE_LIMIT_PER_MIN

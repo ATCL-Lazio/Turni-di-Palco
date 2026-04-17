@@ -33,7 +33,7 @@ export function FormInput({ hasError, className, ...props }: FormInputProps) {
     )}>
       <input
         className={cn(
-          'w-full h-full bg-transparent px-[10px] py-0 text-base leading-7 text-[#f5f5f5] placeholder:text-[#7a7577] focus:outline-none',
+          'w-full h-full bg-transparent px-[10px] py-0 text-base leading-7 text-[#f5f5f5] placeholder:text-[#9a9697] focus:outline-none',
           className,
         )}
         {...props}

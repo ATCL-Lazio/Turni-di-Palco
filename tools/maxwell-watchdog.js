@@ -243,7 +243,12 @@ class ProblemDetector {
   makeRequest(url) {
     return new Promise((resolve, reject) => {
       const req = https.get(url, { timeout: 10000 }, (res) => {
-        resolve({ status: res.statusCode });
+        res.resume();
+        res.on('error', (err) => {
+          res.destroy();
+          reject(err);
+        });
+        res.on('end', () => resolve({ status: res.statusCode }));
       });
 
       req.on('error', reject);

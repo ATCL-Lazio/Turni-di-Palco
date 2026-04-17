@@ -3,7 +3,7 @@
   "private": true,
   "workspaces": [
     "apps/mobile",
-    "apps/reactbricks",
+    "apps/pwa",
     "apps/control-plane"
   ],
   "scripts": {
@@ -13,9 +13,9 @@
     "test:mobile": "npm --workspace apps/mobile run test",
     "lint": "npm --workspace apps/mobile run lint",
     "lint:mobile": "npm --workspace apps/mobile run lint",
-    "lint:pwa": "echo 'PWA lint: no ESLint configured'",
-    "typecheck:pwa": "echo 'PWA typecheck: not configured'",
-    "test:pwa": "echo 'PWA tests: not configured'",
+    "lint:pwa": "echo '[PLACEHOLDER] PWA lint not configured — see issue #574'",
+    "typecheck:pwa": "echo '[PLACEHOLDER] PWA typecheck not configured — see issue #574'",
+    "test:pwa": "echo '[PLACEHOLDER] PWA tests not configured — see issue #574'",
     "typecheck": "npm --workspace apps/mobile run typecheck",
     "prepare": "husky",
     "format": "npm --workspace apps/mobile run format",
@@ -42,10 +42,11 @@
     "apps/mobile/**/*.{ts,tsx}": "eslint --fix"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/supabase-js": "^2.50.0",
     "ajv": "^8.18.0",
     "dotenv": "^16.3.1"
   },
+  "//overrides": "Security pins driven by Dependabot advisories. minimatch ^10.2.3 and rollup ^4.59.0 added in 3633dee (Feb 27 2026). picomatch 4.0.4 pinned in 97cf1b3 (Mar 26 2026) for CVE-2026-33672. All three are still consumed by transitive deps (eslint, vite, vitest, typescript-eslint) — do not remove without re-running npm audit.",
   "overrides": {
     "minimatch": "^10.2.3",
     "picomatch": "4.0.4",

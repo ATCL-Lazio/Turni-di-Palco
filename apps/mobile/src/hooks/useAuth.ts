@@ -31,10 +31,12 @@ export function useAuth(
     onLogout: () => void
 ) {
     const [authError, setAuthError] = useState<string | null>(null);
+    const [isDemoMode, setIsDemoMode] = useState(false);
 
     const handleLogin = useCallback(async (email: string, password: string) => {
         setAuthError(null);
         if (!isSupabaseConfigured || !supabase) {
+            setIsDemoMode(true);
             updateProfile({ email });
             onAuthChange('home');
             return;
@@ -60,6 +62,7 @@ export function useAuth(
     const handleSignup = useCallback(async (name: string, email: string, password: string) => {
         setAuthError(null);
         if (!isSupabaseConfigured || !supabase) {
+            setIsDemoMode(true);
             updateProfile({ name, email });
             onAuthChange('welcome'); // Flow will continue to role-selection
             return;
@@ -89,12 +92,22 @@ export function useAuth(
         onAuthChange('welcome'); // Flow will continue to role-selection
     }, [onAuthChange, updateProfile]);
 
-    const handleLogoutAction = useCallback(() => {
+    const handleLogoutAction = useCallback(async () => {
+        setAuthError(null);
         if (supabase) {
-            supabase.auth.signOut();
+            try {
+                await supabase.auth.signOut();
+            } catch {
+                // signOut failure must not block local logout
+            }
         }
         onLogout();
     }, [onLogout]);
+
+    const profileNameRef = useRef(profile.name);
+    const profileEmailRef = useRef(profile.email);
+    useEffect(() => { profileNameRef.current = profile.name; }, [profile.name]);
+    useEffect(() => { profileEmailRef.current = profile.email; }, [profile.email]);
 
     const applyUserProfileFromAuth = useCallback(
         (
@@ -102,29 +115,29 @@ export function useAuth(
             options?: {
                 fallbackName?: string;
                 navigateTo?: 'home' | 'change-password';
-                navigateReplace?: boolean;
+                isRecovery?: boolean;
             },
         ) => {
             if (!user) {
                 return;
             }
 
-            const email = user.email ?? profile.email;
+            const email = user.email ?? profileEmailRef.current;
             const displayName = resolveDisplayName({
                 name: (user.user_metadata?.name as string | undefined),
                 metadata: user.user_metadata,
                 email,
-                fallback: options?.fallbackName ?? profile.name,
+                fallback: options?.fallbackName ?? profileNameRef.current,
             });
 
-            const shouldSetName = shouldUpdateName(profile.name, email, displayName);
+            const shouldSetName = shouldUpdateName(profileNameRef.current, email, displayName);
             updateProfile(shouldSetName ? { name: displayName, email } : { email });
 
             if (options?.navigateTo) {
-                onAuthChange(options.navigateTo, options.navigateReplace);
+                onAuthChange(options.navigateTo, options.isRecovery);
             }
         },
-        [profile.name, profile.email, updateProfile, onAuthChange],
+        [updateProfile, onAuthChange],
     );
 
     const applyUserProfileRef = useRef(applyUserProfileFromAuth);
@@ -149,13 +162,14 @@ export function useAuth(
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
             if (!mounted) return;
             if (event === 'SIGNED_OUT') {
-                onLogoutRef.current();
+                setAuthError('Sessione scaduta. Effettua nuovamente l\'accesso.');
+                onLogout();
                 return;
             }
             if (event === 'PASSWORD_RECOVERY') {
                 applyUserProfileRef.current(session?.user, {
                     navigateTo: 'change-password',
-                    navigateReplace: true,
+                    isRecovery: true,
                 });
                 return;
             }
@@ -170,11 +184,12 @@ export function useAuth(
             mounted = false;
             authListener?.subscription.unsubscribe();
         };
-    }, [supabase]);
+    }, [applyUserProfileFromAuth, onLogout]);
 
     return {
         authError,
         setAuthError,
+        isDemoMode,
         handleLogin,
         handleSignup,
         handleLogout: handleLogoutAction,

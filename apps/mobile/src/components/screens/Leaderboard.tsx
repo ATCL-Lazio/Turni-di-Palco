@@ -21,7 +21,7 @@ export function Leaderboard({ onSelectEntry }: LeaderboardProps) {
       if (!cancelled) setHasBootstrapped(true);
     };
     void runInitialRefresh();
-    const intervalId = window.setInterval(() => { void refreshLeaderboard(); }, 15000);
+    const intervalId = window.setInterval(() => { void refreshLeaderboard(); }, 60000);
     return () => { cancelled = true; window.clearInterval(intervalId); };
   }, [refreshLeaderboard]);
 

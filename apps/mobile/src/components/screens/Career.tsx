@@ -147,7 +147,7 @@ function ExperienceCard({ xpTotal, xpSulCampo }: { xpTotal: number; xpSulCampo: 
         <XpRow icon={Theater} label="XP sul campo" sub="Eventi ATCL reali" value={xpSulCampo}
           iconBg="bg-gradient-to-br from-[#a82847] to-[#6b1529]" valueColor="text-[#f4bf4f]" />
         <XpRow icon={TrendingUp} label="XP da attività" sub="Simulazioni" value={xpTotal - xpSulCampo}
-          iconBg="bg-[#241f20] border-2 border-[#7a7577]" valueColor="text-white" iconColor="text-[#7a7577]" />
+          iconBg="bg-[#241f20] border-2 border-[#9a9697]" valueColor="text-white" iconColor="text-[#9a9697]" />
       </div>
     </Card>
   );
@@ -222,7 +222,7 @@ function MilestoneRow({ milestone, turnStats }: { milestone: GameBadge; turnStat
       unlocked ? 'bg-[#52c41a]/10 border border-[#52c41a]/30' : 'bg-[#241f20] border border-[#2d2728] opacity-60'
     } ${milestone.isHidden ? 'secret-badge-frame' : ''}`}>
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-        unlocked ? 'bg-[#52c41a]' : 'bg-[#7a7577]'
+        unlocked ? 'bg-[#52c41a]' : 'bg-[#9a9697]'
       } ${milestone.isHidden ? 'secret-badge-shimmer' : ''}`}>
         {glyph ? (
           <span className="font-mono text-[10px] leading-none font-bold tracking-[-0.08em] text-white relative z-[1]">{glyph}</span>

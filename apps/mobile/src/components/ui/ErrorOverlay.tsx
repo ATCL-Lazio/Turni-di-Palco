@@ -20,7 +20,7 @@ export function ErrorOverlay({ title, message, details, onReload, onHome }: Erro
         className="w-full max-w-[520px] rounded-[24px] border border-[#2d2728] bg-[#1a1617] p-6 shadow-[0px_16px_40px_rgba(0,0,0,0.45)]"
         role="document"
       >
-        <p className="text-[11px] uppercase tracking-[0.34em] text-[#7a7577]">Problema tecnico</p>
+        <p className="text-[11px] uppercase tracking-[0.34em] text-[#9a9697]">Problema tecnico</p>
         <h1 className="mt-2 text-[26px] leading-[32px] font-semibold text-[#f5f5f5]">{title}</h1>
         <p className="mt-3 text-[15px] leading-[22px] text-[#b8b2b3]">{message}</p>
         <div className="mt-5 flex flex-wrap gap-3">
@@ -40,7 +40,7 @@ export function ErrorOverlay({ title, message, details, onReload, onHome }: Erro
           </button>
         </div>
         {details ? (
-          <details className="mt-4 text-[12px] text-[#7a7577]">
+          <details className="mt-4 text-[12px] text-[#9a9697]">
             <summary className="cursor-pointer">Dettagli tecnici</summary>
             <pre className="mt-2 whitespace-pre-wrap rounded-[12px] border border-[#2d2728] bg-[#141112] p-3 text-[12px] text-[#b8b2b3]">
               {details}

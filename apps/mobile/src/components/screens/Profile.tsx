@@ -158,7 +158,7 @@ function StatsCard({
           <span className="flex items-center gap-1.5 text-sm text-[#b8b2b3]">
             Token ATCL (premium)
             <button type="button" onClick={() => setShowTokenInfo(v => !v)}
-              className="text-[#7a7577] hover:text-[#b8b2b3] transition-colors" aria-label="Informazioni valute">
+              className="text-[#9a9697] hover:text-[#b8b2b3] transition-colors" aria-label="Informazioni valute">
               <Info size={13} />
             </button>
           </span>
@@ -229,7 +229,7 @@ function BadgesButton({
         </div>
         <div className="flex flex-col items-start">
           <p className="text-base font-semibold text-white !m-0">Titoli ottenuti</p>
-          <p className="text-[13px] text-[#7a7577] !m-0">{badgesUnlockedCount} badge sbloccati</p>
+          <p className="text-[13px] text-[#9a9697] !m-0">{badgesUnlockedCount} badge sbloccati</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -238,7 +238,7 @@ function BadgesButton({
             {newBadgesCount}
           </span>
         )}
-        <ChevronRight className="text-[#3d393a]" size={18} />
+        <ChevronRight className="text-[#6a6566]" size={18} />
       </div>
     </button>
   );
@@ -263,9 +263,9 @@ function ProfileMenuButton({
       </div>
       <div className="flex-1 text-left">
         <p className="text-base font-medium text-white !m-0">{label}</p>
-        {subtitle && <p className="text-[13px] text-[#7a7577] !m-0">{subtitle}</p>}
+        {subtitle && <p className="text-[13px] text-[#9a9697] !m-0">{subtitle}</p>}
       </div>
-      <ChevronRight className="text-[#3d393a]" size={18} />
+      <ChevronRight className="text-[#6a6566]" size={18} />
     </button>
   );
 }
@@ -274,7 +274,7 @@ function ProfileMenuButton({
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
     <div className="px-4 py-3 border-b border-[#2d2728]">
-      <p className="text-sm font-semibold text-[#7a7577] uppercase tracking-[0.1em]">{children}</p>
+      <p className="text-sm font-semibold text-[#9a9697] uppercase tracking-[0.1em]">{children}</p>
     </div>
   );
 }

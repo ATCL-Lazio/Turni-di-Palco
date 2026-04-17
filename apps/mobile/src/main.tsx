@@ -7,13 +7,27 @@ import "../../../shared/styles/main.css";
 const isLocalHost = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]).has(window.location.hostname);
 
 if ("serviceWorker" in navigator && isLocalHost) {
-  navigator.serviceWorker.getRegistrations().then((registrations) => {
-    registrations.forEach((registration) => registration.unregister().catch(() => undefined));
-  });
+  navigator.serviceWorker
+    .getRegistrations()
+    .then((registrations) => {
+      registrations.forEach((registration) => registration.unregister().catch(() => undefined));
+    })
+    .catch(() => undefined);
 
   if ("caches" in window) {
-    caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))).catch(() => undefined));
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+      .catch(() => undefined);
   }
+}
+
+if ("serviceWorker" in navigator && import.meta.env.PROD && !isLocalHost) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/mobile/sw.js", { scope: "/mobile/" })
+      .catch(() => undefined);
+  });
 }
 
 createRoot(document.getElementById("root")!).render(<App />);

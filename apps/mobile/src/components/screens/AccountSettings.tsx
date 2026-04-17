@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ArrowLeft, Bell, Camera, ChevronRight, Download, FileText, History, KeyRound,
-  LogOut, MapPin, MessageCircle, QrCode, Shield, ShieldCheck, Trash2, UserX,
+  LogOut, MapPin, MessageCircle, QrCode, RotateCcw, Shield, ShieldCheck, Trash2, UserX,
 } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
@@ -24,6 +24,7 @@ interface AccountSettingsProps {
   onViewTicketPrototype: () => void;
   onChangePassword: () => void;
   onResetProgress: () => void;
+  onResetTutorial: () => void;
   onDeleteAccount: () => Promise<void>;
   onExportData: () => void;
   onToggleLeaderboard: (visible: boolean) => void;
@@ -38,7 +39,7 @@ type PermissionKey = 'notifications' | 'camera' | 'geolocation';
 export function AccountSettings({
   userName, email, showAiSupport, showTicketPrototype, leaderboardVisible,
   onBack, onViewTerms, onViewPrivacy, onViewSupport, onViewTicketPrototype,
-  onChangePassword, onResetProgress, onDeleteAccount, onExportData, onToggleLeaderboard, onLogout,
+  onChangePassword, onResetProgress, onResetTutorial, onDeleteAccount, onExportData, onToggleLeaderboard, onLogout,
 }: AccountSettingsProps) {
   const { appInfo, appInfoStatus, appInfoError } = useAppInfo();
   const { permissionStatuses, permissionMessages, handlePermissionRequest } = usePermissions();
@@ -46,6 +47,12 @@ export function AccountSettings({
   const supportStatus = useSupportStatus(showAiSupport);
   const { geoConsent, grantGeoConsent, denyGeoConsent } = useGeoConsent();
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleResetTutorial = () => {
+    if (typeof window === 'undefined') return;
+    const ok = window.confirm('Vuoi rivedere il tutorial di benvenuto? Apparirà alla prossima apertura della home.');
+    if (ok) onResetTutorial();
+  };
 
   const handleReset = () => {
     if (typeof window === 'undefined') return;
@@ -116,6 +123,7 @@ export function AccountSettings({
           onViewPrivacy={onViewPrivacy}
         />
         <SettingsActionCard icon={KeyRound} label="Cambia password" subtitle="Aggiorna le credenziali di accesso" onClick={onChangePassword} />
+        <SettingsActionCard icon={RotateCcw} label="Reimposta tutorial" subtitle="Rivedi la guida di benvenuto" onClick={handleResetTutorial} />
         <SettingsActionCard icon={Trash2} label="Resetta progressi" subtitle="Azzeramento irreversibile della carriera" onClick={handleReset} iconColor="text-[#ff4d4f]" />
 
         <div className="mt-auto flex flex-col gap-4">
@@ -165,7 +173,7 @@ function VersionCard({ appInfo, appInfoStatus, appInfoError }: {
       <div className="border-t border-[#2d2728] pt-[10px] flex flex-col gap-[8px]">
         <div className="flex items-center justify-between">
           <p className="text-[16px] leading-[25.6px] text-white !m-0">Changelog</p>
-          {appInfo?.repo && <span className="text-[12px] leading-[16px] text-[#7a7577]">{appInfo.repo}</span>}
+          {appInfo?.repo && <span className="text-[12px] leading-[16px] text-[#9a9697]">{appInfo.repo}</span>}
         </div>
         {appInfoStatus === 'loading' && <p className="text-[14px] leading-[20px] text-[#b8b2b3]">Caricamento...</p>}
         {appInfoStatus === 'error' && <p className="text-[14px] leading-[20px] text-[#ff4d4f]">{appInfoError ?? 'Impossibile caricare il changelog'}</p>}
@@ -174,7 +182,7 @@ function VersionCard({ appInfo, appInfoStatus, appInfoError }: {
             {appInfo.changelog.map(entry => (
               <div key={entry.sha} className="flex flex-col gap-[2px]">
                 <p className="text-[14px] leading-[20px] text-white !m-0">{entry.message}</p>
-                <p className="text-[12px] leading-[16px] text-[#7a7577] !m-0">
+                <p className="text-[12px] leading-[16px] text-[#9a9697] !m-0">
                   {entry.sha}{entry.date ? ` - ${formatChangelogDate(entry.date)}` : ''}{entry.author ? ` - ${entry.author}` : ''}
                 </p>
               </div>
@@ -182,7 +190,7 @@ function VersionCard({ appInfo, appInfoStatus, appInfoError }: {
           </div>
         ) : null}
         {appInfoStatus === 'idle' && !appInfo?.changelog?.length && (
-          <p className="text-[14px] leading-[20px] text-[#7a7577]">Nessun aggiornamento disponibile.</p>
+          <p className="text-[14px] leading-[20px] text-[#9a9697]">Nessun aggiornamento disponibile.</p>
         )}
       </div>
     </SettingsCard>
@@ -224,7 +232,7 @@ function PermissionsSection({ permissionStatuses, permissionMessages, onRequest 
                 <p className="text-[16px] leading-[25.6px] text-white !m-0">{label}</p>
                 <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Stato: {formatPermissionStatus(permissionStatuses[key])}</p>
                 {permissionMessages[key] && (
-                  <p className="text-[12px] leading-[18px] text-[#7a7577] !m-0">{permissionMessages[key]}</p>
+                  <p className="text-[12px] leading-[18px] text-[#9a9697] !m-0">{permissionMessages[key]}</p>
                 )}
               </div>
             </div>
@@ -301,7 +309,7 @@ function LinkRow({ icon: Icon, label, subtitle, onClick, disabled }: {
           <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">{subtitle}</p>
         </div>
       </div>
-      <ChevronRight className="text-[#7a7577]" size={20} />
+      <ChevronRight className="text-[#9a9697]" size={20} />
     </button>
   );
 }
@@ -319,7 +327,7 @@ function SettingsActionCard({ icon: Icon, label, subtitle, onClick, iconColor = 
             <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">{subtitle}</p>
           </div>
         </div>
-        <ChevronRight className="text-[#7a7577]" size={20} />
+        <ChevronRight className="text-[#9a9697]" size={20} />
       </button>
     </SettingsCard>
   );

@@ -62,14 +62,12 @@ TypeScript puro (no React), Vite 7. Funziona come dev dashboard e pannello di co
 
 ### Deploy
 
-Il progetto è deployato su **4 piattaforme in parallelo**:
+Il progetto è deployato su **2 piattaforme**:
 
 | Piattaforma | Cosa serve | Branch |
 |---|---|---|
-| **Netlify** | App mobile (produzione principale) | `main` |
-| **Vercel** | App mobile (mirror/preview) | `main` |
+| **Vercel** | App mobile (produzione principale) | `main` |
 | **Render** | App mobile + Maxwell AI + Control Plane + Badges | `render/preview` |
-| **Railway** | App mobile alternativa | `main` |
 
 ### CI/CD
 
@@ -254,7 +252,7 @@ Tre categorie di slot acquistabili con cachet: `slot` (slot attività extra), `r
 | Content pipeline strutturato | ❌ Non avviata | Issue [#474](https://github.com/ATCL-Lazio/Turni-di-Palco/issues/474) |
 | Light theme / accessibilità avanzata | ❌ Non avviata | Issue [#476](https://github.com/ATCL-Lazio/Turni-di-Palco/issues/476) |
 | Tracking KPI / analytics | ❌ Non avviata | Issue [#477](https://github.com/ATCL-Lazio/Turni-di-Palco/issues/477) |
-| Redirect root URL → /mobile/ | ❌ Non avviata | Issue [#468](https://github.com/ATCL-Lazio/Turni-di-Palco/issues/468) |
+| Redirect root URL → /mobile/ | ✅ Implementata | Issue [#468](https://github.com/ATCL-Lazio/Turni-di-Palco/issues/468) |
 
 ---
 
@@ -369,7 +367,7 @@ Issue correlate precedenti: [#119](https://github.com/ATCL-Lazio/Turni-di-Palco/
 | Minigiochi | "Da avviare" | 5 configurazioni implementate |
 | QR | Flusso QR per turni | Ticket activation con Edge Function e geofencing |
 | Valute | Cachet + "possibile seconda valuta" | Cachet + Token ATCL (implementati) |
-| Deploy | Non specificato | 4 piattaforme (Netlify, Vercel, Render, Railway) |
+| Deploy | Non specificato | 2 piattaforme (Vercel, Render) |
 | Backend | "Gestione ID evento, validazione QR" | 8 Edge Functions, 39 migrazioni, RLS policies complete |
 | AI | Non menzionata | Maxwell AI Support (in-app chat + issue creation) |
 | GDPR | Non menzionata | Implementata (Art. 7, 15, 17, 20, 21) |
@@ -390,7 +388,6 @@ Per gli scenari narrativi teatro-specifici (sblocchi basati su reputazione teatr
 
 | File | Contenuto |
 |---|---|
-| `netlify.toml` | Config Netlify (produzione principale) — build command, headers CSP/HSTS, SPA redirect |
 | `vercel.json` | Config Vercel — build mobile, output dir |
 | `render.yaml` | Config Render — 4 servizi (app, Maxwell AI, control-plane, badges Docker) |
 | `apps/mobile/public/manifest.webmanifest` | Manifest PWA — icone, theme color `#05070d`, start URL `/mobile/`, shortcuts |

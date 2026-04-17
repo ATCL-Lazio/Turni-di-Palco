@@ -57,7 +57,7 @@ export function ActivityResult({ activity, rewards, outcome, onDone }: ActivityR
           </div>
           <div className="flex items-end justify-between">
             <p className="text-4xl text-white">{outcome.score}</p>
-            <p className="text-sm text-[#7a7577]">/100</p>
+            <p className="text-sm text-[#9a9697]">/100</p>
           </div>
           <div className="flex flex-wrap gap-2 mt-4">
             {outcome.roundScores.map((score, index) => (

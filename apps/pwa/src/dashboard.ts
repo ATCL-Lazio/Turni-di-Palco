@@ -2,19 +2,40 @@ import { supabase } from "./services/supabase";
 
 type FeatureFlag = { key: string; enabled: boolean; label: string; description: string };
 
-async function fetchFeatureFlags(): Promise<FeatureFlag[]> {
-  if (!supabase) return [];
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function isFeatureFlag(item: unknown): item is FeatureFlag {
+  if (!item || typeof item !== "object") return false;
+  const r = item as Record<string, unknown>;
+  return typeof r.key === "string" && typeof r.enabled === "boolean" &&
+    typeof r.label === "string" && typeof r.description === "string";
+}
+
+// Returns null on fetch error (to distinguish from empty list)
+async function fetchFeatureFlags(): Promise<FeatureFlag[] | null> {
+  if (!supabase) return null;
   const { data, error } = await supabase
     .from("mobile_feature_flags")
     .select("key, enabled, label, description")
     .order("key");
-  if (error) return [];
-  return (data ?? []) as FeatureFlag[];
+  if (error) return null;
+  return (data ?? []).filter(isFeatureFlag);
 }
 
 async function getUserEmail(): Promise<string> {
   if (!supabase) return "—";
-  const { data } = await supabase.auth.getUser();
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    console.warn("[dashboard] getUserEmail: auth error", error.message);
+    return "Sessione scaduta";
+  }
   return data.user?.email ?? "—";
 }
 
@@ -25,8 +46,8 @@ function flagRow(flag: FeatureFlag): string {
   return `
     <div class="flex items-center justify-between gap-4 py-2.5 border-b border-neutral-800 last:border-0">
       <div class="min-w-0">
-        <p class="text-sm text-neutral-100 font-mono truncate">${flag.key}</p>
-        <p class="text-xs text-neutral-500 truncate">${flag.label}${flag.description ? ` — ${flag.description}` : ""}</p>
+        <p class="text-sm text-neutral-100 font-mono truncate">${escapeHtml(flag.key)}</p>
+        <p class="text-xs text-neutral-500 truncate">${escapeHtml(flag.label)}${flag.description ? ` — ${escapeHtml(flag.description)}` : ""}</p>
       </div>
       ${pill}
     </div>
@@ -117,8 +138,6 @@ export function renderDashboard(root: HTMLElement): void {
     linksContainer.innerHTML = [
       linkCard("Supabase", "https://supabase.com/dashboard", "Database, auth, edge functions"),
       linkCard("GitHub", "https://github.com/ATCL-Lazio/Turni-di-Palco", "Repository sorgente"),
-      linkCard("Netlify", "https://app.netlify.com", "Deploy app mobile"),
-      linkCard("Railway", "https://railway.app", "Deploy servizi backend"),
       linkCard("Render", "https://dashboard.render.com", "Deploy server control-plane"),
     ].join("");
   }
@@ -127,22 +146,38 @@ export function renderDashboard(root: HTMLElement): void {
   void getUserEmail().then((email) => {
     const el = root.querySelector<HTMLElement>("[data-user-email]");
     if (el) el.textContent = email;
+  }).catch(() => {
+    const el = root.querySelector<HTMLElement>("[data-user-email]");
+    if (el) el.textContent = "—";
   });
 
   // Feature flags
   void fetchFeatureFlags().then((flags) => {
     const container = root.querySelector<HTMLElement>("[data-flags]");
     if (!container) return;
+    if (flags === null) {
+      container.innerHTML = `<p class="text-sm text-red-400 py-4">Errore nel caricamento dei feature flag.</p>`;
+      return;
+    }
     if (!flags.length) {
       container.innerHTML = `<p class="text-sm text-neutral-500 py-4">Nessun feature flag trovato.</p>`;
       return;
     }
     container.innerHTML = flags.map(flagRow).join("");
+  }).catch(() => {
+    const container = root.querySelector<HTMLElement>("[data-flags]");
+    if (container) {
+      container.innerHTML = `<p class="text-sm text-red-400 py-4">Errore nel caricamento dei feature flag.</p>`;
+    }
   });
 
   // Sign out
   root.querySelector<HTMLButtonElement>("[data-signout]")?.addEventListener("click", async () => {
-    if (supabase) await supabase.auth.signOut();
+    try {
+      if (supabase) await supabase.auth.signOut();
+    } catch {
+      // sign-out failure must not block reload
+    }
     window.location.reload();
   });
 }

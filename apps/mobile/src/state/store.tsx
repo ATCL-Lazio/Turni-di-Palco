@@ -190,6 +190,8 @@ export type PlayerProfile = {
   lastActivityAt: number;
   /** GDPR Art. 21 – se false il profilo non compare nella classifica pubblica. Default: true. */
   leaderboardVisible: boolean;
+  /** Indica se il tutorial di benvenuto è stato completato. Default: false. */
+  tutorialCompleted: boolean;
 };
 
 export type RegisterTurnInput = {
@@ -498,6 +500,25 @@ export const activities: Activity[] = [
     xpReward: 58,
     cachetReward: 24,
     difficulty: 'Medio',
+  },
+  // Issue #469: Espansione minigiochi per ruoli specifici
+  {
+    id: 'sequenza_luci',
+    title: 'Sequenza cue luci',
+    description: 'Esegui una sequenza di cue luci in rapida successione. Precisione estrema richiesta per tecnici luci.',
+    duration: '6 min',
+    xpReward: 75,
+    cachetReward: 35,
+    difficulty: 'Difficile',
+  },
+  {
+    id: 'equalizzazione',
+    title: 'Equalizzazione frequenze',
+    description: 'Bilancia le frequenze basse, medie e alte per un mix audio perfetto. Solo per fonici esperti.',
+    duration: '5 min',
+    xpReward: 70,
+    cachetReward: 32,
+    difficulty: 'Difficile',
   },
 ];
 
@@ -916,7 +937,21 @@ function resolveEventPlanningRoleId(value: unknown, fallbackRoleId: RoleId): Rol
   return isRoleId(value) ? value : fallbackRoleId;
 }
 
+const ITALIAN_MONTHS: Record<string, string> = {
+  gen: '01', feb: '02', mar: '03', apr: '04', mag: '05', giu: '06',
+  lug: '07', ago: '08', set: '09', ott: '10', nov: '11', dic: '12',
+};
+
 function parseEventScheduleTimestamp(event: Pick<GameEvent, 'date' | 'time'>) {
+  const parts = event.date.trim().split(/\s+/);
+  if (parts.length === 3) {
+    const [day, monthStr, year] = parts;
+    const month = ITALIAN_MONTHS[monthStr.toLowerCase()];
+    if (month) {
+      const timestamp = new Date(`${year}-${month}-${day.padStart(2, '0')}T${event.time || '00:00'}`).getTime();
+      return Number.isFinite(timestamp) ? timestamp : 0;
+    }
+  }
   const timestamp = new Date(`${event.date} ${event.time}`).getTime();
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
@@ -1752,6 +1787,7 @@ function createInitialState(): GameState {
       profileImage: undefined,
       lastActivityAt: Date.now(),
       leaderboardVisible: true,
+      tutorialCompleted: false,
     },
     turns: [],
     eventPlans: [],
@@ -1776,6 +1812,7 @@ function createDemoState(): GameState {
       profileImage: undefined,
       lastActivityAt: Date.now(),
       leaderboardVisible: true,
+      tutorialCompleted: false,
     },
     turns: [
       {
@@ -2076,6 +2113,8 @@ type GameContextValue = {
   exportUserData: () => void;
   changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
+  completeTutorial: () => void;
+  resetTutorial: () => void;
   resetState: () => void;
 };
 
@@ -3896,6 +3935,28 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     [authUserId, enqueueSupabaseMutation, hasHydratedRemote]
   );
 
+  const completeTutorial = useCallback(() => {
+    let nextProfile: PlayerProfile | null = null;
+    setState((prev: GameState) => {
+      nextProfile = { ...prev.profile, tutorialCompleted: true };
+      return { ...prev, profile: nextProfile };
+    });
+    if (nextProfile) {
+      persistProfile(nextProfile);
+    }
+  }, [persistProfile]);
+
+  const resetTutorial = useCallback(() => {
+    let nextProfile: PlayerProfile | null = null;
+    setState((prev: GameState) => {
+      nextProfile = { ...prev.profile, tutorialCompleted: false };
+      return { ...prev, profile: nextProfile };
+    });
+    if (nextProfile) {
+      persistProfile(nextProfile);
+    }
+  }, [persistProfile]);
+
   const updateProfile = useCallback(
     (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {
       let nextProfile: PlayerProfile | null = null;
@@ -4624,6 +4685,21 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   // GDPR Art. 15/20 – Diritto di accesso e portabilità: scarica tutti i dati in formato JSON.
   const exportUserData = useCallback(() => {
+    // Collect chat history from localStorage (tdp-maxwell-history:* keys)
+    const chatHistory: Record<string, unknown> = {};
+    if (typeof window !== 'undefined') {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('tdp-maxwell-history:')) {
+          try {
+            chatHistory[key] = JSON.parse(localStorage.getItem(key) || '[]');
+          } catch {
+            chatHistory[key] = localStorage.getItem(key);
+          }
+        }
+      }
+    }
+
     const data = {
       exportDate: new Date().toISOString(),
       profile: {
@@ -4644,6 +4720,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       badges,
       theatreReputation,
       plannedEvents: eventPlans,
+      chatHistory,
     };
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -4699,6 +4776,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       isEventFollowed,
       markBadgesSeen,
       updateProfile,
+      completeTutorial,
+      resetTutorial,
       registerTurn,
       pendingBoostRequests,
       turnSyncFeedback,
@@ -4749,6 +4828,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       isEventFollowed,
       markBadgesSeen,
       updateProfile,
+      completeTutorial,
+      resetTutorial,
       registerTurn,
       pendingBoostRequests,
       turnSyncFeedback,

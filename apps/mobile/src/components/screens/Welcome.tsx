@@ -18,7 +18,7 @@ export function Welcome({ onStart, onLogin }: WelcomeProps) {
         <WelcomeBranding />
 
         <div className="animate-stagger-4 mt-6 mb-5 w-full max-w-[300px] bg-[#1a1617] border border-[#2d2728] rounded-2xl px-4 py-3">
-          <p className="!m-0 text-sm leading-relaxed text-center text-[#7a7577]">
+          <p className="!m-0 text-sm leading-relaxed text-center text-[#9a9697]">
             Simula la carriera di un professionista del teatro e registra la tua
             partecipazione agli eventi reali ATCL registrando il numero del biglietto.
           </p>
@@ -53,7 +53,7 @@ function WelcomeBranding() {
         >
           Turni di Palco
         </p>
-        <p className="animate-stagger-3 text-[11px] leading-none text-[#7a7577] tracking-[0.14em] uppercase font-semibold">
+        <p className="animate-stagger-3 text-[11px] leading-none text-[#9a9697] tracking-[0.14em] uppercase font-semibold">
           Costruisci la tua carriera a teatro
         </p>
       </div>
