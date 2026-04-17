@@ -93,6 +93,7 @@ export function useAuth(
     }, [onAuthChange, updateProfile]);
 
     const handleLogoutAction = useCallback(async () => {
+        setAuthError(null);
         if (supabase) {
             try {
                 await supabase.auth.signOut();
