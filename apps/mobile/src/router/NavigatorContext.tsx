@@ -2,10 +2,6 @@ import React, { createContext, useContext, useCallback } from 'react';
 import { Screen, Tab, LegalReturnScreen } from '../types/navigation';
 import { useNavigation } from '../hooks/useNavigation';
 
-type NavigateOptions = {
-  replace?: boolean;
-};
-
 interface NavigatorContextValue {
   // Current state
   screen: Screen;
@@ -16,7 +12,7 @@ interface NavigatorContextValue {
   selectedActivityId: string;
 
   // Navigation actions
-  navigate: (screen: Screen, options?: NavigateOptions) => void;
+  navigate: (screen: Screen) => void;
   switchTab: (tab: Tab) => void;
   goBack: () => void;
 
@@ -75,13 +71,8 @@ export function NavigatorProvider({
     selectedActivityId, setSelectedActivityId,
   } = useNavigation(initialEvents, { isScreenEnabled, isTabEnabled });
 
-  const navigate = useCallback((screen: Screen, options?: NavigateOptions) => {
-    if (options?.replace) {
-      // Replace: clear history by resetting to the target screen
-      setCurrentScreen(screen);
-    } else {
-      setCurrentScreen(screen);
-    }
+  const navigate = useCallback((screen: Screen) => {
+    setCurrentScreen(screen);
   }, [setCurrentScreen]);
 
   const switchTab = useCallback((tab: Tab) => {
