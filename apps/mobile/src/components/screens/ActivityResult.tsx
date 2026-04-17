@@ -59,11 +59,19 @@ export function ActivityResult({ activity, rewards, outcome, isDuplicate, roleSt
     }
   }, [outcome.rating]);
 
+  const resultSummary = `Attività ${activity.title} completata. Valutazione ${outcome.rating}, punteggio ${outcome.score} su 100. Ricompense: ${rewards.xp} XP, ${rewards.reputation} reputazione, ${rewards.cachet} cachet.`;
+
   return (
     <div className="min-h-screen pb-24">
       <div className="app-content px-6 pt-6 space-y-6">
-        <div className="text-center">
-          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${isDuplicate ? 'bg-gradient-to-br from-[#b8b2b3] to-[#9a9697]' : 'bg-gradient-to-br from-[#52c41a] to-[#389e0d]'}`}>
+        <div
+          className="text-center"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          aria-label={resultSummary}
+        >
+          <div aria-hidden="true" className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${isDuplicate ? 'bg-gradient-to-br from-[#b8b2b3] to-[#9a9697]' : 'bg-gradient-to-br from-[#52c41a] to-[#389e0d]'}`}>
             <CheckCircle2 className="text-white" size={40} />
           </div>
           <h2 className="text-white mb-2">{isDuplicate ? 'Attivita gia completata' : 'Attivita completata'}</h2>
@@ -161,7 +169,7 @@ export function ActivityResult({ activity, rewards, outcome, isDuplicate, roleSt
           </Card>
         ) : null}
 
-        <Button variant="primary" size="lg" fullWidth onClick={onDone}>
+        <Button variant="primary" size="lg" fullWidth onClick={onDone} aria-label="Torna alla lista attività">
           Torna alle attivita
         </Button>
       </div>
