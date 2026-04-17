@@ -193,8 +193,8 @@ function resolveRequestPath(distDir, urlPath) {
   }
 
   for (const rel of candidates) {
-    const abs = path.join(distDir, rel);
-    if (abs.startsWith(distDir) && fs.existsSync(abs) && fs.statSync(abs).isFile()) {
+    const abs = path.resolve(distDir, rel);
+    if (abs.startsWith(distDir + path.sep) && fs.existsSync(abs) && fs.statSync(abs).isFile()) {
       return abs;
     }
   }

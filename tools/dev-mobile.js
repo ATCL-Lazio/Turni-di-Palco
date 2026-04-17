@@ -29,7 +29,7 @@ const aiProc = spawn('node', [aiSupportPath], {
 });
 
 aiProc.on('error', (err) => {
-  console.error(`[dev-mobile] Failed to spawn AI support server: ${err.message}`);
+  console.error(`[dev-mobile] Failed to start AI support server: ${err.message}`);
 });
 
 const viteProc = spawn('node', [withHttpsPath, ...viteArgs], {
@@ -38,7 +38,7 @@ const viteProc = spawn('node', [withHttpsPath, ...viteArgs], {
 });
 
 viteProc.on('error', (err) => {
-  console.error(`[dev-mobile] Failed to spawn Vite: ${err.message}`);
+  console.error(`[dev-mobile] Failed to start Vite: ${err.message}`);
 });
 
 let shuttingDown = false;

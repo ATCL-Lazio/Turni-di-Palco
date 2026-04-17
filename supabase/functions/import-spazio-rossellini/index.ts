@@ -9,23 +9,11 @@ const EVENTS_API_URL =
   'https://www.spaziorossellini.it/wp-json/tribe/events/v1/events?per_page=50';
 
 const DEFAULT_REWARDS = { xp: 140, reputation: 20, cachet: 100 };
-const MONTHS_IT = [
-  'Gen',
-  'Feb',
-  'Mar',
-  'Apr',
-  'Mag',
-  'Giu',
-  'Lug',
-  'Ago',
-  'Set',
-  'Ott',
-  'Nov',
-  'Dic',
-];
+
+const allowedOrigin = Deno.env.get('SITE_URL') ?? 'https://turnidipalco.it';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': allowedOrigin,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
@@ -44,24 +32,22 @@ const normalizeUrl = (value: string) => value.replace(/\/+$/, '').trim();
 
 const formatDate = (details?: SpazioEvent['start_date_details'], fallback?: string) => {
   if (details?.year && details?.month && details?.day) {
+    const month = String(details.month).padStart(2, '0');
     const day = String(details.day).padStart(2, '0');
-    const monthIndex = Number(details.month) - 1;
-    const monthLabel = MONTHS_IT[monthIndex] ?? 'Gen';
-    return `${day} ${monthLabel} ${details.year}`;
+    return `${details.year}-${month}-${day}`;
   }
   if (fallback) {
     const [datePart] = fallback.split(' ');
     const [year, month, day] = datePart.split('-').map(Number);
     if (year && month && day) {
-      const monthLabel = MONTHS_IT[month - 1] ?? 'Gen';
-      return `${String(day).padStart(2, '0')} ${monthLabel} ${year}`;
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
   }
-  return '01 Gen 2026';
+  return '2026-01-01';
 };
 
 const formatTime = (details?: SpazioEvent['start_date_details'], fallback?: string) => {
-  if (details?.hour && details?.minutes != null) {
+  if (details?.hour != null && details?.minutes != null) {
     return `${String(details.hour).padStart(2, '0')}:${String(details.minutes).padStart(2, '0')}`;
   }
   if (fallback) {
@@ -114,11 +100,13 @@ const fetchCategorySlugs = async () => {
   return slugs;
 };
 
+const MAX_PAGINATION_PAGES = 50;
+
 const fetchAllEvents = async () => {
   const events: SpazioEvent[] = [];
   let nextUrl: string | null = EVENTS_API_URL;
   const visited = new Set<string>();
-  while (nextUrl && !visited.has(nextUrl)) {
+  while (nextUrl && !visited.has(nextUrl) && visited.size < MAX_PAGINATION_PAGES) {
     visited.add(nextUrl);
     const res = await fetch(nextUrl);
     if (!res.ok) throw new Error(`Events API fetch failed: ${res.status}`);
@@ -159,16 +147,40 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseUrl || !serviceKey) {
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  if (!supabaseUrl || !serviceKey || !anonKey) {
     return jsonResponse({ error: 'Missing Supabase env vars' }, 500);
+  }
+
+  // Verify caller JWT and require admin role before allowing bulk import
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return jsonResponse({ error: 'Autenticazione richiesta' }, 401);
+  }
+
+  const userClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const { data: { user }, error: userError } = await userClient.auth.getUser();
+  if (userError || !user) {
+    return jsonResponse({ error: 'Sessione non valida' }, 401);
+  }
+
+  const userRole = (user.app_metadata as Record<string, unknown>)?.role as string | undefined;
+  if (userRole !== 'admin') {
+    return jsonResponse({ error: 'Accesso negato: ruolo admin richiesto' }, 403);
   }
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
   try {
-    const sitemapUrls = await fetchSitemapUrls();
-    const categorySlugs = await fetchCategorySlugs();
-    const apiEvents = await fetchAllEvents();
+    const [sitemapUrls, categorySlugs, apiEvents] = await Promise.all([
+      fetchSitemapUrls(),
+      fetchCategorySlugs(),
+      fetchAllEvents(),
+    ]);
     const matched = apiEvents.filter((event) =>
       sitemapUrls.has(normalizeUrl(event.url ?? ''))
     );

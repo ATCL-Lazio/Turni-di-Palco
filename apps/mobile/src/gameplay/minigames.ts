@@ -23,7 +23,6 @@ export type MinigameOutcome = {
   type: MinigameType;
   score: number;
   rating: MinigameRating;
-  accuracy: number;
   roundScores: number[];
   attempts: number;
   durationMs: number;
@@ -88,6 +87,30 @@ const MINIGAME_BY_ACTIVITY: Record<string, MinigameConfig> = {
       { target: 47, tolerance: 6, label: 'Snodo 3' },
     ],
   },
+  // Issue #469: Espansione minigiochi per ruoli specifici
+  sequenza_luci: {
+    type: 'timing',
+    title: 'Sequenza cue luci',
+    subtitle: 'Esegui una sequenza di cue luci in rapida successione. Precisione estrema richiesta.',
+    allowedRoles: ['luci'],
+    rounds: [
+      { target: 45, tolerance: 4, label: 'Cue Apertura' },
+      { target: 30, tolerance: 3, label: 'Cue Transizione' },
+      { target: 70, tolerance: 4, label: 'Cue Finale' },
+      { target: 55, tolerance: 3, label: 'Cue Blackout' },
+    ],
+  },
+  equalizzazione: {
+    type: 'audio',
+    title: 'Equalizzazione frequenze',
+    subtitle: 'Bilancia le frequenze basse, medie e alte per un mix perfetto.',
+    allowedRoles: ['fonico'],
+    rounds: [
+      { target: 35, tolerance: 5, label: 'Frequenze basse (batteria)' },
+      { target: 65, tolerance: 4, label: 'Frequenze medie (voce)' },
+      { target: 50, tolerance: 5, label: 'Frequenze alte (cymbal)' },
+    ],
+  },
 };
 
 const FALLBACK_CONFIG: MinigameConfig = {
@@ -101,6 +124,13 @@ const FALLBACK_CONFIG: MinigameConfig = {
   ],
 };
 
+/**
+ * Check whether a minigame activity is available for the given role.
+ *
+ * When `roleId` is `null` or `undefined` (i.e. no role selected yet):
+ * - Activities without an `allowedRoles` restriction return `true` (available to everyone).
+ * - Activities restricted to specific roles return `false` (role required).
+ */
 export function isMinigameAvailableForRole(activityId: string, roleId?: RoleId | null): boolean {
   const config = MINIGAME_BY_ACTIVITY[activityId] ?? FALLBACK_CONFIG;
   if (!config.allowedRoles?.length) return true;
@@ -142,13 +172,11 @@ export function computeOutcome(
   const safeScores = roundScores.length ? roundScores : [0];
   const total = safeScores.reduce((sum, value) => sum + value, 0);
   const score = Math.round(total / safeScores.length);
-  const accuracy = Math.round(score);
   const rating = ratingFromScore(score);
 
   return {
     type,
     score,
-    accuracy,
     rating,
     roundScores,
     attempts: Math.max(1, Math.round(meta?.attempts ?? 1)),

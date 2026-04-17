@@ -42,11 +42,10 @@
 ## Routing (produzione)
 
 - L'app mobile ora risponde direttamente alla root (`/`).
-- Le configurazioni di Netlify, Vercel e Render sono state aggiornate per servire `apps/mobile/build` (o eseguire il preview della stessa) all'URL di base.
+- Le configurazioni di Vercel e Render sono state aggiornate per servire `apps/mobile/build` (o eseguire il preview della stessa) all'URL di base.
 - Feature Flags: configurabili tramite `VITE_FEATURE_FLAGS` e `VITE_DISABLED_FEATURE_FLAGS` nel file `.env`.
 
 ## Header di sicurezza
-- Netlify: header configurati in `netlify.toml` sezione `[[headers]]`.
 - Vercel/Render: le configurazioni puntano alla build mobile.
 
 ## Supabase (client)

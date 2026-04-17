@@ -46,9 +46,13 @@ export function readPendingEventFromUrl(locationHref: string): ParsedEventLink |
 }
 
 export function stripEventLinkParams(locationHref: string): string {
-  const url = new URL(locationHref);
-  url.searchParams.delete('event_id');
-  url.searchParams.delete('eid');
-  url.searchParams.delete('role_id');
-  return url.toString();
+  try {
+    const url = new URL(locationHref);
+    url.searchParams.delete('event_id');
+    url.searchParams.delete('eid');
+    url.searchParams.delete('role_id');
+    return url.toString();
+  } catch {
+    return locationHref;
+  }
 }

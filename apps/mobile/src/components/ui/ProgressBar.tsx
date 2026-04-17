@@ -20,11 +20,14 @@ export function ProgressBar({
   // Animate fill from 0 to percentage on mount / value change
   const [displayWidth, setDisplayWidth] = useState(0);
   useEffect(() => {
-    const id = requestAnimationFrame(() => {
-      const timer = setTimeout(() => setDisplayWidth(percentage), 30);
-      return () => clearTimeout(timer);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const rafId = requestAnimationFrame(() => {
+      timer = setTimeout(() => setDisplayWidth(percentage), 30);
     });
-    return () => cancelAnimationFrame(id);
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (timer !== null) clearTimeout(timer);
+    };
   }, [percentage]);
 
   const heights = {
@@ -46,7 +49,13 @@ export function ProgressBar({
           <span>{max}</span>
         </div>
       )}
-      <div className={`w-full bg-[#241f20] rounded-full overflow-hidden ${heights[size]}`}>
+      <div
+        className={`w-full bg-[#241f20] rounded-full overflow-hidden ${heights[size]}`}
+        role="progressbar"
+        aria-valuenow={value}
+        aria-valuemin={0}
+        aria-valuemax={max}
+      >
         <div
           className={`${heights[size]} ${colors[color]} rounded-full`}
           style={{

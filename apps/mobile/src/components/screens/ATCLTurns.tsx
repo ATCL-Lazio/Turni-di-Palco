@@ -234,7 +234,7 @@ export function ATCLTurns({
       ) : (
         <Card className="text-center py-12">
           <div className="w-16 h-16 bg-[#241f20] rounded-full flex items-center justify-center mx-auto mb-4">
-            <QrCode className="text-[#7a7577]" size={32} />
+            <QrCode className="text-[#9a9697]" size={32} />
           </div>
           <h4 className="text-white mb-2">Nessun evento disponibile</h4>
           <p className="text-[#b8b2b3] mb-6 max-w-xs mx-auto">

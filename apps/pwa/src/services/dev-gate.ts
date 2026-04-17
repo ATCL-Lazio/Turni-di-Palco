@@ -1,8 +1,8 @@
 import type { User } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "./supabase";
 
-const allowedRoles = parseEnvList(import.meta.env.VITE_PWA_DEV_ROLES ?? "dev");
-const allowedEmails = parseEnvList(import.meta.env.VITE_PWA_DEV_EMAILS ?? "");
+const allowedRoles = parseEnvList(import.meta.env.VITE_PWA_DEV_ROLES || "dev");
+const allowedEmails = parseEnvList(import.meta.env.VITE_PWA_DEV_EMAILS || "");
 
 function parseEnvList(value: string): string[] {
   return value.split(",").map((s) => s.trim()).filter(Boolean);
@@ -69,11 +69,15 @@ function renderGate(root: HTMLElement): {
     </div>
   `;
 
-  const form = root.querySelector<HTMLFormElement>("[data-gate-form]")!;
-  const message = root.querySelector<HTMLElement>("[data-gate-message]")!;
-  const emailInput = root.querySelector<HTMLInputElement>('input[name="email"]')!;
-  const passwordInput = root.querySelector<HTMLInputElement>('input[name="password"]')!;
-  const submitButton = root.querySelector<HTMLButtonElement>("[data-gate-submit]")!;
+  const form = root.querySelector<HTMLFormElement>("[data-gate-form]");
+  const message = root.querySelector<HTMLElement>("[data-gate-message]");
+  const emailInput = root.querySelector<HTMLInputElement>('input[name="email"]');
+  const passwordInput = root.querySelector<HTMLInputElement>('input[name="password"]');
+  const submitButton = root.querySelector<HTMLButtonElement>("[data-gate-submit]");
+
+  if (!form || !message || !emailInput || !passwordInput || !submitButton) {
+    throw new Error('renderGate: template elements not found');
+  }
 
   return { form, message, emailInput, passwordInput, submitButton };
 }
@@ -114,28 +118,33 @@ export async function requireDevAccess(): Promise<boolean> {
       setBusy(gate, true);
       setMessage(gate.message, "Verifico le credenziali...", "info");
 
-      const { error } = await supabase!.auth.signInWithPassword({
-        email: gate.emailInput.value.trim(),
-        password: gate.passwordInput.value,
-      });
+      try {
+        const { error } = await supabase!.auth.signInWithPassword({
+          email: gate.emailInput.value.trim(),
+          password: gate.passwordInput.value,
+        });
 
-      if (error) {
+        if (error) {
+          setBusy(gate, false);
+          setMessage(gate.message, error.message, "error");
+          return;
+        }
+
+        const { data: fresh } = await supabase!.auth.getUser();
+        if (!isUserAllowed(fresh.user)) {
+          await supabase!.auth.signOut();
+          setBusy(gate, false);
+          setMessage(gate.message, "Utente non autorizzato.", "error");
+          return;
+        }
+
+        setMessage(gate.message, "Accesso autorizzato.", "success");
+        root.innerHTML = "";
+        resolve(true);
+      } catch {
         setBusy(gate, false);
-        setMessage(gate.message, error.message, "error");
-        return;
+        setMessage(gate.message, "Errore imprevisto. Riprova.", "error");
       }
-
-      const { data: fresh } = await supabase!.auth.getUser();
-      if (!isUserAllowed(fresh.user)) {
-        await supabase!.auth.signOut();
-        setBusy(gate, false);
-        setMessage(gate.message, "Utente non autorizzato.", "error");
-        return;
-      }
-
-      setMessage(gate.message, "Accesso autorizzato.", "success");
-      root.innerHTML = "";
-      resolve(true);
     });
   });
 }

@@ -2,14 +2,30 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.0';
 
+const allowedOrigin = Deno.env.get('SITE_URL') ?? 'https://turnidipalco.it';
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': allowedOrigin,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// Rome timezone offset (+01:00 CET). Matches Python generator's dt.timezone(dt.timedelta(hours=1)).
-const ROME_OFFSET = '+01:00';
+// Rome timezone offset: CET (+01:00) in winter, CEST (+02:00) in summer.
+// Computed dynamically so DST transitions don't shift event datetimes by one hour.
+function getRomeOffset(dateIso: string): string {
+  const probe = new Date(`${dateIso}T12:00:00Z`);
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Rome',
+    timeZoneName: 'shortOffset',
+  }).formatToParts(probe);
+  const offsetPart = parts.find((part) => part.type === 'timeZoneName')?.value ?? 'GMT+1';
+  const match = offsetPart.match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/);
+  if (!match) return '+01:00';
+  const sign = match[1];
+  const hours = match[2].padStart(2, '0');
+  const minutes = (match[3] ?? '00').padStart(2, '0');
+  return `${sign}${hours}:${minutes}`;
+}
 
 async function sha256Hex(input: string): Promise<string> {
   const encoded = new TextEncoder().encode(input);
@@ -27,7 +43,7 @@ function buildEventDatetimeIso(eventDate: string, eventTime: string): string {
   const timeParts = time.split(':');
   const normalizedTime =
     timeParts.length === 2 ? `${time}:00` : time;
-  return `${date}T${normalizedTime}${ROME_OFFSET}`;
+  return `${date}T${normalizedTime}${getRomeOffset(date)}`;
 }
 
 function jsonResponse(payload: Record<string, unknown>, status = 200) {
@@ -62,8 +78,9 @@ serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
 
-  if (!supabaseUrl || !serviceKey) {
+  if (!supabaseUrl || !serviceKey || !anonKey) {
     return jsonResponse({ error: 'Missing environment variables' }, 500);
   }
 
@@ -73,45 +90,32 @@ serve(async (req: Request) => {
     const { action, hash, payload, userId: requestedUserId } = await req.json();
 
     const activationActions = ['activate_hash', 'activate_by_details', 'activate_by_ticket_number'];
+    const authRequiredActions = [...activationActions, 'reserve_hash', 'resolve_hash'];
     const needsAuthenticatedUser = activationActions.includes(action);
+    const needsAuth = authRequiredActions.includes(action);
     let resolvedUserId = typeof requestedUserId === 'string' ? requestedUserId.trim() : '';
 
-    if (needsAuthenticatedUser) {
+    if (needsAuth) {
+      // Verify JWT signature via Supabase auth (covers reserve_hash, resolve_hash, and activation actions)
       const authHeader = req.headers.get('Authorization');
-      console.log('[auth] Header present:', Boolean(authHeader), 'starts-with-Bearer:', authHeader?.startsWith('Bearer ') ?? false);
-
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        console.warn('[auth] Missing or invalid Authorization header');
         return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
       }
 
-      const token = authHeader.slice('Bearer '.length);
-      console.log('[auth] Token length:', token.length, 'prefix:', token.slice(0, 20));
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
 
-      // The gateway already verified the JWT signature and expiry via verify_jwt: true.
-      // Decode the payload to extract the sub claim (user ID) without a redundant getUser call.
-      let userId: string | undefined;
-      try {
-        const parts = token.split('.');
-        if (parts.length !== 3) throw new Error('Malformed JWT');
-        // JWT uses base64url encoding; convert to standard base64 for atob
-        const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
-        const jwtPayload = JSON.parse(atob(padded));
-        userId = typeof jwtPayload.sub === 'string' ? jwtPayload.sub : undefined;
-        console.log('[auth] JWT sub:', userId ?? '(missing)');
-      } catch (decodeErr) {
-        console.error('[auth] JWT decode failed:', (decodeErr as Error).message);
+      const { data: { user }, error: authError } = await userClient.auth.getUser();
+      if (authError || !user) {
         return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
       }
 
-      if (!userId) {
-        console.error('[auth] JWT has no sub claim (anon key or service key passed as user token)');
-        return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
+      if (needsAuthenticatedUser) {
+        // Do not trust userId sent by client payload: use the verified identity.
+        resolvedUserId = user.id;
       }
-
-      // Do not trust userId sent by client payload if we have an authenticated user.
-      resolvedUserId = userId;
     }
 
     if (action === 'reserve_hash') {
@@ -211,16 +215,7 @@ serve(async (req: Request) => {
         (action === 'activate_by_details' && (!payload?.eventID || !payload?.ticketNumber)) ||
         (action === 'activate_by_ticket_number' && !payload?.ticketNumber)
       ) {
-        return jsonResponse({
-          error: 'Missing required parameters',
-          received: {
-            action,
-            hasHash: !!hash,
-            hasPayload: !!payload,
-            hasTicketNumber: !!payload?.ticketNumber,
-            hasUserId: !!resolvedUserId,
-          },
-        }, 400);
+        return jsonResponse({ error: 'Parametri mancanti o non validi.' }, 400);
       }
 
       // 1. Resolve hash if using details or ticket number

@@ -34,7 +34,7 @@ export function MetricTile({ label, value, helper, icon, onClick, progress, anim
       >
         {value}
       </div>
-      {helper ? <div className="text-xs text-[#7a7577]">{helper}</div> : null}
+      {helper ? <div className="text-xs text-[#9a9697]">{helper}</div> : null}
       {progress ? (
         <div className="mt-2">
           <ProgressBar value={progress.value} max={progress.max} size="sm" color={progress.color ?? 'burgundy'} />

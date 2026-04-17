@@ -18,7 +18,7 @@ async function resolveFunctionErrorMessage(error: unknown, fallback: string): Pr
       status?: number;
       json?: () => Promise<unknown>;
       text?: () => Promise<string>;
-      clone?: () => unknown;
+      clone?: () => { text?: () => Promise<string> };
     };
   };
 
@@ -26,32 +26,27 @@ async function resolveFunctionErrorMessage(error: unknown, fallback: string): Pr
   const context = candidate.context;
 
   if (context && typeof context === 'object') {
-    const cloneFn = typeof context.clone === 'function' ? context.clone.bind(context) : null;
-    const source = cloneFn ? (cloneFn() as typeof context) : context;
-
-    if (source && typeof source.json === 'function') {
+    // Read body once as text, then attempt JSON.parse to avoid double-consuming the stream.
+    const source = typeof context.clone === 'function' ? context.clone() : context;
+    if (source && typeof source.text === 'function') {
       try {
-        const body = await source.json();
-        if (body && typeof body === 'object') {
-          const payload = body as { error?: unknown; message?: unknown };
-          const bodyMessage =
-            (typeof payload.error === 'string' && payload.error.trim()) ||
-            (typeof payload.message === 'string' && payload.message.trim()) ||
-            '';
-          if (bodyMessage) {
-            return bodyMessage;
-          }
-        }
-      } catch {
-        // fall back to text/message below
-      }
-    }
-
-    const sourceForText = cloneFn ? (cloneFn() as typeof context) : context;
-    if (sourceForText && typeof sourceForText.text === 'function') {
-      try {
-        const text = (await sourceForText.text()).trim();
+        const text = (await source.text()).trim();
         if (text) {
+          try {
+            const body = JSON.parse(text);
+            if (body && typeof body === 'object') {
+              const payload = body as { error?: unknown; message?: unknown };
+              const bodyMessage =
+                (typeof payload.error === 'string' && payload.error.trim()) ||
+                (typeof payload.message === 'string' && payload.message.trim()) ||
+                '';
+              if (bodyMessage) {
+                return bodyMessage;
+              }
+            }
+          } catch {
+            // Not JSON — use raw text
+          }
           return text;
         }
       } catch {

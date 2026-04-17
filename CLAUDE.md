@@ -17,7 +17,7 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - Install deps (workspaces per PWA): `npm install` (Node 18+; repo attuale Node 22.14.0).
 
-- PWA: `npm run dev:pwa`, build `npm run build:pwa`, preview `npm run preview:pwa`, test `npm run test:pwa` (setup in `apps/pwa/src/test/setup.ts`).
+- PWA: `npm run dev:pwa`, build `npm run build:pwa`, preview `npm run preview:pwa`. Note: `test:pwa`, `lint:pwa`, `typecheck:pwa` are placeholders (not yet implemented).
 
 - Mobile (`apps/mobile`): `npm run dev:mobile`, `npm run build:mobile`, `npm run sync:mobile`.
 
@@ -47,7 +47,7 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - All commits should be done using **your own git identity**
 
-- Do not work directly on `main`, `render/preview` or `railway/preview`: create a dedicated branch with setup prefix before committing or pushing.
+- Do not work directly on `main` or `render/preview`: create a dedicated branch with setup prefix before committing or pushing.
   - Examples: `windsurf/feature-name`, `codex/fix-description`, `gemini/refactor-module`
 
 - Never delete branches (no `--delete-branch` on merges) unless explicitly instructed.
@@ -71,14 +71,6 @@ Template developed by [Heartran](https://github.com/heartran)
 
 - Tieni manifest (`apps/pwa/public/manifest.webmanifest`) in sync con icone e theme color. Placeholder in `apps/pwa/public/icons/`.
 
-## Railway Deploy Semantics
-
-- Railway auto-deploy da Git puo mostrare eventi `REMOVED` in history (dedupe/cancel/queue). `REMOVED` non equivale a rollout completato e non sostituisce automaticamente il deployment attivo.
-
-- Per controllo deterministico, considerare valido solo un servizio con `status: SUCCESS` e `deploymentId` attivo da `railway service status --json`.
-
-- Non assumere mai che "ultimo commit visibile in history" sia la versione in esecuzione: verificare sempre il deployment attivo per singolo servizio.
-
 ## Git Identity
 
 - Every agent should have his own git identity when committing changes in order to have a more clear and readable history
@@ -88,11 +80,11 @@ Template developed by [Heartran](https://github.com/heartran)
 | Claude | Claude | [noreply@anthropic.com](mailto:noreply@anthropic.com) |
 | Codex | Codex | [199175422+chatgpt-codex-connector[bot]@users.noreply.github.com](mailto:199175422+chatgpt-codex-connector[bot]@users.noreply.github.com) |
 | Gemini | Gemini | [176961590+gemini-code-assist[bot]@users.noreply.github.com](mailto:176961590+gemini-code-assist[bot]@users.noreply.github.com) |
-| Cascade | Cascade | [cascade@users.noreply.github.com](mailto:cascade@users.noreply.github.com) |
+| Cascade | Cascade | [272510577+windsurf-cascade-agent[bot]@users.noreply.github.com](mailto:272510577+windsurf-cascade-agent[bot]@users.noreply.github.com) |
 | GitHub Copilot | Copilot[bot] | [198982749+Copilot[bot]@users.noreply.github.com](mailto:198982749+Copilot[bot]@users.noreply.github.com) |
 
 ## Dati di accesso frontend
 
 Qualora sia necessario entrare all'interno del sito web i dati di accesso sono:
 - Email: `noreply@anthropic.com`
-- Password: `Codex`
+- Password: `Claude`

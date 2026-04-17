@@ -2,8 +2,10 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.0';
 
+const allowedOrigin = Deno.env.get('SITE_URL') ?? 'https://turnidipalco.it';
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': allowedOrigin,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
@@ -141,7 +143,7 @@ serve(async (req: Request) => {
       ? body.clientUserId.trim().slice(0, 200)
       : null;
 
-    const rawLogs = Array.isArray(body.logs) ? body.logs : [];
+    const rawLogs = Array.isArray(body.logs) ? body.logs.slice(0, 100) : [];
     const normalizedLogs = rawLogs
       .map((entry, index) => normalizeLogEntry(entry, index))
       .filter((entry): entry is NormalizedLogEntry => !!entry);

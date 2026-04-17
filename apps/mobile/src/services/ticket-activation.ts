@@ -197,7 +197,7 @@ async function getAccessTokenForFunctions(): Promise<string> {
     !sessionToken || !expiresAt || expiresAt <= nowSeconds + TOKEN_REFRESH_SKEW_SECONDS;
 
   if (!shouldRefresh && sessionToken) {
-    console.log('[ticket-activation] Using cached token, length:', sessionToken.length, 'remaining_s:', expiresAt - nowSeconds, 'prefix:', sessionToken.slice(0, 20));
+    console.log('[ticket-activation] Using cached token, hasToken:', true, 'remaining_s:', expiresAt - nowSeconds);
     return sessionToken;
   }
 
@@ -213,7 +213,7 @@ async function getAccessTokenForFunctions(): Promise<string> {
     throw new Error(SESSION_REQUIRED_MESSAGE);
   }
 
-  console.log('[ticket-activation] Using refreshed token, length:', refreshedToken.length, 'prefix:', refreshedToken.slice(0, 20));
+  console.log('[ticket-activation] Using refreshed token, hasToken:', true);
   return refreshedToken;
 }
 
@@ -223,7 +223,7 @@ async function invokeTicketActivation(body: Record<string, unknown>) {
   }
 
   const token = await getAccessTokenForFunctions();
-  console.log('[ticket-activation] Invoking function, token length:', token.length, 'prefix:', token.slice(0, 20), 'action:', (body as Record<string, unknown>).action);
+  console.log('[ticket-activation] Invoking function, hasToken:', !!token, 'action:', (body as Record<string, unknown>).action);
   let response = await supabase.functions.invoke('ticket-activation', {
     headers: { Authorization: `Bearer ${token}` },
     body,
@@ -494,7 +494,7 @@ export async function activateTicketHash(
 
   try {
     const remote = await activateRemotely(normalizedHash, normalizedUserId);
-    
+
     if (remote?.ok) {
       const currentRecord = localActivationStore.get(normalizedHash);
       localActivationStore.set(normalizedHash, {
@@ -515,14 +515,22 @@ export async function activateTicketHash(
     if (remote?.error) {
       return { ok: false, error: remote.error };
     }
+
+    // Supabase is configured and the server answered, but the response
+    // did not match any success or explicit-error branch. Do not fall
+    // through to the local fallback, which would mark the ticket as
+    // activated without server confirmation.
+    if (remote !== null) {
+      return { ok: false, error: 'Risposta server inattesa durante l\'attivazione ticket.' };
+    }
   } catch (error) {
     if (shouldLogActivationError(error)) {
       console.error('Remote activation failed:', error);
     }
     if (supabase && isSupabaseConfigured) {
-      return { 
-        ok: false, 
-        error: error instanceof Error ? error.message : 'Errore durante la comunicazione con il server.' 
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : 'Errore durante la comunicazione con il server.'
       };
     }
   }

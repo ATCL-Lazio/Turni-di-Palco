@@ -43,7 +43,7 @@ export function ActivitiesHub({
 
       {!resolvedSection && (
         <Card className="text-center py-10">
-          <p className="text-sm text-[#7a7577]">Sezione non disponibile</p>
+          <p className="text-sm text-[#9a9697]">Sezione non disponibile</p>
           <p className="text-sm text-[#b8b2b3] mt-1">
             Turni e attivita sono temporaneamente disattivati dalle feature flag.
           </p>

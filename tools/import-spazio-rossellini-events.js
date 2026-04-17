@@ -20,7 +20,7 @@ const loadEnv = () => {
     const index = trimmed.indexOf('=');
     if (index === -1) return;
     const key = trimmed.slice(0, index).trim();
-    const value = trimmed.slice(index + 1).trim();
+    const value = trimmed.slice(index + 1).trim().replace(/^["']|["']$/g, '');
     if (!process.env[key]) {
       process.env[key] = value;
     }
@@ -65,11 +65,15 @@ const formatDate = (details, fallback) => {
       return `${String(day).padStart(2, '0')} ${monthLabel} ${year}`;
     }
   }
-  return '01 Gen 2026';
+  // Fallback to today's date to avoid events being immediately cleaned up
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, '0');
+  const monthLabel = MONTHS_IT[today.getMonth()] ?? 'Gen';
+  return `${day} ${monthLabel} ${today.getFullYear()}`;
 };
 
 const formatTime = (details, fallback) => {
-  if (details?.hour && details?.minutes != null) {
+  if (details?.hour != null && details?.minutes != null) {
     return `${String(details.hour).padStart(2, '0')}:${String(details.minutes).padStart(2, '0')}`;
   }
   if (fallback) {
@@ -187,9 +191,11 @@ const upsertEvents = async (rows) => {
 };
 
 const run = async () => {
-  const sitemapUrls = await fetchSitemapUrls();
-  const categorySlugs = await fetchCategorySlugs();
-  const apiEvents = await fetchAllEvents();
+  const [sitemapUrls, categorySlugs, apiEvents] = await Promise.all([
+    fetchSitemapUrls(),
+    fetchCategorySlugs(),
+    fetchAllEvents(),
+  ]);
   const filtered = apiEvents.filter((event) =>
     sitemapUrls.has(normalizeUrl(event.url ?? ''))
   );

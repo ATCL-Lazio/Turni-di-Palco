@@ -49,27 +49,22 @@ if (shouldPrint) {
 }
 
 /** Parse a shell-like argument string, respecting single and double quotes. */
-function parseArgs(str) {
+function parseShellArgs(str) {
   const args = [];
-  let current = '';
-  let quote = null;
-  for (const ch of str) {
-    if (quote) {
-      if (ch === quote) { quote = null; } else { current += ch; }
-    } else if (ch === '"' || ch === "'") {
-      quote = ch;
-    } else if (ch === ' ') {
-      if (current) { args.push(current); current = ''; }
-    } else {
-      current += ch;
+  const re = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\S+)/g;
+  let m;
+  while ((m = re.exec(str)) !== null) {
+    let arg = m[1];
+    if ((arg.startsWith('"') && arg.endsWith('"')) || (arg.startsWith("'") && arg.endsWith("'"))) {
+      arg = arg.slice(1, -1);
     }
+    args.push(arg);
   }
-  if (current) args.push(current);
   return args;
 }
 
 const codexBin = process.env.CODEX_BIN ?? "codex";
-const codexArgs = process.env.CODEX_ARGS ? parseArgs(process.env.CODEX_ARGS) : [];
+const codexArgs = process.env.CODEX_ARGS ? parseShellArgs(process.env.CODEX_ARGS) : [];
 const child = spawn(codexBin, codexArgs, { stdio: ["pipe", "inherit", "inherit"] });
 
 child.on("error", (error) => {
