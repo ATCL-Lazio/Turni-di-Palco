@@ -4,6 +4,7 @@ import { NavigatorProvider } from './router';
 import { useFeatureGates } from './handlers';
 import { AppShell } from './components/AppShell';
 import { AccessibilityProvider } from './hooks/useAccessibilityPreferences';
+import { ThemeProvider } from './providers/ThemeProvider';
 
 function AppWithNavigator() {
   const { events, featureFlags, isFeatureEnabled } = useGameState();
@@ -26,7 +27,9 @@ export default function App() {
   return (
     <AccessibilityProvider>
       <GameStateProvider>
-        <AppWithNavigator />
+        <ThemeProvider>
+          <AppWithNavigator />
+        </ThemeProvider>
       </GameStateProvider>
     </AccessibilityProvider>
   );
