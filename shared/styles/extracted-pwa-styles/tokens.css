@@ -35,15 +35,15 @@
   --color-surface-800: var(--color-bg-surface);
   --color-surface-700: var(--color-bg-surface-elevated);
   
-  --color-ink: #0b1021; /* Keep or map to text-primary-inverse? */
+  --color-ink: var(--color-text-on-burgundy);
   --color-neutral-50: var(--color-text-primary);
   --color-neutral-100: var(--color-text-primary);
   --color-neutral-200: var(--color-text-secondary);
   --color-neutral-250: var(--color-text-tertiary);
-  --color-neutral-300: #d1d5db;
-  --color-neutral-350: #cbd5e1;
-  --color-neutral-375: #cdd8ee;
-  --color-neutral-500: #9ca3af;
+  --color-neutral-300: var(--color-text-secondary);
+  --color-neutral-350: var(--color-text-secondary);
+  --color-neutral-375: var(--color-text-tertiary);
+  --color-neutral-500: var(--color-text-tertiary);
   
   --color-sky-200: var(--color-gold-400); /* Eyebrow */
   --color-sky-300: var(--color-gold-500);
@@ -53,7 +53,7 @@
   --color-info-100: var(--color-text-secondary);
   
   --color-success-400: var(--color-success);
-  --color-success-100: #bbf7d0;
+  --color-success-100: var(--color-success);
   --color-warning-300: var(--color-warning);
   --color-danger-200: var(--color-error);
   --color-danger-300: var(--color-error);
@@ -80,8 +80,8 @@ body {
   --bg-hero: linear-gradient(135deg, rgba(168, 40, 71, 0.42), rgba(36, 31, 32, 0.9));
   --bg-map: var(--color-surface-800);
 
-  --border-regular: #2d2728;
-  --border-strong: #4a0e1a;
+  --border-regular: var(--color-bg-surface-hover);
+  --border-strong: var(--color-burgundy-900);
   --border-subtle: rgba(244, 191, 79, 0.24);
   --border-soft: rgba(36, 31, 32, 0.75);
 
@@ -148,42 +148,42 @@ body {
 
 body[data-theme="light"] {
   color-scheme: light;
-  --bg-body: #f7f9fc;
-  --bg-card: #ffffff;
-  --bg-card-strong: #f1f5f9;
-  --bg-panel: linear-gradient(160deg, rgba(15, 23, 42, 0.06), rgba(15, 23, 42, 0.03));
-  --bg-hero: linear-gradient(135deg, rgba(15, 23, 42, 0.06), rgba(15, 23, 42, 0.02));
-  --bg-map: #e8f0ff;
+  --bg-body: var(--color-bg-primary);
+  --bg-card: var(--color-bg-surface);
+  --bg-card-strong: var(--color-bg-surface-elevated);
+  --bg-panel: linear-gradient(160deg, rgba(26, 22, 23, 0.06), rgba(26, 22, 23, 0.03));
+  --bg-hero: linear-gradient(135deg, rgba(168, 40, 71, 0.08), rgba(244, 240, 241, 0.9));
+  --bg-map: var(--color-bg-surface-elevated);
 
-  --border-regular: #cbd5e1;
-  --border-strong: #94a3b8;
-  --border-subtle: #e2e8f0;
-  --border-soft: #e2e8f0;
+  --border-regular: var(--color-border);
+  --border-strong: var(--color-border-strong);
+  --border-subtle: var(--color-border);
+  --border-soft: var(--color-border);
 
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #475569;
-  --text-inverse: #ffffff;
-  --text-eyebrow: #0f172a;
-  --text-quiet: #475569;
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-tertiary);
+  --text-inverse: var(--color-text-on-burgundy);
+  --text-eyebrow: var(--color-burgundy-700);
+  --text-quiet: var(--color-text-tertiary);
 
   --selection-bg: rgba(244, 191, 79, 0.2);
   --focus-ring: rgba(244, 191, 79, 0.35);
 
-  --surface-faint: #e2e8f0;
-  --surface-veil-soft: #ecf1fc;
-  --surface-veil: #edf2fb;
-  --surface-veil-strong: #e5ecfb;
-  --surface-veil-heavy: #dbeafe;
-  --surface-veil-bright: #d8e4ff;
+  --surface-faint: var(--color-bg-surface-elevated);
+  --surface-veil-soft: var(--color-bg-surface-elevated);
+  --surface-veil: var(--color-bg-surface);
+  --surface-veil-strong: var(--color-bg-surface-elevated);
+  --surface-veil-heavy: var(--color-bg-surface-hover);
+  --surface-veil-bright: rgba(184, 114, 10, 0.08);
   --surface-veil-highlight: rgba(15, 23, 42, 0.12);
   --surface-veil-contrast: rgba(15, 23, 42, 0.18);
   --surface-veil-stronger: rgba(15, 23, 42, 0.2);
 
-  --chip-surface: #e8f0ff;
-  --chip-border: #cbd5e1;
-  --pill-surface: #e2e8f0;
-  --pill-border: #cbd5e1;
+  --chip-surface: rgba(184, 114, 10, 0.08);
+  --chip-border: rgba(184, 114, 10, 0.2);
+  --pill-surface: var(--color-bg-surface-elevated);
+  --pill-border: var(--color-border);
   --pill-shadow: 0 6px 20px rgba(15, 23, 42, 0.1);
 
   --shadow-card: 0 10px 40px rgba(15, 23, 42, 0.14);
