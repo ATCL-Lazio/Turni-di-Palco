@@ -11,14 +11,22 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#39;");
 }
 
-async function fetchFeatureFlags(): Promise<FeatureFlag[]> {
-  if (!supabase) return [];
+function isFeatureFlag(item: unknown): item is FeatureFlag {
+  if (!item || typeof item !== "object") return false;
+  const r = item as Record<string, unknown>;
+  return typeof r.key === "string" && typeof r.enabled === "boolean" &&
+    typeof r.label === "string" && typeof r.description === "string";
+}
+
+// Returns null on fetch error (to distinguish from empty list)
+async function fetchFeatureFlags(): Promise<FeatureFlag[] | null> {
+  if (!supabase) return null;
   const { data, error } = await supabase
     .from("mobile_feature_flags")
     .select("key, enabled, label, description")
     .order("key");
-  if (error) return [];
-  return (data ?? []) as FeatureFlag[];
+  if (error) return null;
+  return (data ?? []).filter(isFeatureFlag);
 }
 
 async function getUserEmail(): Promise<string> {
@@ -143,6 +151,10 @@ export function renderDashboard(root: HTMLElement): void {
   void fetchFeatureFlags().then((flags) => {
     const container = root.querySelector<HTMLElement>("[data-flags]");
     if (!container) return;
+    if (flags === null) {
+      container.innerHTML = `<p class="text-sm text-red-400 py-4">Errore nel caricamento dei feature flag.</p>`;
+      return;
+    }
     if (!flags.length) {
       container.innerHTML = `<p class="text-sm text-neutral-500 py-4">Nessun feature flag trovato.</p>`;
       return;
