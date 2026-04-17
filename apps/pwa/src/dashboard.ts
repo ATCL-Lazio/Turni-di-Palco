@@ -31,7 +31,11 @@ async function fetchFeatureFlags(): Promise<FeatureFlag[] | null> {
 
 async function getUserEmail(): Promise<string> {
   if (!supabase) return "—";
-  const { data } = await supabase.auth.getUser();
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    console.warn("[dashboard] getUserEmail: auth error", error.message);
+    return "Sessione scaduta";
+  }
   return data.user?.email ?? "—";
 }
 
