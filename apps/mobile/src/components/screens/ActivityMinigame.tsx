@@ -1,12 +1,12 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Timer, SlidersHorizontal, Target, Sparkles } from 'lucide-react';
-import { Activity, RoleId } from '../../state/store';
+import { Activity, RoleId, useGameState } from '../../state/store';
 import {
   computeOutcome,
   computeRoundScore,
   getMinigameConfig,
-  MinigameConfig,
   MinigameOutcome,
+  ResolvedMinigameConfig,
   RoleStats,
 } from '../../gameplay/minigames';
 import { getActiveStatBenefitsForActivity } from '../../gameplay/role-effects';
@@ -106,21 +106,18 @@ function MinigameShell({
 }
 
 interface TimingMinigameProps {
-  config: MinigameConfig;
+  config: ResolvedMinigameConfig;
   activityTitle: string;
   statBenefits?: Array<{ stat: string; label: string }>;
+  accessibleMode: boolean;
   onComplete: (outcome: MinigameOutcome) => void;
   onCancel: () => void;
 }
 
-function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCancel }: TimingMinigameProps) {
-  const { accessibleMode } = useAccessibilityPreferences();
-  const rounds = useMemo(
-    () => (accessibleMode
-      ? config.rounds.map(r => ({ ...r, tolerance: Math.round(r.tolerance * 1.6) }))
-      : config.rounds),
-    [config.rounds, accessibleMode],
-  );
+function TimingMinigame({ config, activityTitle, statBenefits, accessibleMode, onComplete, onCancel }: TimingMinigameProps) {
+  const rounds = config.rounds;
+  const speed = config.speed;
+  const feedbackDelayMs = config.feedbackDelayMs;
   const [phase, setPhase] = useState<'intro' | 'playing' | 'feedback' | 'done'>('intro');
   const [roundIndex, setRoundIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -132,8 +129,6 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
   const hasStoppedRef = useRef(false);
   const attemptCountRef = useRef(0);
   const startedAtRef = useRef<number | null>(null);
-  const speed = accessibleMode ? 0.022 : 0.045;
-  const feedbackHoldMs = accessibleMode ? 1800 : 900;
 
   const round = rounds[roundIndex];
   const roundLabel = `Round ${roundIndex + 1}/${rounds.length}`;
@@ -233,7 +228,7 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
           })
         );
       }
-    }, feedbackHoldMs);
+    }, feedbackDelayMs);
   };
 
   return (
@@ -245,6 +240,14 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
       statBenefits={statBenefits}
       onCancel={onCancel}
     >
+      {accessibleMode && (
+        <span
+          className="inline-block text-xs bg-amber-900/50 text-amber-200 px-2 py-0.5 rounded-full"
+          aria-label="Modalità accessibile attiva: tempi più lunghi"
+        >
+          Modalità accessibile
+        </span>
+      )}
       <Card
         className={`bg-gradient-to-br from-[#1a1617] to-[#241f20] ${isPlaying ? 'touch-none select-none' : ''}`}
         onPointerDown={isPlaying ? handleStop : undefined}
@@ -329,7 +332,7 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
 }
 
 interface AudioMinigameProps {
-  config: MinigameConfig;
+  config: ResolvedMinigameConfig;
   activityTitle: string;
   statBenefits?: Array<{ stat: string; label: string }>;
   onComplete: (outcome: MinigameOutcome) => void;
@@ -512,7 +515,12 @@ function AudioMinigame({ config, activityTitle, statBenefits, onComplete, onCanc
 }
 
 export function ActivityMinigame({ activity, roleId, roleStats, onComplete, onCancel }: ActivityMinigameProps) {
-  const config = useMemo(() => getMinigameConfig(activity.id, roleId, roleStats), [activity.id, roleId, roleStats]);
+  const { state } = useGameState();
+  const accessibleMode = state.profile.accessibleMode ?? false;
+  const config = useMemo(
+    () => getMinigameConfig(activity.id, roleId, roleStats, { accessibleMode }),
+    [activity.id, roleId, roleStats, accessibleMode],
+  );
   const statBenefits = useMemo(
     () => getActiveStatBenefitsForActivity(activity.id, roleStats),
     [activity.id, roleStats],
@@ -522,5 +530,14 @@ export function ActivityMinigame({ activity, roleId, roleStats, onComplete, onCa
     return <AudioMinigame config={config} activityTitle={activity.title} statBenefits={statBenefits} onComplete={onComplete} onCancel={onCancel} />;
   }
 
-  return <TimingMinigame config={config} activityTitle={activity.title} statBenefits={statBenefits} onComplete={onComplete} onCancel={onCancel} />;
+  return (
+    <TimingMinigame
+      config={config}
+      activityTitle={activity.title}
+      statBenefits={statBenefits}
+      accessibleMode={accessibleMode}
+      onComplete={onComplete}
+      onCancel={onCancel}
+    />
+  );
 }
