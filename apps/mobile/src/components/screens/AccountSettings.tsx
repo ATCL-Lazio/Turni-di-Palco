@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Accessibility, ArrowLeft, Bell, Camera, ChevronRight, Download, FileText, History, KeyRound,
-  LogOut, MapPin, MessageCircle, QrCode, RotateCcw, Shield, ShieldCheck, Sun, Trash2, UserX,
+  LogOut, MapPin, MessageCircle, Moon, Monitor, QrCode, RotateCcw, Shield, ShieldCheck, Sun, Trash2, UserX,
 } from 'lucide-react';
+import { useTheme, type ThemeSetting } from '../../providers/ThemeProvider';
 import { Screen } from '../ui/Screen';
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 import { Switch } from '../ui/switch';
@@ -649,41 +650,78 @@ function GdprPrivacyCard({
   );
 }
 
+const THEME_OPTIONS: { value: ThemeSetting; label: string; Icon: React.ElementType; description: string }[] = [
+  { value: 'system', label: 'Automatico', Icon: Monitor, description: 'Segue il tema del dispositivo' },
+  { value: 'light',  label: 'Chiaro',     Icon: Sun,     description: 'Sfondo chiaro, contrasto alto' },
+  { value: 'dark',   label: 'Scuro',      Icon: Moon,    description: 'Sfondo scuro, stile teatro' },
+];
+
 function AccessibilityCard() {
+  const { theme, setTheme } = useTheme();
   const { state, updateProfile } = useGameState();
-  const isLight = state.profile.theme === 'light';
   const accessibleMode = state.profile.accessibleMode;
 
   return (
-    <SettingsCard className="gap-[14px]">
+    <SettingsCard className="gap-[18px]">
+      {/* Header */}
       <div className="flex items-center gap-[12px]">
-        <Accessibility className="text-[--color-gold-400]" size={24} />
+        <div className="w-[40px] h-[40px] rounded-[12px] bg-[--color-burgundy-900] flex items-center justify-center shrink-0">
+          <Accessibility className="text-[--color-gold-400]" size={20} />
+        </div>
         <div className="text-left">
-          <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">Accessibilità</p>
-          <p className="text-[16px] leading-[25.6px] text-[--color-text-secondary] !m-0">Tema e aiuti nei minigiochi</p>
+          <p className="text-[17px] leading-[22px] font-semibold text-[--color-text-primary] !m-0">Accessibilità</p>
+          <p className="text-[13px] leading-[18px] text-[--color-text-secondary] !m-0">Aspetto e aiuti nei minigiochi</p>
         </div>
       </div>
 
-      <div className="border-t border-[--color-bg-surface-hover] pt-[12px] flex flex-col gap-[16px]">
-        <div className="flex items-center justify-between gap-[12px]">
-          <div className="flex items-start gap-[10px] flex-1">
-            <Sun className="text-[--color-gold-400]" size={20} />
-            <div>
-              <p className="text-[16px] leading-[25.6px] text-white !m-0">Tema chiaro</p>
-              <p className="text-[12px] leading-[18px] text-[--color-text-secondary] !m-0">Interfaccia su sfondo chiaro per contrasti migliori</p>
-            </div>
-          </div>
-          <Switch
-            checked={isLight}
-            onCheckedChange={(checked) => updateProfile({ theme: checked ? 'light' : 'dark' })}
-            aria-label="Attiva tema chiaro"
-          />
+      {/* Theme selector */}
+      <div className="flex flex-col gap-[8px]">
+        <p className="text-[13px] font-medium text-[--color-text-tertiary] uppercase tracking-wider !m-0">Aspetto</p>
+        <div
+          className="grid grid-cols-3 gap-[6px]"
+          role="radiogroup"
+          aria-label="Scegli il tema dell'interfaccia"
+        >
+          {THEME_OPTIONS.map(({ value, label, Icon, description }) => {
+            const selected = theme === value;
+            return (
+              <button
+                key={value}
+                role="radio"
+                aria-checked={selected}
+                aria-label={`${label}: ${description}`}
+                onClick={() => setTheme(value)}
+                className={[
+                  'flex flex-col items-center gap-[6px] px-[8px] py-[10px] rounded-[12px] border transition-all',
+                  selected
+                    ? 'bg-[--color-gold-400]/10 border-[--color-gold-400] text-[--color-gold-400]'
+                    : 'bg-[--color-bg-surface-elevated] border-[--color-border] text-[--color-text-secondary]',
+                ].join(' ')}
+              >
+                <Icon size={20} aria-hidden="true" />
+                <span className="text-[12px] font-medium leading-none">{label}</span>
+              </button>
+            );
+          })}
         </div>
+        <p className="text-[12px] text-[--color-text-tertiary] !m-0">
+          {THEME_OPTIONS.find(o => o.value === theme)?.description}
+        </p>
+      </div>
 
-        <div className="flex items-center justify-between gap-[12px]">
-          <div className="flex-1">
-            <p className="text-[16px] leading-[25.6px] text-white !m-0">Modalità accessibile (minigiochi)</p>
-            <p className="text-[12px] leading-[18px] text-[--color-text-secondary] !m-0">Rallenta la velocità e amplia la tolleranza nei minigiochi timing</p>
+      {/* Accessible mode */}
+      <div className="border-t border-[--color-border] pt-[14px]">
+        <div className="flex items-start justify-between gap-[12px]">
+          <div className="flex items-start gap-[10px] flex-1">
+            <div className="w-[32px] h-[32px] rounded-[8px] bg-[--color-burgundy-900] flex items-center justify-center shrink-0 mt-[2px]">
+              <Accessibility size={16} className="text-[--color-gold-400]" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-[15px] leading-[20px] font-medium text-[--color-text-primary] !m-0">Modalità accessibile</p>
+              <p className="text-[12px] leading-[17px] text-[--color-text-secondary] !mt-[2px] !mb-0">
+                Rallenta i minigiochi timing e amplia la finestra di tolleranza
+              </p>
+            </div>
           </div>
           <Switch
             checked={accessibleMode}

@@ -192,8 +192,8 @@ export type PlayerProfile = {
   leaderboardVisible: boolean;
   /** Indica se il tutorial di benvenuto è stato completato. Default: false. */
   tutorialCompleted: boolean;
-  /** Tema UI preferito dall'utente. Default: 'dark'. */
-  theme: 'dark' | 'light';
+  /** Tema UI preferito dall'utente. 'system' segue il tema del dispositivo. Default: 'system'. */
+  theme: 'dark' | 'light' | 'system';
   /** Modalità accessibile per i minigiochi timing (velocità ridotta, tolleranza maggiore). Default: false. */
   accessibleMode: boolean;
 };
@@ -695,7 +695,7 @@ type ProfileUpsertPayload = {
   role_id: RoleId;
   profile_image?: string | null;
   leaderboard_visible?: boolean;
-  theme?: 'dark' | 'light';
+  theme?: 'dark' | 'light' | 'system';
   accessible_mode?: boolean;
   cookie_consent_at?: string | null;
 };
@@ -1798,7 +1798,7 @@ function createInitialState(): GameState {
       lastActivityAt: Date.now(),
       leaderboardVisible: true,
       tutorialCompleted: false,
-      theme: 'dark',
+      theme: 'system',
       accessibleMode: false,
     },
     turns: [],
@@ -1867,7 +1867,9 @@ function loadState(): GameState {
     const parsed = JSON.parse(raw) as GameState;
     if (!parsed.profile) return createDefaultState();
     const safeRole = isRoleId(parsed.profile.roleId) ? parsed.profile.roleId : createDefaultState().profile.roleId;
-    const parsedTheme = parsed.profile.theme === 'light' ? 'light' : 'dark';
+    const rawTheme = parsed.profile.theme;
+    const parsedTheme: 'dark' | 'light' | 'system' =
+      rawTheme === 'light' || rawTheme === 'dark' || rawTheme === 'system' ? rawTheme : 'system';
     const parsedAccessibleMode =
       typeof parsed.profile.accessibleMode === 'boolean' ? parsed.profile.accessibleMode : false;
     return {
@@ -3796,7 +3798,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                   ? profile.leaderboard_visible
                   : prev.profile.leaderboardVisible,
               theme:
-                profile.theme === 'light' || profile.theme === 'dark'
+                profile.theme === 'light' || profile.theme === 'dark' || profile.theme === 'system'
                   ? profile.theme
                   : prev.profile.theme,
               accessibleMode:

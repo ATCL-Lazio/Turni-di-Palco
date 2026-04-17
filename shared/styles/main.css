@@ -91,6 +91,17 @@
   --safe-area-inset-left: env(safe-area-inset-left, 0px);
 }
 
+/* Smooth theme transition — respects prefers-reduced-motion */
+@media (prefers-reduced-motion: no-preference) {
+  *, *::before, *::after {
+    transition:
+      background-color 0.25s ease,
+      color 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+}
+
 [data-theme='light'] {
   --color-burgundy-950: #2d0a0f;
   --color-burgundy-900: #4a0e1a;
