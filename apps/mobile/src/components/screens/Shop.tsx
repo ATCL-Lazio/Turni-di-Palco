@@ -98,12 +98,17 @@ export function Shop({
 function BalanceCard({ cachet }: { cachet: number }) {
   return (
     <Card className="border border-[#2d2728] bg-gradient-to-br from-[#1a1617] to-[#241f20]">
-      <div className="flex items-start justify-between gap-4">
+      <div
+        className="flex items-start justify-between gap-4"
+        role="status"
+        aria-live="polite"
+        aria-label={`Saldo disponibile: ${cachet} cachet`}
+      >
         <div>
           <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Saldo disponibile</p>
           <p className="text-2xl text-white font-semibold mt-1">{cachet} Cachet</p>
         </div>
-        <div className="w-12 h-12 rounded-xl bg-[#241f20] border border-[#3d3a3b] flex items-center justify-center">
+        <div aria-hidden="true" className="w-12 h-12 rounded-xl bg-[#241f20] border border-[#3d3a3b] flex items-center justify-center">
           <ShoppingBag className="text-[#f4bf4f]" size={22} />
         </div>
       </div>
@@ -117,7 +122,13 @@ function FeedbackCard({ feedback }: { feedback: { type: 'ok' | 'error'; message:
       ? 'border border-[#52c41a]/40 bg-[#1d2a1d]'
       : 'border border-[#a82847]/50 bg-[#2a1a1f]'
     }>
-      <p className={feedback.type === 'ok' ? 'text-[#9be274]' : 'text-[#ff9aac]'}>{feedback.message}</p>
+      <p
+        role={feedback.type === 'error' ? 'alert' : 'status'}
+        aria-live={feedback.type === 'error' ? 'assertive' : 'polite'}
+        className={feedback.type === 'ok' ? 'text-[#9be274]' : 'text-[#ff9aac]'}
+      >
+        {feedback.message}
+      </p>
     </Card>
   );
 }
@@ -142,8 +153,13 @@ function ShopItemCard({
   const theatreRequiredMissing = item.category === 'rep_theatre' && (!theatreOptions.length || !selectedTheatre);
   const disabled = !canPurchase || busyItemCode != null || maxReached || insufficientCachet || theatreRequiredMissing;
 
+  const purchaseLabel = `Acquista ${item.title} per ${item.costCachet} cachet`;
+
   return (
-    <Card className="border border-white/5 bg-gradient-to-br from-[#1a1617] via-[#1d1819] to-[#221d1e]">
+    <Card
+      aria-label={`${item.title}: ${item.description}. Costo ${item.costCachet} cachet.`}
+      className="border border-white/5 bg-gradient-to-br from-[#1a1617] via-[#1d1819] to-[#221d1e]"
+    >
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -171,7 +187,7 @@ function ShopItemCard({
               : theatreRequiredMissing ? 'Seleziona un teatro valido'
               : 'Disponibile'}
           </div>
-          <Button variant="primary" size="sm" disabled={disabled} onClick={onPurchase}>
+          <Button variant="primary" size="sm" disabled={disabled} onClick={onPurchase} aria-label={purchaseLabel}>
             Acquista
           </Button>
         </div>
@@ -207,11 +223,15 @@ function TheatreSelector({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Teatro target</p>
+      <label htmlFor="shop-theatre-select" className="text-xs uppercase tracking-wide text-[#b8b2b3] block">
+        Teatro target
+      </label>
       {theatreOptions.length ? (
         <select
+          id="shop-theatre-select"
           value={selectedTheatre}
           onChange={e => onSelectTheatre(e.target.value)}
+          aria-label="Seleziona teatro target per il pack di reputazione"
           className="w-full rounded-xl border border-[#3d3a3b] bg-[#241f20] px-3 py-2 text-white outline-none focus:border-[#f4bf4f]"
         >
           {theatreOptions.map(o => (

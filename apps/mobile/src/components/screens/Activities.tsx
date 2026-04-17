@@ -154,14 +154,20 @@ function ActivityCard({
   const rewardPreview = computeActivityRewards(activity, activeRole);
   const roleHighlight = getRoleActivityOverride(activeRole, activity.id)?.highlightLabel;
 
+  const cardLabel = canStart
+    ? `Avvia attività: ${activity.title}. Difficoltà ${difficultyLabel}. Ricompensa ${rewardPreview.xp} XP e ${rewardPreview.cachet} cachet`
+    : `${activity.title} (non disponibile)`;
+
   return (
     <Card
       hoverable={canStart}
       onClick={canStart ? onStart : undefined}
+      aria-label={cardLabel}
+      aria-disabled={!canStart}
       className="border border-white/5 bg-gradient-to-br from-[#1a1617] via-[#1d1819] to-[#221d1e]"
     >
       <div className="flex items-start gap-4">
-        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl flex items-center justify-center">
+        <div aria-hidden="true" className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl flex items-center justify-center">
           <Play className="text-[#f4bf4f]" size={22} />
         </div>
         <div className="flex-1 space-y-3">
@@ -170,7 +176,7 @@ function ActivityCard({
               <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Missione {index + 1}</p>
               <h4 className="text-white text-lg">{activity.title}</h4>
             </div>
-            <div className="flex items-center gap-2 text-[#f4bf4f]"><Play size={18} /></div>
+            <div aria-hidden="true" className="flex items-center gap-2 text-[#f4bf4f]"><Play size={18} /></div>
           </div>
 
           <p className="text-sm text-[#b8b2b3]">{activity.description}</p>

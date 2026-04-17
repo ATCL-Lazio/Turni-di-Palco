@@ -48,15 +48,16 @@ export function Leaderboard({ onSelectEntry }: LeaderboardProps) {
       ) : sorted.length === 0 ? (
         <Card><p className="text-[#b8b2b3]">Nessun dato disponibile.</p></Card>
       ) : (
-        <div className="space-y-3">
+        <ol className="space-y-3 list-none p-0 m-0" aria-label="Classifica giocatori per XP">
           {sorted.map((entry, index) => {
             const roleName = roles.find(r => r.id === entry.roleId)?.name ?? 'Ruolo';
             const isMe = Boolean(authUserId) && entry.id === authUserId;
             return (
-              <div
+              <li
                 key={entry.id}
                 ref={node => { if (node) rowRefs.current.set(entry.id, node); else rowRefs.current.delete(entry.id); }}
                 className="transform-gpu"
+                aria-current={isMe ? 'true' : undefined}
               >
                 <LeaderboardRow
                   entry={entry}
@@ -66,10 +67,10 @@ export function Leaderboard({ onSelectEntry }: LeaderboardProps) {
                   onClick={onSelectEntry ? () => onSelectEntry(entry, isMe) : undefined}
                   hoverable={Boolean(onSelectEntry)}
                 />
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ol>
       )}
     </Screen>
   );
@@ -88,17 +89,26 @@ function LeaderboardRow({
   hoverable: boolean;
 }) {
   const initial = (entry.name?.slice(0, 1) ?? 'P').toUpperCase();
+  const rowLabel = `${index + 1}° posto: ${entry.name}, ${roleName}, ${entry.xpTotal} XP${isMe ? ' (tu)' : ''}`;
 
   return (
-    <Card onClick={onClick} hoverable={hoverable} className={getPodiumCardClass(index, isMe)}>
+    <Card
+      onClick={onClick}
+      hoverable={hoverable}
+      aria-label={rowLabel}
+      className={getPodiumCardClass(index, isMe)}
+    >
       <div className="flex items-center gap-3">
         <RankBadge position={index} />
 
-        <div className={`flex items-center justify-center w-12 h-12 rounded-xl bg-[#241f20] overflow-hidden ${
-          isMe ? 'ring-2 ring-[#f4bf4f]/45 shadow-[0_0_16px_rgba(244,191,79,0.16)]' : ''
-        }`}>
+        <div
+          aria-hidden="true"
+          className={`flex items-center justify-center w-12 h-12 rounded-xl bg-[#241f20] overflow-hidden ${
+            isMe ? 'ring-2 ring-[#f4bf4f]/45 shadow-[0_0_16px_rgba(244,191,79,0.16)]' : ''
+          }`}
+        >
           {entry.profileImage ? (
-            <img src={entry.profileImage} alt={entry.name} className="w-full h-full object-cover" />
+            <img src={entry.profileImage} alt="" className="w-full h-full object-cover" />
           ) : (
             <span className="text-white font-semibold">{initial}</span>
           )}
@@ -112,7 +122,7 @@ function LeaderboardRow({
           <p className="text-xs text-[#b8b2b3] truncate">{roleName}</p>
         </div>
 
-        <div className="flex items-center gap-2 text-[#f4bf4f] shrink-0">
+        <div className="flex items-center gap-2 text-[#f4bf4f] shrink-0" aria-hidden="true">
           <Trophy size={18} />
           <span className="text-white font-semibold">{entry.xpTotal}</span>
         </div>
