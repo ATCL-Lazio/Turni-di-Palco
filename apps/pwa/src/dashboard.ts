@@ -164,6 +164,11 @@ export function renderDashboard(root: HTMLElement): void {
       return;
     }
     container.innerHTML = flags.map(flagRow).join("");
+  }).catch(() => {
+    const container = root.querySelector<HTMLElement>("[data-flags]");
+    if (container) {
+      container.innerHTML = `<p class="text-sm text-red-400 py-4">Errore nel caricamento dei feature flag.</p>`;
+    }
   });
 
   // Sign out
