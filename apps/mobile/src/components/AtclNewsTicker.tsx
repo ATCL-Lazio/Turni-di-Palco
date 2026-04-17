@@ -15,13 +15,13 @@ export function AtclNewsTicker({ items }: AtclNewsTickerProps) {
   const durationSeconds = Math.max(70, items.length * 14);
 
   return (
-    <Card className="overflow-hidden border border-[#f4bf4f]/15 bg-gradient-to-r from-[#1a1617] via-[#221b1d] to-[#1a1617] p-0">
-      <div className="atcl-news-headline border-b border-[#f4bf4f]/10 px-3 py-2">
+    <Card className="overflow-hidden border border-[--color-gold-400]/15 bg-gradient-to-r from-[--color-bg-surface] via-[--color-bg-surface-elevated] to-[--color-bg-surface] p-0">
+      <div className="atcl-news-headline border-b border-[--color-gold-400]/10 px-3 py-2">
         <div className="flex items-center gap-2">
-          <div className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#f4bf4f]/15 text-[#f4bf4f]">
+          <div className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[--color-gold-400]/15 text-[--color-gold-400]">
             <Radio size={13} />
           </div>
-          <p className="text-[11px] uppercase tracking-wide text-[#f4bf4f]">News ATCL Live</p>
+          <p className="text-[11px] uppercase tracking-wide text-[--color-gold-400]">News ATCL Live</p>
         </div>
 
         <button

@@ -476,8 +476,8 @@ export function AppShell() {
               <div className="app-content px-6 pt-6 space-y-4">
                 <Card>
                   <h3 className="text-white mb-2">Registrazione non disponibile</h3>
-                  <p className="text-[#b8b2b3] text-sm mb-4">Questa funzione e temporaneamente disattivata dalla configurazione runtime.</p>
-                  <button type="button" className="text-sm text-[#f4bf4f] hover:text-[#e6a23c]" onClick={() => handleTabChange('home')}>Torna alla Home</button>
+                  <p className="text-[--color-text-secondary] text-sm mb-4">Questa funzione e temporaneamente disattivata dalla configurazione runtime.</p>
+                  <button type="button" className="text-sm text-[--color-gold-400] hover:text-[--color-gold-500]" onClick={() => handleTabChange('home')}>Torna alla Home</button>
                 </Card>
               </div>
             </div>
@@ -677,17 +677,17 @@ export function AppShell() {
   return (
     <div className="min-h-screen app-gradient app-shell">
       {!isOnline && (
-        <div className="fixed top-0 left-0 right-0 z-[998] bg-[#2a1f14] border-b border-[#f4bf4f]/30 px-4 py-2 text-center text-sm text-[#f4bf4f]">
+        <div className="fixed top-0 left-0 right-0 z-[998] bg-[--color-warning-soft-bg] border-b border-[--color-gold-400]/30 px-4 py-2 text-center text-sm text-[--color-gold-400]">
           Sei offline — le modifiche saranno sincronizzate al ritorno della connessione
         </div>
       )}
       {isDemoMode && (
-        <div className="fixed top-0 left-0 right-0 z-[997] bg-[#1a1617] border-b border-[#a82847]/40 px-4 py-2 text-center text-sm text-[#b8b2b3]">
+        <div className="fixed top-0 left-0 right-0 z-[997] bg-[--color-bg-surface] border-b border-[--color-burgundy-600]/40 px-4 py-2 text-center text-sm text-[--color-text-secondary]">
           Modalità demo — i dati non vengono salvati
         </div>
       )}
       <ScreenTransition animationClass={screenAnimation} animationKey={screenAnimationKey}>
-        <Suspense fallback={<div className="min-h-screen app-gradient flex items-center justify-center"><div className="animate-shimmer h-8 w-32 rounded-lg bg-[#1a1617]" /></div>}>
+        <Suspense fallback={<div className="min-h-screen app-gradient flex items-center justify-center"><div className="animate-shimmer h-8 w-32 rounded-lg bg-[--color-bg-surface]" /></div>}>
         {routeConfig.showBottomNav ? (
           <MainLayout activeTab={nav.activeTab} enabledTabs={enabledNavTabs} onTabChange={handleTabChange}>
             {renderScreen()}
