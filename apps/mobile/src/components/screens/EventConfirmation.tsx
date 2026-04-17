@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -29,6 +29,14 @@ export function EventConfirmation({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [boostRequested, setBoostRequested] = useState(false);
   const [confirmResult, setConfirmResult] = useState<Extract<ConfirmTurnResult, { ok: true }> | null>(null);
+  const successTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current !== null) window.clearTimeout(successTimeoutRef.current);
+    };
+  }, []);
+
   const roleId = (role?.id ?? 'attore') as RoleId;
   const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
 
@@ -51,7 +59,7 @@ export function EventConfirmation({
       if (!result.ok) { window.alert(result.error); return; }
       setConfirmResult(result);
       setIsSuccess(true);
-      window.setTimeout(() => onSuccess(), 1500);
+      successTimeoutRef.current = window.setTimeout(() => onSuccess(), 1500);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : 'Errore durante la registrazione turno.');
     } finally {

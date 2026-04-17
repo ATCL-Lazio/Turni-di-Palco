@@ -611,13 +611,18 @@ function extractClientIp(req) {
   return "unknown";
 }
 
+function normalizeRateLimitPath(path) {
+  if (typeof path !== "string" || !path) return "/";
+  return path.replace(/^\/api(?=\/|$)/, "") || "/";
+}
+
 function handleRateLimit(req, res, next, options) {
   const { state, limit, skipHealth = false } = options;
   if (req.method === "OPTIONS") return next();
   if (skipHealth && (req.path === "/health" || req.path.endsWith("/health"))) return next();
 
   const now = Date.now();
-  const key = `${extractClientIp(req)}:${req.path}`;
+  const key = `${extractClientIp(req)}:${normalizeRateLimitPath(req.path)}`;
   const entry = state.get(key);
 
   if (!entry || entry.resetAt <= now) {
