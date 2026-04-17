@@ -83,6 +83,6 @@ export const VERCEL_FLAG_DEFINITIONS: Record<VercelFlagKey, VercelFlagDefinition
 };
 
 export const VERCEL_FLAGS_DISCOVERY_RESPONSE = {
-  overrideEncryptionMode: "plaintext",
+  overrideEncryptionMode: "encrypted",
   definitions: VERCEL_FLAG_DEFINITIONS,
 } as const;
