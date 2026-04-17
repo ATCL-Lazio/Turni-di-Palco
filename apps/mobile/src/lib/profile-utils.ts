@@ -38,8 +38,8 @@ export function resolveDisplayName({
   return (
     normalizeString(name) ||
     extractNameFromMetadata(metadata) ||
-    normalizeString(fallback) ||
     extractNameFromEmail(email) ||
+    normalizeString(fallback) ||
     'Utente'
   );
 }

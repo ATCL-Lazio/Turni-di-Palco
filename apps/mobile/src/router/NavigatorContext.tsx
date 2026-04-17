@@ -90,19 +90,20 @@ export function NavigatorProvider({
   }, [handleTabChange, onTabChange]);
 
   const goBack = useCallback(() => {
-    const backScreen = SCREENS_WITH_BACK[currentScreen];
+    const screen = currentScreenRef.current;
+    const backScreen = SCREENS_WITH_BACK[screen];
     if (backScreen) {
       setCurrentScreen(backScreen);
       return;
     }
     // For legal screens, return to where we came from
-    if (currentScreen === 'terms' || currentScreen === 'privacy') {
+    if (screen === 'terms' || screen === 'privacy') {
       setCurrentScreen(legalReturnScreen);
       return;
     }
     // Default: go to home tab
     handleTabChange('home');
-  }, [currentScreen, handleTabChange, legalReturnScreen, setCurrentScreen]);
+  }, [currentScreenRef, handleTabChange, legalReturnScreen, setCurrentScreen]);
 
   const openLegal = useCallback((screen: 'terms' | 'privacy', returnTo: LegalReturnScreen) => {
     setLegalReturnScreen(returnTo);
