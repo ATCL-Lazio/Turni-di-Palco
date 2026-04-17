@@ -323,7 +323,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 function StatRow({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="flex items-center justify-between px-4 py-3">
-      <span className="text-sm text-[#b8b2b3]">{label}</span>
+      <span className="text-sm text-[--color-text-secondary]">{label}</span>
       <span className="text-sm font-semibold text-white">{value}</span>
     </div>
   );

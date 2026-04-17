@@ -85,13 +85,13 @@ export function AccountSettings({
     >
       <div className="flex h-full w-full flex-col gap-6">
         <button type="button" onClick={onBack}
-          className="flex items-center justify-center size-[44px] text-[#f4bf4f]" aria-label="Indietro">
+          className="flex items-center justify-center size-[44px] text-[--color-gold-400]" aria-label="Indietro">
           <ArrowLeft size={24} />
         </button>
 
         <div className="flex flex-col items-start gap-1">
-          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[#f5f5f5]">Gestisci account</p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3]">Impostazioni e privacy</p>
+          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[--color-text-primary]">Gestisci account</p>
+          <p className="text-[16px] leading-[25.6px] text-[--color-text-secondary]">Impostazioni e privacy</p>
         </div>
 
         <UserInfoCard userName={userName} email={email} />
@@ -126,16 +126,16 @@ export function AccountSettings({
         />
         <SettingsActionCard icon={KeyRound} label="Cambia password" subtitle="Aggiorna le credenziali di accesso" onClick={onChangePassword} />
         <SettingsActionCard icon={RotateCcw} label="Reimposta tutorial" subtitle="Rivedi la guida di benvenuto" onClick={handleResetTutorial} />
-        <SettingsActionCard icon={Trash2} label="Resetta progressi" subtitle="Azzeramento irreversibile della carriera" onClick={handleReset} iconColor="text-[#ff4d4f]" />
+        <SettingsActionCard icon={Trash2} label="Resetta progressi" subtitle="Azzeramento irreversibile della carriera" onClick={handleReset} iconColor="text-[--color-error]" />
 
         <div className="mt-auto flex flex-col gap-4">
-          {deleteError && <p className="text-[14px] leading-[20px] text-[#ff4d4f] text-center">{deleteError}</p>}
+          {deleteError && <p className="text-[14px] leading-[20px] text-[--color-error] text-center">{deleteError}</p>}
           <CopyrightNotice />
           <button
             type="button"
             onClick={handleDeleteAccount}
             aria-label="Elimina definitivamente il tuo account"
-            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[14px] leading-[20px] text-[#ff4d4f]/70 w-full"
+            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[14px] leading-[20px] text-[--color-error]/70 w-full"
           >
             <UserX aria-hidden="true" size={16} /> Elimina account
           </button>
@@ -143,7 +143,7 @@ export function AccountSettings({
             type="button"
             onClick={onLogout}
             aria-label="Disconnetti dal tuo account"
-            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[18px] leading-[28px] text-[#ff4d4f] w-full"
+            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[18px] leading-[28px] text-[--color-error] w-full"
           >
             <LogOut aria-hidden="true" size={20} /> Esci
           </button>
@@ -158,10 +158,10 @@ export function AccountSettings({
 function UserInfoCard({ userName, email }: { userName: string; email: string }) {
   return (
     <SettingsCard>
-      <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
+      <div className="flex items-center justify-between text-[14px] leading-[20px] text-[--color-text-secondary]">
         <span>Nome</span><span className="text-white">{userName || 'Utente'}</span>
       </div>
-      <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
+      <div className="flex items-center justify-between text-[14px] leading-[20px] text-[--color-text-secondary]">
         <span>Email</span><span className="text-white">{email || '—'}</span>
       </div>
     </SettingsCard>
@@ -174,25 +174,25 @@ function VersionCard({ appInfo, appInfoStatus, appInfoError }: {
   return (
     <SettingsCard className="gap-[12px]">
       <div className="flex items-center gap-[12px]">
-        <History className="text-[#f4bf4f]" size={24} />
+        <History className="text-[--color-gold-400]" size={24} />
         <div className="text-left">
           <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">Versione app</p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">{appInfo?.version ? `v${appInfo.version}` : 'vdev'}</p>
+          <p className="text-[16px] leading-[25.6px] text-[--color-text-secondary] !m-0">{appInfo?.version ? `v${appInfo.version}` : 'vdev'}</p>
         </div>
       </div>
-      <div className="border-t border-[#2d2728] pt-[10px] flex flex-col gap-[8px]">
+      <div className="border-t border-[--color-bg-surface-hover] pt-[10px] flex flex-col gap-[8px]">
         <div className="flex items-center justify-between">
           <p className="text-[16px] leading-[25.6px] text-white !m-0">Changelog</p>
-          {appInfo?.repo && <span className="text-[12px] leading-[16px] text-[#9a9697]">{appInfo.repo}</span>}
+          {appInfo?.repo && <span className="text-[12px] leading-[16px] text-[--color-text-tertiary]">{appInfo.repo}</span>}
         </div>
-        {appInfoStatus === 'loading' && <p className="text-[14px] leading-[20px] text-[#b8b2b3]">Caricamento...</p>}
-        {appInfoStatus === 'error' && <p className="text-[14px] leading-[20px] text-[#ff4d4f]">{appInfoError ?? 'Impossibile caricare il changelog'}</p>}
+        {appInfoStatus === 'loading' && <p className="text-[14px] leading-[20px] text-[--color-text-secondary]">Caricamento...</p>}
+        {appInfoStatus === 'error' && <p className="text-[14px] leading-[20px] text-[--color-error]">{appInfoError ?? 'Impossibile caricare il changelog'}</p>}
         {appInfoStatus === 'idle' && appInfo?.changelog?.length ? (
           <div className="flex flex-col gap-[10px]">
             {appInfo.changelog.map(entry => (
               <div key={entry.sha} className="flex flex-col gap-[2px]">
                 <p className="text-[14px] leading-[20px] text-white !m-0">{entry.message}</p>
-                <p className="text-[12px] leading-[16px] text-[#9a9697] !m-0">
+                <p className="text-[12px] leading-[16px] text-[--color-text-tertiary] !m-0">
                   {entry.sha}{entry.date ? ` - ${formatChangelogDate(entry.date)}` : ''}{entry.author ? ` - ${entry.author}` : ''}
                 </p>
               </div>
@@ -200,7 +200,7 @@ function VersionCard({ appInfo, appInfoStatus, appInfoError }: {
           </div>
         ) : null}
         {appInfoStatus === 'idle' && !appInfo?.changelog?.length && (
-          <p className="text-[14px] leading-[20px] text-[#9a9697]">Nessun aggiornamento disponibile.</p>
+          <p className="text-[14px] leading-[20px] text-[--color-text-tertiary]">Nessun aggiornamento disponibile.</p>
         )}
       </div>
     </SettingsCard>
@@ -227,22 +227,22 @@ function PermissionsSection({ permissionStatuses, permissionMessages, onRequest 
   return (
     <SettingsCard className="gap-[12px]">
       <div className="flex items-center gap-[12px]">
-        <ShieldCheck className="text-[#f4bf4f]" size={24} />
+        <ShieldCheck className="text-[--color-gold-400]" size={24} />
         <div className="text-left">
           <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">Permessi app</p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">Gestisci accessi e autorizzazioni</p>
+          <p className="text-[16px] leading-[25.6px] text-[--color-text-secondary] !m-0">Gestisci accessi e autorizzazioni</p>
         </div>
       </div>
-      <div className="border-t border-[#2d2728] pt-[10px] flex flex-col gap-[12px]">
+      <div className="border-t border-[--color-bg-surface-hover] pt-[10px] flex flex-col gap-[12px]">
         {PERMISSION_ROWS.map(({ key, icon: Icon, label }) => (
           <div key={key} className="flex items-start justify-between gap-[12px]">
             <div className="flex items-start gap-[10px]">
-              <Icon className="text-[#f4bf4f]" size={20} />
+              <Icon className="text-[--color-gold-400]" size={20} />
               <div>
                 <p className="text-[16px] leading-[25.6px] text-white !m-0">{label}</p>
-                <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Stato: {formatPermissionStatus(permissionStatuses[key])}</p>
+                <p className="text-[12px] leading-[18px] text-[--color-text-secondary] !m-0">Stato: {formatPermissionStatus(permissionStatuses[key])}</p>
                 {permissionMessages[key] && (
-                  <p className="text-[12px] leading-[18px] text-[#9a9697] !m-0">{permissionMessages[key]}</p>
+                  <p className="text-[12px] leading-[18px] text-[--color-text-tertiary] !m-0">{permissionMessages[key]}</p>
                 )}
               </div>
             </div>
@@ -251,7 +251,7 @@ function PermissionsSection({ permissionStatuses, permissionMessages, onRequest 
               onClick={() => onRequest(key)}
               disabled={!canRequest[key]}
               aria-label={`Richiedi permesso: ${label}`}
-              className="text-[12px] leading-[18px] px-[10px] py-[6px] rounded-[10px] border border-[#2d2728] text-white disabled:opacity-50"
+              className="text-[12px] leading-[18px] px-[10px] py-[6px] rounded-[10px] border border-[--color-bg-surface-hover] text-white disabled:opacity-50"
             >
               Richiedi
             </button>
@@ -270,10 +270,10 @@ function NotificationToggleCard({ notificationPermission, notificationStatusLabe
     <SettingsCard className="gap-[8px]">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-[12px]">
-          <Bell className="text-[#f4bf4f]" size={24} />
+          <Bell className="text-[--color-gold-400]" size={24} />
           <div className="text-left">
             <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">Notifiche di sistema</p>
-            <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">Aggiornamenti su badge ed eventi</p>
+            <p className="text-[16px] leading-[25.6px] text-[--color-text-secondary] !m-0">Aggiornamenti su badge ed eventi</p>
           </div>
         </div>
         <Switch
@@ -283,9 +283,9 @@ function NotificationToggleCard({ notificationPermission, notificationStatusLabe
           aria-label={notificationPermission === 'granted' ? 'Disattiva notifiche di sistema' : 'Attiva notifiche di sistema'}
         />
       </div>
-      <p className="text-[14px] leading-[20px] text-[#b8b2b3]">Stato: {notificationStatusLabel}</p>
+      <p className="text-[14px] leading-[20px] text-[--color-text-secondary]">Stato: {notificationStatusLabel}</p>
       {notificationPermission === 'unsupported' && (
-        <p className="text-[14px] leading-[20px] text-[#ff4d4f]">Le notifiche di sistema non sono disponibili su questo dispositivo.</p>
+        <p className="text-[14px] leading-[20px] text-[--color-error]">Le notifiche di sistema non sono disponibili su questo dispositivo.</p>
       )}
     </SettingsCard>
   );
@@ -304,7 +304,7 @@ function LinksSection({ showAiSupport, showTicketPrototype, supportStatus, onVie
       {showAiSupport && (
         <>
           <LinkRow icon={MessageCircle} label="Supporto" subtitle="Chat con Maxwell" onClick={onViewSupport} disabled={supportDisabled} />
-          {supportUnavailable && <p className="text-[14px] leading-[20px] text-[#ff4d4f]">Supporto AI attualmente non disponibile.</p>}
+          {supportUnavailable && <p className="text-[14px] leading-[20px] text-[--color-error]">Supporto AI attualmente non disponibile.</p>}
         </>
       )}
       {showTicketPrototype && (
@@ -328,18 +328,18 @@ function LinkRow({ icon: Icon, label, subtitle, onClick, disabled }: {
       className="min-h-[56px] py-[2px] flex items-center justify-between disabled:opacity-60 disabled:cursor-not-allowed"
     >
       <div className="flex items-center gap-[12px]">
-        <Icon aria-hidden="true" className="text-[#f4bf4f]" size={24} />
+        <Icon aria-hidden="true" className="text-[--color-gold-400]" size={24} />
         <div className="text-left">
           <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">{label}</p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">{subtitle}</p>
+          <p className="text-[16px] leading-[25.6px] text-[--color-text-secondary] !m-0">{subtitle}</p>
         </div>
       </div>
-      <ChevronRight aria-hidden="true" className="text-[#9a9697]" size={20} />
+      <ChevronRight aria-hidden="true" className="text-[--color-text-tertiary]" size={20} />
     </button>
   );
 }
 
-function SettingsActionCard({ icon: Icon, label, subtitle, onClick, iconColor = 'text-[#f4bf4f]' }: {
+function SettingsActionCard({ icon: Icon, label, subtitle, onClick, iconColor = 'text-[--color-gold-400]' }: {
   icon: React.ElementType; label: string; subtitle: string; onClick: () => void; iconColor?: string;
 }) {
   return (
@@ -354,10 +354,10 @@ function SettingsActionCard({ icon: Icon, label, subtitle, onClick, iconColor = 
           <Icon aria-hidden="true" className={iconColor} size={24} />
           <div className="text-left">
             <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">{label}</p>
-            <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">{subtitle}</p>
+            <p className="text-[16px] leading-[25.6px] text-[--color-text-secondary] !m-0">{subtitle}</p>
           </div>
         </div>
-        <ChevronRight aria-hidden="true" className="text-[#9a9697]" size={20} />
+        <ChevronRight aria-hidden="true" className="text-[--color-text-tertiary]" size={20} />
       </button>
     </SettingsCard>
   );
@@ -365,7 +365,7 @@ function SettingsActionCard({ icon: Icon, label, subtitle, onClick, iconColor = 
 
 function SettingsCard({ children, className = 'gap-[10px]' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col ${className}`}>
+    <div className={`bg-[--color-bg-surface] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col ${className}`}>
       {children}
     </div>
   );
@@ -576,19 +576,19 @@ function GdprPrivacyCard({
   return (
     <SettingsCard className="gap-[14px]">
       <div className="flex items-center gap-[12px]">
-        <Shield className="text-[#f4bf4f]" size={24} />
+        <Shield className="text-[--color-gold-400]" size={24} />
         <div className="text-left">
           <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">Privacy e dati</p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">Controlli GDPR</p>
+          <p className="text-[16px] leading-[25.6px] text-[--color-text-secondary] !m-0">Controlli GDPR</p>
         </div>
       </div>
 
-      <div className="border-t border-[#2d2728] pt-[12px] flex flex-col gap-[16px]">
+      <div className="border-t border-[--color-bg-surface-hover] pt-[12px] flex flex-col gap-[16px]">
         {/* Leaderboard opt-out */}
         <div className="flex items-center justify-between gap-[12px]">
           <div className="flex-1">
             <p className="text-[16px] leading-[25.6px] text-white !m-0">Visibile in classifica</p>
-            <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Il tuo profilo appare nella classifica pubblica</p>
+            <p className="text-[12px] leading-[18px] text-[--color-text-secondary] !m-0">Il tuo profilo appare nella classifica pubblica</p>
           </div>
           <Switch
             checked={leaderboardVisible}
@@ -602,7 +602,7 @@ function GdprPrivacyCard({
           <div className="flex items-start justify-between gap-[12px]">
             <div className="flex-1">
               <p className="text-[16px] leading-[25.6px] text-white !m-0">Verifica GPS ai turni</p>
-              <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">
+              <p className="text-[12px] leading-[18px] text-[--color-text-secondary] !m-0">
                 Consenti la raccolta della posizione GPS per la verifica presenza. Stato: {geoLabel}
               </p>
             </div>
@@ -614,7 +614,7 @@ function GdprPrivacyCard({
               disabled={geoConsent === 'granted'}
               aria-label="Consenti la verifica GPS ai turni"
               aria-pressed={geoConsent === 'granted'}
-              className="flex-1 py-[6px] px-[10px] rounded-[10px] border border-[#2d2728] text-[12px] text-white disabled:opacity-40"
+              className="flex-1 py-[6px] px-[10px] rounded-[10px] border border-[--color-bg-surface-hover] text-[12px] text-white disabled:opacity-40"
             >
               Consenti
             </button>
@@ -624,7 +624,7 @@ function GdprPrivacyCard({
               disabled={geoConsent === 'denied'}
               aria-label="Nega la verifica GPS ai turni"
               aria-pressed={geoConsent === 'denied'}
-              className="flex-1 py-[6px] px-[10px] rounded-[10px] border border-[#2d2728] text-[12px] text-white disabled:opacity-40"
+              className="flex-1 py-[6px] px-[10px] rounded-[10px] border border-[--color-bg-surface-hover] text-[12px] text-white disabled:opacity-40"
             >
               Nega
             </button>
@@ -638,10 +638,10 @@ function GdprPrivacyCard({
           aria-label="Scarica i miei dati: esporta profilo, turni e badge in JSON"
           className="flex items-center gap-[10px] py-[6px]"
         >
-          <Download aria-hidden="true" className="text-[#f4bf4f]" size={20} />
+          <Download aria-hidden="true" className="text-[--color-gold-400]" size={20} />
           <div className="text-left">
             <p className="text-[16px] leading-[25.6px] font-semibold text-white !m-0">Scarica i miei dati</p>
-            <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Esporta profilo, turni e badge in JSON</p>
+            <p className="text-[12px] leading-[18px] text-[--color-text-secondary] !m-0">Esporta profilo, turni e badge in JSON</p>
           </div>
         </button>
       </div>
@@ -657,20 +657,20 @@ function AccessibilityCard() {
   return (
     <SettingsCard className="gap-[14px]">
       <div className="flex items-center gap-[12px]">
-        <Accessibility className="text-[#f4bf4f]" size={24} />
+        <Accessibility className="text-[--color-gold-400]" size={24} />
         <div className="text-left">
           <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">Accessibilità</p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">Tema e aiuti nei minigiochi</p>
+          <p className="text-[16px] leading-[25.6px] text-[--color-text-secondary] !m-0">Tema e aiuti nei minigiochi</p>
         </div>
       </div>
 
-      <div className="border-t border-[#2d2728] pt-[12px] flex flex-col gap-[16px]">
+      <div className="border-t border-[--color-bg-surface-hover] pt-[12px] flex flex-col gap-[16px]">
         <div className="flex items-center justify-between gap-[12px]">
           <div className="flex items-start gap-[10px] flex-1">
-            <Sun className="text-[#f4bf4f]" size={20} />
+            <Sun className="text-[--color-gold-400]" size={20} />
             <div>
               <p className="text-[16px] leading-[25.6px] text-white !m-0">Tema chiaro</p>
-              <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Interfaccia su sfondo chiaro per contrasti migliori</p>
+              <p className="text-[12px] leading-[18px] text-[--color-text-secondary] !m-0">Interfaccia su sfondo chiaro per contrasti migliori</p>
             </div>
           </div>
           <Switch
@@ -683,7 +683,7 @@ function AccessibilityCard() {
         <div className="flex items-center justify-between gap-[12px]">
           <div className="flex-1">
             <p className="text-[16px] leading-[25.6px] text-white !m-0">Modalità accessibile (minigiochi)</p>
-            <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Rallenta la velocità e amplia la tolleranza nei minigiochi timing</p>
+            <p className="text-[12px] leading-[18px] text-[--color-text-secondary] !m-0">Rallenta la velocità e amplia la tolleranza nei minigiochi timing</p>
           </div>
           <Switch
             checked={accessibleMode}
