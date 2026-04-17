@@ -177,9 +177,13 @@ function ScannerHeader({ onClose, isScanning }: { onClose: () => void; isScannin
   return (
     <div className="flex items-center justify-between p-4 bg-[color:var(--qrscanner-header-bg)]">
       <h3 className="text-white">{isScanning ? 'Scansiona Biglietto' : 'Registra Biglietto'}</h3>
-      <button onClick={onClose}
-        className="flex items-center justify-center size-[44px] hover:bg-[color:var(--qrscanner-header-hover-bg)] rounded-lg transition-colors">
-        <X className="text-[color:var(--qrscanner-accent)]" size={24} />
+      <button
+        onClick={onClose}
+        type="button"
+        aria-label="Chiudi scanner biglietti"
+        className="flex items-center justify-center size-[44px] hover:bg-[color:var(--qrscanner-header-hover-bg)] rounded-lg transition-colors"
+      >
+        <X aria-hidden="true" className="text-[color:var(--qrscanner-accent)]" size={24} />
       </button>
     </div>
   );
@@ -194,17 +198,28 @@ function CameraView({ videoRef, canvasRef, isStartingCamera, isHandlingScan, sca
 }) {
   return (
     <>
-      <div className="absolute inset-0 bg-black">
-        <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" playsInline autoPlay muted />
-        <canvas ref={canvasRef} className="hidden" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#1a1617]/60 to-[#0f0d0e]/80" />
+      <div
+        className="absolute inset-0 bg-black"
+        role="region"
+        aria-label="Area di scansione QR del biglietto"
+      >
+        <video
+          ref={videoRef}
+          className="absolute inset-0 h-full w-full object-cover"
+          playsInline
+          autoPlay
+          muted
+          aria-label="Anteprima fotocamera per scansione biglietto"
+        />
+        <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
+        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-[#1a1617]/60 to-[#0f0d0e]/80" />
         <ScanningFrame />
         {isStartingCamera && <Overlay text="Avvio fotocamera..." />}
         {isHandlingScan && <Overlay text="Verifica biglietto..." />}
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0f0d0e] to-transparent p-6">
-        <div className="app-content text-center">
+        <div className="app-content text-center" aria-live="polite" aria-atomic="true">
           {scanError && (
             <>
               <p className="text-white mb-2">Biglietto non valido</p>
@@ -235,7 +250,7 @@ function CameraView({ videoRef, canvasRef, isStartingCamera, isHandlingScan, sca
 
 function ScanningFrame() {
   return (
-    <div className="absolute inset-0 flex items-center justify-center">
+    <div aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
       <div className="relative w-64 h-64">
         <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-[#f4bf4f] rounded-tl-lg" />
         <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-[#f4bf4f] rounded-tr-lg" />
@@ -251,7 +266,11 @@ function ScanningFrame() {
 
 function Overlay({ text }: { text: string }) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-[#0f0d0e]/60">
+    <div
+      role="status"
+      aria-live="polite"
+      className="absolute inset-0 flex items-center justify-center bg-[#0f0d0e]/60"
+    >
       <p className="text-sm text-[#b8b2b3]">{text}</p>
     </div>
   );
@@ -259,9 +278,13 @@ function Overlay({ text }: { text: string }) {
 
 function ManualSwitchButton({ onClick }: { onClick: () => void }) {
   return (
-    <button onClick={onClick}
-      className="inline-flex items-center justify-center gap-2 rounded-md px-2 py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors">
-      <Ticket size={16} />
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Inserisci manualmente il numero del biglietto"
+      className="inline-flex items-center justify-center gap-2 rounded-md px-2 py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+    >
+      <Ticket aria-hidden="true" size={16} />
       Inserisci numero biglietto
     </button>
   );
@@ -290,30 +313,48 @@ function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHan
       </div>
 
       {scanError && (
-        <div className="mb-4 rounded-xl border border-[#d32f2f]/30 bg-[#d32f2f]/10 px-4 py-3 text-center">
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="mb-4 rounded-xl border border-[#d32f2f]/30 bg-[#d32f2f]/10 px-4 py-3 text-center"
+        >
           <p className="text-[#ff5252] text-xs">{scanError}</p>
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-4" aria-label="Attivazione manuale biglietto">
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="text-xs text-[#7f797a] ml-1 uppercase font-bold tracking-wider">Seleziona Evento</label>
+            <label htmlFor="qr-manual-event" className="text-xs text-[#7f797a] ml-1 uppercase font-bold tracking-wider">Seleziona Evento</label>
             <div className="relative">
-              <select value={manualEventId} onChange={e => onEventChange(e.target.value)}
-                className="w-full bg-[#1a1617] border border-[#2d2728] rounded-xl px-4 py-3 text-sm text-white appearance-none focus:outline-none focus:border-[#f4bf4f] transition-colors">
+              <select
+                id="qr-manual-event"
+                value={manualEventId}
+                onChange={e => onEventChange(e.target.value)}
+                className="w-full bg-[#1a1617] border border-[#2d2728] rounded-xl px-4 py-3 text-sm text-white appearance-none focus:outline-none focus:border-[#f4bf4f] transition-colors"
+              >
                 <option value="" disabled>Scegli l'evento...</option>
                 {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name} ({ev.date})</option>)}
               </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#f4bf4f]">
+              <div aria-hidden="true" className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#f4bf4f]">
                 <X size={14} className="rotate-45" />
               </div>
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-xs text-[#7f797a] ml-1 uppercase font-bold tracking-wider">Numero Biglietto</label>
-            <Input type="text" placeholder="es. 12345" value={manualTicket} onChange={e => onTicketChange(e.target.value)} className="text-center" />
-            <p className="text-[10px] text-[#7f797a] text-center px-2 italic">Il biglietto deve essere stato pre-registrato dalla biglietteria autorizzata</p>
+            <label htmlFor="qr-manual-ticket" className="text-xs text-[#7f797a] ml-1 uppercase font-bold tracking-wider">Numero Biglietto</label>
+            <Input
+              id="qr-manual-ticket"
+              type="text"
+              placeholder="es. 12345"
+              value={manualTicket}
+              onChange={e => onTicketChange(e.target.value)}
+              className="text-center"
+              aria-describedby="qr-manual-ticket-help"
+            />
+            <p id="qr-manual-ticket-help" className="text-[10px] text-[#7f797a] text-center px-2 italic">
+              Il biglietto deve essere stato pre-registrato dalla biglietteria autorizzata
+            </p>
           </div>
         </div>
 
@@ -321,9 +362,13 @@ function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHan
           <Button type="submit" variant="primary" size="lg" fullWidth disabled={isHandlingScan}>
             {isHandlingScan ? 'Verifica in corso...' : 'Attiva biglietto'}
           </Button>
-          <button type="button" onClick={onSwitchToScanner}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-md py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors">
-            <Camera size={16} />
+          <button
+            type="button"
+            onClick={onSwitchToScanner}
+            aria-label="Passa alla scansione con fotocamera"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-md py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors"
+          >
+            <Camera aria-hidden="true" size={16} />
             Usa la fotocamera
           </button>
         </div>

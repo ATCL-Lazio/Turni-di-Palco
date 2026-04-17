@@ -49,7 +49,13 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
       className="relative items-start justify-start h-[100dvh] overflow-hidden"
       contentClassName="relative w-full flex-1 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom,_0px)+32px)] space-y-0 box-border"
     >
-      <div className="relative flex h-full flex-col items-center text-center">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cookie-dialog-title"
+        aria-describedby="cookie-dialog-description"
+        className="relative flex h-full flex-col items-center text-center"
+      >
         {/* Logo e titolo */}
         <div className="flex flex-col items-center gap-5 pt-3">
           <div className="bg-gradient-to-b from-[#a82847] to-[#6b1529] rounded-[28px] size-[96px] flex items-center justify-center ring-1 ring-[#a82847]/30">
@@ -57,6 +63,7 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
           </div>
           <div className="flex flex-col items-center gap-1">
             <p
+              id="cookie-dialog-title"
               className="text-[22px] leading-[1.2] font-bold tracking-[-0.02em] text-transparent bg-clip-text"
               style={{
                 WebkitTextFillColor: 'transparent',
@@ -72,14 +79,21 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
         </div>
 
         {/* Card informativa */}
-        <div className="mt-6 w-full bg-[#1a1617] border border-[#2d2728] rounded-2xl p-4">
-          <div className="grid grid-cols-2 gap-2">
+        <div
+          id="cookie-dialog-description"
+          className="mt-6 w-full bg-[#1a1617] border border-[#2d2728] rounded-2xl p-4"
+        >
+          <div className="grid grid-cols-2 gap-2" role="list">
             {bullets.map(({ icon: Icon, title, desc }) => (
               <div
                 key={title}
+                role="listitem"
                 className="flex flex-col gap-2 rounded-[14px] bg-[#0f0d0e] p-3"
               >
-                <div className="flex items-center justify-center size-[32px] rounded-[9px] bg-[#f4bf4f]/10 self-start">
+                <div
+                  aria-hidden="true"
+                  className="flex items-center justify-center size-[32px] rounded-[9px] bg-[#f4bf4f]/10 self-start"
+                >
                   <Icon size={15} className="text-[#f4bf4f]" />
                 </div>
                 <div className="text-left">
@@ -96,6 +110,7 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
           <button
             type="button"
             onClick={handleAccept}
+            aria-label="Accetta i cookie tecnici e continua"
             className="h-[50px] w-full max-w-[300px] rounded-2xl bg-gradient-to-b from-[#f4bf4f] to-[#e6a23c] shadow-[0_4px_20px_rgba(244,191,79,0.25)] active:shadow-none active:scale-[0.98] transition-all duration-150 text-[#0f0d0e]"
           >
             <span className="block text-[17px] font-semibold leading-none">Accetta e continua</span>
@@ -104,13 +119,18 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
           <button
             type="button"
             onClick={() => setRejected(true)}
+            aria-label="Rifiuta i cookie"
             className="text-[#8a7a7b] text-sm underline"
           >
             Rifiuta
           </button>
 
           {rejected && (
-            <p className="text-[12px] leading-[16px] text-[#a82847] max-w-[280px]">
+            <p
+              role="alert"
+              aria-live="assertive"
+              className="text-[12px] leading-[16px] text-[#a82847] max-w-[280px]"
+            >
               Per utilizzare l'app è necessario accettare i cookie tecnici.
             </p>
           )}
@@ -118,6 +138,7 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
           <button
             type="button"
             onClick={onViewPrivacy}
+            aria-label="Leggi la Privacy Policy"
             className="h-[44px] w-full max-w-[300px] flex items-center justify-center"
           >
             <span className="text-[14px] text-[#b8b2b3] underline underline-offset-2">
