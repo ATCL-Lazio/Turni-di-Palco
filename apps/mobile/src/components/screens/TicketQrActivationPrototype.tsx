@@ -80,10 +80,12 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
     >
       <div className="flex items-center justify-between rounded-2xl border border-[#2d2728] bg-[#1a1617] px-4 py-3">
         <button
+          type="button"
           onClick={onBack}
+          aria-label="Torna indietro"
           className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-[#f4bf4f] hover:text-[#e6a23c]"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft aria-hidden="true" size={18} />
           Indietro
         </button>
         <p className="text-xs text-[#b8b2b3]">Prototipo mobile ticket office + attivazione</p>
@@ -105,11 +107,13 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
           <Input value={date} onChange={(event) => setDate(event.target.value)} placeholder="Data ISO (es. 2026-02-11T11:54:00+01:00)" />
         </div>
 
-        <Button variant="primary" onClick={handleGenerate} disabled={busy}>
+        <Button variant="primary" onClick={handleGenerate} disabled={busy} aria-label="Genera QR ticket dai dati inseriti">
           Genera QR ticket
         </Button>
 
-        {generateMessage ? <p className="text-sm text-[#b8b2b3]">{generateMessage}</p> : null}
+        {generateMessage ? (
+          <p className="text-sm text-[#b8b2b3]" role="status" aria-live="polite">{generateMessage}</p>
+        ) : null}
 
         {generated ? (
           <div className="rounded-xl border border-[#2d2728] bg-[#0f0d0e] p-3 text-xs text-[#d9d4d5] space-y-2">
@@ -128,10 +132,12 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
             placeholder="Incolla hash o valore QR"
           />
 
-        <Button variant="secondary" onClick={handleActivate} disabled={busy}>
+        <Button variant="secondary" onClick={handleActivate} disabled={busy} aria-label="Verifica hash e attiva il ticket">
           Verifica e attiva
         </Button>
-        {scanMessage ? <p className="text-sm text-[#b8b2b3]">{scanMessage}</p> : null}
+        {scanMessage ? (
+          <p className="text-sm text-[#b8b2b3]" role="status" aria-live="polite">{scanMessage}</p>
+        ) : null}
       </section>
 
       <section className="rounded-2xl border border-[#2d2728] bg-[#1a1617] p-4 space-y-3">

@@ -44,9 +44,10 @@ export function PublicProfile({
           <button
             type="button"
             onClick={onBack}
+            aria-label="Torna alla classifica"
             className="inline-flex items-center gap-[8px] text-[14px] leading-[20px] text-[#b8b2b3] hover:text-white"
           >
-            <ArrowLeft size={16} />
+            <ArrowLeft aria-hidden="true" size={16} />
             Torna alla classifica
           </button>
         </div>
@@ -87,36 +88,48 @@ export function PublicProfile({
               <Tag size="sm">{turnsCount} turni</Tag>
             </div>
 
-            <div className="grid grid-cols-2 gap-[12px]">
-              <div className="rounded-[12px] bg-[#241f20] p-[12px] flex flex-col gap-[8px]">
-                <span className="inline-flex items-center gap-[8px] text-[13px] leading-[18px] text-[#b8b2b3]">
-                  <Trophy size={14} />
+            <dl className="grid grid-cols-2 gap-[12px] m-0" aria-label="Statistiche del profilo">
+              <div
+                aria-label={`XP totale: ${xpTotal}`}
+                className="rounded-[12px] bg-[#241f20] p-[12px] flex flex-col gap-[8px]"
+              >
+                <dt className="inline-flex items-center gap-[8px] text-[13px] leading-[18px] text-[#b8b2b3]">
+                  <Trophy aria-hidden="true" size={14} />
                   XP totale
-                </span>
-                <span className="text-[24px] leading-[28px] font-semibold text-white">{xpTotal}</span>
+                </dt>
+                <dd className="text-[24px] leading-[28px] font-semibold text-white m-0">{xpTotal}</dd>
               </div>
-              <div className="rounded-[12px] bg-[#241f20] p-[12px] flex flex-col gap-[8px]">
-                <span className="inline-flex items-center gap-[8px] text-[13px] leading-[18px] text-[#b8b2b3]">
-                  <Coins size={14} />
+              <div
+                aria-label={`Cachet: ${cachet}`}
+                className="rounded-[12px] bg-[#241f20] p-[12px] flex flex-col gap-[8px]"
+              >
+                <dt className="inline-flex items-center gap-[8px] text-[13px] leading-[18px] text-[#b8b2b3]">
+                  <Coins aria-hidden="true" size={14} />
                   Cachet
-                </span>
-                <span className="text-[24px] leading-[28px] font-semibold text-white">{cachet}</span>
+                </dt>
+                <dd className="text-[24px] leading-[28px] font-semibold text-white m-0">{cachet}</dd>
               </div>
-              <div className="rounded-[12px] bg-[#241f20] p-[12px] flex flex-col gap-[8px]">
-                <span className="inline-flex items-center gap-[8px] text-[13px] leading-[18px] text-[#b8b2b3]">
-                  <Shield size={14} />
+              <div
+                aria-label={`Reputazione: ${reputation} su 100`}
+                className="rounded-[12px] bg-[#241f20] p-[12px] flex flex-col gap-[8px]"
+              >
+                <dt className="inline-flex items-center gap-[8px] text-[13px] leading-[18px] text-[#b8b2b3]">
+                  <Shield aria-hidden="true" size={14} />
                   Reputazione
-                </span>
-                <span className="text-[24px] leading-[28px] font-semibold text-white">{reputation}/100</span>
+                </dt>
+                <dd className="text-[24px] leading-[28px] font-semibold text-white m-0">{reputation}/100</dd>
               </div>
-              <div className="rounded-[12px] bg-[#241f20] p-[12px] flex flex-col gap-[8px]">
-                <span className="inline-flex items-center gap-[8px] text-[13px] leading-[18px] text-[#b8b2b3]">
-                  <Users size={14} />
+              <div
+                aria-label={`Presenze: ${turnsCount} turni`}
+                className="rounded-[12px] bg-[#241f20] p-[12px] flex flex-col gap-[8px]"
+              >
+                <dt className="inline-flex items-center gap-[8px] text-[13px] leading-[18px] text-[#b8b2b3]">
+                  <Users aria-hidden="true" size={14} />
                   Presenze
-                </span>
-                <span className="text-[24px] leading-[28px] font-semibold text-white">{turnsCount}</span>
+                </dt>
+                <dd className="text-[24px] leading-[28px] font-semibold text-white m-0">{turnsCount}</dd>
               </div>
-            </div>
+            </dl>
 
             <div className="flex flex-col gap-[6px]">
               <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">

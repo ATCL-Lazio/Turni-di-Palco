@@ -130,53 +130,57 @@ export function EventDetails({
         </div>
 
         <Card>
-          <div className="space-y-3">
+          <section aria-labelledby="event-info-heading" className="space-y-3">
             <div className="flex items-start justify-between gap-3">
-              <h3 className="text-white text-lg leading-tight">{event.name}</h3>
+              <h3 id="event-info-heading" className="text-white text-lg leading-tight">{event.name}</h3>
               {event.genre ? <Badge variant="default" size="sm">{event.genre}</Badge> : null}
             </div>
             <div className="flex items-center gap-3 text-[#b8b2b3]">
-              <MapPin size={18} className="text-[#f4bf4f]" />
-              <span>{event.theatre}</span>
+              <MapPin aria-hidden="true" size={18} className="text-[#f4bf4f]" />
+              <span aria-label={`Teatro: ${event.theatre}`}>{event.theatre}</span>
             </div>
             <div className="flex items-center gap-3 text-[#b8b2b3]">
-              <Calendar size={18} className="text-[#f4bf4f]" />
-              <span>{event.date}</span>
+              <Calendar aria-hidden="true" size={18} className="text-[#f4bf4f]" />
+              <span aria-label={`Data: ${event.date}`}>{event.date}</span>
             </div>
             <div className="flex items-center gap-3 text-[#b8b2b3]">
-              <Clock size={18} className="text-[#f4bf4f]" />
-              <span>{event.time}</span>
+              <Clock aria-hidden="true" size={18} className="text-[#f4bf4f]" />
+              <span aria-label={`Orario: ${event.time}`}>{event.time}</span>
             </div>
-          </div>
+          </section>
         </Card>
 
         <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
-          <h4 className="text-[#f4bf4f] mb-4">Ricompense base</h4>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div>
-              <p className="text-white text-lg">+{event.baseRewards.xp}</p>
-              <p className="text-xs text-[#b8b2b3]">XP</p>
+          <section aria-labelledby="event-base-rewards-heading">
+            <h4 id="event-base-rewards-heading" className="text-[#f4bf4f] mb-4">Ricompense base</h4>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div aria-label={`Esperienza: ${event.baseRewards.xp} XP`}>
+                <p className="text-white text-lg">+{event.baseRewards.xp}</p>
+                <p className="text-xs text-[#b8b2b3]">XP</p>
+              </div>
+              <div aria-label={`Reputazione: ${event.baseRewards.reputation}`}>
+                <p className="text-white text-lg">+{event.baseRewards.reputation}</p>
+                <p className="text-xs text-[#b8b2b3]">Reputazione</p>
+              </div>
+              <div aria-label={`Cachet: ${event.baseRewards.cachet}`}>
+                <p className="text-white text-lg">+{event.baseRewards.cachet}</p>
+                <p className="text-xs text-[#b8b2b3]">Cachet</p>
+              </div>
             </div>
-            <div>
-              <p className="text-white text-lg">+{event.baseRewards.reputation}</p>
-              <p className="text-xs text-[#b8b2b3]">Reputazione</p>
-            </div>
-            <div>
-              <p className="text-white text-lg">+{event.baseRewards.cachet}</p>
-              <p className="text-xs text-[#b8b2b3]">Cachet</p>
-            </div>
-          </div>
+          </section>
         </Card>
 
         <Card className="border border-[#f4bf4f]/10 bg-[#151112]">
+          <section aria-labelledby="event-planning-heading">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h4 className="text-white">Pianificazione partecipazione</h4>
+              <h4 id="event-planning-heading" className="text-white">Pianificazione partecipazione</h4>
               <p className="text-sm text-[#b8b2b3] mt-1">
                 Salva il ruolo che intendi coprire per questo evento e mantieni lo stato visibile nella lista.
               </p>
             </div>
             <span
+              aria-label={`Stato pianificazione: ${planningStatusLabel}`}
               className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-medium ${planningStatusClassName}`}
             >
               {planningStatusLabel}
@@ -237,6 +241,7 @@ export function EventDetails({
               </Button>
             ) : null}
           </div>
+          </section>
         </Card>
 
         <div className="space-y-3">
