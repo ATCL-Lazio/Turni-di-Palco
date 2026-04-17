@@ -93,6 +93,7 @@ export function useAuth(
     }, [onAuthChange, updateProfile]);
 
     const handleLogoutAction = useCallback(async () => {
+        setAuthError(null);
         if (supabase) {
             try {
                 await supabase.auth.signOut();
@@ -155,7 +156,7 @@ export function useAuth(
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
             if (!mounted) return;
             if (event === 'SIGNED_OUT') {
-                window.alert('Sessione scaduta. Effettua nuovamente l\'accesso.');
+                setAuthError('Sessione scaduta. Effettua nuovamente l\'accesso.');
                 onLogout();
                 return;
             }

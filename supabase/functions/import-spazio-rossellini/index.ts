@@ -47,7 +47,7 @@ const formatDate = (details?: SpazioEvent['start_date_details'], fallback?: stri
 };
 
 const formatTime = (details?: SpazioEvent['start_date_details'], fallback?: string) => {
-  if (details?.hour && details?.minutes != null) {
+  if (details?.hour != null && details?.minutes != null) {
     return `${String(details.hour).padStart(2, '0')}:${String(details.minutes).padStart(2, '0')}`;
   }
   if (fallback) {
@@ -100,11 +100,13 @@ const fetchCategorySlugs = async () => {
   return slugs;
 };
 
+const MAX_PAGINATION_PAGES = 50;
+
 const fetchAllEvents = async () => {
   const events: SpazioEvent[] = [];
   let nextUrl: string | null = EVENTS_API_URL;
   const visited = new Set<string>();
-  while (nextUrl && !visited.has(nextUrl)) {
+  while (nextUrl && !visited.has(nextUrl) && visited.size < MAX_PAGINATION_PAGES) {
     visited.add(nextUrl);
     const res = await fetch(nextUrl);
     if (!res.ok) throw new Error(`Events API fetch failed: ${res.status}`);
@@ -174,9 +176,11 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   try {
-    const sitemapUrls = await fetchSitemapUrls();
-    const categorySlugs = await fetchCategorySlugs();
-    const apiEvents = await fetchAllEvents();
+    const [sitemapUrls, categorySlugs, apiEvents] = await Promise.all([
+      fetchSitemapUrls(),
+      fetchCategorySlugs(),
+      fetchAllEvents(),
+    ]);
     const matched = apiEvents.filter((event) =>
       sitemapUrls.has(normalizeUrl(event.url ?? ''))
     );

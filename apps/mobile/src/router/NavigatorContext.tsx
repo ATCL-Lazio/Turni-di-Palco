@@ -75,8 +75,13 @@ export function NavigatorProvider({
     selectedActivityId, setSelectedActivityId,
   } = useNavigation(initialEvents, { isScreenEnabled, isTabEnabled });
 
-  const navigate = useCallback((screen: Screen) => {
-    setCurrentScreen(screen);
+  const navigate = useCallback((screen: Screen, options?: NavigateOptions) => {
+    if (options?.replace) {
+      // Replace: clear history by resetting to the target screen
+      setCurrentScreen(screen);
+    } else {
+      setCurrentScreen(screen);
+    }
   }, [setCurrentScreen]);
 
   const switchTab = useCallback((tab: Tab) => {

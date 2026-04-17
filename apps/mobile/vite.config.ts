@@ -44,7 +44,7 @@ function resolveHttps(): ServerOptions | undefined {
 }
 
 const DEFAULT_ALLOWED_HOSTS = ['turni-di-palco-fq85.onrender.com'];
-const DEFAULT_AI_SUPPORT_PORT = Number.parseInt(String.fromCharCode(56, 55, 56, 55), 10);
+const DEFAULT_AI_SUPPORT_PORT = 8787;
 
 function resolveAllowedHosts(env: Record<string, string>) {
   const raw =
@@ -120,7 +120,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: true,
-      port: 3000,
+      port: 4174,
       https: httpsOption,
       allowedHosts,
       open: true,
