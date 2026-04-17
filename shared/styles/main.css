@@ -159,8 +159,7 @@ html[data-theme="light"] body,
 html[data-theme="light"] body.mobile-fixed-bg {
   background-color: var(--color-bg-primary);
   background-image: none;
-  color: var(--color-text-primary);
-}
+  color: var(--color-text-primary);}
 
 html[data-theme="light"] body.mobile-fixed-bg::before {
   background-color: var(--color-bg-primary);
