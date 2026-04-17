@@ -22,6 +22,8 @@ export function useQrLanding(_authReady: boolean, _isAuthValid: boolean, onLandi
 
         if (!isInstalled && !dismissed) {
             onLanding('install');
+        } else {
+            onLanding('welcome');
         }
 
         try {
