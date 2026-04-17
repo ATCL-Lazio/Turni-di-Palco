@@ -2,7 +2,6 @@ import { supabase } from '../lib/supabase';
 import { withMobileWatchdog } from './mobile-watchdog';
 
 const PROFILE_UPLOAD_WATCHDOG_MS = 30000;
-const ALLOWED_IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp']);
 const ALLOWED_IMAGE_MIME_PREFIX = 'image/';
 const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -17,9 +16,9 @@ export async function uploadProfileImage(userId: string, file: File): Promise<st
       throw new Error('Immagine troppo grande (max 5MB)');
     }
 
-    const rawExt = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() ?? '' : '';
-    const fileExt = ALLOWED_IMAGE_EXTS.has(rawExt) ? rawExt : 'jpg';
-    const fileName = `${userId}/profile.${fileExt}`;
+    // Always use a fixed path so upsert truly overwrites the previous image
+    // regardless of the source file extension, preventing orphan objects.
+    const fileName = `${userId}/profile.jpg`;
 
     const { error } = await supabase.storage
       .from('profile-images')
