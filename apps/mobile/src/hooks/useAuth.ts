@@ -174,8 +174,12 @@ export function useAuth(
                 return;
             }
             if (session?.user) {
+                // Only navigate on an explicit sign-in transition.
+                // TOKEN_REFRESHED / USER_UPDATED / INITIAL_SESSION refresh
+                // the profile without interrupting the current screen.
+                const navigateTo = event === 'SIGNED_IN' ? 'home' : undefined;
                 applyUserProfileRef.current(session.user, {
-                    navigateTo: 'home',
+                    navigateTo,
                 });
             }
         });
