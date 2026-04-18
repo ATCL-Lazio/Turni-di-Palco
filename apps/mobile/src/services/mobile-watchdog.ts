@@ -30,21 +30,33 @@ function buildTimeoutDetails(operation: string, timeoutMs: number) {
   return `Watchdog timeout: ${operation} exceeded ${timeoutMs}ms`;
 }
 
+export class WatchdogTimeoutError extends Error {
+  constructor(operation: string, timeoutMs: number) {
+    super(buildTimeoutDetails(operation, timeoutMs));
+    this.name = 'WatchdogTimeoutError';
+  }
+}
+
 export async function withMobileWatchdog<T>(
   task: () => Promise<T>,
   { operation, timeoutMs, title, message }: MobileWatchdogOptions
 ): Promise<T> {
-  const timeoutId = scheduleWatchdogTimeout(() => {
-    reportCriticalError({
-      title: title ?? DEFAULT_ERROR_TITLE,
-      message: message ?? DEFAULT_ERROR_MESSAGE,
-      details: buildTimeoutDetails(operation, timeoutMs),
-    });
-  }, timeoutMs);
+  let timeoutId: ReturnType<typeof setTimeout> | number | undefined;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = scheduleWatchdogTimeout(() => {
+      reportCriticalError({
+        title: title ?? DEFAULT_ERROR_TITLE,
+        message: message ?? DEFAULT_ERROR_MESSAGE,
+        details: buildTimeoutDetails(operation, timeoutMs),
+      });
+      reject(new WatchdogTimeoutError(operation, timeoutMs));
+    }, timeoutMs);
+  });
 
   try {
-    return await task();
+    return await Promise.race([task(), timeoutPromise]);
   } finally {
-    clearWatchdogTimeout(timeoutId);
+    if (timeoutId !== undefined) clearWatchdogTimeout(timeoutId);
   }
 }
