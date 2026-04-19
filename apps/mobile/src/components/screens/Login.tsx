@@ -49,7 +49,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
           <p className="text-base text-[#b8b2b3]">Inizia la tua carriera teatrale</p>
         </div>
 
-        <form onSubmit={handleSubmit} method="post" action="/login" autoComplete="on"
+        <form onSubmit={handleSubmit} autoComplete="on"
           className="mt-8 flex w-full max-w-[300px] flex-col gap-6 mx-auto">
 
           <FormField label="Email" htmlFor="login-email" error={errors.email}>
