@@ -111,7 +111,7 @@ function ProfileAvatar({
     setIsUploading(true);
     try { await onUploadProfileImage(file); }
     catch { alert('Errore durante il caricamento dell\'immagine.'); }
-    finally { setIsUploading(false); }
+    finally { setIsUploading(false); event.target.value = ''; }
   };
 
   return (
