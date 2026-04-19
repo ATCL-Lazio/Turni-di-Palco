@@ -82,7 +82,7 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
       saveChatHistory(displayName, next, userId);
       return next;
     });
-  }, [messages, activeSessionId, historyId]);
+  }, [messages, activeSessionId, historyId, displayName, userId]);
 
   const hasInput = input.trim().length > 0;
   const activeSession = useMemo(
