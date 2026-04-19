@@ -71,7 +71,7 @@ function mapActivatedEvent(
 
 export function useQrHandlers(deps: QrHandlerDeps) {
   const {
-    authUserId, authReady, isAuthValid, events, profileEmail, profileRoleId,
+    authUserId, authReady, isAuthValid, events, profileRoleId,
     isFeatureEnabled, registerTurn, navigate, setScannedEventId, scannedEventId,
     pendingTicketActivation, setPendingTicketActivation,
     confirmationEventOverride, setConfirmationEventOverride,
@@ -89,7 +89,7 @@ export function useQrHandlers(deps: QrHandlerDeps) {
       return { ok: false as const, error: 'Login richiesto.' };
     }
 
-    const activationUserId = (authUserId ?? profileEmail ?? '').trim();
+    const activationUserId = (authUserId ?? '').trim();
 
     // Manual ticket entry (requires pre-registered ticket via Python generator)
     if (code.startsWith('manual-ticket:')) {
@@ -145,7 +145,7 @@ export function useQrHandlers(deps: QrHandlerDeps) {
     setScannedEventId(result.eventId);
     navigate('event-confirmation');
     return { ok: true as const };
-  }, [authReady, authUserId, events, isAuthValid, isFeatureEnabled, navigate, profileEmail, setConfirmationEventOverride, setPendingTicketActivation, setScannedEventId]);
+  }, [authReady, authUserId, events, isAuthValid, isFeatureEnabled, navigate, setConfirmationEventOverride, setPendingTicketActivation, setScannedEventId]);
 
   const handleEventConfirm = useCallback(async ({ boostRequested }: { boostRequested: boolean }): Promise<
     | { ok: true; syncStatus: TurnSyncStatus; boostRequested: boolean; boostApplied: boolean; boostRejectionReason: string | null; rewards: Rewards }
@@ -158,7 +158,7 @@ export function useQrHandlers(deps: QrHandlerDeps) {
       return { ok: false, error: 'Boost turno temporaneamente disattivato.' };
     }
 
-    const activationUserId = (authUserId ?? profileEmail ?? '').trim();
+    const activationUserId = (authUserId ?? '').trim();
 
     if (pendingTicketActivation?.mode === 'hash') {
       if (!activationUserId) {
@@ -226,7 +226,7 @@ export function useQrHandlers(deps: QrHandlerDeps) {
     }
 
     return { ok: false, error: turnResult.error || 'Non e stato possibile registrare il turno.' };
-  }, [authUserId, confirmationEventOverride, scannedEventId, events, isFeatureEnabled, navigate, pendingTicketActivation, profileEmail, profileRoleId, registerTurn, setConfirmationEventOverride, setPendingTicketActivation, setScannedEventId]);
+  }, [authUserId, confirmationEventOverride, scannedEventId, events, isFeatureEnabled, navigate, pendingTicketActivation, profileRoleId, registerTurn, setConfirmationEventOverride, setPendingTicketActivation, setScannedEventId]);
 
   return { handleQRScanAttempt, handleEventConfirm };
 }
