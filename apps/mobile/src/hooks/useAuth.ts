@@ -163,7 +163,7 @@ export function useAuth(
             if (!mounted) return;
             if (event === 'SIGNED_OUT') {
                 setAuthError('Sessione scaduta. Effettua nuovamente l\'accesso.');
-                onLogout();
+                onLogoutRef.current();
                 return;
             }
             if (event === 'PASSWORD_RECOVERY') {
