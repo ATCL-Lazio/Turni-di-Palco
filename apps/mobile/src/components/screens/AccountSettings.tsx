@@ -546,10 +546,14 @@ function useSupportStatus(showAiSupport: boolean) {
     let mounted = true;
     const check = async () => {
       if (!showAiSupport) { if (mounted) setStatus('unavailable'); return; }
-      const result = await checkAiSupportAvailability();
-      if (mounted) setStatus(result);
+      try {
+        const result = await checkAiSupportAvailability();
+        if (mounted) setStatus(result);
+      } catch {
+        if (mounted) setStatus('unavailable');
+      }
     };
-    check();
+    void check();
     return () => { mounted = false; };
   }, [showAiSupport]);
 
