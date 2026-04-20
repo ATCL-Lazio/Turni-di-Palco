@@ -36,6 +36,7 @@ export function EventDetails({
   const [selectedRoleId, setSelectedRoleId] = useState<RoleId>(planning?.roleId ?? currentRoleId);
   const [isSavingPlanning, setIsSavingPlanning] = useState(false);
   const [isClearingPlanning, setIsClearingPlanning] = useState(false);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
 
   useEffect(() => {
     setSelectedRoleId(planning?.roleId ?? currentRoleId);
@@ -74,9 +75,10 @@ export function EventDetails({
     if (typeof window === 'undefined') return;
     const startDate = parseEventDateTime(event.date, event.time);
     if (!startDate) {
-      window.alert('Impossibile generare il calendario per questo evento.');
+      setCalendarError('Impossibile generare il calendario per questo evento.');
       return;
     }
+    setCalendarError(null);
     const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
     const formatDate = (value: Date) =>
       value.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
@@ -243,6 +245,14 @@ export function EventDetails({
         </Card>
 
         <div className="space-y-3">
+          {calendarError ? (
+            <div
+              role="alert"
+              className="rounded-lg border border-[#ff4d4f]/40 bg-[#ff4d4f]/10 px-4 py-3 text-sm text-[#ff4d4f]"
+            >
+              {calendarError}
+            </div>
+          ) : null}
           <Button variant="primary" size="lg" fullWidth onClick={handleAddToCalendar}>
             <CalendarPlus size={16} />
             Aggiungi al calendario
