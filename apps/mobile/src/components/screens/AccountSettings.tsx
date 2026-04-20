@@ -452,7 +452,7 @@ function usePermissions() {
     setPermissionStatuses({ notifications, camera, geolocation });
   }, []);
 
-  useEffect(() => { refreshAll(); }, [refreshAll]);
+  useEffect(() => { void refreshAll().catch(() => {}); }, [refreshAll]);
 
   const handlePermissionRequest = useCallback(async (key: PermissionKey) => {
     setPermissionMessages(p => ({ ...p, [key]: null }));
