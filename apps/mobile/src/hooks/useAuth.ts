@@ -90,6 +90,12 @@ export function useAuth(
             return;
         }
 
+        if (!data.session || !data.user) {
+            // No session returned — email confirmation may still be pending.
+            setAuthError('Controlla la tua email per confermare l\'account prima di accedere.');
+            return;
+        }
+
         const displayName = resolveDisplayName({
             name: data.user?.user_metadata?.name,
             metadata: data.user?.user_metadata,
