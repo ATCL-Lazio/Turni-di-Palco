@@ -38,7 +38,8 @@ export async function uploadProfileImage(userId: string, file: File): Promise<st
       throw new Error('Impossibile ottenere l\'URL pubblico');
     }
 
-    return urlData.publicUrl;
+    const separator = urlData.publicUrl.includes('?') ? '&' : '?';
+    return `${urlData.publicUrl}${separator}v=${Date.now()}`;
   }, {
     operation: 'uploadProfileImage',
     timeoutMs: PROFILE_UPLOAD_WATCHDOG_MS,
