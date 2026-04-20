@@ -204,10 +204,16 @@ serve(async (req: Request) => {
           .select('hash, event_id, ticket_number')
           .eq('ticket_number', payload.ticketNumber);
 
-        if (payload.circuit) {
+        if (payload.circuit !== undefined && payload.circuit !== null && payload.circuit !== '') {
+          if (typeof payload.circuit !== 'string') {
+            return jsonResponse({ error: 'Parametro circuit non valido.' }, 400);
+          }
           query = query.ilike('circuit', payload.circuit.trim());
         }
-        if (payload.eventID) {
+        if (payload.eventID !== undefined && payload.eventID !== null && payload.eventID !== '') {
+          if (typeof payload.eventID !== 'string') {
+            return jsonResponse({ error: 'Parametro eventID non valido.' }, 400);
+          }
           query = query.eq('event_id', payload.eventID.trim());
         }
 
