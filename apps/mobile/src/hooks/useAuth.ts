@@ -92,13 +92,19 @@ export function useAuth(
         onAuthChange('welcome'); // Flow will continue to role-selection
     }, [onAuthChange, updateProfile]);
 
+    // Set to true immediately before a voluntary signOut so the SIGNED_OUT
+    // listener can skip the misleading "session expired" error message.
+    const isVoluntaryLogoutRef = useRef(false);
+
     const handleLogoutAction = useCallback(async () => {
         setAuthError(null);
         if (supabase) {
             try {
+                isVoluntaryLogoutRef.current = true;
                 await supabase.auth.signOut();
             } catch {
                 // signOut failure must not block local logout
+                isVoluntaryLogoutRef.current = false;
             }
         }
         onLogout();
@@ -162,7 +168,14 @@ export function useAuth(
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
             if (!mounted) return;
             if (event === 'SIGNED_OUT') {
-                setAuthError('Sessione scaduta. Effettua nuovamente l\'accesso.');
+                // Only show the "session expired" message for involuntary
+                // sign-outs (e.g. token revoked by server). Voluntary logouts
+                // (initiated via handleLogoutAction) set isVoluntaryLogoutRef
+                // before calling signOut() so we skip the misleading banner.
+                if (!isVoluntaryLogoutRef.current) {
+                    setAuthError('Sessione scaduta. Effettua nuovamente l\'accesso.');
+                }
+                isVoluntaryLogoutRef.current = false;
                 onLogoutRef.current();
                 return;
             }
