@@ -144,12 +144,17 @@ export function useAuth(
             try {
                 isVoluntaryLogoutRef.current = true;
                 await supabase.auth.signOut();
+                // onLogout() will be called by the SIGNED_OUT listener;
+                // do NOT call it here to avoid the double-fire.
             } catch {
-                // signOut failure must not block local logout
+                // signOut failure must not block local logout.
                 isVoluntaryLogoutRef.current = false;
+                onLogout();
             }
+        } else {
+            // Demo mode / no Supabase: no auth listener fires, call directly.
+            onLogout();
         }
-        onLogout();
     }, [onLogout]);
 
     const profileNameRef = useRef(profile.name);
