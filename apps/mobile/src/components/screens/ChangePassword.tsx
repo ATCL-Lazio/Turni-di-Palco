@@ -25,6 +25,7 @@ export function ChangePassword({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resetEmailStatus, setResetEmailStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [resetEmailError, setResetEmailError] = useState<string | null>(null);
@@ -63,9 +64,7 @@ export function ChangePassword({
       setCurrentPassword('');
       setPassword('');
       setConfirmPassword('');
-      if (typeof window !== 'undefined') {
-        window.alert('Password aggiornata');
-      }
+      setSuccessMessage('Password aggiornata con successo.');
       onBack();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Errore sconosciuto');
@@ -219,6 +218,12 @@ export function ChangePassword({
           {errorMessage ? (
             <p className="text-[14px] leading-[20px] text-[#ff4d4f] text-center">
               {errorMessage}
+            </p>
+          ) : null}
+
+          {successMessage ? (
+            <p className="text-[14px] leading-[20px] text-[#52c41a] text-center">
+              {successMessage}
             </p>
           ) : null}
 
