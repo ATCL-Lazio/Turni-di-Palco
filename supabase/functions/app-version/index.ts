@@ -66,7 +66,13 @@ serve(async (req) => {
   }
 
   const url = `https://api.github.com/repos/${repo}/commits?per_page=${limit}`;
-  const response = await fetch(url, { headers });
+  let response: Response;
+  try {
+    response = await fetch(url, { headers });
+  } catch (err) {
+    console.error('[app-version] GitHub fetch failed', err);
+    return errorResponse('Impossibile caricare il changelog', 502);
+  }
   if (!response.ok) {
     return errorResponse('Impossibile caricare il changelog', response.status);
   }
