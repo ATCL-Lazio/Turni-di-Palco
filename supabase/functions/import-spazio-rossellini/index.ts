@@ -188,7 +188,8 @@ serve(async (req) => {
 
     const { error } = await supabase.from('events').upsert(rows, { onConflict: 'id' });
     if (error) {
-      return jsonResponse({ error: error.message }, 500);
+      console.error('[import-spazio-rossellini] upsert error', error);
+      return jsonResponse({ error: 'Upsert failed' }, 500);
     }
 
     return jsonResponse({
@@ -198,6 +199,7 @@ serve(async (req) => {
       upserted: rows.length,
     });
   } catch (error) {
-    return jsonResponse({ error: error instanceof Error ? error.message : 'Errore' }, 500);
+    console.error('[import-spazio-rossellini] unexpected error', error);
+    return jsonResponse({ error: 'Internal server error' }, 500);
   }
 });
