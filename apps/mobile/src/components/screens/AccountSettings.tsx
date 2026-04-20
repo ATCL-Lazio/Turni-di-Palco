@@ -406,7 +406,7 @@ function useAppInfo() {
       }
       const { data, error } = await supabase.functions.invoke('app-version', { body: { limit: 8 } });
       if (!mounted) return;
-      if (error) { setAppInfoStatus('error'); setAppInfoError(error.message || 'Impossibile caricare la versione'); return; }
+      if (error) { setAppInfoStatus('error'); setAppInfoError('Impossibile caricare la versione'); return; }
       setAppInfo({
         version: typeof data?.version === 'string' ? data.version : '0.0.5',
         repo: typeof data?.repo === 'string' ? data.repo : null,
