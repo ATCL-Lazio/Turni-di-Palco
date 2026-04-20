@@ -49,7 +49,7 @@ function extractEventId(payload: string | null | undefined) {
   }
 
   const textMatch = raw.match(EVENT_ID_PATTERN)?.[1];
-  return normalizeEventId(textMatch ?? raw);
+  return textMatch ? normalizeEventId(textMatch) : '';
 }
 
 const ALLOWED_HOSTS = [
