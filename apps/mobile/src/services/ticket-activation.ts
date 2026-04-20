@@ -240,7 +240,7 @@ async function invokeTicketActivation(body: Record<string, unknown>) {
 
   // Retry once with a refreshed token if gateway rejects the request.
   if (response.error && getFunctionErrorStatus(response.error) === 401) {
-    console.warn('[ticket-activation] 401 on first attempt, status:', getFunctionErrorStatus(response.error), 'error:', response.error);
+    if (import.meta.env.DEV) console.warn('[ticket-activation] 401 on first attempt, status:', getFunctionErrorStatus(response.error), 'error:', response.error);
     const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
     const refreshedToken = refreshed.session?.access_token?.trim();
     if (!refreshError && refreshedToken) {
@@ -250,7 +250,7 @@ async function invokeTicketActivation(body: Record<string, unknown>) {
       });
     }
     if (response.error && getFunctionErrorStatus(response.error) === 401) {
-      console.warn('[ticket-activation] 401 on retry, invalidating session');
+      if (import.meta.env.DEV) console.warn('[ticket-activation] 401 on retry, invalidating session');
       await invalidateAuthSession();
     }
   }
