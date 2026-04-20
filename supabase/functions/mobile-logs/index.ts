@@ -191,6 +191,6 @@ serve(async (req: Request) => {
     });
   } catch (error) {
     console.error('[mobile-logs] unexpected error', error);
-    return jsonResponse({ error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+    return jsonResponse({ error: 'Internal server error' }, 500);
   }
 });
