@@ -65,7 +65,11 @@ export function ChangePassword({
       setPassword('');
       setConfirmPassword('');
       setSuccessMessage('Password aggiornata con successo.');
-      onBack();
+      setIsSubmitting(false);
+      setTimeout(() => {
+        onBack();
+      }, 1500);
+      return;
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Errore sconosciuto');
     } finally {
