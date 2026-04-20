@@ -102,15 +102,25 @@ function ProfileAvatar({
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('Seleziona un file immagine valido.'); return; }
-    if (file.size > 5 * 1024 * 1024) { alert('L\'immagine deve essere inferiore a 5MB.'); return; }
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Seleziona un file immagine valido.');
+      event.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('L\'immagine deve essere inferiore a 5MB.');
+      event.target.value = '';
+      return;
+    }
+    setUploadError(null);
     setIsUploading(true);
     try { await onUploadProfileImage(file); }
-    catch { alert('Errore durante il caricamento dell\'immagine.'); }
+    catch { setUploadError('Errore durante il caricamento dell\'immagine.'); }
     finally { setIsUploading(false); event.target.value = ''; }
   };
 
@@ -134,6 +144,9 @@ function ProfileAvatar({
       <div className="flex flex-col items-center gap-0.5">
         <p className="text-xl font-bold tracking-tight text-white text-center">{userName || 'Utente'}</p>
         <p className="text-sm text-[#f4bf4f] text-center">{roleLabel}</p>
+        {uploadError && (
+          <p className="text-xs text-[#ff4d4f] text-center mt-1">{uploadError}</p>
+        )}
       </div>
     </div>
   );
