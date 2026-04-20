@@ -10,6 +10,10 @@ import {
   parseTicketQrValue,
   type GeneratedTicket,
 } from '../../services/ticket-activation';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '../ui/alert-dialog';
 
 interface TicketQrActivationPrototypeProps {
   userId: string;
@@ -27,6 +31,7 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pendingActivationHash, setPendingActivationHash] = useState<string | null>(null);
 
   const records = useMemo(() => listLocalTicketRecords(), [generated, scanMessage]);
 
@@ -56,16 +61,19 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
     }
   };
 
-  const handleActivate = async () => {
+  const handleActivate = () => {
     const hash = parseTicketQrValue(scanInput);
     if (!hash) {
       setScanMessage('Payload QR non valido. Formato atteso: hash SHA-256 (64 caratteri).');
       return;
     }
+    setPendingActivationHash(hash);
+  };
 
-    const shouldProceed = window.confirm('Confermi l\'attivazione del ticket per questo account?');
-    if (!shouldProceed) return;
-
+  const handleConfirmActivation = async () => {
+    if (!pendingActivationHash) return;
+    const hash = pendingActivationHash;
+    setPendingActivationHash(null);
     setBusy(true);
     const result = await activateTicketHash(hash, userId);
     setScanMessage(result.ok ? 'Ticket attivato correttamente.' : result.error);
@@ -73,6 +81,24 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
   };
 
   return (
+    <>
+    <AlertDialog open={pendingActivationHash !== null} onOpenChange={open => { if (!open) setPendingActivationHash(null); }}>
+      <AlertDialogContent className="bg-[#1a1617] border-[#2d2728] text-white">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Conferma attivazione</AlertDialogTitle>
+          <AlertDialogDescription className="text-[#b8b2b3]">
+            Confermi l&apos;attivazione del ticket per questo account? L&apos;operazione è irreversibile.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="bg-transparent border-[#2d2728] text-[#b8b2b3] hover:bg-[#2d2728] hover:text-white">Annulla</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirmActivation}
+            className="bg-[#a82847] hover:bg-[#8c1c38] text-white border-0">
+            Attiva ticket
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     <Screen
       withBottomNavPadding={false}
       className="app-gradient justify-start"
@@ -169,5 +195,6 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
         </div>
       </section>
     </Screen>
+    </>
   );
 }
