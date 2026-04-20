@@ -55,21 +55,30 @@ const TOKEN_REFRESH_SKEW_SECONDS = 30;
 const MAX_STORE_SIZE = 1000; // Prevent memory leaks
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-// Cleanup function to prevent memory leaks
+// Cleanup function to prevent memory leaks.
+// Activated records (both QR and manual) are preserved so that the
+// in-session dedup checks in isTicketHashActivatedInSession and
+// isManualTicketActivatedInSession keep working after eviction.
 function cleanupOldRecords() {
   if (localActivationStore.size > MAX_STORE_SIZE) {
     const entries = Array.from(localActivationStore.entries());
-    // Keep only the most recent half
-    const toKeep = entries.slice(-Math.floor(MAX_STORE_SIZE / 2));
+    const activated = entries.filter(([, value]) => value.status === 'activated');
+    const nonActivated = entries.filter(([, value]) => value.status !== 'activated');
+    const budget = Math.floor(MAX_STORE_SIZE / 2);
+    const nonActivatedToKeep = nonActivated.slice(-Math.max(0, budget - activated.length));
     localActivationStore.clear();
-    toKeep.forEach(([key, value]) => localActivationStore.set(key, value));
+    activated.forEach(([key, value]) => localActivationStore.set(key, value));
+    nonActivatedToKeep.forEach(([key, value]) => localActivationStore.set(key, value));
   }
 
-  if (localManualActivationStore.size > MAX_STORE_SIZE) {
-    const entries = Array.from(localManualActivationStore.entries());
-    const toKeep = entries.slice(-Math.floor(MAX_STORE_SIZE / 2));
-    localManualActivationStore.clear();
-    toKeep.forEach(([key, value]) => localManualActivationStore.set(key, value));
+  // Every entry in localManualActivationStore represents an activated
+  // ticket, so we cannot drop any without breaking session dedup. Skip
+  // pruning and warn when the store grows unusually large so we can
+  // revisit the strategy (e.g. a persistent TTL) if needed.
+  if (localManualActivationStore.size > MAX_STORE_SIZE && import.meta.env.DEV) {
+    console.warn(
+      '[ticket-activation] localManualActivationStore exceeds MAX_STORE_SIZE; retaining all activated entries for session dedup.'
+    );
   }
 }
 
