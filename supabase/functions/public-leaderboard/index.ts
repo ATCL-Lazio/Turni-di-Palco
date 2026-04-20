@@ -13,7 +13,20 @@ const MAX_LIMIT = 200;
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 60;
+const RATE_LIMIT_SWEEP_EVERY = 128;
 const rateBuckets = new Map<string, number[]>();
+let rateLimitCallsSinceSweep = 0;
+
+function sweepRateBuckets(windowStart: number) {
+  for (const [key, timestamps] of rateBuckets) {
+    const alive = timestamps.filter((t) => t > windowStart);
+    if (alive.length === 0) {
+      rateBuckets.delete(key);
+    } else if (alive.length !== timestamps.length) {
+      rateBuckets.set(key, alive);
+    }
+  }
+}
 
 type LeaderboardRow = {
   rank: number;
@@ -45,6 +58,11 @@ function clientIp(req: Request): string {
 function rateLimit(ip: string): { ok: boolean; retryAfter: number } {
   const now = Date.now();
   const windowStart = now - RATE_LIMIT_WINDOW_MS;
+  rateLimitCallsSinceSweep += 1;
+  if (rateLimitCallsSinceSweep >= RATE_LIMIT_SWEEP_EVERY) {
+    rateLimitCallsSinceSweep = 0;
+    sweepRateBuckets(windowStart);
+  }
   const hits = (rateBuckets.get(ip) ?? []).filter((t) => t > windowStart);
   if (hits.length >= RATE_LIMIT_MAX) {
     const retryAfter = Math.ceil((hits[0] + RATE_LIMIT_WINDOW_MS - now) / 1000);
