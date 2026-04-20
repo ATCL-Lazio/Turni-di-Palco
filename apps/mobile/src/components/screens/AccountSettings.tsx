@@ -43,7 +43,7 @@ export function AccountSettings({
 }: AccountSettingsProps) {
   const { appInfo, appInfoStatus, appInfoError } = useAppInfo();
   const { permissionStatuses, permissionMessages, handlePermissionRequest } = usePermissions();
-  const { notificationPermission, notificationStatusLabel, handleNotificationToggle } = useNotificationToggle();
+  const { notificationPermission, notificationStatusLabel, notificationMessage, handleNotificationToggle } = useNotificationToggle();
   const supportStatus = useSupportStatus(showAiSupport);
   const { geoConsent, grantGeoConsent, denyGeoConsent } = useGeoConsent();
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -103,6 +103,7 @@ export function AccountSettings({
         <NotificationToggleCard
           notificationPermission={notificationPermission}
           notificationStatusLabel={notificationStatusLabel}
+          notificationMessage={notificationMessage}
           onToggle={handleNotificationToggle}
         />
         <GdprPrivacyCard
@@ -247,8 +248,9 @@ function PermissionsSection({ permissionStatuses, permissionMessages, onRequest 
   );
 }
 
-function NotificationToggleCard({ notificationPermission, notificationStatusLabel, onToggle }: {
+function NotificationToggleCard({ notificationPermission, notificationStatusLabel, notificationMessage, onToggle }: {
   notificationPermission: NotificationPermissionState; notificationStatusLabel: string;
+  notificationMessage: string | null;
   onToggle: (checked: boolean) => void;
 }) {
   return (
@@ -264,8 +266,8 @@ function NotificationToggleCard({ notificationPermission, notificationStatusLabe
         <Switch checked={notificationPermission === 'granted'} onCheckedChange={onToggle} disabled={notificationPermission === 'unsupported'} />
       </div>
       <p className="text-[14px] leading-[20px] text-[#b8b2b3]">Stato: {notificationStatusLabel}</p>
-      {notificationPermission === 'unsupported' && (
-        <p className="text-[14px] leading-[20px] text-[#ff4d4f]">Le notifiche di sistema non sono disponibili su questo dispositivo.</p>
+      {notificationMessage && (
+        <p className="text-[12px] leading-[18px] text-[#9a9697]">{notificationMessage}</p>
       )}
     </SettingsCard>
   );
@@ -456,6 +458,7 @@ function usePermissions() {
 
 function useNotificationToggle() {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermissionState>(() => getPermission());
+  const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
 
   const notificationStatusLabel = (() => {
     switch (notificationPermission) {
@@ -468,20 +471,21 @@ function useNotificationToggle() {
 
   const handleNotificationToggle = useCallback(async (checked: boolean) => {
     if (notificationPermission === 'unsupported') {
-      window.alert('Le notifiche di sistema non sono supportate su questo dispositivo.');
+      setNotificationMessage('Le notifiche di sistema non sono supportate su questo dispositivo.');
       return;
     }
     if (!checked) {
-      window.alert('Puoi disattivare le notifiche dalle impostazioni del browser o del dispositivo.');
+      setNotificationMessage('Puoi disattivare le notifiche dalle impostazioni del browser o del dispositivo.');
       setNotificationPermission(getPermission());
       return;
     }
+    setNotificationMessage(null);
     const next = await requestPermission();
     setNotificationPermission(next);
-    if (next !== 'granted') window.alert('Permesso notifiche non concesso.');
+    if (next !== 'granted') setNotificationMessage('Permesso notifiche non concesso.');
   }, [notificationPermission]);
 
-  return { notificationPermission, notificationStatusLabel, handleNotificationToggle };
+  return { notificationPermission, notificationStatusLabel, notificationMessage, handleNotificationToggle };
 }
 
 function useSupportStatus(showAiSupport: boolean) {
