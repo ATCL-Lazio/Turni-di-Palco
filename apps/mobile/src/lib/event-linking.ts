@@ -26,7 +26,7 @@ export function extractEventIdFromPayload(payload: string): string {
   }
 
   const token = raw.match(EVENT_ID_PATTERN)?.[1];
-  return normalizeEventId(token ?? raw);
+  return token ? normalizeEventId(token) : '';
 }
 
 export function parseEventLink(urlText: string): ParsedEventLink | null {
