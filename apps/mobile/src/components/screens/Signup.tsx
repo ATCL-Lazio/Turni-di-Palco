@@ -33,7 +33,7 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
     setIsSubmitting(true);
     try {
-      await onSignup(name, email, password);
+      await onSignup(name, email.trim().toLowerCase(), password);
     } finally {
       setIsSubmitting(false);
     }
