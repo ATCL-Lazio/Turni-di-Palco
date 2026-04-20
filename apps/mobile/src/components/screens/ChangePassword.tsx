@@ -84,8 +84,8 @@ export function ChangePassword({
         onBack();
       }, 1500);
       return;
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Errore sconosciuto');
+    } catch {
+      setErrorMessage('Impossibile aggiornare la password. Riprova più tardi.');
     } finally {
       setIsSubmitting(false);
     }
