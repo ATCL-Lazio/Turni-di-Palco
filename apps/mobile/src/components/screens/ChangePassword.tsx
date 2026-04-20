@@ -46,8 +46,8 @@ export function ChangePassword({
     try {
       await onSendResetEmail();
       setResetEmailStatus('sent');
-    } catch (error) {
-      setResetEmailError(error instanceof Error ? error.message : 'Errore sconosciuto');
+    } catch {
+      setResetEmailError('Impossibile inviare l\'email di reset. Riprova più tardi.');
       setResetEmailStatus('idle');
     }
   };
