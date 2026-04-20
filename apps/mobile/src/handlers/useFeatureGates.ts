@@ -14,6 +14,7 @@ export interface TabFeatureFlags {
 export function useFeatureGates(
   featureFlags: MobileFeatureFlagsState,
   isFeatureEnabled: (key: MobileFeatureFlagKey) => boolean,
+  onFeatureDisabled?: (message: string) => void,
 ) {
   const tabFlags = useMemo<TabFeatureFlags>(() => ({
     turns: featureFlags['turni'],
@@ -48,8 +49,15 @@ export function useFeatureGates(
   }, [isFeatureEnabled, tabFlags]);
 
   const showFeatureDisabledAlert = useCallback((label: string) => {
-    window.alert(`${label} temporaneamente disattivata.`);
-  }, []);
+    const message = `${label} temporaneamente disattivata.`;
+    if (onFeatureDisabled) {
+      onFeatureDisabled(message);
+    } else {
+      // Fallback for contexts where no in-app handler is provided.
+      // In production AppShell always passes onFeatureDisabled.
+      if (import.meta.env.DEV) console.warn('[useFeatureGates]', message);
+    }
+  }, [onFeatureDisabled]);
 
   const enabledNavTabs = useMemo<Tab[]>(() => {
     const tabs: Tab[] = ['home'];
