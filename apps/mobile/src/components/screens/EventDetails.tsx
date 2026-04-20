@@ -81,8 +81,9 @@ export function EventDetails({
     }
     setCalendarError(null);
     const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+    const pad = (n: number) => String(n).padStart(2, '0');
     const formatDate = (value: Date) =>
-      value.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+      `${value.getFullYear()}${pad(value.getMonth() + 1)}${pad(value.getDate())}T${pad(value.getHours())}${pad(value.getMinutes())}${pad(value.getSeconds())}`;
     const icsLines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
