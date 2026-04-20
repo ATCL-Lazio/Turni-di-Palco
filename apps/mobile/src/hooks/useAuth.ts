@@ -124,6 +124,20 @@ export function useAuth(
             return;
         }
 
+        // When email confirmation is required, data.session is null — the user
+        // has not signed in yet. Show a "check your email" message and stop.
+        if (!data.session) {
+            setAuthError('Registrazione quasi completata! Controlla la tua email per confermare l\'account.');
+            return;
+        }
+
+        // Supabase returns identities: [] when the email is already registered
+        // (deliberate enumeration protection). Treat as a generic credentials error.
+        if (!data.user?.identities?.length) {
+            setAuthError(GENERIC_CREDENTIALS_ERROR);
+            return;
+        }
+
         const displayName = resolveDisplayName({
             name: data.user?.user_metadata?.name ?? name,
             metadata: data.user?.user_metadata,
