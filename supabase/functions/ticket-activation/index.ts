@@ -10,41 +10,6 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// Rome timezone offset: CET (+01:00) in winter, CEST (+02:00) in summer.
-// Computed dynamically so DST transitions don't shift event datetimes by one hour.
-function getRomeOffset(dateIso: string): string {
-  const probe = new Date(`${dateIso}T12:00:00Z`);
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/Rome',
-    timeZoneName: 'shortOffset',
-  }).formatToParts(probe);
-  const offsetPart = parts.find((part) => part.type === 'timeZoneName')?.value ?? 'GMT+1';
-  const match = offsetPart.match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/);
-  if (!match) return '+01:00';
-  const sign = match[1];
-  const hours = match[2].padStart(2, '0');
-  const minutes = (match[3] ?? '00').padStart(2, '0');
-  return `${sign}${hours}:${minutes}`;
-}
-
-async function sha256Hex(input: string): Promise<string> {
-  const encoded = new TextEncoder().encode(input);
-  const digest = await crypto.subtle.digest('SHA-256', encoded);
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-function buildEventDatetimeIso(eventDate: string, eventTime: string): string {
-  // eventDate: "2026-03-15" or "15 Marzo 2026" etc. — from DB it's ISO date.
-  // eventTime: "21:00" or "21:00:00"
-  const date = eventDate.trim();
-  const time = eventTime.trim();
-  const timeParts = time.split(':');
-  const normalizedTime =
-    timeParts.length === 2 ? `${time}:00` : time;
-  return `${date}T${normalizedTime}${getRomeOffset(date)}`;
-}
 
 function jsonResponse(payload: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(payload), {
