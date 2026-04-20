@@ -15,13 +15,13 @@ export function openInMaps(theatre: string) {
 
 export function openEventsMap(theatres: string[]) {
     if (typeof window === 'undefined' || !theatres.length) return;
-    const origin = encodeURIComponent('My Location');
     const destination = encodeURIComponent(theatres[theatres.length - 1]);
     const waypoints = theatres
         .slice(0, -1)
         .map((value) => encodeURIComponent(value))
         .join('|');
-    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ''
-        }`;
+    // Omit origin so Google Maps defaults to the device's current location.
+    // Passing 'My Location' as a literal string causes geocoding failures.
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ''}`;
     window.location.href = url;
 }
