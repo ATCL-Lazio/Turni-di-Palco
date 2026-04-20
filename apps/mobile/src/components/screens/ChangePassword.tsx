@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 
@@ -29,6 +29,16 @@ export function ChangePassword({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resetEmailStatus, setResetEmailStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [resetEmailError, setResetEmailError] = useState<string | null>(null);
+  const backTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (backTimerRef.current !== null) {
+        clearTimeout(backTimerRef.current);
+        backTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const handleSendResetEmail = async () => {
     setResetEmailError(null);
@@ -66,7 +76,11 @@ export function ChangePassword({
       setConfirmPassword('');
       setSuccessMessage('Password aggiornata con successo.');
       setIsSubmitting(false);
-      setTimeout(() => {
+      if (backTimerRef.current !== null) {
+        clearTimeout(backTimerRef.current);
+      }
+      backTimerRef.current = setTimeout(() => {
+        backTimerRef.current = null;
         onBack();
       }, 1500);
       return;
