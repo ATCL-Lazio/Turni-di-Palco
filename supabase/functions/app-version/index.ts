@@ -41,7 +41,7 @@ serve(async (req) => {
   }
 
   const appVersion = Deno.env.get('APP_VERSION') ?? '0.0.5';
-  const repo = Deno.env.get('APP_REPO') ?? 'Heartran/Turni-di-Palco';
+  const repo = Deno.env.get('APP_REPO') ?? 'ATCL-Lazio/Turni-di-Palco';
   const githubToken = Deno.env.get('GITHUB_TOKEN');
 
   let payload: { limit?: number } = {};
