@@ -126,7 +126,7 @@ export async function requireDevAccess(): Promise<boolean> {
 
         if (error) {
           setBusy(gate, false);
-          setMessage(gate.message, error.message, "error");
+          setMessage(gate.message, "Credenziali non valide.", "error");
           return;
         }
 
