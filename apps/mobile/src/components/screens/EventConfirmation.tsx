@@ -29,6 +29,7 @@ export function EventConfirmation({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [boostRequested, setBoostRequested] = useState(false);
   const [confirmResult, setConfirmResult] = useState<Extract<ConfirmTurnResult, { ok: true }> | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
   const successTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -54,14 +55,15 @@ export function EventConfirmation({
   const handleConfirm = async () => {
     if (isSubmitting || isSuccess) return;
     setIsSubmitting(true);
+    setConfirmError(null);
     try {
       const result = await onConfirm({ boostRequested: allowBoost ? boostRequested : false });
-      if (!result.ok) { window.alert(result.error); return; }
+      if (!result.ok) { setConfirmError(result.error); return; }
       setConfirmResult(result);
       setIsSuccess(true);
       successTimeoutRef.current = window.setTimeout(() => onSuccess(), 1500);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : 'Errore durante la registrazione turno.');
+      setConfirmError(error instanceof Error ? error.message : 'Errore durante la registrazione turno.');
     } finally {
       setIsSubmitting(false);
     }
@@ -110,6 +112,14 @@ export function EventConfirmation({
         />
 
         <div className="space-y-3">
+          {confirmError ? (
+            <div
+              role="alert"
+              className="rounded-lg border border-[#ff4d4f]/40 bg-[#ff4d4f]/10 px-4 py-3 text-sm text-[#ff4d4f]"
+            >
+              {confirmError}
+            </div>
+          ) : null}
           <Button variant="primary" size="lg" fullWidth onClick={handleConfirm} disabled={isSubmitting}>
             {isSubmitting ? 'Conferma in corso...' : 'Conferma turno'}
           </Button>
