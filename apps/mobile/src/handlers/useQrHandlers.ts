@@ -93,7 +93,13 @@ export function useQrHandlers(deps: QrHandlerDeps) {
 
     // Manual ticket entry (requires pre-registered ticket via Python generator)
     if (code.startsWith('manual-ticket:')) {
-      const [, eventId, ticketNumber] = code.split(':');
+      // Split only on the first two colons so that a colon inside the ticket
+      // number or event id is preserved rather than silently truncated.
+      const prefixLen = 'manual-ticket:'.length;
+      const rest = code.slice(prefixLen);
+      const sep = rest.indexOf(':');
+      const eventId = sep === -1 ? rest : rest.slice(0, sep);
+      const ticketNumber = sep === -1 ? '' : rest.slice(sep + 1);
       if (!eventId || !ticketNumber) return { ok: false as const, error: 'Dati manuali incompleti.' };
 
       const normalizedEventId = eventId.trim();
