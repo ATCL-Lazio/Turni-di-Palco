@@ -36,6 +36,7 @@ export function EventDetails({
   const [selectedRoleId, setSelectedRoleId] = useState<RoleId>(planning?.roleId ?? currentRoleId);
   const [isSavingPlanning, setIsSavingPlanning] = useState(false);
   const [isClearingPlanning, setIsClearingPlanning] = useState(false);
+  const [planningError, setPlanningError] = useState<string | null>(null);
   const [calendarError, setCalendarError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -110,8 +111,11 @@ export function EventDetails({
 
   const handleSavePlanning = async () => {
     setIsSavingPlanning(true);
+    setPlanningError(null);
     try {
       await onSavePlanning(event.id, selectedRoleId);
+    } catch {
+      setPlanningError('Impossibile salvare la pianificazione. Riprova più tardi.');
     } finally {
       setIsSavingPlanning(false);
     }
@@ -119,8 +123,11 @@ export function EventDetails({
 
   const handleClearPlanning = async () => {
     setIsClearingPlanning(true);
+    setPlanningError(null);
     try {
       await onClearPlanning(event.id);
+    } catch {
+      setPlanningError('Impossibile rimuovere la pianificazione. Riprova più tardi.');
     } finally {
       setIsClearingPlanning(false);
     }
@@ -221,6 +228,15 @@ export function EventDetails({
               </p>
             ) : null}
           </div>
+
+          {planningError ? (
+            <div
+              role="alert"
+              className="mt-4 rounded-lg border border-[#ff4d4f]/40 bg-[#ff4d4f]/10 px-4 py-3 text-sm text-[#ff4d4f]"
+            >
+              {planningError}
+            </div>
+          ) : null}
 
           <div className="mt-5 flex flex-wrap gap-3">
             <Button
