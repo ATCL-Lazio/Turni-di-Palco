@@ -22,6 +22,7 @@ type RssItem = {
 type PromoSourceKey = 'atcl-rss' | 'rossellini-rss' | 'atcl-rest' | 'rossellini-rest';
 
 const REMOTE_CACHE_TTL_MS = 15 * 60 * 1000;
+const REMOTE_CACHE_ERROR_TTL_MS = 30 * 1000; // short backoff on failure so retries succeed quickly
 const RSS_ACCEPT_HEADER = 'application/rss+xml, application/xml;q=0.9, text/xml;q=0.8';
 const NEWS_TICKER_DEFAULT_LIMIT = 20;
 
@@ -112,9 +113,13 @@ async function loadRemotePromotionsSafe(): Promise<PromotionBySlot> {
       return data;
     })
     .catch(() => {
+      // Do not overwrite a valid cached result; use a short backoff TTL so
+      // the next call retries after network recovery instead of waiting 15 min.
       const fallback = remoteCacheData ?? {};
-      remoteCacheData = fallback;
-      remoteCacheExpiresAt = Date.now() + REMOTE_CACHE_TTL_MS;
+      if (!remoteCacheData) {
+        remoteCacheData = fallback;
+      }
+      remoteCacheExpiresAt = Date.now() + REMOTE_CACHE_ERROR_TTL_MS;
       return fallback;
     })
     .finally(() => {
@@ -147,9 +152,13 @@ async function loadRemoteFeedBundleSafe(): Promise<{ atclItems: RssItem[]; rosse
       return bundle;
     })
     .catch(() => {
+      // Do not overwrite a valid cached result; use a short backoff TTL so
+      // the next call retries after network recovery instead of waiting 15 min.
       const fallback = remoteFeedCacheData ?? { atclItems: [], rosselliniItems: [] };
-      remoteFeedCacheData = fallback;
-      remoteFeedCacheExpiresAt = Date.now() + REMOTE_CACHE_TTL_MS;
+      if (!remoteFeedCacheData) {
+        remoteFeedCacheData = fallback;
+      }
+      remoteFeedCacheExpiresAt = Date.now() + REMOTE_CACHE_ERROR_TTL_MS;
       return fallback;
     })
     .finally(() => {
