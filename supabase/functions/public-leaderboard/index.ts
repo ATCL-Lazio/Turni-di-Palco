@@ -95,7 +95,8 @@ serve(async (req) => {
   const { data, error } = await supabase.rpc('get_public_leaderboard', { p_limit: limit });
 
   if (error) {
-    return json({ error: error.message }, 500);
+    console.error('[public-leaderboard] RPC error:', error.message);
+    return json({ error: 'Errore durante il recupero della classifica.' }, 500);
   }
 
   const rows = (data ?? []) as LeaderboardRow[];
