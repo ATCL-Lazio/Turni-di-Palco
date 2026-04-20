@@ -230,26 +230,36 @@ export async function requestAiIssue({
   payload: AiSupportIssuePayload;
   endpoint?: string;
 }) {
-  return withMobileWatchdog(async () => {
-    const target = resolveIssueEndpoint(endpoint);
-    const response = await fetch(target, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
+  const controller = new AbortController();
+  const abortTimeout = window.setTimeout(() => controller.abort(), AI_ISSUE_REQUEST_WATCHDOG_MS);
+  try {
+    return await withMobileWatchdog(async () => {
+      const target = resolveIssueEndpoint(endpoint);
+      const response = await fetch(target, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(errorBody || 'Issue request failed');
+      }
+
+      return (await response.json()) as AiSupportIssueResponse;
+    }, {
+      operation: 'requestAiIssue',
+      timeoutMs: AI_ISSUE_REQUEST_WATCHDOG_MS,
+      title: 'Segnalazione rallentata',
+      message: 'L invio della segnalazione sta impiegando troppo tempo.',
     });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(errorBody || 'Issue request failed');
-    }
-
-    return (await response.json()) as AiSupportIssueResponse;
-  }, {
-    operation: 'requestAiIssue',
-    timeoutMs: AI_ISSUE_REQUEST_WATCHDOG_MS,
-    title: 'Segnalazione rallentata',
-    message: 'L invio della segnalazione sta impiegando troppo tempo.',
-  });
+  } catch (error) {
+    controller.abort();
+    throw error;
+  } finally {
+    window.clearTimeout(abortTimeout);
+  }
 }
