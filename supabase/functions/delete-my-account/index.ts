@@ -2,7 +2,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.0';
 
-const allowedOrigin = Deno.env.get('SITE_URL') || 'https://turni-di-palco.vercel.app';
+const allowedOrigin = Deno.env.get('SITE_URL') ?? 'https://turnidipalco.it';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': allowedOrigin,
