@@ -33,12 +33,20 @@ services:
     sync: false
   - key: AI_SUPPORT_ALLOWED_ORIGINS
     value: https://turni-di-palco-fq85.onrender.com,https://turni-di-palco-fq85.onrender.com/mobile,https://turni-di-palco.vercel.app
+  - key: AI_SUPPORT_GH_REPO
+    value: ATCL-Lazio/Turni-di-Palco
+  - key: GITHUB_APP_ID
+    sync: false
+  - key: GITHUB_APP_INSTALLATION_ID
+    sync: false
+  - key: GITHUB_APP_PRIVATE_KEY
+    sync: false
   - key: GROQ_API_KEY
     sync: false
   - key: GROQ_MODEL
     value: llama-3.3-70b-versatile
   region: frankfurt
-  buildCommand: npm ci && npm install -g gh
+  buildCommand: npm ci
   startCommand: npm run ai:support
   autoDeployTrigger: commit
   previews:
