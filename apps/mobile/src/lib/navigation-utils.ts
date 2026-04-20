@@ -23,5 +23,5 @@ export function openEventsMap(theatres: string[]) {
     // Omit origin so Google Maps defaults to the device's current location.
     // Passing 'My Location' as a literal string causes geocoding failures.
     const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ''}`;
-    window.location.href = url;
+    window.open(url, '_blank', 'noopener');
 }
