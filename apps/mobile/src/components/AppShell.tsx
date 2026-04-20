@@ -83,11 +83,14 @@ export function AppShell() {
     changePassword, sendPasswordResetEmail, featureFlags, isFeatureEnabled,
   } = gameState;
 
+  // In-app info toast (replaces window.alert for feature-gate and activity errors)
+  const [infoToast, setInfoToast] = useState<string | null>(null);
+
   // Feature gates
   const {
     tabFlags, isTabEnabled, showFeatureDisabledAlert,
     enabledNavTabs, canViewAiSupport, canViewTicketQrPrototype, roleJourneyEnabled,
-  } = useFeatureGates(featureFlags, isFeatureEnabled);
+  } = useFeatureGates(featureFlags, isFeatureEnabled, setInfoToast);
 
   // Navigator
   const nav = useNavigator();
@@ -532,7 +535,7 @@ export function AppShell() {
               void (async () => {
                 if (!isFeatureEnabled('completa_attivita')) { showFeatureDisabledAlert('Completamento attivita'); handleTabChange('activities'); return; }
                 const completion = await completeActivity(nav.selectedActivityId, outcome);
-                if (!completion.ok) { window.alert(completion.error); handleTabChange('activities'); return; }
+                if (!completion.ok) { setInfoToast(completion.error ?? 'Errore nel completamento attività.'); handleTabChange('activities'); return; }
                 setActivityOutcome(outcome);
                 setActivityCompletion({ activity: completion.activity, rewards: completion.rewards });
                 nav.navigate('activity-result');
@@ -684,6 +687,14 @@ export function AppShell() {
       {isDemoMode && (
         <div className="fixed top-0 left-0 right-0 z-[997] bg-[#1a1617] border-b border-[#a82847]/40 px-4 py-2 text-center text-sm text-[#b8b2b3]">
           Modalità demo — i dati non vengono salvati
+        </div>
+      )}
+      {infoToast && (
+        <div role="status" aria-live="polite"
+          className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] left-4 right-4 z-[999] flex items-center justify-between gap-3 rounded-xl bg-[#2a1f14] border border-[#f4bf4f]/30 px-4 py-3 shadow-lg text-sm text-[#f4bf4f]">
+          <span>{infoToast}</span>
+          <button type="button" onClick={() => setInfoToast(null)}
+            className="shrink-0 text-[#b8b2b3] hover:text-white text-lg leading-none" aria-label="Chiudi">✕</button>
         </div>
       )}
       <ScreenTransition animationClass={screenAnimation} animationKey={screenAnimationKey}>
