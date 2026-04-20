@@ -10,6 +10,10 @@ import { getPermission, requestPermission, type NotificationPermissionState } fr
 import { checkAiSupportAvailability } from '../../services/ai';
 import { CopyrightNotice } from '../ui/CopyrightNotice';
 import { GEO_CONSENT_KEY } from '../../constants/privacy';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '../ui/alert-dialog';
 
 interface AccountSettingsProps {
   userName: string;
@@ -48,35 +52,73 @@ export function AccountSettings({
   const { geoConsent, grantGeoConsent, denyGeoConsent } = useGeoConsent();
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const handleResetTutorial = () => {
-    if (typeof window === 'undefined') return;
-    const ok = window.confirm('Vuoi rivedere il tutorial di benvenuto? Apparirà alla prossima apertura della home.');
-    if (ok) onResetTutorial();
-  };
+  // In-app confirm dialog state (replaces window.confirm for all destructive actions)
+  type ConfirmPending = 'tutorial' | 'reset' | 'delete' | null;
+  const [confirmPending, setConfirmPending] = useState<ConfirmPending>(null);
 
-  const handleReset = () => {
-    if (typeof window === 'undefined') return;
-    const ok = window.confirm(
-      'Vuoi davvero resettare i progressi? Questa modifica è irreversibile: cancelleremo turni, badge e statistiche e ti riporteremo alla scelta del ruolo.'
-    );
-    if (ok) onResetProgress();
-  };
+  const handleResetTutorial = () => setConfirmPending('tutorial');
+  const handleReset = () => setConfirmPending('reset');
+  const handleDeleteAccount = () => setConfirmPending('delete');
 
-  const handleDeleteAccount = async () => {
-    if (typeof window === 'undefined') return;
-    const ok = window.confirm(
-      'Stai per eliminare definitivamente il tuo account e tutti i dati associati (turni, badge, statistiche, immagine profilo). Questa operazione è irreversibile. Continuare?'
-    );
-    if (!ok) return;
-    setDeleteError(null);
-    try {
-      await onDeleteAccount();
-    } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : 'Impossibile eliminare il profilo. Riprova.');
+  const handleConfirm = async () => {
+    const action = confirmPending;
+    setConfirmPending(null);
+    if (action === 'tutorial') {
+      onResetTutorial();
+    } else if (action === 'reset') {
+      onResetProgress();
+    } else if (action === 'delete') {
+      setDeleteError(null);
+      try {
+        await onDeleteAccount();
+      } catch (err) {
+        setDeleteError(err instanceof Error ? err.message : 'Impossibile eliminare il profilo. Riprova.');
+      }
     }
   };
 
+  const confirmConfig: Record<NonNullable<ConfirmPending>, { title: string; description: string; actionLabel: string; destructive?: boolean }> = {
+    tutorial: {
+      title: 'Rivedere il tutorial?',
+      description: 'Apparirà alla prossima apertura della home.',
+      actionLabel: 'Conferma',
+    },
+    reset: {
+      title: 'Resettare i progressi?',
+      description: 'Questa modifica è irreversibile: cancelleremo turni, badge e statistiche e ti riporteremo alla scelta del ruolo.',
+      actionLabel: 'Resetta',
+      destructive: true,
+    },
+    delete: {
+      title: 'Eliminare account?',
+      description: 'Stai per eliminare definitivamente il tuo account e tutti i dati associati (turni, badge, statistiche, immagine profilo). Questa operazione è irreversibile.',
+      actionLabel: 'Elimina account',
+      destructive: true,
+    },
+  };
+
   return (
+    <>
+    <AlertDialog open={confirmPending !== null} onOpenChange={open => { if (!open) setConfirmPending(null); }}>
+      <AlertDialogContent className="bg-[#1a1617] border-[#2d2728] text-white">
+        <AlertDialogHeader>
+          <AlertDialogTitle>{confirmPending ? confirmConfig[confirmPending].title : ''}</AlertDialogTitle>
+          <AlertDialogDescription className="text-[#b8b2b3]">
+            {confirmPending ? confirmConfig[confirmPending].description : ''}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="bg-transparent border-[#2d2728] text-[#b8b2b3] hover:bg-[#2d2728] hover:text-white">Annulla</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleConfirm}
+            className={confirmPending && confirmConfig[confirmPending].destructive
+              ? 'bg-[#a82847] hover:bg-[#8c1c38] text-white border-0'
+              : 'bg-[#f4bf4f] hover:bg-[#d4a030] text-[#0f0d0e] border-0'}>
+            {confirmPending ? confirmConfig[confirmPending].actionLabel : ''}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     <Screen
       withBottomNavPadding={false}
       className="relative items-start justify-start"
@@ -141,6 +183,7 @@ export function AccountSettings({
         </div>
       </div>
     </Screen>
+    </>
   );
 }
 
