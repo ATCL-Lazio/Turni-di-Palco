@@ -506,15 +506,21 @@ export async function activateTicketHash(
 
     if (remote?.ok) {
       const currentRecord = localActivationStore.get(normalizedHash);
+      const resolvedEventId = remote.eventId || currentRecord?.eventId || null;
+      if (!resolvedEventId) {
+        // Server confirmed activation but omitted event_id — storing an empty
+        // eventId would create un-reconcilable ghost records downstream.
+        return { ok: false, error: 'Risposta server incompleta: evento non identificato.' };
+      }
       localActivationStore.set(normalizedHash, {
         hash: normalizedHash,
-        eventId: remote.eventId ?? currentRecord?.eventId ?? '',
+        eventId: resolvedEventId,
         ticketNumber: currentRecord?.ticketNumber ?? 'N/A',
         status: 'activated',
         activatedBy: normalizedUserId,
         activatedAtIso: new Date().toISOString(),
       });
-      return { ok: true, eventId: remote.eventId, event: remote.event };
+      return { ok: true, eventId: resolvedEventId, event: remote.event };
     }
 
     if (remote?.alreadyActivated) {
