@@ -15,6 +15,8 @@ export function useAtclPromotion(slot: AtclPromotionSlot) {
     void getAtclPromotionBySlotSmart(slot).then((value) => {
       if (!active) return;
       setPromotion(value);
+    }).catch((err) => {
+      if (import.meta.env.DEV) console.warn('[useAtclPromotion] fetch error:', err);
     });
 
     return () => {
