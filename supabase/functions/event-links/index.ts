@@ -132,7 +132,8 @@ serve(async (req) => {
       .maybeSingle<EventRow>();
 
     if (error) {
-      return json({ valid: false, error: error.message }, 500);
+      console.error('[event-links] validate_event_id db error:', error);
+      return json({ valid: false, error: 'Errore interno del server.' }, 500);
     }
 
     if (!data) {
@@ -165,7 +166,8 @@ serve(async (req) => {
       .maybeSingle<{ id: string }>();
 
     if (error) {
-      return json({ error: error.message }, 500);
+      console.error('[event-links] create_deep_link db error:', error);
+      return json({ error: 'Errore interno del server.' }, 500);
     }
 
     if (!data) {
@@ -202,7 +204,8 @@ serve(async (req) => {
       .maybeSingle<EventRow>();
 
     if (error) {
-      return json({ resolved: false, error: error.message }, 500);
+      console.error('[event-links] resolve_deep_link db error:', error);
+      return json({ resolved: false, error: 'Errore interno del server.' }, 500);
     }
 
     if (!data) {
