@@ -553,7 +553,7 @@ function useSupportStatus(showAiSupport: boolean) {
         if (mounted) setStatus('unavailable');
       }
     };
-    check();
+    void check();
     return () => { mounted = false; };
   }, [showAiSupport]);
 
