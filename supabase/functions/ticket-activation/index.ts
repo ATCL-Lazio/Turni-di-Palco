@@ -304,7 +304,7 @@ serve(async (req: Request) => {
 
     return jsonResponse({ error: 'Invalid action' }, 400);
   } catch (err) {
-    console.error(err);
-    return jsonResponse({ error: err instanceof Error ? err.message : 'Unknown error' }, 500);
+    console.error('[ticket-activation] unexpected error:', err);
+    return jsonResponse({ error: 'Activation failed' }, 500);
   }
 });
