@@ -25,6 +25,7 @@ const REMOTE_CACHE_TTL_MS = 15 * 60 * 1000;
 const REMOTE_CACHE_ERROR_TTL_MS = 30 * 1000; // short backoff on failure so retries succeed quickly
 const RSS_ACCEPT_HEADER = 'application/rss+xml, application/xml;q=0.9, text/xml;q=0.8';
 const NEWS_TICKER_DEFAULT_LIMIT = 20;
+const REMOTE_FETCH_TIMEOUT_MS = 8000;
 
 const ATCL_FEED_URL =
   import.meta.env.VITE_ATCL_PROMO_FEED_URL ?? 'https://www.atcllazio.it/feed/';
@@ -232,12 +233,15 @@ async function fetchRssItems(url: string, sourceKey: PromoSourceKey): Promise<Rs
   if (typeof window === 'undefined' || typeof DOMParser === 'undefined') return [];
 
   for (const candidateUrl of buildRemoteFetchCandidates(url, sourceKey)) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REMOTE_FETCH_TIMEOUT_MS);
     try {
       const response = await fetch(candidateUrl, {
         method: 'GET',
         headers: {
           accept: RSS_ACCEPT_HEADER,
         },
+        signal: controller.signal,
       });
       if (!response.ok) continue;
 
@@ -263,6 +267,8 @@ async function fetchRssItems(url: string, sourceKey: PromoSourceKey): Promise<Rs
       if (items.length > 0) return items;
     } catch {
       // best effort: try next candidate URL
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
@@ -271,12 +277,15 @@ async function fetchRssItems(url: string, sourceKey: PromoSourceKey): Promise<Rs
 
 async function fetchWordpressPosts(url: string, sourceKey: PromoSourceKey): Promise<RssItem[]> {
   for (const candidateUrl of buildRemoteFetchCandidates(url, sourceKey)) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REMOTE_FETCH_TIMEOUT_MS);
     try {
       const response = await fetch(candidateUrl, {
         method: 'GET',
         headers: {
           accept: 'application/json',
         },
+        signal: controller.signal,
       });
       if (!response.ok) continue;
 
@@ -310,6 +319,8 @@ async function fetchWordpressPosts(url: string, sourceKey: PromoSourceKey): Prom
       if (items.length > 0) return items;
     } catch {
       // best effort: try next candidate URL
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
