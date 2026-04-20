@@ -57,12 +57,16 @@ export function initErrorHandler() {
 
   window.addEventListener('error', (event) => {
     reportCriticalError({
+      title: 'Errore imprevisto',
+      message: 'L\'app ha rilevato un problema. Ricarica la pagina o riprova più tardi.',
       details: normalizeDetails(event.error ?? event.message),
     });
   });
 
   window.addEventListener('unhandledrejection', (event) => {
     reportCriticalError({
+      title: 'Errore imprevisto',
+      message: 'L\'app ha rilevato un problema. Ricarica la pagina o riprova più tardi.',
       details: normalizeDetails(event.reason),
     });
   });
