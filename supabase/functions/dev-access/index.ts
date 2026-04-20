@@ -91,6 +91,11 @@ serve(async (req) => {
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
+  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+    console.error('[dev-access] Missing Supabase env vars');
+    return jsonResponse({ allowed: false, reason: 'Missing Supabase env vars' }, 500);
+  }
+
   const allowedRoles = parseEnvList(Deno.env.get('DEV_ALLOWED_ROLES') ?? 'dev');
   const allowedEmails = parseEnvList(Deno.env.get('DEV_ALLOWED_EMAILS') ?? '');
 
