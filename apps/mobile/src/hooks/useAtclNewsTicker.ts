@@ -15,6 +15,8 @@ export function useAtclNewsTicker(limit = 20) {
     void getAtclNewsTickerItemsSmart(normalizedLimit).then((nextItems) => {
       if (!active) return;
       setItems(nextItems);
+    }).catch((err) => {
+      if (import.meta.env.DEV) console.warn('[useAtclNewsTicker] fetch error:', err);
     });
 
     return () => {
