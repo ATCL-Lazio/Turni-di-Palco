@@ -4,6 +4,48 @@ import { resolveDisplayName } from '../lib/profile-utils';
 import { PlayerProfile } from '../state/store';
 
 const getEmailPrefix = (value?: string) => value?.split('@')[0]?.trim() ?? '';
+
+const GENERIC_AUTH_ERROR = 'Impossibile completare la richiesta. Riprova più tardi.';
+const GENERIC_CREDENTIALS_ERROR = 'Credenziali non valide.';
+const GENERIC_RATE_LIMIT_ERROR = 'Troppi tentativi. Riprova tra qualche minuto.';
+const GENERIC_NETWORK_ERROR = 'Errore di connessione. Controlla la rete e riprova.';
+const GENERIC_PASSWORD_POLICY_ERROR = 'La password non soddisfa i requisiti richiesti.';
+const GENERIC_EMAIL_FORMAT_ERROR = 'Indirizzo email non valido.';
+
+const translateAuthError = (error: { message?: string | null; status?: number | null } | null | undefined): string => {
+    if (!error) return GENERIC_AUTH_ERROR;
+    const raw = (error.message ?? '').toLowerCase();
+    const status = typeof error.status === 'number' ? error.status : null;
+
+    if (raw.includes('network') || raw.includes('fetch') || raw.includes('failed to fetch')) {
+        return GENERIC_NETWORK_ERROR;
+    }
+    if (raw.includes('rate limit') || status === 429) {
+        return GENERIC_RATE_LIMIT_ERROR;
+    }
+    if (raw.includes('password') && (raw.includes('short') || raw.includes('weak') || raw.includes('should be at least') || raw.includes('characters'))) {
+        return GENERIC_PASSWORD_POLICY_ERROR;
+    }
+    if (raw.includes('invalid email') || raw.includes('email address')) {
+        return GENERIC_EMAIL_FORMAT_ERROR;
+    }
+    // All credential / user-state failures collapse to a single generic message
+    // so the response does not leak whether an account exists.
+    if (
+        raw.includes('invalid login') ||
+        raw.includes('invalid credentials') ||
+        raw.includes('user not found') ||
+        raw.includes('user already registered') ||
+        raw.includes('already registered') ||
+        raw.includes('email not confirmed') ||
+        status === 400 ||
+        status === 401 ||
+        status === 422
+    ) {
+        return GENERIC_CREDENTIALS_ERROR;
+    }
+    return GENERIC_AUTH_ERROR;
+};
 const resolveAuthRedirectTo = () => {
     const fromEnv = import.meta.env.VITE_AUTH_REDIRECT_TO;
     if (typeof fromEnv === 'string' && fromEnv.trim()) {
@@ -44,7 +86,7 @@ export function useAuth(
 
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
-            setAuthError(error.message);
+            setAuthError(translateAuthError(error));
             return;
         }
 
@@ -78,7 +120,7 @@ export function useAuth(
             },
         });
         if (error) {
-            setAuthError(error.message);
+            setAuthError(translateAuthError(error));
             return;
         }
 
