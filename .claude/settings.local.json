@@ -14,5 +14,11 @@
       "mcp__claude_ai_Netlify__*",
       "mcp__plugin_claude-mem_mcp-search__smart_outline"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "render"
+  ],
+  "disabledMcpjsonServers": [
+    "ftp-papin-network"
+  ]
 }
