@@ -51,6 +51,11 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
   const issueTrackerRef = useRef(new Set<string>());
   const requestIdRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const activeSessionIdRef = useRef(activeSessionId);
+
+  useEffect(() => {
+    activeSessionIdRef.current = activeSessionId;
+  }, [activeSessionId]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -127,12 +132,12 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
       const memory = buildMemorySnippet(chatSessions, requestSessionId);
       const payload = buildChatPayload(nextMessages);
       const reply = await requestAiSupport({ userName: displayName, memory, messages: payload, signal: controller.signal });
-      if (controller.signal.aborted || requestIdRef.current !== requestId || activeSessionId !== requestSessionId) return;
+      if (controller.signal.aborted || requestIdRef.current !== requestId || activeSessionIdRef.current !== requestSessionId) return;
       const { text, draft } = extractIssueDraft(reply);
       if (draft) void handleIssueDraft(draft);
       setMessages(prev => [...prev, buildSupportMessage('assistant', text || (draft ? 'Ok, ci penso io!' : reply))]);
     } catch {
-      if (controller.signal.aborted || requestIdRef.current !== requestId || activeSessionId !== requestSessionId) return;
+      if (controller.signal.aborted || requestIdRef.current !== requestId || activeSessionIdRef.current !== requestSessionId) return;
       const fallback = "Il supporto automatizzato non è disponibile in questo momento. Riprova tra poco.";
       setErrorMessage(fallback);
       setMessages(prev => [...prev, buildSupportMessage('assistant', fallback)]);

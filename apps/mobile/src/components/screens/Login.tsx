@@ -26,7 +26,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
     if (newErrors.email || newErrors.password) { setErrors(newErrors); return; }
     setIsSubmitting(true);
     try {
-      await onLogin(email, password);
+      await onLogin(email.trim().toLowerCase(), password);
     } finally {
       setIsSubmitting(false);
     }

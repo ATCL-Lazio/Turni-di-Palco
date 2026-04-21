@@ -187,12 +187,14 @@ serve(async (req: Request) => {
       let targetHash = hash;
 
       if (action === 'activate_by_details') {
-        const { data: ticket } = await supabase
+        const { data: ticket, error: lookupError } = await supabase
           .from('ticket_activations')
           .select('hash')
           .eq('event_id', payload.eventID)
           .eq('ticket_number', payload.ticketNumber)
           .maybeSingle();
+
+        if (lookupError) throw lookupError;
 
         if (!ticket) {
           return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
