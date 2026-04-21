@@ -373,6 +373,73 @@ type PlannedParticipationRpcRow = {
 };
 
 // TODO: spostare i profili ruolo nel catalogo remoto per evitare duplicazione tra client e seed SQL.
+// Moltiplicatori derivati dalla formula: xpMultiplier = 1 + (statRelevante / 100) * 0.25
+// Stat rilevante per attività: ritardo→leadership, audio→precision, palco→leadership,
+//   recitazione→presence, copione→creativity, sequenza_luci→precision, equalizzazione→precision
+// Closes #471
+
+const ATTORE_PROFILE: RoleProfile = {
+  activityOverrides: {
+    recitazione:   { xpMultiplier: 1.23, cachetMultiplier: 1.23, reputationBonus: 3, highlightLabel: 'Punto di forza' },
+    copione:       { xpMultiplier: 1.21, cachetMultiplier: 1.21, reputationBonus: 2 },
+    audio:         { xpMultiplier: 1.18, cachetMultiplier: 1.18 },
+    ritardo:       { xpMultiplier: 1.15, cachetMultiplier: 1.15 },
+    palco:         { xpMultiplier: 1.15, cachetMultiplier: 1.15 },
+  },
+};
+
+const LUCI_PROFILE: RoleProfile = {
+  activityOverrides: {
+    audio:         { xpMultiplier: 1.24, cachetMultiplier: 1.24, reputationBonus: 3, highlightLabel: 'Punto di forza' },
+    sequenza_luci: { xpMultiplier: 1.24, cachetMultiplier: 1.24, reputationBonus: 4, highlightLabel: 'Specialità ruolo' },
+    copione:       { xpMultiplier: 1.19, cachetMultiplier: 1.19 },
+    ritardo:       { xpMultiplier: 1.16, cachetMultiplier: 1.16 },
+    palco:         { xpMultiplier: 1.16, cachetMultiplier: 1.16 },
+    recitazione:   { xpMultiplier: 1.13, cachetMultiplier: 1.13 },
+  },
+};
+
+const FONICO_PROFILE: RoleProfile = {
+  activityOverrides: {
+    audio:          { xpMultiplier: 1.23, cachetMultiplier: 1.23, reputationBonus: 3, highlightLabel: 'Punto di forza' },
+    equalizzazione: { xpMultiplier: 1.23, cachetMultiplier: 1.23, reputationBonus: 4, highlightLabel: 'Specialità ruolo' },
+    copione:        { xpMultiplier: 1.18, cachetMultiplier: 1.18 },
+    ritardo:        { xpMultiplier: 1.15, cachetMultiplier: 1.15 },
+    palco:          { xpMultiplier: 1.15, cachetMultiplier: 1.15 },
+    recitazione:    { xpMultiplier: 1.11, cachetMultiplier: 1.11 },
+  },
+};
+
+const ATTREZZISTA_PROFILE: RoleProfile = {
+  activityOverrides: {
+    copione:    { xpMultiplier: 1.23, cachetMultiplier: 1.23, reputationBonus: 3, highlightLabel: 'Punto di forza' },
+    audio:      { xpMultiplier: 1.21, cachetMultiplier: 1.21 },
+    ritardo:    { xpMultiplier: 1.18, cachetMultiplier: 1.18 },
+    palco:      { xpMultiplier: 1.18, cachetMultiplier: 1.18 },
+    recitazione: { xpMultiplier: 1.14, cachetMultiplier: 1.14 },
+  },
+};
+
+const PALCO_PROFILE: RoleProfile = {
+  activityOverrides: {
+    ritardo:    { xpMultiplier: 1.21, cachetMultiplier: 1.21, reputationBonus: 3, highlightLabel: 'Punto di forza' },
+    palco:      { xpMultiplier: 1.21, cachetMultiplier: 1.21, reputationBonus: 3, highlightLabel: 'Punto di forza' },
+    audio:      { xpMultiplier: 1.22, cachetMultiplier: 1.22 },
+    recitazione: { xpMultiplier: 1.15, cachetMultiplier: 1.15 },
+    copione:    { xpMultiplier: 1.16, cachetMultiplier: 1.16 },
+  },
+};
+
+const RSPP_PROFILE: RoleProfile = {
+  activityOverrides: {
+    ritardo:    { xpMultiplier: 1.22, cachetMultiplier: 1.22, reputationBonus: 3, highlightLabel: 'Punto di forza' },
+    palco:      { xpMultiplier: 1.22, cachetMultiplier: 1.22, reputationBonus: 3, highlightLabel: 'Punto di forza' },
+    audio:      { xpMultiplier: 1.23, cachetMultiplier: 1.23 },
+    recitazione: { xpMultiplier: 1.16, cachetMultiplier: 1.16 },
+    copione:    { xpMultiplier: 1.15, cachetMultiplier: 1.15 },
+  },
+};
+
 const DRAMATURG_PROFILE: RoleProfile = {
   allowedActivityIds: ['copione', 'recitazione', 'ritardo'],
   activityOrder: ['copione', 'recitazione', 'ritardo'],
@@ -391,28 +458,21 @@ const DRAMATURG_PROFILE: RoleProfile = {
     homeCtaLabel: 'Apri percorso dramaturg',
   },
   activityOverrides: {
-    copione: {
-      xpMultiplier: 1.2,
-      cachetMultiplier: 1.1,
-      reputationBonus: 4,
-      highlightLabel: 'Missione dramaturg',
-      homeNote: 'Perfetta per sbloccare i badge dedicati al testo.',
-    },
-    recitazione: {
-      xpMultiplier: 1.08,
-      reputationBonus: 2,
-      highlightLabel: 'Analisi sottotesto',
-    },
+    copione:    { xpMultiplier: 1.23, cachetMultiplier: 1.23, reputationBonus: 4, highlightLabel: 'Missione dramaturg', homeNote: 'Perfetta per sbloccare i badge dedicati al testo.' },
+    recitazione: { xpMultiplier: 1.18, cachetMultiplier: 1.18, reputationBonus: 2, highlightLabel: 'Analisi sottotesto' },
+    ritardo:    { xpMultiplier: 1.20, cachetMultiplier: 1.20 },
+    audio:      { xpMultiplier: 1.21, cachetMultiplier: 1.21 },
+    palco:      { xpMultiplier: 1.20, cachetMultiplier: 1.20 },
   },
 };
 
 export const roles: Role[] = [
-  { id: 'attore', name: 'Attore / Attrice', focus: 'Presenza scenica', stats: { presence: 90, precision: 70, leadership: 60, creativity: 85 } },
-  { id: 'luci', name: 'Tecnico Luci', focus: 'Precisione cue', stats: { presence: 50, precision: 95, leadership: 65, creativity: 75 } },
-  { id: 'fonico', name: 'Fonico', focus: 'Pulizia audio', stats: { presence: 45, precision: 90, leadership: 60, creativity: 70 } },
-  { id: 'attrezzista', name: 'Attrezzista / Scenografo', focus: 'Allestimento rapido', stats: { presence: 55, precision: 85, leadership: 70, creativity: 90 } },
-  { id: 'palco', name: 'Assistente di Palco', focus: 'Coordinamento', stats: { presence: 60, precision: 88, leadership: 85, creativity: 65 } },
-  { id: 'rspp', name: 'RSPP', focus: 'Sicurezza e prevenzione', stats: { presence: 65, precision: 92, leadership: 88, creativity: 58 } },
+  { id: 'attore',      name: 'Attore / Attrice',         focus: 'Presenza scenica',     stats: { presence: 90, precision: 70, leadership: 60, creativity: 85 }, profile: ATTORE_PROFILE },
+  { id: 'luci',        name: 'Tecnico Luci',             focus: 'Precisione cue',        stats: { presence: 50, precision: 95, leadership: 65, creativity: 75 }, profile: LUCI_PROFILE },
+  { id: 'fonico',      name: 'Fonico',                   focus: 'Pulizia audio',         stats: { presence: 45, precision: 90, leadership: 60, creativity: 70 }, profile: FONICO_PROFILE },
+  { id: 'attrezzista', name: 'Attrezzista / Scenografo', focus: 'Allestimento rapido',   stats: { presence: 55, precision: 85, leadership: 70, creativity: 90 }, profile: ATTREZZISTA_PROFILE },
+  { id: 'palco',       name: 'Assistente di Palco',      focus: 'Coordinamento',         stats: { presence: 60, precision: 88, leadership: 85, creativity: 65 }, profile: PALCO_PROFILE },
+  { id: 'rspp',        name: 'RSPP',                     focus: 'Sicurezza e prevenzione', stats: { presence: 65, precision: 92, leadership: 88, creativity: 58 }, profile: RSPP_PROFILE },
   {
     id: 'dramaturg',
     name: 'Dramaturg',
@@ -1802,7 +1862,7 @@ function createDemoState(): GameState {
       roleId: 'attore',
       level: 5,
       xp: 1250,
-      xpToNextLevel: 2000,
+      xpToNextLevel: 1800, // 800 + 5*200
       xpTotal: 3500,
       xpField: 1800,
       reputation: 75,
@@ -2033,7 +2093,7 @@ function applyRewards(profile: PlayerProfile, rewards: Rewards, source: 'turn' |
   while (nextXp >= nextThreshold) {
     nextXp -= nextThreshold;
     nextLevel += 1;
-    nextThreshold = 1000 + nextLevel * 250;
+    nextThreshold = 800 + nextLevel * 200; // closes #475 — curva più morbida (ex 1000 + n*250)
   }
 
   return {
@@ -4706,7 +4766,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         name: state.profile.name,
         email: state.profile.email,
         roleId: state.profile.roleId,
-        level: state.profile.level,
         xp: state.profile.xp,
         xpTotal: state.profile.xpTotal,
         xpField: state.profile.xpField,

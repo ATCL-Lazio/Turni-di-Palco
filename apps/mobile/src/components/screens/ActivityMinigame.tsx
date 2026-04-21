@@ -7,6 +7,7 @@ import {
   getMinigameConfig,
   MinigameConfig,
   MinigameOutcome,
+  RoleStats,
 } from '../../gameplay/minigames';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -25,6 +26,7 @@ const triggerHaptic = (pattern: number | number[]) => {
 interface ActivityMinigameProps {
   activity: Activity;
   roleId?: RoleId;
+  roleStats?: RoleStats | null;
   onComplete: (outcome: MinigameOutcome) => void;
   onCancel: () => void;
 }
@@ -470,8 +472,8 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
   );
 }
 
-export function ActivityMinigame({ activity, roleId, onComplete, onCancel }: ActivityMinigameProps) {
-  const config = useMemo(() => getMinigameConfig(activity.id, roleId), [activity.id, roleId]);
+export function ActivityMinigame({ activity, roleId, roleStats, onComplete, onCancel }: ActivityMinigameProps) {
+  const config = useMemo(() => getMinigameConfig(activity.id, roleId, roleStats), [activity.id, roleId, roleStats]);
 
   if (config.type === 'audio') {
     return <AudioMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
