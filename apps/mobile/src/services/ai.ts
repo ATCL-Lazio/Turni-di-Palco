@@ -56,7 +56,7 @@ const SUPPORT_PROMPT =
   "Non citare il marker o il JSON nel testo per l'utente: lascia la spiegazione sopra al marker. " +
   "Non ripetere il saluto iniziale se e' gia' presente nella chat.";
 
-const FALLBACK_PORT = String.fromCharCode(56, 55, 56, 55);
+const FALLBACK_PORT = '8787';
 const DEFAULT_PORT = import.meta.env.VITE_AI_SUPPORT_PORT ?? FALLBACK_PORT;
 const DEFAULT_ENDPOINT =
   import.meta.env.VITE_AI_SUPPORT_ENDPOINT ?? buildDefaultEndpoint('/api/ai/chat');
@@ -81,7 +81,14 @@ function buildDefaultEndpoint(path: string) {
   }
   const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
   const host = window.location.hostname || 'localhost';
-  return `${protocol}//${host}:${DEFAULT_PORT}${path}`;
+  // Only append the dev port on loopback hosts. On a deployed origin the
+  // Maxwell server lives on a separate host, and appending :8787 to a
+  // managed-platform domain (e.g. *.onrender.com) makes the request
+  // unreachable. Callers must set VITE_AI_SUPPORT_ENDPOINT in production.
+  if (isLocalHost(host) && DEFAULT_PORT) {
+    return `${protocol}//${host}:${DEFAULT_PORT}${path}`;
+  }
+  return `${protocol}//${host}${path}`;
 }
 
 function normalizeEndpoint(endpoint: string) {
