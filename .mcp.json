@@ -4,8 +4,20 @@
       "type": "http",
       "url": "https://mcp.render.com/mcp",
       "headers": {
-        "Authorization": "Bearer rnd_2zQi2eJL1mnxPHOfpr7DvreL6J88"
+        "Authorization": "Bearer ${RENDER_MCP_TOKEN}"
       }
+    },
+    "uptimerobot": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.uptimerobot.com/mcp",
+        "--header",
+        "Authorization: Bearer ${UPTIMEROBOT_MCP_TOKEN}",
+        "--header",
+        "X-MCP-Content-Format: true"
+      ]
     }
   }
 }
