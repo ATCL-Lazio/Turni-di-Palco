@@ -1,5 +1,20 @@
 import type { RoleId } from '../state/store';
 
+// Closes #471 — tolleranza adattiva basata sulla stat primaria del ruolo.
+// Formula: effectiveTolerance = round(baseTolerance * (1 + (stat - 50) / 200))
+export type RoleStats = { presence: number; precision: number; leadership: number; creativity: number };
+
+// Stat primaria per attività; determina quale caratteristica allarga la finestra di tolleranza.
+const ACTIVITY_PRIMARY_STAT: Partial<Record<string, keyof RoleStats>> = {
+  ritardo:        'leadership',
+  audio:          'precision',
+  palco:          'leadership',
+  recitazione:    'presence',
+  copione:        'creativity',
+  sequenza_luci:  'precision',
+  equalizzazione: 'precision',
+};
+
 export type MinigameType = 'timing' | 'audio';
 
 export type MinigameRound = {
@@ -137,18 +152,32 @@ export function isMinigameAvailableForRole(activityId: string, roleId?: RoleId |
   return roleId ? config.allowedRoles.includes(roleId) : false;
 }
 
-export function getMinigameConfig(activityId: string, roleId?: RoleId | null): MinigameConfig {
+export function getMinigameConfig(activityId: string, roleId?: RoleId | null, roleStats?: RoleStats | null): MinigameConfig {
   const config = MINIGAME_BY_ACTIVITY[activityId] ?? FALLBACK_CONFIG;
-  if (!roleId) return config;
 
-  const override = config.roleOverrides?.[roleId];
-  if (!override) return config;
+  // Applica override narrativo/tematico specifico del ruolo
+  const override = roleId ? config.roleOverrides?.[roleId] : undefined;
+  const base: MinigameConfig = override
+    ? { ...config, ...override, rounds: override.rounds ?? config.rounds }
+    : config;
 
-  return {
-    ...config,
-    ...override,
-    rounds: override.rounds ?? config.rounds,
-  };
+  // Adatta la tolleranza alla stat primaria del ruolo (closes #471)
+  if (roleStats) {
+    const statKey = ACTIVITY_PRIMARY_STAT[activityId];
+    const statValue = statKey ? roleStats[statKey] : null;
+    if (statValue != null) {
+      const factor = 1 + (statValue - 50) / 200;
+      return {
+        ...base,
+        rounds: base.rounds.map(r => ({
+          ...r,
+          tolerance: Math.max(1, Math.round(r.tolerance * factor)),
+        })),
+      };
+    }
+  }
+
+  return base;
 }
 
 export function computeRoundScore(target: number, hit: number, tolerance: number) {

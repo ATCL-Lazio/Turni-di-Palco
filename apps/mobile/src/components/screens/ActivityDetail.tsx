@@ -14,7 +14,7 @@ interface ActivityDetailProps {
 }
 
 export function ActivityDetail({ activity, role, onStart, onClose }: ActivityDetailProps) {
-  const minigame = getMinigameConfig(activity.id, role?.id);
+  const minigame = getMinigameConfig(activity.id, role?.id, role?.stats ?? null);
   const rewards = computeActivityRewards(activity, role);
   const roleHighlight = getRoleActivityOverride(role, activity.id);
   return (

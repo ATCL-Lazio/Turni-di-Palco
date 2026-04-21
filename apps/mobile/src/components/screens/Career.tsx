@@ -4,7 +4,7 @@ import { Badge } from '../ui/Badge';
 import { ProgressBar } from '../ui/ProgressBar';
 import {
   ArrowLeft, TrendingUp, Award, Theater, MapPin, Calendar, Users,
-  Lightbulb, Volume2, Package, Clipboard, BookOpen, ShieldCheck,
+  Lightbulb, Volume2, Package, Clipboard, BookOpen, ShieldCheck, Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Screen } from '../ui/Screen';
@@ -23,6 +23,7 @@ interface CareerProps {
   xpToNextLevel: number;
   xpTotal: number;
   xpSulCampo: number;
+  tokenAtcl: number;
   reputationGlobal: number;
   onBack: () => void;
 }
@@ -42,7 +43,7 @@ const BADGE_ICONS: Record<string, LucideIcon> = { Award, MapPin, Theater, Calend
 
 export function Career({
   userRole, roleId, roleStats, turnStats, badges, turns, roles,
-  level, xp, xpToNextLevel, xpTotal, xpSulCampo, reputationGlobal, onBack,
+  level, xp, xpToNextLevel, xpTotal, xpSulCampo, tokenAtcl, reputationGlobal, onBack,
 }: CareerProps) {
   const RoleIcon = ROLE_ICONS[roleId] ?? Users;
   const sortedTurns = useMemo(() => [...turns].sort((a, b) => b.createdAt - a.createdAt), [turns]);
@@ -75,7 +76,7 @@ export function Career({
         <div className="mt-6 space-y-5">
           <RoleOverviewCard RoleIcon={RoleIcon} userRole={userRole} level={level} xp={xp} xpToNextLevel={xpToNextLevel} />
           <RoleStatsCard roleStats={roleStats} />
-          <ExperienceCard xpTotal={xpTotal} xpSulCampo={xpSulCampo} />
+          <ExperienceCard xpTotal={xpTotal} xpSulCampo={xpSulCampo} tokenAtcl={tokenAtcl} />
           <ReputationCard reputationGlobal={reputationGlobal} />
           <MilestonesCard milestones={milestones} turnStats={turnStats} />
           <TurnHistoryCard sortedTurns={sortedTurns} resolveRoleName={resolveRoleName} />
@@ -137,7 +138,8 @@ function RoleStatsCard({ roleStats }: { roleStats: Role['stats'] }) {
   );
 }
 
-function ExperienceCard({ xpTotal, xpSulCampo }: { xpTotal: number; xpSulCampo: number }) {
+// closes #470 — tokenAtcl spostato qui dalla Home
+function ExperienceCard({ xpTotal, xpSulCampo, tokenAtcl }: { xpTotal: number; xpSulCampo: number; tokenAtcl: number }) {
   return (
     <Card>
       <h4 className="text-white mb-4">Esperienza accumulata</h4>
@@ -148,6 +150,8 @@ function ExperienceCard({ xpTotal, xpSulCampo }: { xpTotal: number; xpSulCampo: 
           iconBg="bg-gradient-to-br from-[#a82847] to-[#6b1529]" valueColor="text-[#f4bf4f]" />
         <XpRow icon={TrendingUp} label="XP da attività" sub="Simulazioni" value={xpTotal - xpSulCampo}
           iconBg="bg-[#241f20] border-2 border-[#9a9697]" valueColor="text-white" iconColor="text-[#9a9697]" />
+        <XpRow icon={Zap} label="Token ATCL" sub="Da turni certificati" value={tokenAtcl}
+          iconBg="bg-gradient-to-br from-[#a82847] to-[#6b1529]" valueColor={tokenAtcl === 0 ? 'text-[#9a9697]' : 'text-[#f4bf4f]'} iconColor="text-[#f4bf4f]" />
       </div>
     </Card>
   );

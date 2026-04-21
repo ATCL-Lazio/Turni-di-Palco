@@ -134,7 +134,7 @@ export function Home({
       </div>
 
       <div data-tutorial="economy">
-        <EconomyCard cachet={cachet} tokenAtcl={tokenAtcl} />
+        <EconomyCard cachet={cachet} />
       </div>
 
       {pendingBoostRequests > 0 && (
@@ -326,25 +326,17 @@ function StatsGrid({
   );
 }
 
-function EconomyCard({ cachet, tokenAtcl }: { cachet: number; tokenAtcl: number }) {
+// closes #470 — tokenAtcl rimosso dalla home, visibile nella schermata Carriera
+function EconomyCard({ cachet }: { cachet: number }) {
   return (
     <Card className="bg-[#1a1617] border border-[#2d2728]">
       <h4 className="text-white text-sm font-semibold mb-3">Economia</h4>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-xl bg-[#241f20] border border-[#3d3a3b] p-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs text-[#b8b2b3]">Cachet</p>
-            <Coins size={14} className="text-[#f4bf4f]" />
-          </div>
-          <p className="text-white text-lg font-semibold mt-1">{cachet}</p>
+      <div className="rounded-xl bg-[#241f20] border border-[#3d3a3b] p-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-[#b8b2b3]">Cachet</p>
+          <Coins size={14} className="text-[#f4bf4f]" />
         </div>
-        <div className="rounded-xl bg-[#241f20] border border-[#3d3a3b] p-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs text-[#b8b2b3]">Token ATCL</p>
-            <Zap size={14} className={tokenAtcl === 0 ? 'text-[#9a9697]' : 'text-[#f4bf4f]'} />
-          </div>
-          <p className={`text-lg font-semibold mt-1 ${tokenAtcl === 0 ? 'text-[#9a9697]' : 'text-[#f4bf4f]'}`}>{tokenAtcl}</p>
-        </div>
+        <p className="text-white text-lg font-semibold mt-1">{cachet}</p>
       </div>
     </Card>
   );

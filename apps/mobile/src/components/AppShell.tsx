@@ -530,6 +530,7 @@ export function AppShell() {
       case 'activity-minigame':
         return currentActivity && (
           <ActivityMinigame activity={currentActivity} roleId={roleJourneyEnabled ? selectedRole?.id : undefined}
+            roleStats={roleJourneyEnabled ? selectedRole?.stats ?? null : null}
             onCancel={() => nav.navigate('activity-detail')}
             onComplete={outcome => {
               void (async () => {
@@ -631,6 +632,7 @@ export function AppShell() {
             turnStats={turnStats} badges={badges} turns={state.turns} roles={roles}
             level={state.profile.level} xp={state.profile.xp} xpToNextLevel={state.profile.xpToNextLevel}
             xpTotal={state.profile.xpTotal} xpSulCampo={state.profile.xpField}
+            tokenAtcl={state.profile.tokenAtcl}
             reputationGlobal={state.profile.reputation} onBack={() => nav.navigate('profile')} />
         );
 
