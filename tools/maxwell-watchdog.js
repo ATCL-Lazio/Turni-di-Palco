@@ -8,9 +8,25 @@
 const https = require('https');
 const { spawnSync } = require('child_process');
 
+function resolveWatchdogRepo() {
+  const candidates = [
+    process.env.AI_SUPPORT_GH_REPO,
+    process.env.GITHUB_REPO,
+    process.env.GITHUB_REPO_OWNER && process.env.GITHUB_REPO_NAME
+      ? `${process.env.GITHUB_REPO_OWNER}/${process.env.GITHUB_REPO_NAME}`
+      : null,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+  return 'ATCL-Lazio/Turni-di-Palco';
+}
+
 // Configurazione
 const CONFIG = {
-  repo: 'Heartran/Turni-di-Palco',
+  repo: resolveWatchdogRepo(),
   scanInterval: 60 * 60 * 1000, // 1 ora
   maxIssuesPerDay: 5,
   dryRun: process.env.NODE_ENV === 'development',
@@ -39,7 +55,7 @@ function log(level, message, data = null) {
 // GitHub API helper
 class GitHubAPI {
   constructor() {
-    this.token = process.env.GITHUB_TOKEN;
+    this.token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '';
     this.baseUrl = 'https://api.github.com';
   }
 
@@ -144,8 +160,18 @@ class ProblemDetector {
   async checkRenderPerformance() {
     const problems = [];
     const services = [
-      { name: 'Maxwell-AI-Support', url: 'https://maxwell-ai-support.onrender.com/health' },
-      { name: 'Turni-di-Palco', url: 'https://turni-di-palco-fq85.onrender.com/health' }
+      {
+        name: 'Maxwell-AI-Support',
+        url:
+          process.env.WATCHDOG_SERVICE_MAXWELL_URL ||
+          'https://maxwell-ai-support.onrender.com/health'
+      },
+      {
+        name: 'Turni-di-Palco',
+        url:
+          process.env.WATCHDOG_SERVICE_TURNI_URL ||
+          'https://turni-di-palco-fq85.onrender.com/health'
+      }
     ];
 
     for (const service of services) {
