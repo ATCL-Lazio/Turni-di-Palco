@@ -7,7 +7,7 @@
     { "source": "/api/promotions/proxy", "destination": "/api/promotions/proxy.js" }
   ],
   "redirects": [
-    { "source": "/", "destination": "/mobile/", "permanent": true }
+    { "source": "/", "destination": "/mobile/", "statusCode": 301 }
   ],
   "headers": [
     {
