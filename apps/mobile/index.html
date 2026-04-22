@@ -26,6 +26,7 @@
         var manifestLink = document.createElement("link");
         manifestLink.rel = "manifest";
         manifestLink.href = "/mobile/manifest.webmanifest";
+        manifestLink.crossOrigin = "use-credentials";
         document.head.appendChild(manifestLink);
       })();
     </script>
