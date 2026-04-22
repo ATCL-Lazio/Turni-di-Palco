@@ -616,6 +616,29 @@ const DEFAULT_SHOP_CATALOG: ShopCatalogItem[] = [
 ];
 
 const STORAGE_KEY = 'tdp-mobile-ui-state';
+const TUTORIAL_COMPLETED_KEY = 'tdp-tutorial-completed';
+
+function readTutorialCompleted(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(TUTORIAL_COMPLETED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeTutorialCompleted(value: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (value) {
+      window.localStorage.setItem(TUTORIAL_COMPLETED_KEY, '1');
+    } else {
+      window.localStorage.removeItem(TUTORIAL_COMPLETED_KEY);
+    }
+  } catch {
+    /* ignore */
+  }
+}
 // Maximum number of turns the mobile client keeps in memory/uses for a game session.
 // This is intentionally bounded to avoid unbounded state growth on long‑running devices
 // and to keep UI and sync operations predictable.
@@ -1847,7 +1870,7 @@ function createInitialState(): GameState {
       profileImage: undefined,
       lastActivityAt: Date.now(),
       leaderboardVisible: true,
-      tutorialCompleted: false,
+      tutorialCompleted: readTutorialCompleted(),
     },
     turns: [],
     eventPlans: [],
@@ -1872,7 +1895,7 @@ function createDemoState(): GameState {
       profileImage: undefined,
       lastActivityAt: Date.now(),
       leaderboardVisible: true,
-      tutorialCompleted: false,
+      tutorialCompleted: readTutorialCompleted(),
     },
     turns: [
       {
@@ -3996,26 +4019,20 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const completeTutorial = useCallback(() => {
-    let nextProfile: PlayerProfile | null = null;
-    setState((prev: GameState) => {
-      nextProfile = { ...prev.profile, tutorialCompleted: true };
-      return { ...prev, profile: nextProfile };
-    });
-    if (nextProfile) {
-      persistProfile(nextProfile);
-    }
-  }, [persistProfile]);
+    writeTutorialCompleted(true);
+    setState((prev: GameState) => ({
+      ...prev,
+      profile: { ...prev.profile, tutorialCompleted: true },
+    }));
+  }, []);
 
   const resetTutorial = useCallback(() => {
-    let nextProfile: PlayerProfile | null = null;
-    setState((prev: GameState) => {
-      nextProfile = { ...prev.profile, tutorialCompleted: false };
-      return { ...prev, profile: nextProfile };
-    });
-    if (nextProfile) {
-      persistProfile(nextProfile);
-    }
-  }, [persistProfile]);
+    writeTutorialCompleted(false);
+    setState((prev: GameState) => ({
+      ...prev,
+      profile: { ...prev.profile, tutorialCompleted: false },
+    }));
+  }, []);
 
   const updateProfile = useCallback(
     (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {
