@@ -133,9 +133,7 @@ export function Home({
         />
       </div>
 
-      <div data-tutorial="economy">
-        <EconomyCard cachet={cachet} />
-      </div>
+      <EconomyCard cachet={cachet} />
 
       {pendingBoostRequests > 0 && (
         <Card className="bg-[#2a1f14] border border-[#f4bf4f]/30">
@@ -188,12 +186,10 @@ export function Home({
         />
       )}
 
-      <div data-tutorial="activities">
-        <ActivitiesCard
-          activitiesCount={activitiesCount}
-          onViewActivities={onViewActivities}
-        />
-      </div>
+      <ActivitiesCard
+        activitiesCount={activitiesCount}
+        onViewActivities={onViewActivities}
+      />
     </Screen>
   );
 }

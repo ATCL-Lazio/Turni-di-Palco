@@ -8,12 +8,9 @@ interface TutorialStep {
 }
 
 const STEPS: TutorialStep[] = [
-  { id: 'welcome', title: 'Benvenuto/a!', description: 'Ciao {nome}! Scopriamo insieme come funziona Turni di Palco.', targetSelector: null },
-  { id: 'stats', title: 'Le tue statistiche', description: 'Qui trovi il tuo livello e la tua reputazione ATCL. Salgono con ogni turno completato.', targetSelector: '[data-tutorial="stats"]' },
-  { id: 'economy', title: 'Cachet e Token', description: 'Cachet e Token ATCL sono le valute che guadagni lavorando. Usali nel negozio.', targetSelector: '[data-tutorial="economy"]' },
-  { id: 'activities', title: 'Attività quotidiane', description: 'Completa attività giornaliere per guadagnare XP e ricompense extra.', targetSelector: '[data-tutorial="activities"]' },
-  { id: 'navigation', title: "Esplora l'app", description: 'Usa la barra in basso per accedere a turni, classifica, negozio e il tuo profilo.', targetSelector: '[data-tutorial="bottom-nav"]' },
-  { id: 'done', title: 'Sei pronto/a!', description: 'Buon lavoro dietro le quinte. Registra il tuo primo turno e guadagna i primi XP!', targetSelector: null },
+  { id: 'welcome', title: 'Ciao {nome}!', description: 'Due passi veloci per orientarti in Turni di Palco.', targetSelector: null },
+  { id: 'stats', title: 'Progressi e ricompense', description: 'Livello, reputazione ATCL, Cachet e Token: tutto quello che guadagni lavorando è qui.', targetSelector: '[data-tutorial="stats"]' },
+  { id: 'navigation', title: "Tutto il resto", description: 'Dalla barra in basso raggiungi turni, classifica, negozio e profilo. Buon lavoro!', targetSelector: '[data-tutorial="bottom-nav"]' },
 ];
 
 interface WelcomeTutorialProps {
