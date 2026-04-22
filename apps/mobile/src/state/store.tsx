@@ -616,24 +616,29 @@ const DEFAULT_SHOP_CATALOG: ShopCatalogItem[] = [
 ];
 
 const STORAGE_KEY = 'tdp-mobile-ui-state';
-const TUTORIAL_COMPLETED_KEY = 'tdp-tutorial-completed';
+const TUTORIAL_COMPLETED_KEY_PREFIX = 'tdp-tutorial-completed:';
 
-function readTutorialCompleted(): boolean {
+function tutorialCompletedKey(userId: string): string {
+  return `${TUTORIAL_COMPLETED_KEY_PREFIX}${userId}`;
+}
+
+function readTutorialCompleted(userId: string): boolean {
   if (typeof window === 'undefined') return false;
   try {
-    return window.localStorage.getItem(TUTORIAL_COMPLETED_KEY) === '1';
+    return window.localStorage.getItem(tutorialCompletedKey(userId)) === '1';
   } catch {
     return false;
   }
 }
 
-function writeTutorialCompleted(value: boolean): void {
+function writeTutorialCompleted(userId: string, value: boolean): void {
   if (typeof window === 'undefined') return;
   try {
+    const key = tutorialCompletedKey(userId);
     if (value) {
-      window.localStorage.setItem(TUTORIAL_COMPLETED_KEY, '1');
+      window.localStorage.setItem(key, '1');
     } else {
-      window.localStorage.removeItem(TUTORIAL_COMPLETED_KEY);
+      window.localStorage.removeItem(key);
     }
   } catch {
     /* ignore */
@@ -1870,7 +1875,7 @@ function createInitialState(): GameState {
       profileImage: undefined,
       lastActivityAt: Date.now(),
       leaderboardVisible: true,
-      tutorialCompleted: readTutorialCompleted(),
+      tutorialCompleted: false,
     },
     turns: [],
     eventPlans: [],
@@ -1895,7 +1900,7 @@ function createDemoState(): GameState {
       profileImage: undefined,
       lastActivityAt: Date.now(),
       leaderboardVisible: true,
-      tutorialCompleted: readTutorialCompleted(),
+      tutorialCompleted: false,
     },
     turns: [
       {
@@ -4018,21 +4023,31 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     [authUserId, enqueueSupabaseMutation, hasHydratedRemote]
   );
 
+  useEffect(() => {
+    if (!authUserId) return;
+    const completed = readTutorialCompleted(authUserId);
+    setState((prev: GameState) =>
+      prev.profile.tutorialCompleted === completed
+        ? prev
+        : { ...prev, profile: { ...prev.profile, tutorialCompleted: completed } }
+    );
+  }, [authUserId]);
+
   const completeTutorial = useCallback(() => {
-    writeTutorialCompleted(true);
+    if (authUserId) writeTutorialCompleted(authUserId, true);
     setState((prev: GameState) => ({
       ...prev,
       profile: { ...prev.profile, tutorialCompleted: true },
     }));
-  }, []);
+  }, [authUserId]);
 
   const resetTutorial = useCallback(() => {
-    writeTutorialCompleted(false);
+    if (authUserId) writeTutorialCompleted(authUserId, false);
     setState((prev: GameState) => ({
       ...prev,
       profile: { ...prev.profile, tutorialCompleted: false },
     }));
-  }, []);
+  }, [authUserId]);
 
   const updateProfile = useCallback(
     (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {

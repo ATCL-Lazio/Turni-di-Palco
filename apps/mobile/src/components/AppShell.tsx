@@ -711,7 +711,7 @@ export function AppShell() {
         </Suspense>
       </ScreenTransition>
 
-      {nav.screen === 'home' && !state.profile.tutorialCompleted && (
+      {nav.screen === 'home' && hasHydratedRemote && !state.profile.tutorialCompleted && (
         <WelcomeTutorial
           userName={state.profile.name}
           onComplete={() => gameState.completeTutorial()}
