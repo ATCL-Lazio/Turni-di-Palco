@@ -12,7 +12,7 @@ interface MainLayoutProps {
 export function MainLayout({ children, activeTab, enabledTabs, onTabChange }: MainLayoutProps) {
   return (
     <>
-      <div className="app-frame">{children}</div>
+      <div id="main-content" tabIndex={-1} className="app-frame">{children}</div>
       <BottomNav activeTab={activeTab} onTabChange={onTabChange} enabledTabs={enabledTabs} />
     </>
   );
