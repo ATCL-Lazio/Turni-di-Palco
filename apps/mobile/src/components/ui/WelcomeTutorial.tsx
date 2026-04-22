@@ -61,6 +61,7 @@ function StepCard({
   position: { top?: number; bottom?: number; left: number; right: number; arrowDirection: 'up' | 'down'; spotlightCenterX: number } | null;
   reducedMotion: boolean;
 }) {
+  const title = step.title.replace('{nome}', userName);
   const description = step.description.replace('{nome}', userName);
 
   const positionStyle: React.CSSProperties = position
@@ -95,7 +96,7 @@ function StepCard({
           style={{ position: 'absolute', top: -10, left: arrowLeft }}
         />
       )}
-      <h3 className="text-lg font-semibold text-white">{step.title}</h3>
+      <h3 className="text-lg font-semibold text-white">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-[#c9b8b9]">{description}</p>
       {position && position.arrowDirection === 'down' && (
         <div
