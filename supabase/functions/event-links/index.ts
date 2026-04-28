@@ -102,11 +102,20 @@ serve(async (req) => {
   }
 
   const authHeader = req.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return json({ error: 'Autenticazione richiesta' }, 401);
+  }
+
   const supabase = createClient(supabaseUrl, anonKey, {
     global: {
-      headers: authHeader ? { Authorization: authHeader } : undefined,
+      headers: { Authorization: authHeader },
     },
   });
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return json({ error: 'Autenticazione richiesta' }, 401);
+  }
 
   let body: Record<string, unknown>;
   try {
