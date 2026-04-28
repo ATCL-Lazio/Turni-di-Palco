@@ -1030,7 +1030,7 @@ const ITALIAN_MONTHS: Record<string, string> = {
   lug: '07', ago: '08', set: '09', ott: '10', nov: '11', dic: '12',
 };
 
-function parseEventScheduleTimestamp(event: Pick<GameEvent, 'date' | 'time'>) {
+export function parseEventScheduleTimestamp(event: Pick<GameEvent, 'date' | 'time'>) {
   const parts = event.date.trim().split(/\s+/);
   if (parts.length === 3) {
     const [day, monthStr, year] = parts;
