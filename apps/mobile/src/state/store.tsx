@@ -2984,7 +2984,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       );
     };
 
-    restoreSession();
+    restoreSession().catch((err) => {
+      console.error('[restoreSession] unexpected error', err);
+      if (isMounted) setAuthReady(true);
+    });
 
     const { data: authListener } = supabase!.auth.onAuthStateChange((_event, session) => {
       persistStoredSession(session ?? null);
