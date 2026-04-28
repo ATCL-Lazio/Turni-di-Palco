@@ -40,6 +40,24 @@ serve(async (req) => {
     return errorResponse('Metodo non consentito', 405);
   }
 
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  if (supabaseUrl && anonKey) {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return errorResponse('Autenticazione richiesta', 401);
+    }
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.48.0');
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      return errorResponse('Autenticazione richiesta', 401);
+    }
+  }
+
   const appVersion = Deno.env.get('APP_VERSION') ?? '0.0.5';
   const repo = Deno.env.get('APP_REPO') ?? 'ATCL-Lazio/Turni-di-Palco';
   const githubToken = Deno.env.get('GITHUB_TOKEN');
