@@ -3650,7 +3650,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       );
     };
 
-    loadCatalog();
+    loadCatalog().catch((err: unknown) => console.warn('[store] loader rejected', err));
 
     return () => {
       isMounted = false;
@@ -3774,7 +3774,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       );
     };
 
-    loadRemoteState();
+    loadRemoteState().catch((err: unknown) => console.warn('[store] loader rejected', err));
 
     return () => {
       isMounted = false;
