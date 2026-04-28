@@ -2262,6 +2262,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [turnSyncFeedback, setTurnSyncFeedback] = useState<TurnSyncFeedback | null>(null);
   const offlineSyncInFlightRef = useRef(false);
   const offlineServerLogSyncInFlightRef = useRef(false);
+  const eventPlansRef = useRef(state.eventPlans);
+  useEffect(() => { eventPlansRef.current = state.eventPlans; }, [state.eventPlans]);
 
   const syncLocalEventPlanning = useCallback(
     (plans: EventPlanning[]) => {
@@ -3080,7 +3082,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       if (!isSupabaseConfigured || !supabase || !authUserId) {
         setEventPlansLoading(false);
         setFollowedEventsLoading(false);
-        syncLocalEventPlanning(state.eventPlans);
+        syncLocalEventPlanning(eventPlansRef.current);
         return;
       }
       await withMobileWatchdog(
@@ -3148,7 +3150,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         }
       );
     },
-    [authUserId, state.eventPlans, state.profile.roleId, syncLocalEventPlanning]
+    [authUserId, state.profile.roleId, syncLocalEventPlanning]
   );
 
   const refreshShopCatalog = useCallback(async () => {
