@@ -59,6 +59,7 @@ serve(async (req: Request) => {
     const needsAuthenticatedUser = activationActions.includes(action);
     const needsAuth = authRequiredActions.includes(action);
     let resolvedUserId = typeof requestedUserId === 'string' ? requestedUserId.trim() : '';
+    let authenticatedUser: { id: string; app_metadata?: Record<string, unknown> } | null = null;
 
     if (needsAuth) {
       // Verify JWT signature via Supabase auth (covers reserve_hash, resolve_hash, and activation actions)
@@ -77,6 +78,8 @@ serve(async (req: Request) => {
         return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
       }
 
+      authenticatedUser = user as { id: string; app_metadata?: Record<string, unknown> };
+
       if (needsAuthenticatedUser) {
         // Do not trust userId sent by client payload: use the verified identity.
         resolvedUserId = user.id;
@@ -84,6 +87,11 @@ serve(async (req: Request) => {
     }
 
     if (action === 'reserve_hash') {
+      const userRole = authenticatedUser?.app_metadata?.role as string | undefined;
+      if (userRole !== 'admin') {
+        return jsonResponse({ error: 'Accesso negato: ruolo admin richiesto' }, 403);
+      }
+
       if (!hash || !payload) {
         return jsonResponse({ error: 'Missing hash or payload' }, 400);
       }
