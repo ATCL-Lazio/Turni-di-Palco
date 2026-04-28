@@ -3639,7 +3639,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             events: nextEvents,
             activities: nextActivities,
           });
-          refreshEventPlanning(nextEvents);
+          await refreshEventPlanning(nextEvents);
         },
         {
           operation: 'loadCatalog',
