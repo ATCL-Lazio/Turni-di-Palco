@@ -3,7 +3,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { ScanQRCard } from '../ScanQRCard';
 import { QrCode, MapPin, Calendar, TrendingUp, Theater, Map as MapIcon, Award, Pencil, X } from 'lucide-react';
-import { EventPlanning, GameEvent, Role } from '../../state/store';
+import { EventPlanning, GameEvent, parseEventScheduleTimestamp, Role } from '../../state/store';
 import { AtclPromoBanner } from '../AtclPromoBanner';
 import { useAtclPromotion } from '../../hooks/useAtclPromotion';
 import { AtclNewsTicker } from '../AtclNewsTicker';
@@ -49,20 +49,16 @@ export function ATCLTurns({
   }, [events]);
 
   const sortedEvents = useMemo(() => {
-    const now = new Date();
+    const now = Date.now();
     return [...events].sort((a, b) => {
-      const dateA = new Date(`${a.date} ${a.time}`);
-      const dateB = new Date(`${b.date} ${b.time}`);
+      const tsA = parseEventScheduleTimestamp(a);
+      const tsB = parseEventScheduleTimestamp(b);
+      const aFuture = tsA >= now;
+      const bFuture = tsB >= now;
 
-      if (dateA >= now && dateB >= now) {
-        return dateA.getTime() - dateB.getTime();
-      }
-
-      if (dateA < now && dateB < now) {
-        return dateB.getTime() - dateA.getTime();
-      }
-
-      return dateA >= now ? -1 : 1;
+      if (aFuture !== bFuture) return aFuture ? -1 : 1;
+      if (aFuture && bFuture) return tsA - tsB;
+      return tsB - tsA;
     });
   }, [events]);
 
