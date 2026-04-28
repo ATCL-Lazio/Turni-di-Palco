@@ -3903,37 +3903,37 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             }));
           }
 
-          refreshTurnStats();
-          refreshTheatreReputation();
-          refreshBadges();
+          refreshTurnStats().catch(console.error);
+          refreshTheatreReputation().catch(console.error);
+          refreshBadges().catch(console.error);
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'user_badges', filter: `user_id=eq.${authUserId}` },
         () => {
-          refreshBadges();
+          refreshBadges().catch(console.error);
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'planned_participations', filter: `user_id=eq.${authUserId}` },
         () => {
-          refreshEventPlanning(catalog.events);
+          refreshEventPlanning(catalog.events).catch(console.error);
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'activity_completions', filter: `user_id=eq.${authUserId}` },
         () => {
-          refreshActivitySlotsStatus();
+          refreshActivitySlotsStatus().catch(console.error);
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'shop_catalog' },
         () => {
-          refreshShopCatalog();
+          refreshShopCatalog().catch(console.error);
         }
       )
       .on(
