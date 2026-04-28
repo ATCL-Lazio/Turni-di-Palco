@@ -4171,7 +4171,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               localBoostRejectionReason = 'insufficient_token_balance';
             }
           }
-          workingToken += 1;
           nextTokenAtcl = workingToken;
           localSyncStatus = boostRequested && !localBoostApplied ? 'failed_boost_fallback' : 'synced';
           localTurnRecord = buildTurnRecordFromPayload(
