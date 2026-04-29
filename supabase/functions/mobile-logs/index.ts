@@ -122,6 +122,16 @@ serve(async (req: Request) => {
     return jsonResponse({ error: 'Metodo non consentito' }, 405);
   }
 
+  // Require a valid JWT before processing any log entries
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return jsonResponse({ error: 'Autenticazione richiesta' }, 401);
+  }
+  const requesterUserIdFromAuth = await resolveRequesterUserId(req);
+  if (!requesterUserIdFromAuth) {
+    return jsonResponse({ error: 'Sessione non valida o scaduta' }, 401);
+  }
+
   try {
     const body = await req.json();
     if (!isRecord(body)) {
@@ -148,7 +158,7 @@ serve(async (req: Request) => {
       .map((entry, index) => normalizeLogEntry(entry, index))
       .filter((entry): entry is NormalizedLogEntry => !!entry);
 
-    const requesterUserId = await resolveRequesterUserId(req);
+    const requesterUserId = requesterUserIdFromAuth;
     const duplicateCount = countDuplicateLogIds(normalizedLogs);
 
     console.info('[mobile-logs] ingest request', {
