@@ -3762,7 +3762,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 leaderboardVisible: profileRow.leaderboard_visible ?? prev.profile.leaderboardVisible,
               },
               eventPlans: prev.eventPlans,
-              turns: remoteTurns,
+              turns: turnsRes.error ? prev.turns : remoteTurns,
             }));
           }
 
