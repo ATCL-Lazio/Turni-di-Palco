@@ -139,6 +139,17 @@ export type CompleteActivityResult =
     slotsTotal?: number;
   };
 
+export type CompleteNarrativeChoiceInput = {
+  sceneId: string;
+  choiceId: string;
+  rewards: Partial<Rewards>;
+  setFlags?: string[];
+};
+
+export type CompleteNarrativeChoiceResult =
+  | { ok: true; rewards: Rewards }
+  | { ok: false; error: string };
+
 export type ShopPurchaseResult =
   | {
     ok: true;
@@ -2194,6 +2205,7 @@ type GameContextValue = {
     activityId: string,
     telemetry?: ActivityTelemetryInput
   ) => Promise<CompleteActivityResult>;
+  completeNarrativeChoice: (input: CompleteNarrativeChoiceInput) => Promise<CompleteNarrativeChoiceResult>;
   resetProgress: () => Promise<void>;
   /** GDPR Art. 17 – elimina account e tutti i dati dal server e dal dispositivo. */
   deleteAccount: () => Promise<void>;
@@ -4561,6 +4573,51 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     [authUserId, catalog.activities, featureFlags, refreshBadges]
   );
 
+  // Issue #328 — narrative scene choice completion.
+  // The scene + choice are validated and resolved by the UI layer (see
+  // NarrativeScene.tsx) using the engine in `gameplay/narrative.ts`. This
+  // function is the persistence/state-mutation half: it applies rewards
+  // locally and best-effort logs the choice into `narrative_history`.
+  const completeNarrativeChoice = useCallback(
+    async (input: CompleteNarrativeChoiceInput): Promise<CompleteNarrativeChoiceResult> => {
+      const rewards: Rewards = {
+        xp: Math.max(0, Math.round(input.rewards.xp ?? 0)),
+        cachet: Math.max(0, Math.round(input.rewards.cachet ?? 0)),
+        reputation: Math.max(0, Math.round(input.rewards.reputation ?? 0)),
+      };
+
+      // 1. Apply rewards locally — visible immediately in Home/profile.
+      setState((prev: GameState) => ({
+        ...prev,
+        profile: applyRewards(prev.profile, rewards, 'activity'),
+      }));
+
+      // 2. Persist to narrative_history (append-only, RLS-scoped to user).
+      // Best-effort: a failed insert does not roll back local rewards. Without
+      // a server-side reward authority for narrative scenes, retrying client
+      // rewards on offline replay would risk double-credit. Tracked separately.
+      if (isSupabaseConfigured && supabase && authUserId) {
+        try {
+          const { error } = await supabase.from('narrative_history').insert({
+            user_id: authUserId,
+            scene_id: input.sceneId,
+            choice_id: input.choiceId,
+            rewards,
+            flags_set: input.setFlags ?? [],
+          });
+          if (error) {
+            logOfflineSync('narrative_history insert failed', { error: formatSyncError(error) }, 'warn');
+          }
+        } catch (error) {
+          logOfflineSync('narrative_history insert threw', { error: formatSyncError(error) }, 'warn');
+        }
+      }
+
+      return { ok: true, rewards };
+    },
+    [authUserId]
+  );
+
   const resetProgress = useCallback(async () => {
     logOfflineSync('Action resetProgress');
     await withMobileWatchdog(
@@ -4878,6 +4935,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       turnSyncFeedback,
       clearTurnSyncFeedback,
       completeActivity,
+      completeNarrativeChoice,
       resetProgress,
       deleteAccount,
       exportUserData,
@@ -4930,6 +4988,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       turnSyncFeedback,
       clearTurnSyncFeedback,
       completeActivity,
+      completeNarrativeChoice,
       resetProgress,
       deleteAccount,
       exportUserData,

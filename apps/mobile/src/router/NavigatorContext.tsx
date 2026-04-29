@@ -10,6 +10,7 @@ interface NavigatorContextValue {
   isPasswordRecovery: boolean;
   scannedEventId: string;
   selectedActivityId: string;
+  currentNarrativeSceneId: string;
 
   // Navigation actions
   navigate: (screen: Screen) => void;
@@ -23,6 +24,7 @@ interface NavigatorContextValue {
   setIsPasswordRecovery: (value: boolean) => void;
   setScannedEventId: (id: string) => void;
   setSelectedActivityId: (id: string) => void;
+  setCurrentNarrativeSceneId: (id: string) => void;
   setLegalReturnScreen: (screen: LegalReturnScreen) => void;
 
   // Refs
@@ -51,6 +53,7 @@ const SCREENS_WITH_BACK: Partial<Record<Screen, Screen>> = {
   'event-details': 'home',
   'activity-detail': 'activities',
   'activity-minigame': 'activity-detail',
+  'narrative-scene': 'activities',
   'public-profile': 'leaderboard',
   'ticket-qr-prototype': 'account-settings',
 };
@@ -69,6 +72,7 @@ export function NavigatorProvider({
     isPasswordRecovery, setIsPasswordRecovery,
     scannedEventId, setScannedEventId,
     selectedActivityId, setSelectedActivityId,
+    currentNarrativeSceneId, setCurrentNarrativeSceneId,
   } = useNavigation(initialEvents, { isScreenEnabled, isTabEnabled });
 
   const navigate = useCallback((screen: Screen) => {
@@ -108,6 +112,7 @@ export function NavigatorProvider({
     isPasswordRecovery,
     scannedEventId,
     selectedActivityId,
+    currentNarrativeSceneId,
     navigate,
     switchTab,
     goBack,
@@ -115,6 +120,7 @@ export function NavigatorProvider({
     setIsPasswordRecovery,
     setScannedEventId,
     setSelectedActivityId,
+    setCurrentNarrativeSceneId,
     setLegalReturnScreen,
     screenRef: currentScreenRef,
   };
