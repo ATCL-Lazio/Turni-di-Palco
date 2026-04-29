@@ -141,6 +141,11 @@ serve(async (req: Request) => {
     }
 
     if (action === 'resolve_hash') {
+      const resolveRole = authenticatedUser?.app_metadata?.role as string | undefined;
+      if (resolveRole !== 'admin' && resolveRole !== 'staff') {
+        return jsonResponse({ error: 'Accesso negato: ruolo admin o staff richiesto' }, 403);
+      }
+
       if (!hash || typeof hash !== 'string') {
         return jsonResponse({ error: 'Missing hash' }, 400);
       }
