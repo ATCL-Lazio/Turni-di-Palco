@@ -208,6 +208,10 @@ serve(async (req: Request) => {
           return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
         }
         targetHash = ticket.hash;
+
+        if (targetHash == null) {
+          return jsonResponse({ ok: false, error: 'Ticket non attivabile: hash mancante.' }, 200);
+        }
       } else if (action === 'activate_by_ticket_number') {
         let query = supabase
           .from('ticket_activations')
@@ -240,6 +244,10 @@ serve(async (req: Request) => {
         }
 
         targetHash = tickets[0].hash;
+
+        if (targetHash == null) {
+          return jsonResponse({ ok: false, error: 'Ticket non attivabile: hash mancante.' }, 200);
+        }
       }
 
       // 2. Atomic activation update
