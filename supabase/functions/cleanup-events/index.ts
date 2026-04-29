@@ -62,8 +62,9 @@ serve(async (req) => {
     const url = new URL(req.url)
     const rawDays = url.searchParams.get('days') ?? ''
     const parsedDays = parseInt(rawDays, 10)
-    // Validate: must be a positive integer; default to 7 if absent or invalid
-    const daysToKeep = (!rawDays || isNaN(parsedDays) || parsedDays <= 0) ? 7 : parsedDays
+    // Validate: must be an integer >= 7; default to 7 if absent or invalid
+    const MIN_DAYS = 7
+    const daysToKeep = (!rawDays || isNaN(parsedDays) || parsedDays < MIN_DAYS) ? MIN_DAYS : parsedDays
 
     console.log(`🧹 Pulizia eventi più vecchi di ${daysToKeep} giorni...`)
 
