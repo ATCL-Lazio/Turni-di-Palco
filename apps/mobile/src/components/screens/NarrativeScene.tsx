@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Screen } from '../ui/Screen';
 import {
   applyChoice,
   createRunState,
   evaluateChoice,
+  isSceneAvailable,
   loadScene,
   type NarrativeChoice,
   type NarrativeContext,
@@ -26,9 +27,9 @@ interface NarrativeSceneProps {
 }
 
 type LocalState =
-  | { phase: 'choosing'; run: NarrativeRunState }
-  | { phase: 'submitting'; run: NarrativeRunState; choiceId: string }
-  | { phase: 'outcome'; run: NarrativeRunState; outcome: NarrativeOutcome; rewards: Rewards }
+  | { phase: 'choosing'; run: NarrativeRunState; scene: NarrativeSceneData }
+  | { phase: 'submitting'; run: NarrativeRunState; scene: NarrativeSceneData; choiceId: string }
+  | { phase: 'outcome'; run: NarrativeRunState; scene: NarrativeSceneData; outcome: NarrativeOutcome; rewards: Rewards; finished: boolean }
   | { phase: 'error'; message: string };
 
 function rewardsLine(rewards: Rewards): string {
@@ -39,27 +40,26 @@ function rewardsLine(rewards: Rewards): string {
   return parts.join(' · ') || 'Nessuna ricompensa';
 }
 
+function makeCtx(roleId: RoleId | null, roleStats: RoleStats | null, flags: ReadonlySet<string>): NarrativeContext {
+  return { roleId, stats: roleStats, flags };
+}
+
 export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }: NarrativeSceneProps) {
-  const scene = useMemo<NarrativeSceneData | null>(() => loadScene(sceneId), [sceneId]);
+  const [local, setLocal] = useState<LocalState>(() => {
+    const scene = loadScene(sceneId);
+    if (!scene) return { phase: 'error', message: `Scenario "${sceneId}" non trovato.` };
+    const ctx = makeCtx(roleId, roleStats, new Set());
+    if (!isSceneAvailable(scene, ctx)) {
+      return { phase: 'error', message: 'Accesso allo scenario non consentito per il tuo ruolo o le tue attività.' };
+    }
+    return { phase: 'choosing', run: createRunState(scene.id), scene };
+  });
 
-  const ctx: NarrativeContext = useMemo(
-    () => ({ roleId, stats: roleStats, flags: new Set<string>() }),
-    [roleId, roleStats],
-  );
-
-  const [local, setLocal] = useState<LocalState>(() =>
-    scene
-      ? { phase: 'choosing', run: createRunState(scene.id) }
-      : { phase: 'error', message: `Scenario "${sceneId}" non trovato.` },
-  );
-
-  if (!scene || local.phase === 'error') {
+  if (local.phase === 'error') {
     return (
       <Screen withBottomNavPadding={false}>
         <h1 className="text-xl font-semibold">Scenario non disponibile</h1>
-        <p className="text-sm text-[#9a9697]">
-          {local.phase === 'error' ? local.message : 'Lo scenario richiesto non è registrato.'}
-        </p>
+        <p className="text-sm text-[#9a9697]">{local.message}</p>
         <button
           type="button"
           onClick={onClose}
@@ -72,46 +72,67 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
   }
 
   if (local.phase === 'outcome') {
+    const handleContinue = () => {
+      if (local.finished) { onClose(); return; }
+      const nextSceneId = local.run.currentSceneId;
+      const nextScene = loadScene(nextSceneId);
+      if (!nextScene) {
+        setLocal({ phase: 'error', message: `Scenario "${nextSceneId}" non trovato.` });
+        return;
+      }
+      const nextCtx = makeCtx(roleId, roleStats, local.run.flags);
+      if (!isSceneAvailable(nextScene, nextCtx)) {
+        setLocal({ phase: 'error', message: 'Accesso allo scenario successivo non consentito.' });
+        return;
+      }
+      setLocal({ phase: 'choosing', run: local.run, scene: nextScene });
+    };
+
     return (
       <Screen withBottomNavPadding={false}>
         <span className="text-xs uppercase tracking-wider text-[#a82847]">Esito</span>
-        <h1 className="text-xl font-semibold">{scene.title}</h1>
+        <h1 className="text-xl font-semibold">{local.scene.title}</h1>
         <p className="text-base leading-relaxed text-[#e3e0e0]">{local.outcome.text}</p>
         <p className="text-sm font-medium text-[#d4af37]">{rewardsLine(local.rewards)}</p>
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleContinue}
           className="mt-6 w-full rounded-xl bg-[#a82847] px-4 py-3 text-sm font-medium text-white"
         >
-          Continua
+          {local.finished ? 'Continua' : 'Avanti →'}
         </button>
       </Screen>
     );
   }
 
+  // 'choosing' or 'submitting' phase
+  const { run, scene: activeScene } = local;
   const submitting = local.phase === 'submitting';
   const submittingChoiceId = submitting ? local.choiceId : null;
+  // Context reflects current run flags so intra-session flag gating works.
+  const ctx = makeCtx(roleId, roleStats, run.flags);
 
   const handleChoose = async (choice: NarrativeChoice) => {
     if (submitting) return;
-    const availability = evaluateChoice(choice, ctx);
-    if (!availability.available) return;
+    if (!evaluateChoice(choice, ctx).available) return;
 
-    setLocal({ phase: 'submitting', run: local.run, choiceId: choice.id });
+    setLocal({ phase: 'submitting', run, scene: activeScene, choiceId: choice.id });
 
     let nextRun: NarrativeRunState;
     let outcome: NarrativeOutcome;
+    let finished: boolean;
     try {
-      const result = applyChoice(local.run, scene, choice.id, ctx);
+      const result = applyChoice(run, activeScene, choice.id, ctx);
       nextRun = result.state;
       outcome = result.outcome;
+      finished = result.finished;
     } catch (error) {
       setLocal({ phase: 'error', message: error instanceof Error ? error.message : 'Errore sconosciuto' });
       return;
     }
 
     const submitResult = await onSubmit({
-      sceneId: scene.id,
+      sceneId: activeScene.id,
       choiceId: choice.id,
       rewards: outcome.rewards,
       setFlags: outcome.setFlags,
@@ -125,15 +146,17 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
     setLocal({
       phase: 'outcome',
       run: nextRun,
+      scene: activeScene,
       outcome,
       rewards: submitResult.rewards ?? { xp: 0, cachet: 0, reputation: 0 },
+      finished,
     });
   };
 
   return (
     <Screen withBottomNavPadding={false}>
       <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wider text-[#9a9697]">{scene.setting}</span>
+        <span className="text-xs uppercase tracking-wider text-[#9a9697]">{activeScene.setting}</span>
         <button
           type="button"
           onClick={onClose}
@@ -143,11 +166,11 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
           Esci
         </button>
       </div>
-      <h1 className="text-xl font-semibold">{scene.title}</h1>
-      <p className="text-base leading-relaxed text-[#e3e0e0]">{scene.prompt}</p>
+      <h1 className="text-xl font-semibold">{activeScene.title}</h1>
+      <p className="text-base leading-relaxed text-[#e3e0e0]">{activeScene.prompt}</p>
 
       <div className="mt-4 flex flex-col gap-2">
-        {scene.choices.map(choice => {
+        {activeScene.choices.map(choice => {
           const availability = evaluateChoice(choice, ctx);
           const disabled = !availability.available || submitting;
           const isSubmittingThis = submittingChoiceId === choice.id;
