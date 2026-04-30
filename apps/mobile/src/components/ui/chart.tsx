@@ -69,6 +69,19 @@ function ChartContainer({
   );
 }
 
+// Allowlist patterns for CSS injection safety in ChartStyle
+const SAFE_CSS_KEY_RE = /^[a-zA-Z0-9_-]+$/;
+const SAFE_CSS_COLOR_RE =
+  /^(#[0-9a-fA-F]{3,8}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)|rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*[\d.]+\s*\)|hsl\(\s*\d{1,3}\s*,\s*[\d.]+%\s*,\s*[\d.]+%\s*\)|hsla\(\s*\d{1,3}\s*,\s*[\d.]+%\s*,\s*[\d.]+%\s*,\s*[\d.]+\s*\)|[a-zA-Z]{2,30})$/;
+
+function sanitizeCssKey(key: string): string | null {
+  return SAFE_CSS_KEY_RE.test(key) ? key : null;
+}
+
+function sanitizeCssColor(color: string): string | null {
+  return SAFE_CSS_COLOR_RE.test(color.trim()) ? color.trim() : null;
+}
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
     ([, config]) => config.theme || config.color,
@@ -87,10 +100,14 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 ${prefix} [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
-    const color =
+    const safeKey = sanitizeCssKey(key);
+    if (!safeKey) return null;
+    const rawColor =
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
       itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
+    if (!rawColor) return null;
+    const safeColor = sanitizeCssColor(rawColor);
+    return safeColor ? `  --color-${safeKey}: ${safeColor};` : null;
   })
   .join("\n")}
 }
