@@ -4068,21 +4068,18 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = useCallback(
     (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {
-      let nextProfile: PlayerProfile | null = null;
       setState((prev: GameState) => {
         const nextRole =
           updates.roleId && catalog.roles.some((role: Role) => role.id === updates.roleId)
             ? updates.roleId
             : prev.profile.roleId;
-        nextProfile = { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId };
+        const nextProfile: PlayerProfile = { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId };
+        persistProfile(nextProfile);
         return {
           ...prev,
           profile: nextProfile,
         };
       });
-      if (nextProfile) {
-        persistProfile(nextProfile);
-      }
     },
     [catalog.roles, persistProfile]
   );
