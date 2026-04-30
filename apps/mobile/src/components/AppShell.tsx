@@ -38,6 +38,7 @@ const ActivitiesHub = React.lazy(() => import('./screens/ActivitiesHub').then(m 
 const ActivityDetail = React.lazy(() => import('./screens/ActivityDetail').then(m => ({ default: m.ActivityDetail })));
 const ActivityMinigame = React.lazy(() => import('./screens/ActivityMinigame').then(m => ({ default: m.ActivityMinigame })));
 const ActivityResult = React.lazy(() => import('./screens/ActivityResult').then(m => ({ default: m.ActivityResult })));
+const NarrativeScene = React.lazy(() => import('./screens/NarrativeScene').then(m => ({ default: m.NarrativeScene })));
 const Shop = React.lazy(() => import('./screens/Shop').then(m => ({ default: m.Shop })));
 const Leaderboard = React.lazy(() => import('./screens/Leaderboard').then(m => ({ default: m.Leaderboard })));
 const Profile = React.lazy(() => import('./screens/Profile').then(m => ({ default: m.Profile })));
@@ -79,7 +80,7 @@ export function AppShell() {
     activitySlotsStatus, activitySlotsLoading,
     getEventPlan, planEvent, cancelEventPlan, markBadgesSeen,
     updateProfile, registerTurn, pendingBoostRequests, turnSyncFeedback, clearTurnSyncFeedback,
-    completeActivity, resetProgress, deleteAccount, exportUserData, resetState,
+    completeActivity, completeNarrativeChoice, resetProgress, deleteAccount, exportUserData, resetState,
     changePassword, sendPasswordResetEmail, featureFlags, isFeatureEnabled,
   } = gameState;
 
@@ -464,7 +465,9 @@ export function AppShell() {
                   if (!isFeatureEnabled('avvia_attivita')) { showFeatureDisabledAlert('Avvio attivita'); return; }
                   nav.setSelectedActivityId(id);
                   nav.navigate('activity-detail');
-                }} embedded />
+                }}
+                onOpenScenario={(sceneId: string) => { nav.setCurrentNarrativeSceneId(sceneId); nav.navigate('narrative-scene'); }}
+                embedded />
             }
           />
         );
@@ -556,8 +559,20 @@ export function AppShell() {
             onStartActivity={(id: string) => {
               if (!isFeatureEnabled('avvia_attivita')) { showFeatureDisabledAlert('Avvio attivita'); return; }
               nav.setSelectedActivityId(id); nav.navigate('activity-detail');
-            }} />
+            }}
+            onOpenScenario={(sceneId: string) => { nav.setCurrentNarrativeSceneId(sceneId); nav.navigate('narrative-scene'); }} />
         );
+
+      case 'narrative-scene':
+        return nav.currentNarrativeSceneId ? (
+          <NarrativeScene
+            sceneId={nav.currentNarrativeSceneId}
+            roleId={selectedRole?.id ?? null}
+            roleStats={selectedRole?.stats ?? null}
+            onSubmit={completeNarrativeChoice}
+            onClose={() => { nav.setCurrentNarrativeSceneId(''); handleTabChange('activities'); }}
+          />
+        ) : null;
 
       case 'profile':
         return (

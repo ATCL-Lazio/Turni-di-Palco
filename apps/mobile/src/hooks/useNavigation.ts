@@ -14,6 +14,7 @@ const VALID_SCREENS = new Set<Screen>([
     'account-settings', 'support', 'change-password', 'career',
     'terms', 'privacy', 'earned-titles',
     'ticket-qr-prototype',
+    'narrative-scene',
 ]);
 
 const VALID_TABS = new Set<Tab>(['home', 'turns', 'leaderboard', 'activities', 'shop', 'profile']);
@@ -23,7 +24,7 @@ const VALID_LEGAL_RETURN_SCREENS = new Set<LegalReturnScreen>([
     'welcome', 'login', 'signup', 'role-selection', 'home', 'turns',
     'qr-scanner', 'event-confirmation', 'activities', 'shop', 'activity-detail', 'activity-minigame', 'activity-result',
     'profile', 'account-settings', 'support', 'change-password',
-    'career', 'earned-titles', 'ticket-qr-prototype',
+    'career', 'earned-titles', 'ticket-qr-prototype', 'narrative-scene',
 ]);
 
 type UseNavigationOptions = {
@@ -49,6 +50,7 @@ function readNavState(): PersistedNavState | null {
             legalReturnScreen: parsed.legalReturnScreen,
             scannedEventId: typeof parsed.scannedEventId === 'string' ? parsed.scannedEventId : '',
             selectedActivityId: typeof parsed.selectedActivityId === 'string' ? parsed.selectedActivityId : '',
+            currentNarrativeSceneId: typeof parsed.currentNarrativeSceneId === 'string' ? parsed.currentNarrativeSceneId : '',
         };
     } catch {
         return null;
@@ -108,6 +110,7 @@ export function useNavigation(initialEvents: { id: string }[], options?: UseNavi
             nextScreen = 'activities';
         }
         if (nextScreen === 'event-confirmation' && !persisted.scannedEventId) nextScreen = 'activities';
+        if (nextScreen === 'narrative-scene' && !persisted.currentNarrativeSceneId) nextScreen = 'activities';
 
         nextScreen = getScreenToPersist(nextScreen, nextTab);
         if (isScreenEnabled && !isScreenEnabled(nextScreen)) {
@@ -122,6 +125,7 @@ export function useNavigation(initialEvents: { id: string }[], options?: UseNavi
                 legalReturnScreen: 'welcome' as const,
                 scannedEventId: '',
                 selectedActivityId: '',
+                currentNarrativeSceneId: '',
             };
         }
 
@@ -143,6 +147,7 @@ export function useNavigation(initialEvents: { id: string }[], options?: UseNavi
     const [activeTab, setActiveTab] = useState<Tab>(() => persistedNavState?.activeTab ?? 'home');
     const [scannedEventId, setScannedEventId] = useState<string>(() => persistedNavState?.scannedEventId ?? initialEvents[0]?.id ?? '');
     const [selectedActivityId, setSelectedActivityId] = useState<string>(() => persistedNavState?.selectedActivityId ?? '');
+    const [currentNarrativeSceneId, setCurrentNarrativeSceneId] = useState<string>(() => persistedNavState?.currentNarrativeSceneId ?? '');
 
     const currentScreenRef = useRef(currentScreen);
     useEffect(() => { currentScreenRef.current = currentScreen; }, [currentScreen]);
@@ -179,8 +184,9 @@ export function useNavigation(initialEvents: { id: string }[], options?: UseNavi
             legalReturnScreen,
             scannedEventId,
             selectedActivityId,
+            currentNarrativeSceneId,
         });
-    }, [activeTab, currentScreen, isScreenEnabled, isTabEnabled, legalReturnScreen, scannedEventId, selectedActivityId]);
+    }, [activeTab, currentScreen, isScreenEnabled, isTabEnabled, legalReturnScreen, scannedEventId, selectedActivityId, currentNarrativeSceneId]);
 
     const handleTabChange = (tab: Tab) => {
         const nextTab = isTabEnabled && !isTabEnabled(tab) ? resolveFallbackTab(isTabEnabled) : tab;
@@ -203,5 +209,7 @@ export function useNavigation(initialEvents: { id: string }[], options?: UseNavi
         setScannedEventId,
         selectedActivityId,
         setSelectedActivityId,
+        currentNarrativeSceneId,
+        setCurrentNarrativeSceneId,
     };
 }

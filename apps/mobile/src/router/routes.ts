@@ -41,6 +41,7 @@ export const routes: RouteConfig[] = [
   { screen: 'activity-detail', layout: 'fullscreen', showBottomNav: false, requiresAuth: true },
   { screen: 'activity-minigame', layout: 'fullscreen', showBottomNav: false, requiresAuth: true },
   { screen: 'activity-result', layout: 'fullscreen', showBottomNav: false, requiresAuth: true },
+  { screen: 'narrative-scene', layout: 'fullscreen', showBottomNav: false, requiresAuth: true },
   { screen: 'account-settings', layout: 'fullscreen', showBottomNav: false, requiresAuth: true },
   { screen: 'support', layout: 'fullscreen', showBottomNav: false, requiresAuth: true },
   { screen: 'change-password', layout: 'fullscreen', showBottomNav: false, requiresAuth: true },

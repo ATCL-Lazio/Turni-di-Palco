@@ -1,0 +1,37 @@
+{
+  "id": "debug_intro",
+  "title": "Cinque minuti al sipario",
+  "setting": "Backstage del Teatro Palladium — Roma",
+  "prompt": "Mancano cinque minuti all'apertura. La compagnia è agitata: una battuta del primo monologo non funziona ancora come dovrebbe. Il regista ti guarda. Ti chiede un'idea, adesso.",
+  "choices": [
+    {
+      "id": "rispetta_testo",
+      "label": "Rispetta il testo",
+      "outcome": {
+        "text": "Resti fedele al copione. La compagnia ritrova sicurezza e si entra in scena puliti, senza sorprese.",
+        "rewards": { "xp": 20, "cachet": 5 },
+        "next": null
+      }
+    },
+    {
+      "id": "improvvisa",
+      "label": "Suggerisci un'improvvisazione",
+      "requires": { "stat": "creativity", "min": 70 },
+      "outcome": {
+        "text": "Lanci una variazione audace sull'attacco. Il pubblico la sente nuova, viva. La compagnia ti guarda diversamente.",
+        "rewards": { "xp": 35, "cachet": 10, "reputation": 2 },
+        "setFlags": ["improvised_first_show"],
+        "next": null
+      }
+    },
+    {
+      "id": "delega",
+      "label": "Lascia decidere al regista",
+      "outcome": {
+        "text": "Ti tiri indietro. Il regista decide e tira dritto. Lo spettacolo va in scena, ma nessuno ha imparato nulla stasera.",
+        "rewards": { "xp": 10 },
+        "next": null
+      }
+    }
+  ]
+}

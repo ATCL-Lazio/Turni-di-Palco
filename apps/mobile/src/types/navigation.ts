@@ -16,6 +16,7 @@ export type Screen =
     | 'activity-detail'
     | 'activity-minigame'
     | 'activity-result'
+    | 'narrative-scene'
     | 'profile'
     | 'public-profile'
     | 'account-settings'
@@ -38,4 +39,5 @@ export type PersistedNavState = {
     legalReturnScreen: LegalReturnScreen;
     scannedEventId: string;
     selectedActivityId: string;
+    currentNarrativeSceneId: string;
 };

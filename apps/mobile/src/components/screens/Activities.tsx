@@ -17,6 +17,7 @@ interface ActivitiesProps {
   embedded?: boolean;
   recommendedActivityId?: string;
   onStartActivity: (activityId: string) => void;
+  onOpenScenario?: (sceneId: string) => void;
 }
 
 const difficultyLabels: Record<Activity['difficulty'], string> = {
@@ -28,7 +29,7 @@ const difficultyLabels: Record<Activity['difficulty'], string> = {
 export function Activities({
   activities, activeRole, slotsStatus, slotsLoading = false,
   isOnline = true, canStartActivities = true, embedded = false,
-  recommendedActivityId, onStartActivity,
+  recommendedActivityId, onStartActivity, onOpenScenario,
 }: ActivitiesProps) {
   const totalActivities = activities.length;
   const dailyGoal = slotsStatus.totalSlots;
@@ -51,6 +52,8 @@ export function Activities({
         dailyProgress={dailyProgress}
         slotsLoading={slotsLoading}
       />
+
+      {onOpenScenario && <ScenarioPreviewCard onOpen={() => onOpenScenario('debug_intro')} />}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
@@ -92,6 +95,28 @@ export function Activities({
 }
 
 // === Sub-components ===
+
+function ScenarioPreviewCard({ onOpen }: { onOpen: () => void }) {
+  return (
+    <Card className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs uppercase tracking-wider text-[#a82847]">Scenario narrativo</span>
+        <Tag size="sm" variant="info">Anteprima</Tag>
+      </div>
+      <p className="text-sm text-white">Cinque minuti al sipario</p>
+      <p className="text-sm text-[#9a9697]">
+        Una scelta rapida prima dell'apertura. Conseguenze immediate.
+      </p>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="w-full rounded-xl bg-[#a82847] px-4 py-2 text-sm font-medium text-white"
+      >
+        Inizia scenario
+      </button>
+    </Card>
+  );
+}
 
 function TrainingBanner() {
   return (
