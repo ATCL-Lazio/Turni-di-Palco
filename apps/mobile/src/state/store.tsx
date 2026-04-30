@@ -3697,6 +3697,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             ]);
           }
 
+          if (userRes.error) {
+            console.warn('[loadRemoteState] auth error, aborting profile load:', userRes.error);
+            return;
+          }
+
           let profileRow: DbProfileRow | null = profileRes.data as DbProfileRow | null;
 
           if (!profileRow && userRes.data?.user?.email) {
