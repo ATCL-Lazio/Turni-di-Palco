@@ -280,14 +280,14 @@ serve(async (req: Request) => {
       }
 
       // 3. Check current status if update failed
-      const { data: current, error } = await supabase
+      const { data: current, error: fallbackError } = await supabase
         .from('ticket_activations')
         .select('activated_by')
         .eq('hash', targetHash)
         .maybeSingle();
 
-      if (error) {
-        console.error('[ticket-activation] fallback select error:', error);
+      if (fallbackError) {
+        console.error('[ticket-activation] fallback select error:', fallbackError);
         return jsonResponse({ error: 'Activation failed' }, 500);
       }
 
