@@ -30,6 +30,18 @@ type SpazioEvent = {
 
 const normalizeUrl = (value: string) => value.replace(/\/+$/, '').trim();
 
+const FETCH_TIMEOUT_MS = 30_000;
+
+async function fetchWithTimeout(url: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(tid);
+  }
+}
+
 const formatDate = (details?: SpazioEvent['start_date_details'], fallback?: string) => {
   if (details?.year && details?.month && details?.day) {
     const month = String(details.month).padStart(2, '0');
@@ -70,7 +82,7 @@ const resolveGenre = (categories: SpazioEvent['categories'] = [], allowedSlugs: 
 };
 
 const fetchSitemapUrls = async () => {
-  const res = await fetch(SITEMAP_URL);
+  const res = await fetchWithTimeout(SITEMAP_URL);
   if (!res.ok) throw new Error(`Sitemap fetch failed: ${res.status}`);
   const xml = await res.text();
   const urls = new Set<string>();
@@ -86,7 +98,7 @@ const fetchSitemapUrls = async () => {
 };
 
 const fetchCategorySlugs = async () => {
-  const res = await fetch(CATEGORY_SITEMAP_URL);
+  const res = await fetchWithTimeout(CATEGORY_SITEMAP_URL);
   if (!res.ok) return new Set<string>();
   const xml = await res.text();
   const slugs = new Set<string>();
@@ -108,7 +120,7 @@ const fetchAllEvents = async () => {
   const visited = new Set<string>();
   while (nextUrl && !visited.has(nextUrl) && visited.size < MAX_PAGINATION_PAGES) {
     visited.add(nextUrl);
-    const res = await fetch(nextUrl);
+    const res = await fetchWithTimeout(nextUrl);
     if (!res.ok) throw new Error(`Events API fetch failed: ${res.status}`);
     const payload = await res.json();
     if (Array.isArray(payload.events)) {
