@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { resolveDisplayName } from '../lib/profile-utils';
-import { PlayerProfile } from '../state/store';
+import { PlayerProfile, suppressSignedInNavigation } from '../state/store';
 
 const getEmailPrefix = (value?: string) => value?.split('@')[0]?.trim() ?? '';
 
@@ -257,7 +257,13 @@ export function useAuth(
                 // Only navigate on an explicit sign-in transition.
                 // TOKEN_REFRESHED / USER_UPDATED / INITIAL_SESSION refresh
                 // the profile without interrupting the current screen.
-                const navigateTo = event === 'SIGNED_IN' ? 'home' : undefined;
+                // Skip navigation when the SIGNED_IN event comes from a
+                // credential-verification sign-in inside changePassword (flag
+                // set in store.tsx) to prevent spurious redirect to 'home'.
+                const navigateTo =
+                    event === 'SIGNED_IN' && !suppressSignedInNavigation
+                        ? 'home'
+                        : undefined;
                 applyUserProfileRef.current(session.user, {
                     navigateTo,
                 });
