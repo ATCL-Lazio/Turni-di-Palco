@@ -4073,20 +4073,18 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = useCallback(
     (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {
-      setState((prev: GameState) => {
-        const nextRole =
-          updates.roleId && catalog.roles.some((role: Role) => role.id === updates.roleId)
-            ? updates.roleId
-            : prev.profile.roleId;
-        const nextProfile: PlayerProfile = { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId };
-        persistProfile(nextProfile);
-        return {
-          ...prev,
-          profile: nextProfile,
-        };
-      });
+      const nextRole =
+        updates.roleId && catalog.roles.some((role: Role) => role.id === updates.roleId)
+          ? updates.roleId
+          : state.profile.roleId;
+      const nextProfile: PlayerProfile = { ...state.profile, ...updates, roleId: nextRole ?? state.profile.roleId };
+      setState((prev: GameState) => ({
+        ...prev,
+        profile: nextProfile,
+      }));
+      persistProfile(nextProfile);
     },
-    [catalog.roles, persistProfile]
+    [catalog.roles, persistProfile, state.profile]
   );
 
   const registerTurn = useCallback(
