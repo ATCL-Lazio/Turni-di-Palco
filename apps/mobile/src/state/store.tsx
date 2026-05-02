@@ -3702,6 +3702,16 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             return;
           }
 
+          // If the profile SELECT itself errored (e.g. transient DB/network
+          // blip), profileRes.data is also null — but the profile likely exists.
+          // Attempting an INSERT in this case would trigger a PK conflict and
+          // surface a misleading "unable to create profile" critical error.
+          // Propagate the fetch error and bail out early instead.
+          if (profileRes.error) {
+            console.warn('[loadRemoteState] profile fetch error, aborting:', profileRes.error);
+            return;
+          }
+
           let profileRow: DbProfileRow | null = profileRes.data as DbProfileRow | null;
 
           if (!profileRow && userRes.data?.user?.email) {
