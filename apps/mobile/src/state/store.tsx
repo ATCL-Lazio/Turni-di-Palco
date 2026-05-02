@@ -24,6 +24,18 @@ import {
   readEnvFeatureFlagOverrides,
 } from '../services/feature-flags';
 
+/**
+ * Set to `true` before a `signInWithPassword` call used only for credential
+ * verification (e.g. in `changePassword`). The `onAuthStateChange` listener
+ * in `useAuth.ts` checks this flag and skips the SIGNED_IN navigation while
+ * it is set, preventing the user from being redirected away mid-flow.
+ * Must be reset to `false` immediately after the verification attempt completes.
+ */
+export let suppressSignedInNavigation = false;
+export const setSuppressSignedInNavigation = (value: boolean) => {
+  suppressSignedInNavigation = value;
+};
+
 export const ROLE_IDS = ['attore', 'luci', 'fonico', 'attrezzista', 'palco', 'rspp', 'dramaturg'] as const;
 export type RoleId = (typeof ROLE_IDS)[number];
 export type Rewards = { xp: number; reputation: number; cachet: number };
@@ -4716,13 +4728,22 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             if (!email) {
               throw new Error('Email mancante');
             }
-            const { error: signInError } = await supabase.auth.signInWithPassword({
-              email,
-              password: currentPassword,
-            });
-            if (signInError) {
-              throw new Error('Password attuale non valida');
+            // Suppress the SIGNED_IN auth-state event that signInWithPassword
+            // emits: it would otherwise trigger navigation to 'home' via
+            // useAuth's onAuthStateChange listener before the password update
+            // even runs.
+            setSuppressSignedInNavigation(true);
+            let signInError: Error | null = null;
+            try {
+              const { error } = await supabase.auth.signInWithPassword({
+                email,
+                password: currentPassword,
+              });
+              if (error) signInError = new Error('Password attuale non valida');
+            } finally {
+              setSuppressSignedInNavigation(false);
             }
+            if (signInError) throw signInError;
           }
 
           const { error } = await supabase.auth.updateUser({ password: newPassword });
