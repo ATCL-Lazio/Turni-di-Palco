@@ -3668,6 +3668,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             events: nextEvents,
             activities: nextActivities,
           });
+          if (!isMounted) return;
           await refreshEventPlanning(nextEvents);
         },
         {
