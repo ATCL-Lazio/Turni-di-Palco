@@ -85,10 +85,7 @@ serve(async (req) => {
       event_date: string;
     }
 
-    const eventsToDelete = (events as Event[] || []).filter((event: Event) => {
-      if (!event?.event_date) return false
-      return event.event_date < cutoffDateStr
-    })
+    const eventsToDelete: Event[] = (events as Event[]) ?? []
 
     if (eventsToDelete.length === 0) {
       return new Response(
