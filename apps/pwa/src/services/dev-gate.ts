@@ -35,6 +35,7 @@ function renderGate(root: HTMLElement): {
   emailInput: HTMLInputElement;
   passwordInput: HTMLInputElement;
   submitButton: HTMLButtonElement;
+  cancelButton: HTMLButtonElement;
 } {
   root.innerHTML = `
     <div class="min-h-screen bg-[#0f0d0e] flex items-center justify-center p-4">
@@ -63,6 +64,10 @@ function renderGate(root: HTMLElement): {
             class="w-full bg-[#f4bf4f] hover:bg-[#e6ae3a] text-[#0f0d0e] font-semibold text-sm rounded-lg px-4 py-2.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
             Accedi
           </button>
+          <button data-gate-cancel type="button"
+            class="w-full bg-transparent border border-neutral-700 hover:border-neutral-500 text-neutral-400 hover:text-neutral-200 font-semibold text-sm rounded-lg px-4 py-2.5 transition-colors">
+            Annulla
+          </button>
         </form>
         <p data-gate-message class="text-xs text-center text-neutral-500 min-h-[1rem]" aria-live="polite"></p>
       </div>
@@ -74,12 +79,13 @@ function renderGate(root: HTMLElement): {
   const emailInput = root.querySelector<HTMLInputElement>('input[name="email"]');
   const passwordInput = root.querySelector<HTMLInputElement>('input[name="password"]');
   const submitButton = root.querySelector<HTMLButtonElement>("[data-gate-submit]");
+  const cancelButton = root.querySelector<HTMLButtonElement>("[data-gate-cancel]");
 
-  if (!form || !message || !emailInput || !passwordInput || !submitButton) {
+  if (!form || !message || !emailInput || !passwordInput || !submitButton || !cancelButton) {
     throw new Error('renderGate: template elements not found');
   }
 
-  return { form, message, emailInput, passwordInput, submitButton };
+  return { form, message, emailInput, passwordInput, submitButton, cancelButton };
 }
 
 function setMessage(el: HTMLElement, text: string, tone: "error" | "success" | "info") {
@@ -92,6 +98,7 @@ function setMessage(el: HTMLElement, text: string, tone: "error" | "success" | "
 function setBusy(gate: ReturnType<typeof renderGate>, busy: boolean) {
   gate.submitButton.disabled = busy;
   gate.submitButton.textContent = busy ? "Verifico..." : "Accedi";
+  gate.cancelButton.disabled = busy;
   gate.emailInput.disabled = busy;
   gate.passwordInput.disabled = busy;
 }
@@ -113,7 +120,7 @@ export async function requireDevAccess(): Promise<boolean> {
   if (data.user) setMessage(gate.message, "Account non autorizzato per la dev dashboard.", "error");
 
   return new Promise<boolean>((resolve) => {
-    gate.form.addEventListener("submit", async (e) => {
+    const onSubmit = async (e: Event) => {
       e.preventDefault();
       setBusy(gate, true);
       setMessage(gate.message, "Verifico le credenziali...", "info");
@@ -138,6 +145,8 @@ export async function requireDevAccess(): Promise<boolean> {
           return;
         }
 
+        gate.form.removeEventListener("submit", onSubmit);
+        gate.cancelButton.removeEventListener("click", onCancel);
         setMessage(gate.message, "Accesso autorizzato.", "success");
         root.innerHTML = "";
         resolve(true);
@@ -145,6 +154,15 @@ export async function requireDevAccess(): Promise<boolean> {
         setBusy(gate, false);
         setMessage(gate.message, "Errore imprevisto. Riprova.", "error");
       }
-    });
+    };
+
+    const onCancel = () => {
+      gate.form.removeEventListener("submit", onSubmit);
+      gate.cancelButton.removeEventListener("click", onCancel);
+      resolve(false);
+    };
+
+    gate.form.addEventListener("submit", onSubmit);
+    gate.cancelButton.addEventListener("click", onCancel);
   });
 }
