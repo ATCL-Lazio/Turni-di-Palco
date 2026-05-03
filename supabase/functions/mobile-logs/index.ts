@@ -86,16 +86,17 @@ async function resolveRequesterUserId(req: Request): Promise<string | null> {
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseUrl || !serviceKey) return null;
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  if (!supabaseUrl || !anonKey) return null;
 
   try {
-    const authClient = createClient(supabaseUrl, serviceKey);
-    const token = authHeader.slice('Bearer '.length).trim();
-    if (!token) return null;
-    const { data, error } = await authClient.auth.getUser(token);
-    if (error || !data.user) return null;
-    return data.user.id;
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: { user }, error } = await authClient.auth.getUser();
+    if (error || !user) return null;
+    return user.id;
   } catch {
     return null;
   }
