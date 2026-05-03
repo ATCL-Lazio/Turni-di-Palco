@@ -92,7 +92,8 @@ serve(async (req) => {
     return errorResponse('Impossibile caricare il changelog', 502);
   }
   if (!response.ok) {
-    return errorResponse('Impossibile caricare il changelog', response.status);
+    console.error('[app-version] GitHub API error', response.status, response.statusText);
+    return errorResponse('Impossibile caricare il changelog', 502);
   }
 
   let json: any[] = [];
