@@ -3583,8 +3583,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     refreshTurnStats();
     refreshTheatreReputation();
     refreshBadges();
-    refreshLeaderboard();
-  }, [authUserId, refreshBadges, refreshTheatreReputation, refreshTurnStats]);
+    refreshLeaderboard().catch(console.error);
+  }, [authUserId, refreshBadges, refreshLeaderboard, refreshTheatreReputation, refreshTurnStats]);
 
   useEffect(() => {
     if (isSupabaseConfigured && supabase && authUserId) return;
