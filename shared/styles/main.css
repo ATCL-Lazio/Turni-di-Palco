@@ -69,6 +69,16 @@
   --color-border: #2d2728;
   --color-border-strong: #3d3a3b;
   --color-warning-surface: #2a1f14;
+  /* Used to remap `bg-white/N`, `border-white/N`, `text-white/N` to a
+     theme-appropriate overlay tint (white in dark, dark in light). */
+  --color-overlay-tint: 255, 255, 255;
+  --color-overlay-text: 255, 255, 255;
+  /* Bottom-nav glass background (translucent surface + blur). */
+  --color-nav-glass: rgba(15, 13, 14, 0.9);
+  --color-nav-border: rgba(255, 255, 255, 0.05);
+  /* Generic glass surface (cards behind blur). */
+  --color-glass-surface: rgba(26, 22, 23, 0.72);
+  --color-glass-border: rgba(255, 255, 255, 0.05);
 }
 
 /* ====================================================================
@@ -91,22 +101,34 @@
    `text-[#0f0d0e]`. ==================================================== */
 
 html[data-theme="light"] {
-  --color-bg-primary: #fafafa;
-  --color-bg-surface: #ffffff;
-  --color-bg-surface-elevated: #f6f3f0;
-  --color-bg-surface-hover: #e9e5e0;
-  --color-text-primary: #161413;
-  --color-text-secondary: #3a3433;
-  --color-text-tertiary: #5a504e;
+  /* Warm "paper" page background so white cards visibly elevate above it.
+     A near-white page (#fafafa) over white cards (#ffffff) produced the
+     "everything blurs together" complaint from earlier review rounds. */
+  --color-bg-primary:           #ede5d6;
+  --color-bg-surface:           #ffffff;
+  --color-bg-surface-elevated:  #fbf6ed;
+  --color-bg-surface-hover:     #ddd4c2;
+  --color-text-primary:         #161413;
+  --color-text-secondary:       #3a3433;
+  --color-text-tertiary:        #6a605d;
   /* AA-passing accents on white: gold needs to darken (≥4.5:1).
      #f4bf4f on #ffffff = 1.9:1 (fails); #8a6515 on #ffffff = 5.6:1 (passes). */
-  --color-accent: #8a6515;
-  --color-accent-strong: #6f4f0d;
-  --color-error: #c0212a;
-  --color-success: #2e7a14;
-  --color-border: #d8d3ce;
-  --color-border-strong: #b9b3ad;
-  --color-warning-surface: #fff5e0;
+  --color-accent:               #8a6515;
+  --color-accent-strong:        #6f4f0d;
+  --color-error:                #c0212a;
+  --color-success:              #2e7a14;
+  --color-border:               #cdc4b6;
+  --color-border-strong:        #a8a094;
+  --color-warning-surface:      #fdeed0;
+  /* Flip white-overlay tricks so subtle backdrops/borders/dim text remain
+     visible on the light surfaces. */
+  --color-overlay-tint:         15, 13, 14;
+  --color-overlay-text:         22, 20, 19;
+  /* Bottom-nav: light glass over warm paper background. */
+  --color-nav-glass:            rgba(255, 252, 244, 0.85);
+  --color-nav-border:           rgba(15, 13, 14, 0.08);
+  --color-glass-surface:        rgba(255, 255, 255, 0.72);
+  --color-glass-border:         rgba(15, 13, 14, 0.06);
 }
 
 html[data-theme="light"] body,
@@ -120,9 +142,9 @@ html[data-theme="light"] body.mobile-fixed-bg::before {
   background-color: var(--color-bg-primary);
   background-image: linear-gradient(
     180deg,
-    #fafafa 0%,
-    #f3eee9 60%,
-    #efdde2 100%
+    #f3ecdc 0%,
+    #ede5d6 55%,
+    #e6dcc7 100%
   );
 }
 
@@ -130,9 +152,9 @@ html[data-theme="light"] .app-gradient {
   background-color: var(--color-bg-primary);
   background-image: linear-gradient(
     180deg,
-    #fafafa 0%,
-    #f3eee9 60%,
-    #efdde2 100%
+    #f3ecdc 0%,
+    #ede5d6 55%,
+    #e6dcc7 100%
   );
   color: var(--color-text-primary);
 }
@@ -214,7 +236,45 @@ html[data-theme="light"] .welcome-logo-pulse {
   .bg-\[\#f4bf4f\]\/10 { background-color: color-mix(in srgb, var(--color-accent) 10%, transparent); }
   .bg-\[\#f4bf4f\]\/15 { background-color: color-mix(in srgb, var(--color-accent) 15%, transparent); }
   .bg-\[\#ff4d4f\]\/10 { background-color: color-mix(in srgb, var(--color-error) 10%, transparent); }
+
+  /* `bg-white/N` and `border-white/N` are used as subtle elevation hints on
+     dark cards; in light mode they need to invert to a dark tint, otherwise
+     they vanish into the white surface. `--color-overlay-tint` carries the
+     RGB triplet (white in dark theme, near-black in light). */
+  .bg-white\/5  { background-color: rgba(var(--color-overlay-tint), 0.05); }
+  .bg-white\/10 { background-color: rgba(var(--color-overlay-tint), 0.10); }
+  .bg-white\/20 { background-color: rgba(var(--color-overlay-tint), 0.20); }
+  .border-white\/5  { border-color: rgba(var(--color-overlay-tint), 0.06); }
+  .border-white\/10 { border-color: rgba(var(--color-overlay-tint), 0.12); }
+  .border-white\/20 { border-color: rgba(var(--color-overlay-tint), 0.20); }
+  .border-white\/\[0\.05\] { border-color: rgba(var(--color-overlay-tint), 0.06); }
+  .border-white\/\[0\.06\] { border-color: rgba(var(--color-overlay-tint), 0.08); }
+
+  /* `text-white/N` is used on dark cards (and on burgundy/gold gradient
+     hero surfaces). On surfaces that flip light, the text must flip dark.
+     Brand-gradient surfaces (burgundy/gold) keep `text-white` (no opacity
+     modifier) and are handled by the html[data-theme=light] .text-white
+     rule further below. */
+  .text-white\/90 { color: rgba(var(--color-overlay-text), 0.90); }
+  .text-white\/80 { color: rgba(var(--color-overlay-text), 0.80); }
+  .text-white\/70 { color: rgba(var(--color-overlay-text), 0.70); }
+  .text-white\/60 { color: rgba(var(--color-overlay-text), 0.60); }
 }
+
+/* Bottom-nav glass: explicit token-driven surface so it adapts cleanly. */
+[data-tutorial="bottom-nav"] {
+  background-color: var(--color-nav-glass) !important;
+  border-top-color: var(--color-nav-border) !important;
+}
+
+/* Light-theme fine-tuning: warmer card shadows so white cards feel lifted
+   off the warm paper page bg. */
+html[data-theme="light"] {
+  --shadow-sm: 0 1px 2px 0 rgba(80, 60, 30, 0.08);
+  --shadow-md: 0 4px 6px -1px rgba(80, 60, 30, 0.12), 0 2px 4px -1px rgba(80, 60, 30, 0.08);
+  --shadow-lg: 0 10px 15px -3px rgba(80, 60, 30, 0.16), 0 4px 6px -2px rgba(80, 60, 30, 0.10);
+}
+
 
 /* `text-white` is widely used both over surfaces (which now flip light)
    and over decorative dark/burgundy/gold backdrops (which stay dark).
@@ -985,10 +1045,10 @@ html[data-theme="light"] .text-white {
 
 @layer utilities {
   .glass-surface {
-    background-color: rgba(26, 22, 23, 0.72);
+    background-color: var(--color-glass-surface);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--color-glass-border);
   }
 
   .scrollbar-none {

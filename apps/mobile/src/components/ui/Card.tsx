@@ -38,9 +38,9 @@ export function Card({
   } : undefined;
 
   const defaultStyles: React.CSSProperties = {
-    backgroundColor: 'rgb(26, 22, 23)',
+    backgroundColor: 'var(--color-bg-surface)',
     borderRadius: '16.4px',
-    boxShadow: 'rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.1) 0px 2px 4px -2px',
+    boxShadow: 'var(--shadow-md)',
     transitionDuration: '0.2s',
     transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
     ...style,
