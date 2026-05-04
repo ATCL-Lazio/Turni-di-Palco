@@ -17,7 +17,6 @@ import {
   X,
   Bell,
   Coins,
-  Zap,
 } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { GameEvent, TurnSyncFeedback } from '../../state/store';
