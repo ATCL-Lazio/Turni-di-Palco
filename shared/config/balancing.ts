@@ -165,14 +165,19 @@ export function getStatMultiplier(
   kind: 'xp' | 'cachet',
   statValue: number,
 ): number {
-  const cfg = STAT_EFFECTS[axis];
   const delta = Math.max(0, statValue - STAT_EFFECTS.statBaseline);
   if (delta === 0) return 1;
 
   if (axis === 'precision' && kind === 'cachet') {
+    const cfg = STAT_EFFECTS.precision;
     return 1 + Math.min(cfg.cachetMultCap, cfg.cachetMultPerPoint * delta);
   }
-  if ((axis === 'presence' || axis === 'creativity') && kind === 'xp') {
+  if (axis === 'presence' && kind === 'xp') {
+    const cfg = STAT_EFFECTS.presence;
+    return 1 + Math.min(cfg.xpMultCap, cfg.xpMultPerPoint * delta);
+  }
+  if (axis === 'creativity' && kind === 'xp') {
+    const cfg = STAT_EFFECTS.creativity;
     return 1 + Math.min(cfg.xpMultCap, cfg.xpMultPerPoint * delta);
   }
   return 1;
