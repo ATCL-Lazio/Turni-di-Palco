@@ -62,12 +62,9 @@ export const ACTIVITY_REWARDS: Readonly<Record<ActivityKind, ActivityRewardSpec>
 } as const;
 
 /**
- * Level progression curve (cumulative XP needed to reach the upper bound of
- * each band). Aligned with the principle "a player doing only simulated
- * activities reaches level 10 in roughly one month".
- *
- * The runtime curve in `state/store.tsx` (`800 + level * 200`) is consistent
- * with these totals; consolidate via `getXpToNextLevel` below.
+ * Level progression curve. The runtime curve in `state/store.tsx`
+ * (`800 + level * 200`) is the single source of truth — derive cumulative
+ * XP totals through `getCumulativeXpForLevel` below to avoid drift.
  */
 export const LEVEL_PROGRESSION = {
   /** Base XP to clear level 1 → 2. */
@@ -76,13 +73,6 @@ export const LEVEL_PROGRESSION = {
   linearGrowthPerLevel: 200,
   /** Soft minimum that the curve cannot drop below. */
   floorXpToNextLevel: 800,
-  /** Reference cumulative XP totals used for content sizing. */
-  cumulativeMilestones: {
-    level5: 500,
-    level10: 1500,
-    level20: 5000,
-    level50: 25000,
-  },
 } as const;
 
 /**
@@ -156,6 +146,21 @@ export function getXpToNextLevel(level: number): number {
 }
 
 /**
+ * Cumulative XP a player must accumulate (across level-ups) to reach
+ * `targetLevel`, starting from level 1. Derived from `getXpToNextLevel`
+ * so the two never drift.
+ */
+export function getCumulativeXpForLevel(targetLevel: number): number {
+  if (!Number.isFinite(targetLevel) || targetLevel <= 1) return 0;
+  const max = Math.floor(targetLevel);
+  let total = 0;
+  for (let lvl = 1; lvl < max; lvl += 1) {
+    total += getXpToNextLevel(lvl);
+  }
+  return total;
+}
+
+/**
  * Multiplier (>= 1) earned by a single stat over the baseline, capped.
  * Returns `1` when the stat is at or below baseline, or when the stat config
  * does not define a multiplier (e.g. `leadership.cachetMultPerPoint` only).
@@ -165,6 +170,7 @@ export function getStatMultiplier(
   kind: 'xp' | 'cachet',
   statValue: number,
 ): number {
+  if (!Number.isFinite(statValue)) return 1;
   const delta = Math.max(0, statValue - STAT_EFFECTS.statBaseline);
   if (delta === 0) return 1;
 
@@ -188,6 +194,7 @@ export function getStatMultiplier(
  * bonuses (#471 — "+0.2% cachet globale per punto sopra 50, cap +10%").
  */
 export function getLeadershipCachetMultiplier(statValue: number): number {
+  if (!Number.isFinite(statValue)) return 1;
   const delta = Math.max(0, statValue - STAT_EFFECTS.statBaseline);
   if (delta === 0) return 1;
   const cfg = STAT_EFFECTS.leadership;

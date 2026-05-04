@@ -3,6 +3,7 @@ import {
   ACTIVITY_REWARDS,
   LEVEL_PROGRESSION,
   STAT_EFFECTS,
+  getCumulativeXpForLevel,
   getLeadershipCachetMultiplier,
   getStatMultiplier,
   getXpToNextLevel,
@@ -59,6 +60,32 @@ describe('balancing — getXpToNextLevel', () => {
   });
 });
 
+describe('balancing — getCumulativeXpForLevel', () => {
+  it('returns 0 for level 1 or below', () => {
+    expect(getCumulativeXpForLevel(1)).toBe(0);
+    expect(getCumulativeXpForLevel(0)).toBe(0);
+    expect(getCumulativeXpForLevel(-3)).toBe(0);
+    expect(getCumulativeXpForLevel(Number.NaN)).toBe(0);
+  });
+
+  it('matches the sum of getXpToNextLevel level-ups', () => {
+    // To reach level 5, the player must clear levels 1→2..4→5 = 4 thresholds.
+    expect(getCumulativeXpForLevel(5)).toBe(
+      getXpToNextLevel(1) + getXpToNextLevel(2) + getXpToNextLevel(3) + getXpToNextLevel(4),
+    );
+    // Cumulative XP for level 10 with the current curve.
+    expect(getCumulativeXpForLevel(10)).toBe(16200);
+  });
+
+  it('never diverges from getXpToNextLevel by definition', () => {
+    for (let lvl = 2; lvl <= 50; lvl += 1) {
+      expect(getCumulativeXpForLevel(lvl) - getCumulativeXpForLevel(lvl - 1)).toBe(
+        getXpToNextLevel(lvl - 1),
+      );
+    }
+  });
+});
+
 describe('balancing — getStatMultiplier', () => {
   it('returns 1 when the stat is at or below baseline', () => {
     expect(getStatMultiplier('precision', 'cachet', 50)).toBe(1);
@@ -106,6 +133,12 @@ describe('balancing — getStatMultiplier', () => {
     expect(getStatMultiplier('presence', 'cachet', 100)).toBe(1);
     expect(getStatMultiplier('creativity', 'cachet', 100)).toBe(1);
   });
+
+  it('returns 1 (not NaN) for non-finite stat values', () => {
+    expect(getStatMultiplier('precision', 'cachet', Number.NaN)).toBe(1);
+    expect(getStatMultiplier('presence', 'xp', Number.POSITIVE_INFINITY)).toBe(1);
+    expect(getStatMultiplier('creativity', 'xp', Number.NEGATIVE_INFINITY)).toBe(1);
+  });
 });
 
 describe('balancing — getLeadershipCachetMultiplier', () => {
@@ -123,5 +156,10 @@ describe('balancing — getLeadershipCachetMultiplier', () => {
       1 + STAT_EFFECTS.leadership.cachetMultCap,
       5,
     );
+  });
+
+  it('returns 1 (not NaN) for non-finite stat values', () => {
+    expect(getLeadershipCachetMultiplier(Number.NaN)).toBe(1);
+    expect(getLeadershipCachetMultiplier(Number.POSITIVE_INFINITY)).toBe(1);
   });
 });
