@@ -19,7 +19,7 @@ Top MCP Servers:
 - [ ] turni-di-palco — https://github.com/atcl-lazio/turni-di-palco
 
 ### MCP Servers to Activate
-- [ ] **github** — Read/write GitHub issues, PRs, comments, branches, files. Used to triage issues like #27 and post operational plans without leaving Claude. Configured in `.mcp.json`; access is scoped to `atcl-lazio/turni-di-palco`. You'll need a GitHub account with access to the org — ping the repo owner for an invite.
+- [ ] **github** — Read/write GitHub issues, PRs, comments, branches, files. Used to triage issues like #27 and post operational plans without leaving Claude. Not in the committed `.mcp.json` (which only has `render` and `uptimerobot`); add it to your local Claude Code MCP config — see the [GitHub MCP server docs](https://github.com/github/github-mcp-server) for setup. You'll also need a GitHub account with access to `atcl-lazio/turni-di-palco` — ping the repo owner for an invite.
 
 ### Skills to Know About
 - `/init` — Generates the initial `CLAUDE.md` file with codebase documentation. Useful when bootstrapping a new repo for Claude.
