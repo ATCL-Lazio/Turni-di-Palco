@@ -51,8 +51,16 @@ serve(async (req: Request) => {
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let body: Record<string, any>;
   try {
-    const { action, hash, payload, userId: requestedUserId } = await req.json();
+    body = await req.json();
+  } catch {
+    return jsonResponse({ error: 'Invalid request body' }, 400);
+  }
+
+  try {
+    const { action, hash, payload, userId: requestedUserId } = body;
 
     const activationActions = ['activate_hash', 'activate_by_details', 'activate_by_ticket_number'];
     const authRequiredActions = [...activationActions, 'reserve_hash', 'resolve_hash'];
