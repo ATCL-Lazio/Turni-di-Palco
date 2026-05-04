@@ -136,8 +136,9 @@ function ProfileAvatar({
           )}
         </div>
         <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}
+          aria-label="Carica immagine profilo"
           className="absolute bottom-0 right-0 bg-[#f4bf4f] rounded-full p-1.5 shadow-lg disabled:opacity-50 ring-2 ring-[#0f0d0e]">
-          <Camera className="text-[#0f0d0e]" size={14} />
+          <Camera className="text-[#0f0d0e]" size={14} aria-hidden="true" />
         </button>
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
       </div>

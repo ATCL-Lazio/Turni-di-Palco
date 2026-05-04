@@ -14,6 +14,7 @@ import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Tag } from '../ui/Tag';
 import { Slider } from '../ui/slider';
+import { useAccessibilityPreferences } from '../../hooks/useAccessibilityPreferences';
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
@@ -92,7 +93,13 @@ interface TimingMinigameProps {
 }
 
 function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingMinigameProps) {
-  const rounds = config.rounds;
+  const { accessibleMode } = useAccessibilityPreferences();
+  const rounds = useMemo(
+    () => (accessibleMode
+      ? config.rounds.map(r => ({ ...r, tolerance: Math.round(r.tolerance * 1.6) }))
+      : config.rounds),
+    [config.rounds, accessibleMode],
+  );
   const [phase, setPhase] = useState<'intro' | 'playing' | 'feedback' | 'done'>('intro');
   const [roundIndex, setRoundIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -104,7 +111,8 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
   const hasStoppedRef = useRef(false);
   const attemptCountRef = useRef(0);
   const startedAtRef = useRef<number | null>(null);
-  const speed = 0.045;
+  const speed = accessibleMode ? 0.022 : 0.045;
+  const feedbackHoldMs = accessibleMode ? 1800 : 900;
 
   const round = rounds[roundIndex];
   const roundLabel = `Round ${roundIndex + 1}/${rounds.length}`;
@@ -204,7 +212,7 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
           })
         );
       }
-    }, 900);
+    }, feedbackHoldMs);
   };
 
   return (
@@ -306,7 +314,14 @@ interface AudioMinigameProps {
 }
 
 function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMinigameProps) {
-  const rounds = config.rounds;
+  const { accessibleMode } = useAccessibilityPreferences();
+  const rounds = useMemo(
+    () => (accessibleMode
+      ? config.rounds.map(r => ({ ...r, tolerance: Math.round(r.tolerance * 1.6) }))
+      : config.rounds),
+    [config.rounds, accessibleMode],
+  );
+  const feedbackHoldMs = accessibleMode ? 1800 : 900;
   const [phase, setPhase] = useState<'intro' | 'adjust' | 'feedback' | 'done'>('intro');
   const [roundIndex, setRoundIndex] = useState(0);
   const [level, setLevel] = useState<number[]>([50]);
@@ -368,7 +383,7 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
           })
         );
       }
-    }, 900);
+    }, feedbackHoldMs);
   };
 
   return (

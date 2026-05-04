@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Accessibility,
   ArrowLeft, Bell, Camera, ChevronRight, Download, FileText, History, KeyRound,
-  LogOut, MapPin, MessageCircle, QrCode, RotateCcw, Shield, ShieldCheck, Trash2, UserX,
+  LogOut, MapPin, MessageCircle, QrCode, RotateCcw, Shield, ShieldCheck, Sun, Trash2, UserX,
 } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
@@ -10,6 +11,7 @@ import { getPermission, requestPermission, type NotificationPermissionState } fr
 import { checkAiSupportAvailability } from '../../services/ai';
 import { CopyrightNotice } from '../ui/CopyrightNotice';
 import { GEO_CONSENT_KEY } from '../../constants/privacy';
+import { useAccessibilityPreferences, type FontScale, type Theme } from '../../hooks/useAccessibilityPreferences';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -136,6 +138,7 @@ export function AccountSettings({
         </div>
 
         <UserInfoCard userName={userName} email={email} />
+        <AccessibilityCard />
         <VersionCard appInfo={appInfo} appInfoStatus={appInfoStatus} appInfoError={appInfoError} />
         <PermissionsSection
           permissionStatuses={permissionStatuses}
@@ -197,6 +200,107 @@ function UserInfoCard({ userName, email }: { userName: string; email: string }) 
       </div>
       <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
         <span>Email</span><span className="text-white">{email || '—'}</span>
+      </div>
+    </SettingsCard>
+  );
+}
+
+function AccessibilityCard() {
+  const { theme, accessibleMode, fontScale, setTheme, setAccessibleMode, setFontScale } = useAccessibilityPreferences();
+
+  const themeOptions: { value: Theme; label: string }[] = [
+    { value: 'dark', label: 'Scuro' },
+    { value: 'light', label: 'Chiaro' },
+  ];
+
+  const fontScaleOptions: { value: FontScale; label: string }[] = [
+    { value: 'sm', label: 'A−' },
+    { value: 'md', label: 'A' },
+    { value: 'lg', label: 'A+' },
+    { value: 'xl', label: 'A++' },
+  ];
+
+  return (
+    <SettingsCard className="gap-[14px]">
+      <div className="flex items-center gap-[12px]">
+        <Accessibility className="text-[#f4bf4f]" size={24} aria-hidden="true" />
+        <div className="text-left">
+          <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">Accessibilità</p>
+          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">Tema, font e modalità accessibile</p>
+        </div>
+      </div>
+
+      <div className="border-t border-[#2d2728] pt-[12px] flex flex-col gap-[16px]">
+        {/* Theme */}
+        <div className="flex flex-col gap-[8px]" role="radiogroup" aria-label="Tema interfaccia">
+          <div className="flex items-center gap-[8px]">
+            <Sun size={16} className="text-[#f4bf4f]" aria-hidden="true" />
+            <p className="text-[16px] leading-[25.6px] text-white !m-0">Tema</p>
+          </div>
+          <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">
+            Il tema chiaro migliora la leggibilità per chi ha sensibilità ai contrasti elevati.
+          </p>
+          <div className="flex gap-[8px]">
+            {themeOptions.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                role="radio"
+                aria-checked={theme === opt.value}
+                onClick={() => setTheme(opt.value)}
+                className={`flex-1 py-[8px] px-[12px] rounded-[10px] text-[14px] border transition-colors ${
+                  theme === opt.value
+                    ? 'border-[#f4bf4f] bg-[#f4bf4f]/15 text-[#f4bf4f]'
+                    : 'border-[#2d2728] text-white hover:border-[#3d3a3b]'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Font scale */}
+        <div className="flex flex-col gap-[8px]" role="radiogroup" aria-label="Dimensione del testo">
+          <p className="text-[16px] leading-[25.6px] text-white !m-0">Dimensione testo</p>
+          <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">
+            Adatta la dimensione del testo a tutta l'app.
+          </p>
+          <div className="flex gap-[8px]">
+            {fontScaleOptions.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                role="radio"
+                aria-checked={fontScale === opt.value}
+                aria-label={`Dimensione testo ${opt.label}`}
+                onClick={() => setFontScale(opt.value)}
+                className={`flex-1 min-h-[44px] px-[8px] rounded-[10px] border transition-colors ${
+                  fontScale === opt.value
+                    ? 'border-[#f4bf4f] bg-[#f4bf4f]/15 text-[#f4bf4f]'
+                    : 'border-[#2d2728] text-white hover:border-[#3d3a3b]'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Accessible mode for timed minigames */}
+        <div className="flex items-center justify-between gap-[12px]">
+          <div className="flex-1">
+            <p className="text-[16px] leading-[25.6px] text-white !m-0">Modalità accessibile</p>
+            <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">
+              Tempi più lunghi e tolleranze più ampie nei minigiochi a tempo.
+            </p>
+          </div>
+          <Switch
+            checked={accessibleMode}
+            onCheckedChange={setAccessibleMode}
+            aria-label="Attiva modalità accessibile"
+          />
+        </div>
       </div>
     </SettingsCard>
   );

@@ -21,8 +21,9 @@ export function ActivityDetail({ activity, role, onStart, onClose }: ActivityDet
     <div className="fixed inset-0 app-gradient z-50 overflow-y-auto pb-24">
       <div className="sticky top-0 bg-[#1a1617] border-b border-[#2d2728] p-4 flex items-center justify-between z-10">
         <h3 className="text-white">Dettagli attività</h3>
-        <button onClick={onClose} className="flex items-center justify-center size-[44px] hover:bg-[#241f20] rounded-lg transition-colors">
-          <X className="text-[#f4bf4f]" size={24} />
+        <button type="button" onClick={onClose} aria-label="Chiudi"
+          className="flex items-center justify-center size-[44px] hover:bg-[#241f20] rounded-lg transition-colors">
+          <X className="text-[#f4bf4f]" size={24} aria-hidden="true" />
         </button>
       </div>
 
