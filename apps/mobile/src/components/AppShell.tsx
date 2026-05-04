@@ -696,6 +696,7 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen app-gradient app-shell">
+      <a href="#main-content" className="skip-link">Salta al contenuto principale</a>
       {!isOnline && (
         <div className="fixed top-0 left-0 right-0 z-[998] bg-[#2a1f14] border-b border-[#f4bf4f]/30 px-4 py-2 text-center text-sm text-[#f4bf4f]">
           Sei offline — le modifiche saranno sincronizzate al ritorno della connessione
@@ -711,7 +712,7 @@ export function AppShell() {
           className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] left-4 right-4 z-[999] flex items-center justify-between gap-3 rounded-xl bg-[#2a1f14] border border-[#f4bf4f]/30 px-4 py-3 shadow-lg text-sm text-[#f4bf4f]">
           <span>{infoToast}</span>
           <button type="button" onClick={() => setInfoToast(null)}
-            className="shrink-0 text-[#b8b2b3] hover:text-white text-lg leading-none" aria-label="Chiudi">✕</button>
+            className="shrink-0 inline-flex items-center justify-center size-6 text-[#b8b2b3] hover:text-white text-lg leading-none" aria-label="Chiudi">✕</button>
         </div>
       )}
       <ScreenTransition animationClass={screenAnimation} animationKey={screenAnimationKey}>
@@ -721,7 +722,7 @@ export function AppShell() {
             {renderScreen()}
           </MainLayout>
         ) : (
-          <div className="app-frame">{renderScreen()}</div>
+          <div id="main-content" tabIndex={-1} className="app-frame">{renderScreen()}</div>
         )}
         </Suspense>
       </ScreenTransition>

@@ -33,7 +33,7 @@ export function BottomNav({ activeTab, onTabChange, enabledTabs }: BottomNavProp
   } : undefined;
 
   return (
-    <nav data-tutorial="bottom-nav" role="tablist" className="fixed bottom-0 left-0 right-0 w-full z-50 bg-[#0f0d0e]/90 backdrop-blur-2xl border-t border-white/[0.05]">
+    <nav data-tutorial="bottom-nav" role="tablist" aria-label="Navigazione principale" className="fixed bottom-0 left-0 right-0 w-full z-50 bg-[#0f0d0e]/90 backdrop-blur-2xl border-t border-white/[0.05]">
       <div className="relative app-content flex items-stretch justify-around px-2 pt-1 min-h-[54px]" style={{ paddingBottom: 'calc(4px + env(safe-area-inset-bottom, 0px))' }}>
 
           {indicatorStyle && (

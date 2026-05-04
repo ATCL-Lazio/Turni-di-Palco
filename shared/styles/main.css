@@ -71,6 +71,9 @@
   html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    /* WCAG 2.2 — 2.4.11 Focus Not Obscured (Minimum): keep focused elements
+       clear of the fixed bottom navigation (54px base + safe-area inset). */
+    scroll-padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
 
   body {
@@ -176,6 +179,31 @@
   }
 
   :focus-visible {
+    outline: 2px solid var(--color-gold-400);
+    outline-offset: 2px;
+  }
+
+  /* WCAG 2.1 — 2.4.1 Bypass Blocks: skip-link visible only on focus. */
+  .skip-link {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    left: 50%;
+    transform: translate(-50%, -150%);
+    z-index: 1000;
+    padding: 10px 16px;
+    background: var(--color-bg-surface-elevated);
+    color: var(--color-gold-400);
+    border: 2px solid var(--color-gold-400);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 150ms ease-out;
+  }
+
+  .skip-link:focus,
+  .skip-link:focus-visible {
+    transform: translate(-50%, 0);
     outline: 2px solid var(--color-gold-400);
     outline-offset: 2px;
   }
