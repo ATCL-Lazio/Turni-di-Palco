@@ -55,6 +55,9 @@ apps/pwa/public/mobile/index.html
 apps/mobile/build/index.html
 apps/mobile/build/assets/index-*.js
 apps/mobile/build/assets/index-*.css
+apps/mobile/build/assets/*.js
+apps/mobile/build/assets/*.css
+apps/mobile/build/sw.js
 maxwell-ai-credentials.json
 
 # Python cache
