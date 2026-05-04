@@ -104,6 +104,50 @@ html[data-theme="light"] .app-gradient {
   color: var(--color-text-primary);
 }
 
+/* Light-theme overrides for the hardcoded Tailwind arbitrary-value classes
+   used across the mobile app. Without these, text written as text-white,
+   text-[#b8b2b3], etc. would be illegible on the light backgrounds.
+   Targets the most-used classes found in apps/mobile/src; rare or
+   accent-only colors (gold #f4bf4f, error #ff4d4f, brand burgundy) are
+   intentionally kept since they also work as foreground on light backdrops. */
+html[data-theme="light"] .text-white,
+html[data-theme="light"] .text-\[\#f5f5f5\],
+html[data-theme="light"] .text-\[\#f7f3f4\] {
+  color: var(--color-text-primary);
+}
+
+html[data-theme="light"] .text-\[\#b8b2b3\],
+html[data-theme="light"] .text-\[\#9b9496\] {
+  color: var(--color-text-secondary);
+}
+
+html[data-theme="light"] .text-\[\#9a9697\],
+html[data-theme="light"] .text-\[\#7f797a\],
+html[data-theme="light"] .text-\[\#6a6566\] {
+  color: var(--color-text-tertiary);
+}
+
+html[data-theme="light"] .bg-\[\#0f0d0e\] {
+  background-color: var(--color-bg-primary);
+}
+
+html[data-theme="light"] .bg-\[\#1a1617\] {
+  background-color: var(--color-bg-surface);
+}
+
+html[data-theme="light"] .bg-\[\#241f20\] {
+  background-color: var(--color-bg-surface-elevated);
+}
+
+html[data-theme="light"] .bg-\[\#2d2728\] {
+  background-color: var(--color-bg-surface-hover);
+}
+
+html[data-theme="light"] .border-\[\#2d2728\],
+html[data-theme="light"] .border-\[\#3d3a3b\] {
+  border-color: #d8d3ce;
+}
+
 @layer base {
   * {
     margin: 0;
