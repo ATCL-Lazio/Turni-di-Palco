@@ -3580,9 +3580,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       setRemoteTheatreReputation([]);
       return;
     }
-    refreshTurnStats();
-    refreshTheatreReputation();
-    refreshBadges();
+    refreshTurnStats().catch(console.error);
+    refreshTheatreReputation().catch(console.error);
+    refreshBadges().catch(console.error);
     refreshLeaderboard().catch(console.error);
   }, [authUserId, refreshBadges, refreshLeaderboard, refreshTheatreReputation, refreshTurnStats]);
 
