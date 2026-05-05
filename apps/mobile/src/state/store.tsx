@@ -3702,12 +3702,15 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
           if (!isMounted) return;
 
-          if (userRes.error || profileRes.error || turnsRes.error) {
+          if (userRes.error || profileRes.error) {
             notifyCriticalError('Non riusciamo a caricare il profilo dal database.', [
               userRes.error,
               profileRes.error,
-              turnsRes.error,
             ]);
+          }
+
+          if (turnsRes.error) {
+            notifyCriticalError('Non riusciamo a caricare i turni dal database.', [turnsRes.error]);
           }
 
           if (userRes.error) {
