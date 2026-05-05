@@ -84,7 +84,7 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
     if (!hasLoadedRef.current || !activeSessionId) return;
     const capturedSessionId = activeSessionId;
     setChatSessions((prev) => {
-      if (prev.find(s => s.id === capturedSessionId) === undefined) return prev;
+      if (!prev.find(s => s.id === capturedSessionId)) return prev;
       const next = updateSessionList(prev, capturedSessionId, messages);
       saveChatHistory(displayName, next, userId);
       return next;
