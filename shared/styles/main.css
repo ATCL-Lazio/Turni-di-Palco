@@ -69,6 +69,12 @@
   --color-border: #2d2728;
   --color-border-strong: #3d3a3b;
   --color-warning-surface: #2a1f14;
+  /* Brand burgundy gradient stops — same as raw palette in dark, softened
+     in light theme so very-deep tones don't read as pure black on cream. */
+  --color-burgundy-deep: var(--color-burgundy-950);  /* #2d0a0f */
+  --color-burgundy-mid:  var(--color-burgundy-900);  /* #4a0e1a */
+  --color-burgundy-base: var(--color-burgundy-800);  /* #6b1529 */
+  --color-burgundy-700:  #8c1c38;
   /* Used to remap `bg-white/N`, `border-white/N`, `text-white/N` to a
      theme-appropriate overlay tint (white in dark, dark in light). */
   --color-overlay-tint: 255, 255, 255;
@@ -129,6 +135,12 @@ html[data-theme="light"] {
   --color-nav-border:           rgba(15, 13, 14, 0.08);
   --color-glass-surface:        rgba(255, 255, 255, 0.72);
   --color-glass-border:         rgba(15, 13, 14, 0.06);
+  /* Burgundy gradient stops softened: keep some brand identity but no
+     near-black tones that would punch holes in the light page. */
+  --color-burgundy-deep:        #b94a5e;  /* was #2d0a0f */
+  --color-burgundy-mid:         #a23952;  /* was #4a0e1a */
+  --color-burgundy-base:        #8c1c38;  /* was #6b1529 */
+  --color-burgundy-700:         #a82847;
 }
 
 html[data-theme="light"] body,
@@ -191,11 +203,29 @@ html[data-theme="light"] .welcome-logo-pulse {
 
   /* Surface gradients (cards/sections) — re-route stops through tokens. */
   .from-\[\#1a1617\] { --tw-gradient-from: var(--color-bg-surface); }
+  .from-\[\#1f1719\] { --tw-gradient-from: var(--color-bg-surface); }
+  .from-\[\#201819\] { --tw-gradient-from: var(--color-bg-surface); }
   .from-\[\#241f20\] { --tw-gradient-from: var(--color-bg-surface-elevated); }
+  .from-\[\#0f0d0e\] { --tw-gradient-from: var(--color-bg-primary); }
   .via-\[\#1d1819\]  { --tw-gradient-via:  var(--color-bg-surface-elevated); }
+  .via-\[\#221b1d\]  { --tw-gradient-via:  var(--color-bg-surface-elevated); }
+  .via-\[\#251b1d\]  { --tw-gradient-via:  var(--color-bg-surface-elevated); }
+  .to-\[\#0f0d0e\]   { --tw-gradient-to:   var(--color-bg-primary); }
   .to-\[\#1a1617\]   { --tw-gradient-to:   var(--color-bg-surface); }
+  .to-\[\#171314\]   { --tw-gradient-to:   var(--color-bg-surface); }
+  .to-\[\#231e1f\]   { --tw-gradient-to:   var(--color-bg-surface-elevated); }
   .to-\[\#241f20\]   { --tw-gradient-to:   var(--color-bg-surface-elevated); }
   .to-\[\#221d1e\]   { --tw-gradient-to:   var(--color-bg-surface-elevated); }
+
+  /* Brand burgundy gradient stops — kept as decorative brand colors in
+     dark mode but softened in light mode (see html[data-theme=light]
+     overrides below) so they don't render as black "holes" on the warm
+     paper page. */
+  .from-\[\#2d0a0f\] { --tw-gradient-from: var(--color-burgundy-deep); }
+  .from-\[\#4a0e1a\] { --tw-gradient-from: var(--color-burgundy-mid); }
+  .via-\[\#4a0e1a\]  { --tw-gradient-via:  var(--color-burgundy-mid); }
+  .from-\[\#6b1529\] { --tw-gradient-from: var(--color-burgundy-base); }
+  .from-\[\#8c1c38\] { --tw-gradient-from: var(--color-burgundy-700); }
 
   /* Body text colors. */
   .text-\[\#f5f5f5\]  { color: var(--color-text-primary); }
