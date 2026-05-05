@@ -83,13 +83,13 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
   useEffect(() => {
     if (!hasLoadedRef.current || !activeSessionId) return;
     const capturedSessionId = activeSessionId;
-    const next = updateSessionList(chatSessions, capturedSessionId, messages);
     setChatSessions((prev) => {
       if (prev.find(s => s.id === capturedSessionId) === undefined) return prev;
+      const next = updateSessionList(prev, capturedSessionId, messages);
       saveChatHistory(displayName, next, userId);
       return next;
     });
-  }, [messages, activeSessionId, chatSessions, historyId, displayName, userId]);
+  }, [messages, activeSessionId, displayName, userId]);
 
   const hasInput = input.trim().length > 0;
   const activeSession = useMemo(
