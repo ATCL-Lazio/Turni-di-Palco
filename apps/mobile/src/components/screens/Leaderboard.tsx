@@ -141,9 +141,9 @@ function CurrentUserIndicator() {
 // === Helpers ===
 
 const PODIUM_CLASSES = [
-  'border border-[#f4bf4f]/35 bg-[linear-gradient(135deg,rgba(244,191,79,0.08),rgba(26,22,23,0.95))] shadow-[0_0_0_1px_rgba(244,191,79,0.10),0_0_24px_rgba(244,191,79,0.14)]',
-  'border border-[#d0d5dd]/28 bg-[linear-gradient(135deg,rgba(208,213,221,0.07),rgba(26,22,23,0.95))] shadow-[0_0_0_1px_rgba(208,213,221,0.08),0_0_20px_rgba(208,213,221,0.10)]',
-  'border border-[#c97a3d]/28 bg-[linear-gradient(135deg,rgba(201,122,61,0.08),rgba(26,22,23,0.95))] shadow-[0_0_0_1px_rgba(201,122,61,0.08),0_0_20px_rgba(201,122,61,0.10)]',
+  'leaderboard-podium-gold border border-[#f4bf4f]/35 shadow-[0_0_0_1px_rgba(244,191,79,0.10),0_0_24px_rgba(244,191,79,0.14)]',
+  'leaderboard-podium-silver border border-[#d0d5dd]/28 shadow-[0_0_0_1px_rgba(208,213,221,0.08),0_0_20px_rgba(208,213,221,0.10)]',
+  'leaderboard-podium-bronze border border-[#c97a3d]/28 shadow-[0_0_0_1px_rgba(201,122,61,0.08),0_0_20px_rgba(201,122,61,0.10)]',
 ];
 
 function getPodiumCardClass(position: number, isMe: boolean) {
