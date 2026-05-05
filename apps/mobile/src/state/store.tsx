@@ -3177,7 +3177,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         }
       );
     },
-    [authUserId, syncLocalEventPlanning]
+    [authUserId, syncLocalEventPlanning, state.profile.roleId]
   );
 
   const refreshShopCatalog = useCallback(async () => {
