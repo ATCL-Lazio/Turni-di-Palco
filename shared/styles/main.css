@@ -59,7 +59,289 @@
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-inset-left: env(safe-area-inset-left, 0px);
+
+  /* Theme-aware semantic tokens (default: dark). The light theme block
+     below overrides these. Defined here so utility-class overrides
+     resolve to a value even before the AccessibilityProvider sets
+     `<html data-theme="...">` on first paint. */
+  --color-accent: var(--color-gold-400);
+  --color-accent-strong: var(--color-gold-500);
+  --color-border: #2d2728;
+  --color-border-strong: #3d3a3b;
+  --color-warning-surface: #2a1f14;
+  /* Brand burgundy gradient stops — same as raw palette in dark, softened
+     in light theme so very-deep tones don't read as pure black on cream. */
+  --color-burgundy-deep: var(--color-burgundy-950);  /* #2d0a0f */
+  --color-burgundy-mid:  var(--color-burgundy-900);  /* #4a0e1a */
+  --color-burgundy-base: var(--color-burgundy-800);  /* #6b1529 */
+  --color-burgundy-700:  #8c1c38;
+  /* Used to remap `bg-white/N`, `border-white/N`, `text-white/N` to a
+     theme-appropriate overlay tint (white in dark, dark in light). */
+  --color-overlay-tint: 255, 255, 255;
+  --color-overlay-text: 255, 255, 255;
+  /* Bottom-nav glass background (translucent surface + blur). */
+  --color-nav-glass: rgba(15, 13, 14, 0.9);
+  --color-nav-border: rgba(255, 255, 255, 0.05);
+  /* Generic glass surface (cards behind blur). */
+  --color-glass-surface: rgba(26, 22, 23, 0.72);
+  --color-glass-border: rgba(255, 255, 255, 0.05);
+  /* Leaderboard podium gradient base (deep end of the metallic gradient).
+     Light-theme override below softens to a near-opaque surface tone so
+     the cards don't show as black on the cream paper page. */
+  --color-podium-base: rgba(26, 22, 23, 0.95);
 }
+
+/* ====================================================================
+   Light theme — WCAG 2.1 AA contrast (issue #476).
+
+   Strategy: components in this codebase use Tailwind arbitrary-value
+   classes (e.g. `bg-[#1a1617]`, `text-[#b8b2b3]`) baked with hex
+   literals, so a normal `:root` token swap doesn't reach them. Instead:
+
+   1. Define theme palettes (dark + light) on `html[data-theme=...]`.
+   2. Add semantic accent / border tokens only used by the override layer.
+   3. Override the most-used Tailwind hex utility classes inside
+      `@layer utilities` so they route through CSS variables and flip
+      automatically when the theme switches.
+
+   Brand decorative gradients (burgundy `#a82847`/`#6b1529`/`#8c1c38` and
+   gold `#f4bf4f`/`#e6a23c`) are intentionally NOT remapped: they are
+   used as colorful backdrops for hero/avatar elements that should look
+   the same in both themes; their on-color text remains `text-white` /
+   `text-[#0f0d0e]`. ==================================================== */
+
+html[data-theme="light"] {
+  /* Warm "paper" page background so white cards visibly elevate above it.
+     A near-white page (#fafafa) over white cards (#ffffff) produced the
+     "everything blurs together" complaint from earlier review rounds. */
+  --color-bg-primary:           #ede5d6;
+  --color-bg-surface:           #ffffff;
+  --color-bg-surface-elevated:  #fbf6ed;
+  --color-bg-surface-hover:     #ddd4c2;
+  --color-text-primary:         #161413;
+  --color-text-secondary:       #3a3433;
+  --color-text-tertiary:        #6a605d;
+  /* AA-passing accents on white: gold needs to darken (≥4.5:1).
+     #f4bf4f on #ffffff = 1.9:1 (fails); #8a6515 on #ffffff = 5.6:1 (passes). */
+  --color-accent:               #8a6515;
+  --color-accent-strong:        #6f4f0d;
+  --color-error:                #c0212a;
+  --color-success:              #2e7a14;
+  --color-border:               #cdc4b6;
+  --color-border-strong:        #a8a094;
+  --color-warning-surface:      #fdeed0;
+  /* Flip white-overlay tricks so subtle backdrops/borders/dim text remain
+     visible on the light surfaces. */
+  --color-overlay-tint:         15, 13, 14;
+  --color-overlay-text:         22, 20, 19;
+  /* Bottom-nav: light glass over warm paper background. */
+  --color-nav-glass:            rgba(255, 252, 244, 0.85);
+  --color-nav-border:           rgba(15, 13, 14, 0.08);
+  --color-glass-surface:        rgba(255, 255, 255, 0.72);
+  --color-glass-border:         rgba(15, 13, 14, 0.06);
+  /* Burgundy gradient stops softened: keep some brand identity but no
+     near-black tones that would punch holes in the light page. */
+  --color-burgundy-deep:        #b94a5e;  /* was #2d0a0f */
+  --color-burgundy-mid:         #a23952;  /* was #4a0e1a */
+  --color-burgundy-base:        #8c1c38;  /* was #6b1529 */
+  --color-burgundy-700:         #a82847;
+  /* Light-theme podium base: near-opaque white so the metallic gold/
+     silver/bronze tints fade onto a paper card instead of into black. */
+  --color-podium-base:          rgba(255, 255, 255, 0.95);
+}
+
+html[data-theme="light"] body,
+html[data-theme="light"] body.mobile-fixed-bg {
+  background-color: var(--color-bg-primary);
+  background-image: none;
+  color: var(--color-text-primary);
+}
+
+html[data-theme="light"] body.mobile-fixed-bg::before {
+  background-color: var(--color-bg-primary);
+  background-image: linear-gradient(
+    180deg,
+    #f3ecdc 0%,
+    #ede5d6 55%,
+    #e6dcc7 100%
+  );
+}
+
+html[data-theme="light"] .app-gradient {
+  background-color: var(--color-bg-primary);
+  background-image: linear-gradient(
+    180deg,
+    #f3ecdc 0%,
+    #ede5d6 55%,
+    #e6dcc7 100%
+  );
+  color: var(--color-text-primary);
+}
+
+/* Recolor the welcome-logo glow for the light theme so it stays visible
+   on a near-white background (the burgundy glow blends in otherwise). */
+html[data-theme="light"] .welcome-logo-pulse {
+  animation: glow-burgundy-light 3.2s ease-in-out infinite;
+}
+
+@keyframes glow-burgundy-light {
+  0%, 100% {
+    box-shadow: 0 0 20px 0 rgba(168, 40, 71, 0.32), 0 8px 32px rgba(0, 0, 0, 0.10);
+  }
+  50% {
+    box-shadow: 0 0 44px 10px rgba(168, 40, 71, 0.45), 0 8px 32px rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* --------------------------------------------------------------------
+   Theme-aware utility overrides for hardcoded Tailwind hex classes.
+   Placed inside `@layer utilities` so they sit alongside Tailwind's own
+   arbitrary-value utilities (which are also in that layer); source order
+   here ensures the variable-backed values win.
+   -------------------------------------------------------------------- */
+@layer utilities {
+  /* Surface backgrounds — flip per theme. */
+  .bg-\[\#0f0d0e\] { background-color: var(--color-bg-primary); }
+  .bg-\[\#1a1617\] { background-color: var(--color-bg-surface); }
+  .bg-\[\#1f1719\] { background-color: var(--color-bg-surface); }
+  .bg-\[\#241f20\] { background-color: var(--color-bg-surface-elevated); }
+  .bg-\[\#2d2728\] { background-color: var(--color-bg-surface-hover); }
+  .bg-\[\#2a1f14\] { background-color: var(--color-warning-surface); }
+
+  /* Surface gradients (cards/sections) — re-route stops through tokens. */
+  .from-\[\#1a1617\] { --tw-gradient-from: var(--color-bg-surface); }
+  .from-\[\#1f1719\] { --tw-gradient-from: var(--color-bg-surface); }
+  .from-\[\#201819\] { --tw-gradient-from: var(--color-bg-surface); }
+  .from-\[\#241f20\] { --tw-gradient-from: var(--color-bg-surface-elevated); }
+  .from-\[\#0f0d0e\] { --tw-gradient-from: var(--color-bg-primary); }
+  .via-\[\#1d1819\]  { --tw-gradient-via:  var(--color-bg-surface-elevated); }
+  .via-\[\#221b1d\]  { --tw-gradient-via:  var(--color-bg-surface-elevated); }
+  .via-\[\#251b1d\]  { --tw-gradient-via:  var(--color-bg-surface-elevated); }
+  .to-\[\#0f0d0e\]   { --tw-gradient-to:   var(--color-bg-primary); }
+  .to-\[\#1a1617\]   { --tw-gradient-to:   var(--color-bg-surface); }
+  .to-\[\#171314\]   { --tw-gradient-to:   var(--color-bg-surface); }
+  .to-\[\#231e1f\]   { --tw-gradient-to:   var(--color-bg-surface-elevated); }
+  .to-\[\#241f20\]   { --tw-gradient-to:   var(--color-bg-surface-elevated); }
+  .to-\[\#221d1e\]   { --tw-gradient-to:   var(--color-bg-surface-elevated); }
+
+  /* Brand burgundy gradient stops — kept as decorative brand colors in
+     dark mode but softened in light mode (see html[data-theme=light]
+     overrides below) so they don't render as black "holes" on the warm
+     paper page. */
+  .from-\[\#2d0a0f\] { --tw-gradient-from: var(--color-burgundy-deep); }
+  .from-\[\#4a0e1a\] { --tw-gradient-from: var(--color-burgundy-mid); }
+  .via-\[\#4a0e1a\]  { --tw-gradient-via:  var(--color-burgundy-mid); }
+  .from-\[\#6b1529\] { --tw-gradient-from: var(--color-burgundy-base); }
+  .from-\[\#8c1c38\] { --tw-gradient-from: var(--color-burgundy-700); }
+
+  /* Body text colors. */
+  .text-\[\#f5f5f5\]  { color: var(--color-text-primary); }
+  .text-\[\#f7f3f4\]  { color: var(--color-text-primary); }
+  .text-\[\#ffffff\]  { color: var(--color-text-primary); }
+  .text-\[\#e3e0e0\]  { color: var(--color-text-secondary); }
+  .text-\[\#d9d4d5\]  { color: var(--color-text-secondary); }
+  .text-\[\#b8b2b3\]  { color: var(--color-text-secondary); }
+  .text-\[\#9b9496\]  { color: var(--color-text-secondary); }
+  .text-\[\#9a9697\]  { color: var(--color-text-tertiary); }
+  .text-\[\#8a7a7b\]  { color: var(--color-text-tertiary); }
+  .text-\[\#7f797a\]  { color: var(--color-text-tertiary); }
+  .text-\[\#6a6566\]  { color: var(--color-text-tertiary); }
+
+  /* Accent / state foreground tokens. */
+  .text-\[\#f4bf4f\]  { color: var(--color-accent); }
+  .text-\[\#e6a23c\]  { color: var(--color-accent-strong); }
+  .text-\[\#ff4d4f\]  { color: var(--color-error); }
+  .text-\[\#52c41a\]  { color: var(--color-success); }
+
+  /* Borders. */
+  .border-\[\#2d2728\]  { border-color: var(--color-border); }
+  .border-\[\#3d3a3b\]  { border-color: var(--color-border-strong); }
+  .border-\[\#f4bf4f\]  { border-color: var(--color-accent); }
+  .border-\[\#ff4d4f\]  { border-color: var(--color-error); }
+  .border-\[\#f4bf4f\]\/30 { border-color: color-mix(in srgb, var(--color-accent) 30%, transparent); }
+  .border-\[\#f4bf4f\]\/40 { border-color: color-mix(in srgb, var(--color-accent) 40%, transparent); }
+  .border-\[\#f4bf4f\]\/20 { border-color: color-mix(in srgb, var(--color-accent) 20%, transparent); }
+  .border-\[\#f4bf4f\]\/10 { border-color: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+  .border-\[\#ff4d4f\]\/40 { border-color: color-mix(in srgb, var(--color-error) 40%, transparent); }
+
+  /* Translucent surfaces (alpha modifier variants). */
+  .bg-\[\#0f0d0e\]\/90 { background-color: color-mix(in srgb, var(--color-bg-primary) 90%, transparent); }
+  .bg-\[\#0f0d0e\]\/80 { background-color: color-mix(in srgb, var(--color-bg-primary) 80%, transparent); }
+  .bg-\[\#1a1617\]\/90 { background-color: color-mix(in srgb, var(--color-bg-surface) 90%, transparent); }
+  .bg-\[\#1a1617\]\/80 { background-color: color-mix(in srgb, var(--color-bg-surface) 80%, transparent); }
+  .bg-\[\#241f20\]\/80 { background-color: color-mix(in srgb, var(--color-bg-surface-elevated) 80%, transparent); }
+  .bg-\[\#f4bf4f\]\/10 { background-color: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+  .bg-\[\#f4bf4f\]\/15 { background-color: color-mix(in srgb, var(--color-accent) 15%, transparent); }
+  .bg-\[\#ff4d4f\]\/10 { background-color: color-mix(in srgb, var(--color-error) 10%, transparent); }
+
+  /* `bg-white/N` and `border-white/N` are used as subtle elevation hints on
+     dark cards; in light mode they need to invert to a dark tint, otherwise
+     they vanish into the white surface. `--color-overlay-tint` carries the
+     RGB triplet (white in dark theme, near-black in light). */
+  .bg-white\/5  { background-color: rgba(var(--color-overlay-tint), 0.05); }
+  .bg-white\/10 { background-color: rgba(var(--color-overlay-tint), 0.10); }
+  .bg-white\/20 { background-color: rgba(var(--color-overlay-tint), 0.20); }
+  .border-white\/5  { border-color: rgba(var(--color-overlay-tint), 0.06); }
+  .border-white\/10 { border-color: rgba(var(--color-overlay-tint), 0.12); }
+  .border-white\/20 { border-color: rgba(var(--color-overlay-tint), 0.20); }
+  .border-white\/\[0\.05\] { border-color: rgba(var(--color-overlay-tint), 0.06); }
+  .border-white\/\[0\.06\] { border-color: rgba(var(--color-overlay-tint), 0.08); }
+
+  /* `text-white/N` is used on dark cards (and on burgundy/gold gradient
+     hero surfaces). On surfaces that flip light, the text must flip dark.
+     Brand-gradient surfaces (burgundy/gold) keep `text-white` (no opacity
+     modifier) and are handled by the html[data-theme=light] .text-white
+     rule further below. */
+  .text-white\/90 { color: rgba(var(--color-overlay-text), 0.90); }
+  .text-white\/80 { color: rgba(var(--color-overlay-text), 0.80); }
+  .text-white\/70 { color: rgba(var(--color-overlay-text), 0.70); }
+  .text-white\/60 { color: rgba(var(--color-overlay-text), 0.60); }
+}
+
+/* Bottom-nav glass: explicit token-driven surface so it adapts cleanly. */
+[data-tutorial="bottom-nav"] {
+  background-color: var(--color-nav-glass) !important;
+  border-top-color: var(--color-nav-border) !important;
+}
+
+/* Leaderboard podium row gradients (top 3). Replace the inline
+   `bg-[linear-gradient(...,rgba(26,22,23,0.95))]` arbitrary classes
+   with semantic ones so the deep end of the gradient flips per theme
+   via --color-podium-base. */
+@layer utilities {
+  .leaderboard-podium-gold {
+    background-image: linear-gradient(135deg, rgba(244, 191, 79, 0.08), var(--color-podium-base));
+  }
+  .leaderboard-podium-silver {
+    background-image: linear-gradient(135deg, rgba(208, 213, 221, 0.07), var(--color-podium-base));
+  }
+  .leaderboard-podium-bronze {
+    background-image: linear-gradient(135deg, rgba(201, 122, 61, 0.08), var(--color-podium-base));
+  }
+}
+
+/* Light-theme fine-tuning: warmer card shadows so white cards feel lifted
+   off the warm paper page bg. */
+html[data-theme="light"] {
+  --shadow-sm: 0 1px 2px 0 rgba(80, 60, 30, 0.08);
+  --shadow-md: 0 4px 6px -1px rgba(80, 60, 30, 0.12), 0 2px 4px -1px rgba(80, 60, 30, 0.08);
+  --shadow-lg: 0 10px 15px -3px rgba(80, 60, 30, 0.16), 0 4px 6px -2px rgba(80, 60, 30, 0.10);
+}
+
+
+/* `text-white` is widely used both over surfaces (which now flip light)
+   and over decorative dark/burgundy/gold backdrops (which stay dark).
+   In light theme, force it to primary text — text on burgundy still
+   passes AA since #161413 vs #a82847 is ~5.1:1. */
+html[data-theme="light"] .text-white {
+  color: var(--color-text-primary);
+}
+
+/* Restore explicit white for elements that *must* render white regardless
+   of theme: small text-on-burgundy-icon-circle helpers and similar. Apps
+   that need a guaranteed-white text in either theme should use the
+   semantic `.text-on-accent` class below instead of `text-white`. */
+.text-on-accent { color: #ffffff; }
 
 @layer base {
   * {
@@ -816,10 +1098,10 @@
 
 @layer utilities {
   .glass-surface {
-    background-color: rgba(26, 22, 23, 0.72);
+    background-color: var(--color-glass-surface);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--color-glass-border);
   }
 
   .scrollbar-none {

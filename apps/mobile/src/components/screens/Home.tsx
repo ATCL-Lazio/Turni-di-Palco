@@ -266,8 +266,9 @@ function NotificationBell({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="relative flex items-center justify-center size-[44px] rounded-lg hover:bg-[#241f20] transition mobile-card-hover">
-          <Bell size={20} className="text-[#f4bf4f]" />
+        <button type="button" aria-label="Notifiche"
+          className="relative flex items-center justify-center size-[44px] rounded-lg hover:bg-[#241f20] transition mobile-card-hover">
+          <Bell size={20} className="text-[#f4bf4f]" aria-hidden="true" />
           {hasNewBadges && (
             <span className={`absolute -top-1 -right-1 w-3 h-3 bg-[#f4bf4f] rounded-full ${animateBadges ? 'mobile-badge-pop' : ''}`} />
           )}
@@ -283,8 +284,9 @@ function NotificationBell({
               <p className="text-xs text-[#f4bf4f] mb-1 font-semibold">Nuovo titolo ottenuto</p>
               <p className="text-white text-sm">{newBadgeTitle ?? 'Hai sbloccato un nuovo badge'}</p>
             </div>
-            <button onClick={onDismiss} className="text-[#9a9697] p-1 hover:text-white flex-shrink-0 transition-colors">
-              <X size={16} />
+            <button type="button" onClick={onDismiss} aria-label="Ignora notifica"
+              className="text-[#9a9697] p-1 hover:text-white flex-shrink-0 transition-colors">
+              <X size={16} aria-hidden="true" />
             </button>
           </div>
         ) : (
