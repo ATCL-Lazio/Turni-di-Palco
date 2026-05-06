@@ -2287,6 +2287,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const offlineSyncInFlightRef = useRef(false);
   const offlineServerLogSyncInFlightRef = useRef(false);
   const eventPlansRef = useRef(state.eventPlans);
+  // Tracks narrative choice IDs whose rewards have already been applied locally
+  // in this session. Guards completeNarrativeChoice against double-credit on
+  // re-render, offline-queue replay, or any other duplicate invocation.
+  const appliedNarrativeChoicesRef = useRef<Set<string>>(new Set());
   useEffect(() => { eventPlansRef.current = state.eventPlans; }, [state.eventPlans]);
 
   const syncLocalEventPlanning = useCallback(
@@ -4605,6 +4609,21 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   // locally and best-effort logs the choice into `narrative_history`.
   const completeNarrativeChoice = useCallback(
     async (input: CompleteNarrativeChoiceInput): Promise<CompleteNarrativeChoiceResult> => {
+      // Idempotency guard: prevent double-credit if this function is called
+      // more than once for the same scene+choice (re-render, offline-queue
+      // replay, race condition, or app restart mid-scene).
+      const choiceKey = `${input.sceneId}:${input.choiceId}`;
+      if (appliedNarrativeChoicesRef.current.has(choiceKey)) {
+        logOfflineSync('completeNarrativeChoice skipped — already applied', { choiceKey }, 'warn');
+        const rewards: Rewards = {
+          xp: Math.max(0, Math.round(input.rewards.xp ?? 0)),
+          cachet: Math.max(0, Math.round(input.rewards.cachet ?? 0)),
+          reputation: Math.max(0, Math.round(input.rewards.reputation ?? 0)),
+        };
+        return { ok: true, rewards };
+      }
+      appliedNarrativeChoicesRef.current.add(choiceKey);
+
       const rewards: Rewards = {
         xp: Math.max(0, Math.round(input.rewards.xp ?? 0)),
         cachet: Math.max(0, Math.round(input.rewards.cachet ?? 0)),
