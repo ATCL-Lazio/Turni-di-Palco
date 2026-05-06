@@ -73,7 +73,6 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
       setChatSessions([session]);
       setActiveSessionId(sessionId);
       setMessages(session.messages);
-      saveChatHistory(displayName, [session], userId);
     }
     hasLoadedRef.current = true;
   }, [historyId, greetingMessage]);
@@ -84,12 +83,15 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
     if (!hasLoadedRef.current || !activeSessionId) return;
     const capturedSessionId = activeSessionId;
     setChatSessions((prev) => {
-      if (prev.find(s => s.id === capturedSessionId) === undefined) return prev;
-      const next = updateSessionList(prev, capturedSessionId, messages);
-      saveChatHistory(displayName, next, userId);
-      return next;
+      if (!prev.find(s => s.id === capturedSessionId)) return prev;
+      return updateSessionList(prev, capturedSessionId, messages);
     });
-  }, [messages, activeSessionId, displayName, userId]);
+  }, [messages, activeSessionId]);
+
+  useEffect(() => {
+    if (!hasLoadedRef.current || !chatSessions.length) return;
+    saveChatHistory(displayName, chatSessions, userId);
+  }, [chatSessions, displayName, userId]);
 
   const hasInput = input.trim().length > 0;
   const activeSession = useMemo(
@@ -165,7 +167,6 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
     setChatSessions(next);
     setActiveSessionId(sessionId);
     setMessages(session.messages);
-    saveChatHistory(displayName, next, userId);
     setIsHistoryOpen(false);
   };
 

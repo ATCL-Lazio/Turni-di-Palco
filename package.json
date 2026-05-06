@@ -46,11 +46,12 @@
     "ajv": "^8.18.0",
     "dotenv": "^16.3.1"
   },
-  "//overrides": "Security pins driven by Dependabot advisories. minimatch ^10.2.3 and rollup ^4.59.0 added in 3633dee (Feb 27 2026). picomatch 4.0.4 pinned in 97cf1b3 (Mar 26 2026) for CVE-2026-33672. postcss >=8.5.10 pinned for GHSA-qx2v-qp2m-jg93 (XSS via unescaped </style>, Apr 30 2026). All are consumed by transitive deps — do not remove without re-running npm audit.",
+  "//overrides": "Security pins driven by Dependabot advisories. minimatch ^10.2.3 and rollup ^4.59.0 added in 3633dee (Feb 27 2026). picomatch 4.0.4 pinned in 97cf1b3 (Mar 26 2026) for CVE-2026-33672. postcss >=8.5.10 pinned for GHSA-qx2v-qp2m-jg93 (XSS via unescaped </style>, Apr 30 2026). ip-address >=10.2.0 pinned for GHSA-v2v4-37r5-5v8g (XSS in Address6 HTML-emitting methods, May 2026). All are consumed by transitive deps — do not remove without re-running npm audit.",
   "overrides": {
     "minimatch": "^10.2.3",
     "picomatch": "4.0.4",
     "rollup": "^4.59.0",
-    "postcss": ">=8.5.10"
+    "postcss": ">=8.5.10",
+    "ip-address": ">=10.2.0"
   }
 }
