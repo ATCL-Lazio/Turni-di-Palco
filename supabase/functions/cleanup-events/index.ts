@@ -62,9 +62,12 @@ serve(async (req) => {
     const url = new URL(req.url)
     const rawDays = url.searchParams.get('days') ?? ''
     const parsedDays = parseInt(rawDays, 10)
-    // Validate: must be an integer >= 7; default to 7 if absent or invalid
+    // Validate: must be an integer >= 7 and <= MAX_DAYS; default to 7 if absent or invalid
     const MIN_DAYS = 7
-    const daysToKeep = (!rawDays || isNaN(parsedDays) || parsedDays < MIN_DAYS) ? MIN_DAYS : parsedDays
+    const MAX_DAYS = 365
+    const MAX_BATCH = 1000
+    const clampedDays = isNaN(parsedDays) ? MIN_DAYS : Math.min(Math.max(parsedDays, MIN_DAYS), MAX_DAYS)
+    const daysToKeep = (!rawDays || isNaN(parsedDays) || parsedDays < MIN_DAYS) ? MIN_DAYS : clampedDays
 
     console.log(`🧹 Pulizia eventi più vecchi di ${daysToKeep} giorni...`)
 
@@ -72,10 +75,14 @@ serve(async (req) => {
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep)
     const cutoffDateStr = cutoffDate.toISOString().slice(0, 10)
 
+    // Limit the query to MAX_BATCH rows to prevent full-table scans and
+    // unbounded deletion. Callers should re-invoke until deleted === 0 if
+    // they need to process more rows than the batch cap.
     const { data: events, error } = await supabaseClient
       .from('events')
       .select('id, name, event_date, event_time')
       .lt('event_date', cutoffDateStr)
+      .limit(MAX_BATCH)
 
     if (error) throw error
 
@@ -113,6 +120,7 @@ serve(async (req) => {
       JSON.stringify({
         message: `Cancellati ${eventsToDelete.length} eventi con successo`,
         deleted: eventsToDelete.length,
+        hasMore: eventsToDelete.length === MAX_BATCH,
         events: eventsToDelete.map(e => ({ id: e.id, name: e.name, date: e.event_date }))
       }),
       {
