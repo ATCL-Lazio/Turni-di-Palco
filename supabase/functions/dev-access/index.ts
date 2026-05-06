@@ -32,30 +32,30 @@ function parseEnvList(value: string | null) {
 
 function getUserRoles(user: Record<string, unknown>) {
   const roles = new Set<string>();
+  // Only read roles from app_metadata (server-controlled, written only with
+  // the service-role key). user_metadata is user-controlled and must NOT be
+  // used for access-control decisions to prevent privilege escalation.
   const appMetadata = user.app_metadata as Record<string, unknown> | null | undefined;
-  const userMetadata = user.user_metadata as Record<string, unknown> | null | undefined;
-  const metadataList = [appMetadata, userMetadata].filter(Boolean) as Record<string, unknown>[];
+  if (!appMetadata) return [];
 
-  metadataList.forEach((metadata) => {
-    const roleValue = metadata.role;
-    const rolesValue = metadata.roles;
+  const roleValue = appMetadata.role;
+  const rolesValue = appMetadata.roles;
 
-    if (typeof roleValue === 'string') roles.add(roleValue);
-    if (Array.isArray(roleValue)) {
-      roleValue.filter((item) => typeof item === 'string').forEach((item) => roles.add(item));
-    }
+  if (typeof roleValue === 'string') roles.add(roleValue);
+  if (Array.isArray(roleValue)) {
+    roleValue.filter((item) => typeof item === 'string').forEach((item) => roles.add(item));
+  }
 
-    if (typeof rolesValue === 'string') {
-      rolesValue
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean)
-        .forEach((item) => roles.add(item));
-    }
-    if (Array.isArray(rolesValue)) {
-      rolesValue.filter((item) => typeof item === 'string').forEach((item) => roles.add(item));
-    }
-  });
+  if (typeof rolesValue === 'string') {
+    rolesValue
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .forEach((item) => roles.add(item));
+  }
+  if (Array.isArray(rolesValue)) {
+    rolesValue.filter((item) => typeof item === 'string').forEach((item) => roles.add(item));
+  }
 
   return Array.from(roles);
 }
