@@ -96,7 +96,6 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
     });
 
     return () => controller.abort();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (local.phase === 'loading') {

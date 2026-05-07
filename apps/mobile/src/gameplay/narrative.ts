@@ -322,6 +322,11 @@ function sceneHashId(content: string): string {
   return `${MAXWELL_ID_PREFIX}${h.toString(16).padStart(8, '0')}`;
 }
 
+function safeInt(value: unknown, fallback: number): number {
+  const n = Math.round(Number(value));
+  return Number.isFinite(n) ? n : fallback;
+}
+
 function clampRewards(scene: NarrativeScene): NarrativeScene {
   return {
     ...scene,
@@ -330,10 +335,10 @@ function clampRewards(scene: NarrativeScene): NarrativeScene {
       outcome: {
         ...choice.outcome,
         rewards: {
-          xp: Math.min(REWARD_XP_MAX, Math.max(REWARD_XP_MIN, Math.round(Number(choice.outcome.rewards?.xp ?? REWARD_XP_MIN)))),
-          cachet: Math.min(REWARD_CACHET_MAX, Math.max(REWARD_CACHET_MIN, Math.round(Number(choice.outcome.rewards?.cachet ?? REWARD_CACHET_MIN)))),
+          xp: Math.min(REWARD_XP_MAX, Math.max(REWARD_XP_MIN, safeInt(choice.outcome.rewards?.xp, REWARD_XP_MIN))),
+          cachet: Math.min(REWARD_CACHET_MAX, Math.max(REWARD_CACHET_MIN, safeInt(choice.outcome.rewards?.cachet, REWARD_CACHET_MIN))),
           ...(choice.outcome.rewards?.reputation != null
-            ? { reputation: Math.min(3, Math.max(0, Math.round(Number(choice.outcome.rewards.reputation)))) }
+            ? { reputation: Math.min(3, Math.max(0, safeInt(choice.outcome.rewards.reputation, 0))) }
             : {}),
         },
       },
@@ -453,9 +458,13 @@ export async function fetchScene(
   const combinedSignal = options?.signal
     ? (() => {
         const merged = new AbortController();
-        const abort = () => merged.abort();
-        controller.signal.addEventListener('abort', abort);
-        options.signal!.addEventListener('abort', abort);
+        if (controller.signal.aborted || options.signal!.aborted) {
+          merged.abort();
+        } else {
+          const abort = () => merged.abort();
+          controller.signal.addEventListener('abort', abort, { once: true });
+          options.signal!.addEventListener('abort', abort, { once: true });
+        }
         return merged.signal;
       })()
     : controller.signal;
