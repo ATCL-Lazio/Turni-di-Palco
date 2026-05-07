@@ -215,6 +215,10 @@ export type PlayerProfile = {
   leaderboardVisible: boolean;
   /** Indica se il tutorial di benvenuto è stato completato. Default: false. */
   tutorialCompleted: boolean;
+  /** ISO timestamp impostato quando l'utente completa (o bypassa) l'onboarding FTUE. Null = non ancora fatto. */
+  onboardingCompletedAt: string | null;
+  /** 'full' = ha giocato la prima missione; 'skipped_qr' = bypass via deep-link evento; 'skipped_manual' = ha saltato dal bottone "Salta". */
+  onboardingVariant: 'full' | 'skipped_qr' | 'skipped_manual' | null;
 };
 
 export type RegisterTurnInput = {
@@ -360,6 +364,8 @@ type DbProfileRow = {
   profile_image?: string | null;
   last_activity_at?: string | null;
   leaderboard_visible?: boolean | null;
+  onboarding_completed_at?: string | null;
+  onboarding_variant?: string | null;
 };
 
 type DbBadgeRow = {
@@ -801,6 +807,8 @@ type ProfileUpsertPayload = {
   profile_image?: string | null;
   leaderboard_visible?: boolean;
   cookie_consent_at?: string | null;
+  onboarding_completed_at?: string | null;
+  onboarding_variant?: 'full' | 'skipped_qr' | 'skipped_manual' | null;
 };
 
 type TurnInsertPayload = {
@@ -1698,6 +1706,8 @@ function buildProfileUpsertPayload(userId: string, profile: PlayerProfile): Prof
     profile_image: profile.profileImage ?? null,
     leaderboard_visible: profile.leaderboardVisible,
     ...(cookieConsentAt ? { cookie_consent_at: cookieConsentAt } : {}),
+    onboarding_completed_at: profile.onboardingCompletedAt ?? null,
+    onboarding_variant: profile.onboardingVariant ?? null,
   };
 }
 
@@ -1899,6 +1909,8 @@ function createInitialState(): GameState {
       lastActivityAt: Date.now(),
       leaderboardVisible: true,
       tutorialCompleted: false,
+      onboardingCompletedAt: null,
+      onboardingVariant: null,
     },
     turns: [],
     eventPlans: [],
@@ -1924,6 +1936,8 @@ function createDemoState(): GameState {
       lastActivityAt: Date.now(),
       leaderboardVisible: true,
       tutorialCompleted: false,
+      onboardingCompletedAt: null,
+      onboardingVariant: null,
     },
     turns: [
       {
@@ -2227,6 +2241,8 @@ type GameContextValue = {
   sendPasswordResetEmail: (email: string) => Promise<void>;
   completeTutorial: () => void;
   resetTutorial: () => void;
+  /** Marca l'onboarding come completato e persiste su Supabase. Applica opzionalmente un bonus XP al profilo. */
+  completeOnboarding: (variant: 'full' | 'skipped_qr' | 'skipped_manual', xpReward?: number) => void;
   resetState: () => void;
 };
 
@@ -3807,6 +3823,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                   ? parsedLastActivityAt
                   : prev.profile.lastActivityAt,
                 leaderboardVisible: profileRow.leaderboard_visible ?? prev.profile.leaderboardVisible,
+                onboardingCompletedAt: profileRow.onboarding_completed_at ?? prev.profile.onboardingCompletedAt,
+                onboardingVariant: (profileRow.onboarding_variant === 'full' || profileRow.onboarding_variant === 'skipped_qr' || profileRow.onboarding_variant === 'skipped_manual')
+                  ? profileRow.onboarding_variant
+                  : prev.profile.onboardingVariant,
               },
               eventPlans: prev.eventPlans,
               turns: turnsRes.error ? prev.turns : remoteTurns,
@@ -3914,6 +3934,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 profile.leaderboard_visible != null
                   ? profile.leaderboard_visible
                   : prev.profile.leaderboardVisible,
+              onboardingCompletedAt: profile.onboarding_completed_at ?? prev.profile.onboardingCompletedAt,
+              onboardingVariant: (profile.onboarding_variant === 'full' || profile.onboarding_variant === 'skipped_qr' || profile.onboarding_variant === 'skipped_manual')
+                ? profile.onboarding_variant
+                : prev.profile.onboardingVariant,
             },
           }));
           setHasHydratedRemote(true);
@@ -4100,6 +4124,25 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       profile: { ...prev.profile, tutorialCompleted: false },
     }));
   }, [authUserId]);
+
+  const completeOnboarding = useCallback(
+    (variant: 'full' | 'skipped_qr' | 'skipped_manual', xpReward?: number) => {
+      const completedAt = new Date().toISOString();
+      setState((prev: GameState) => {
+        let nextProfile: PlayerProfile = {
+          ...prev.profile,
+          onboardingCompletedAt: completedAt,
+          onboardingVariant: variant,
+        };
+        if (xpReward && xpReward > 0) {
+          nextProfile = applyRewards(nextProfile, { xp: xpReward, cachet: 0, reputation: 0 }, 'activity');
+        }
+        persistProfile(nextProfile);
+        return { ...prev, profile: nextProfile };
+      });
+    },
+    [persistProfile],
+  );
 
   const updateProfile = useCallback(
     (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {
@@ -4983,6 +5026,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       updateProfile,
       completeTutorial,
       resetTutorial,
+      completeOnboarding,
       registerTurn,
       pendingBoostRequests,
       turnSyncFeedback,
@@ -5036,6 +5080,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       updateProfile,
       completeTutorial,
       resetTutorial,
+      completeOnboarding,
       registerTurn,
       pendingBoostRequests,
       turnSyncFeedback,
@@ -5060,4 +5105,9 @@ export function useGameState() {
     throw new Error('useGameState must be used within GameStateProvider');
   }
   return ctx;
+}
+
+/** Returns true if the user has already completed (or skipped) the FTUE onboarding. */
+export function selectIsOnboarded(profile: Pick<PlayerProfile, 'onboardingCompletedAt'>): boolean {
+  return profile.onboardingCompletedAt !== null;
 }

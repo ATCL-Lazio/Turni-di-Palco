@@ -72,6 +72,7 @@ interface HomeProps {
   onViewTurni: () => void;
   onViewEventDetails: () => void;
   onNavigateToEvent: () => void;
+  showOnboardingCoachmark?: boolean;
 }
 
 export function Home({
@@ -107,6 +108,7 @@ export function Home({
   onViewTurni,
   onViewEventDetails,
   onNavigateToEvent,
+  showOnboardingCoachmark = false,
 }: HomeProps) {
   const eventState: EventState = eventError ? 'error' : eventLoading ? 'loading' : !upcomingEvent ? 'empty' : 'ready';
   const homePromotion = useAtclPromotion('home');
@@ -154,6 +156,15 @@ export function Home({
           journey={roleJourney}
           onOpen={onOpenRoleJourney ?? onViewActivities}
         />
+      )}
+
+      {showOnboardingCoachmark && (
+        <div className="flex items-center gap-3 rounded-xl bg-[#f4bf4f]/10 border border-[#f4bf4f]/30 px-4 py-3">
+          <span className="text-[#f4bf4f] text-xl">👋</span>
+          <p className="text-sm text-[#f4bf4f]">
+            Sei pronto! Scansiona il tuo primo turno o avvia un'attività per guadagnare XP.
+          </p>
+        </div>
       )}
 
       {allowScanQr && <ScanQRCard onScanQR={onScanQR} />}

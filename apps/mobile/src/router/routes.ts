@@ -47,6 +47,9 @@ export const routes: RouteConfig[] = [
   { screen: 'change-password', layout: 'fullscreen', showBottomNav: false, requiresAuth: true },
   { screen: 'ticket-qr-prototype', layout: 'fullscreen', showBottomNav: false, requiresAuth: true },
 
+  // Onboarding FTUE (post role-selection, before home)
+  { screen: 'onboarding-first-mission', layout: 'auth', showBottomNav: false, requiresAuth: false },
+
   // Legal (accessible from both auth and main)
   { screen: 'terms', layout: 'fullscreen', showBottomNav: false, requiresAuth: false },
   { screen: 'privacy', layout: 'fullscreen', showBottomNav: false, requiresAuth: false },
