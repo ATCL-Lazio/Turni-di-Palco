@@ -26,7 +26,8 @@ export type Screen =
     | 'terms'
     | 'privacy'
     | 'earned-titles'
-    | 'ticket-qr-prototype';
+    | 'ticket-qr-prototype'
+    | 'onboarding-first-mission';
 
 export type Tab = 'home' | 'turns' | 'leaderboard' | 'activities' | 'shop' | 'profile';
 

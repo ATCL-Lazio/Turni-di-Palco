@@ -1,0 +1,188 @@
+import type { RoleId } from '../../state/store';
+import type { RoleStats } from '../../gameplay/minigames';
+
+export type OnboardingMission = {
+  roleId: RoleId;
+  scene: { prompt: string; setting: string };
+  choices: [
+    { label: string; outcome: string; xpReward: number; statHint: keyof RoleStats },
+    { label: string; outcome: string; xpReward: number; statHint: keyof RoleStats },
+  ];
+};
+
+export const FIRST_MISSIONS: Record<RoleId, OnboardingMission> = {
+  attore: {
+    roleId: 'attore',
+    scene: {
+      setting: 'Backstage — 10 minuti all\'inizio dello spettacolo',
+      prompt:
+        'Il regista ti dice che la scena di apertura è stata riscritta stanotte. Hai il copione nuovo in mano, ma non l\'hai ancora letto. Come entri in scena?',
+    },
+    choices: [
+      {
+        label: 'Mi fido della presenza e improvviso con sicurezza',
+        outcome:
+          'Il pubblico resta incollato a ogni tua parola. La tua presenza scenica trasforma l\'incertezza in energia. Il regista annuisce soddisfatto.',
+        xpReward: 25,
+        statHint: 'presence',
+      },
+      {
+        label: 'Leggo rapidamente il copione nel corridoio',
+        outcome:
+          'Entri in scena con le battute fresche in testa. Qualche esitazione, ma il testo regge. Il pubblico apprezza la cura.',
+        xpReward: 20,
+        statHint: 'precision',
+      },
+    ],
+  },
+
+  luci: {
+    roleId: 'luci',
+    scene: {
+      setting: 'Regia luci — prove generali, 30 minuti all\'apertura',
+      prompt:
+        'Durante le prove generali noti che il cue 14 — l\'uscita del protagonista — è impostato 3 secondi troppo tardi. Il direttore di scena ti guarda. Cosa fai?',
+    },
+    choices: [
+      {
+        label: 'Correggo subito il timing nel console',
+        outcome:
+          'Con tre tocchi sicuri aggiusti il cue. La sequenza torna perfetta e il direttore di scena ti lancia un pollice su. Precisione al servizio dello spettacolo.',
+        xpReward: 25,
+        statHint: 'precision',
+      },
+      {
+        label: 'Segnalo il problema e propongo una soluzione al regista',
+        outcome:
+          'Il regista apprezza che tu abbia portato già una soluzione. Insieme decidete una variante creativa che funziona ancora meglio dell\'originale.',
+        xpReward: 20,
+        statHint: 'creativity',
+      },
+    ],
+  },
+
+  fonico: {
+    roleId: 'fonico',
+    scene: {
+      setting: 'Mixer — soundcheck, 45 minuti all\'apertura',
+      prompt:
+        'Mentre regoli i livelli del palco senti un ronzio a 50 Hz nel microfono del protagonista. Il direttore tecnico ti chiede se è pronto. Cosa rispondi?',
+    },
+    choices: [
+      {
+        label: 'Identifico la causa e risolvo prima di rispondere',
+        outcome:
+          'Trovi un cavo parzialmente connesso, lo sostituisci in 90 secondi. Il mixer torna pulito. Il direttore tecnico sorride: "Sapevo di potermi fidare."',
+        xpReward: 25,
+        statHint: 'precision',
+      },
+      {
+        label: 'Segnalo il problema e chiedo 5 minuti',
+        outcome:
+          'La trasparenza paga: il direttore riorganizza il soundcheck dandoti il tempo necessario. Il ronzio sparisce e il suono è cristallino.',
+        xpReward: 20,
+        statHint: 'leadership',
+      },
+    ],
+  },
+
+  attrezzista: {
+    roleId: 'attrezzista',
+    scene: {
+      setting: 'Magazzino scenografie — 1 ora all\'apertura',
+      prompt:
+        'Manca un elemento fondamentale della scena del secondo atto: un vecchio telefono a rotella che dovrebbe squillare. Non è in magazzino. Cosa fai?',
+    },
+    choices: [
+      {
+        label: 'Creo un sostituto convincente con quello che ho',
+        outcome:
+          'Trovi un telefono moderno, lo copri con carta invecchiata e lo colleghi a un campanello nascosto. In scena sembra autentico. Il regista rimane a bocca aperta.',
+        xpReward: 25,
+        statHint: 'creativity',
+      },
+      {
+        label: 'Chiamo subito il mio network di colleghi',
+        outcome:
+          'In dieci minuti trovi chi ha il telefono giusto a 20 minuti di distanza. Il direttore di produzione ti ringrazia per aver risolto senza panico.',
+        xpReward: 20,
+        statHint: 'leadership',
+      },
+    ],
+  },
+
+  palco: {
+    roleId: 'palco',
+    scene: {
+      setting: 'Palco — cambio scena tra primo e secondo atto, buio totale',
+      prompt:
+        'Il cambio scena deve avvenire in 90 secondi nel buio completo. Due elementi del team sembrano incerti su dove posizionare il fondale. Hai 10 secondi.',
+    },
+    choices: [
+      {
+        label: 'Do indicazioni chiare e coordinate alla squadra',
+        outcome:
+          'Con poche parole precise organizzi il movimento. Il fondale va al posto giusto in 80 secondi. Le luci si riaccendono su una scena impeccabile.',
+        xpReward: 25,
+        statHint: 'leadership',
+      },
+      {
+        label: 'Mi occupo personalmente del pezzo più critico',
+        outcome:
+          'Prendi il controllo del punto più difficile. Gli altri seguono il tuo esempio. Il cambio avviene nei tempi e il pubblico non percepisce nulla.',
+        xpReward: 20,
+        statHint: 'precision',
+      },
+    ],
+  },
+
+  rspp: {
+    roleId: 'rspp',
+    scene: {
+      setting: 'Teatro — ispezione pre-apertura, 2 ore all\'inizio',
+      prompt:
+        'Durante il giro di ispezione noti che una via di uscita di emergenza è parzialmente bloccata da casse di materiale. La produzione è sotto pressione per i tempi. Cosa fai?',
+    },
+    choices: [
+      {
+        label: 'Fermo tutto: sicurezza prima, sempre',
+        outcome:
+          'La fermezza paga. Le casse vengono spostate in 15 minuti, la via è libera e tu documenti tutto. La produzione recupera il tempo. Nessuna deroga sulla sicurezza.',
+        xpReward: 25,
+        statHint: 'leadership',
+      },
+      {
+        label: 'Coordino lo sgombero minimizzando il ritardo alla produzione',
+        outcome:
+          'Trovi una soluzione che non stoppa il lavoro degli altri: in parallelo la tua squadra sgombera. Sicurezza rispettata, tempi salvati.',
+        xpReward: 20,
+        statHint: 'precision',
+      },
+    ],
+  },
+
+  dramaturg: {
+    roleId: 'dramaturg',
+    scene: {
+      setting: 'Sala prove — ultima settimana prima del debutto',
+      prompt:
+        'Il regista ti chiede un parere: la scena finale del secondo atto è "corretta ma fredda". Hai letto il testo decine di volte. Cosa proponi?',
+    },
+    choices: [
+      {
+        label: 'Suggerisco un\'inversione di battute che crea più tensione',
+        outcome:
+          'La tua intuizione drammaturgica centra il punto: l\'inversione rompe il ritmo atteso e crea esattamente la tensione che mancava. Il regista vuole provarlo subito.',
+        xpReward: 25,
+        statHint: 'creativity',
+      },
+      {
+        label: 'Analizzo i sottotesti e propongo indicazioni agli attori',
+        outcome:
+          'Il tuo lavoro sul sottotesto trasforma la scena senza toccare una parola. Gli attori trovano intenzioni nuove e il finale acquista calore.',
+        xpReward: 20,
+        statHint: 'presence',
+      },
+    ],
+  },
+};

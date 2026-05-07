@@ -1,7 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { INSTALL_DISMISS_KEY, isStandaloneApp } from '../lib/pwa';
 
-export function useQrLanding(_authReady: boolean, _isAuthValid: boolean, onLanding: (target: 'welcome' | 'install') => void) {
+export function useQrLanding(
+    _authReady: boolean,
+    _isAuthValid: boolean,
+    isOnboarded: boolean,
+    onLanding: (target: 'welcome' | 'install' | 'role-selection') => void,
+) {
     const hasHandledQrLanding = useRef(false);
 
     useEffect(() => {
@@ -22,6 +27,9 @@ export function useQrLanding(_authReady: boolean, _isAuthValid: boolean, onLandi
 
         if (!isInstalled && !dismissed) {
             onLanding('install');
+        } else if (!isOnboarded) {
+            // New user arriving via QR deep-link: skip first mission, just choose role
+            onLanding('role-selection');
         } else {
             onLanding('welcome');
         }
@@ -34,5 +42,5 @@ export function useQrLanding(_authReady: boolean, _isAuthValid: boolean, onLandi
         } catch {
             // ignore
         }
-    }, [onLanding]);
+    }, [isOnboarded, onLanding]);
 }

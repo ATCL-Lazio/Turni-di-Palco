@@ -1,5 +1,5 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useGameState, LeaderboardEntry, GameEvent, RoleId } from '../state/store';
+import { useGameState, LeaderboardEntry, GameEvent, RoleId, selectIsOnboarded } from '../state/store';
 import { useNavigator } from '../router';
 import { getRouteConfig } from '../router/routes';
 import { useFeatureGates, useActivityState } from '../handlers';
@@ -52,6 +52,7 @@ const TermsAndConditions = React.lazy(() => import('./screens/TermsAndConditions
 const PrivacyPolicy = React.lazy(() => import('./screens/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
 const EarnedTitles = React.lazy(() => import('./screens/EarnedTitles').then(m => ({ default: m.EarnedTitles })));
 const TicketQrActivationPrototype = React.lazy(() => import('./screens/TicketQrActivationPrototype').then(m => ({ default: m.TicketQrActivationPrototype })));
+const OnboardingFirstMission = React.lazy(() => import('./screens/OnboardingFirstMission').then(m => ({ default: m.OnboardingFirstMission })));
 import { Card } from './ui/Card';
 import { Tab } from '../types/navigation';
 
@@ -82,6 +83,7 @@ export function AppShell() {
     updateProfile, registerTurn, pendingBoostRequests, turnSyncFeedback, clearTurnSyncFeedback,
     completeActivity, completeNarrativeChoice, resetProgress, deleteAccount, exportUserData, resetState,
     changePassword, sendPasswordResetEmail, featureFlags, isFeatureEnabled,
+    completeOnboarding,
   } = gameState;
 
   // In-app info toast (replaces window.alert for feature-gate and activity errors)
@@ -113,6 +115,8 @@ export function AppShell() {
   const [screenAnimation, setScreenAnimation] = useState('');
   const [screenAnimationKey, setScreenAnimationKey] = useState(0);
   const previousTabRef = useRef(nav.activeTab);
+  // When true, role-selection onComplete marks onboarding as 'skipped_qr' and goes home directly
+  const qrOnboardingBypassRef = useRef(false);
 
   // Online status
   const isOnline = useOnlineStatus();
@@ -136,6 +140,11 @@ export function AppShell() {
     return [...newBadges].sort((a, b) => (b.unlockedAt ?? 0) - (a.unlockedAt ?? 0))[0];
   }, [newBadges]);
   const hasValidEmail = Boolean(state.profile.email && state.profile.email.includes('@'));
+  const isOnboarded = selectIsOnboarded(state.profile);
+  const showOnboardingCoachmark = Boolean(
+    state.profile.onboardingCompletedAt &&
+    Date.now() - new Date(state.profile.onboardingCompletedAt).getTime() < 60_000,
+  );
   const isAuthValid = useMemo(() => {
     if (!isSupabaseConfigured) return true;
     if (!authReady) return false;
@@ -215,7 +224,12 @@ export function AppShell() {
 
   // Notification and QR landing hooks
   useNotifications(upcomingEvent, newestNewBadge ?? undefined);
-  useQrLanding(authReady, isAuthValid, (target) => nav.navigate(target));
+  useQrLanding(authReady, isAuthValid, isOnboarded, (target) => {
+    if (target === 'role-selection') {
+      qrOnboardingBypassRef.current = true;
+    }
+    nav.navigate(target);
+  });
 
   // Navigation action helpers
   const openQrScanner = useCallback(() => {
@@ -415,7 +429,37 @@ export function AppShell() {
         return <InstallApp onContinue={() => nav.navigate(state.profile.roleId ? 'home' : 'welcome')} onDismiss={() => nav.navigate(state.profile.roleId ? 'home' : 'welcome')} />;
 
       case 'role-selection':
-        return <RoleSelection roles={roles} showRoleJourney={roleJourneyEnabled} onComplete={role => { updateProfile({ roleId: role.id }); nav.navigate('home'); }} />;
+        return (
+          <RoleSelection
+            roles={roles}
+            showRoleJourney={roleJourneyEnabled}
+            onComplete={role => {
+              updateProfile({ roleId: role.id });
+              if (qrOnboardingBypassRef.current) {
+                qrOnboardingBypassRef.current = false;
+                completeOnboarding('skipped_qr');
+                nav.navigate('home');
+              } else {
+                nav.navigate('onboarding-first-mission');
+              }
+            }}
+          />
+        );
+
+      case 'onboarding-first-mission':
+        return (
+          <OnboardingFirstMission
+            roleId={state.profile.roleId as RoleId}
+            onComplete={(_xpEarned) => {
+              completeOnboarding('full');
+              nav.navigate('home');
+            }}
+            onSkip={() => {
+              completeOnboarding('skipped_qr');
+              nav.navigate('home');
+            }}
+          />
+        );
 
       case 'home':
         return (
@@ -436,6 +480,7 @@ export function AppShell() {
             uniqueTheatres={turnStats.uniqueTheatres} activitiesCount={visibleActivities.length} roleJourney={roleJourney}
             eventLoading={followedEventsLoading} statsLoading={statsLoading}
             newBadgesCount={newBadges.length} newBadgeTitle={newestNewBadge?.title} onDismissBadgeNotification={markBadgesSeen}
+            showOnboardingCoachmark={showOnboardingCoachmark}
           />
         );
 
