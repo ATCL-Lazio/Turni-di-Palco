@@ -4128,33 +4128,41 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const completeOnboarding = useCallback(
     (variant: 'full' | 'skipped_qr' | 'skipped_manual', xpReward?: number) => {
       const completedAt = new Date().toISOString();
+      let nextProfile: PlayerProfile | null = null;
       setState((prev: GameState) => {
-        let nextProfile: PlayerProfile = {
+        let profile: PlayerProfile = {
           ...prev.profile,
           onboardingCompletedAt: completedAt,
           onboardingVariant: variant,
         };
         if (xpReward && xpReward > 0) {
-          nextProfile = applyRewards(nextProfile, { xp: xpReward, cachet: 0, reputation: 0 }, 'activity');
+          profile = applyRewards(profile, { xp: xpReward, cachet: 0, reputation: 0 }, 'activity');
         }
-        persistProfile(nextProfile);
-        return { ...prev, profile: nextProfile };
+        nextProfile = profile;
+        return { ...prev, profile };
       });
+      if (nextProfile !== null) {
+        persistProfile(nextProfile);
+      }
     },
     [persistProfile],
   );
 
   const updateProfile = useCallback(
     (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {
+      let nextProfile: PlayerProfile | null = null;
       setState((prev: GameState) => {
         const nextRole =
           updates.roleId && catalog.roles.some((role: Role) => role.id === updates.roleId)
             ? updates.roleId
             : prev.profile.roleId;
-        const nextProfile: PlayerProfile = { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId };
-        persistProfile(nextProfile);
-        return { ...prev, profile: nextProfile };
+        const profile: PlayerProfile = { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId };
+        nextProfile = profile;
+        return { ...prev, profile };
       });
+      if (nextProfile !== null) {
+        persistProfile(nextProfile);
+      }
     },
     [catalog.roles, persistProfile]
   );
