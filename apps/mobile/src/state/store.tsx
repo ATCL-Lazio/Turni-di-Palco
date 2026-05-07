@@ -215,10 +215,10 @@ export type PlayerProfile = {
   leaderboardVisible: boolean;
   /** Indica se il tutorial di benvenuto è stato completato. Default: false. */
   tutorialCompleted: boolean;
-  /** ISO timestamp impostato quando l'utente completa (o bypassa via QR) l'onboarding FTUE. Null = non ancora fatto. */
+  /** ISO timestamp impostato quando l'utente completa (o bypassa) l'onboarding FTUE. Null = non ancora fatto. */
   onboardingCompletedAt: string | null;
-  /** 'full' = ha giocato la prima missione; 'skipped_qr' = ha saltato via deep-link evento. */
-  onboardingVariant: 'full' | 'skipped_qr' | null;
+  /** 'full' = ha giocato la prima missione; 'skipped_qr' = bypass via deep-link evento; 'skipped_manual' = ha saltato dal bottone "Salta". */
+  onboardingVariant: 'full' | 'skipped_qr' | 'skipped_manual' | null;
 };
 
 export type RegisterTurnInput = {
@@ -808,7 +808,7 @@ type ProfileUpsertPayload = {
   leaderboard_visible?: boolean;
   cookie_consent_at?: string | null;
   onboarding_completed_at?: string | null;
-  onboarding_variant?: 'full' | 'skipped_qr' | null;
+  onboarding_variant?: 'full' | 'skipped_qr' | 'skipped_manual' | null;
 };
 
 type TurnInsertPayload = {
@@ -2241,8 +2241,8 @@ type GameContextValue = {
   sendPasswordResetEmail: (email: string) => Promise<void>;
   completeTutorial: () => void;
   resetTutorial: () => void;
-  /** Marca l'onboarding come completato e persiste su Supabase. */
-  completeOnboarding: (variant: 'full' | 'skipped_qr') => void;
+  /** Marca l'onboarding come completato e persiste su Supabase. Applica opzionalmente un bonus XP al profilo. */
+  completeOnboarding: (variant: 'full' | 'skipped_qr' | 'skipped_manual', xpReward?: number) => void;
   resetState: () => void;
 };
 
@@ -3824,7 +3824,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                   : prev.profile.lastActivityAt,
                 leaderboardVisible: profileRow.leaderboard_visible ?? prev.profile.leaderboardVisible,
                 onboardingCompletedAt: profileRow.onboarding_completed_at ?? prev.profile.onboardingCompletedAt,
-                onboardingVariant: (profileRow.onboarding_variant === 'full' || profileRow.onboarding_variant === 'skipped_qr')
+                onboardingVariant: (profileRow.onboarding_variant === 'full' || profileRow.onboarding_variant === 'skipped_qr' || profileRow.onboarding_variant === 'skipped_manual')
                   ? profileRow.onboarding_variant
                   : prev.profile.onboardingVariant,
               },
@@ -3935,7 +3935,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                   ? profile.leaderboard_visible
                   : prev.profile.leaderboardVisible,
               onboardingCompletedAt: profile.onboarding_completed_at ?? prev.profile.onboardingCompletedAt,
-              onboardingVariant: (profile.onboarding_variant === 'full' || profile.onboarding_variant === 'skipped_qr')
+              onboardingVariant: (profile.onboarding_variant === 'full' || profile.onboarding_variant === 'skipped_qr' || profile.onboarding_variant === 'skipped_manual')
                 ? profile.onboarding_variant
                 : prev.profile.onboardingVariant,
             },
@@ -4126,14 +4126,17 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   }, [authUserId]);
 
   const completeOnboarding = useCallback(
-    (variant: 'full' | 'skipped_qr') => {
+    (variant: 'full' | 'skipped_qr' | 'skipped_manual', xpReward?: number) => {
       const completedAt = new Date().toISOString();
       setState((prev: GameState) => {
-        const nextProfile: PlayerProfile = {
+        let nextProfile: PlayerProfile = {
           ...prev.profile,
           onboardingCompletedAt: completedAt,
           onboardingVariant: variant,
         };
+        if (xpReward && xpReward > 0) {
+          nextProfile = applyRewards(nextProfile, { xp: xpReward, cachet: 0, reputation: 0 }, 'activity');
+        }
         persistProfile(nextProfile);
         return { ...prev, profile: nextProfile };
       });

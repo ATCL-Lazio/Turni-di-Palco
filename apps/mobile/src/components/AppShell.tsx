@@ -450,12 +450,12 @@ export function AppShell() {
         return (
           <OnboardingFirstMission
             roleId={state.profile.roleId as RoleId}
-            onComplete={(_xpEarned) => {
-              completeOnboarding('full');
+            onComplete={(xpEarned) => {
+              completeOnboarding('full', xpEarned);
               nav.navigate('home');
             }}
             onSkip={() => {
-              completeOnboarding('skipped_qr');
+              completeOnboarding('skipped_manual');
               nav.navigate('home');
             }}
           />
