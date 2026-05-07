@@ -75,7 +75,6 @@ export function ChangePassword({
       setPassword('');
       setConfirmPassword('');
       setSuccessMessage('Password aggiornata con successo.');
-      setIsSubmitting(false);
       if (backTimerRef.current !== null) {
         clearTimeout(backTimerRef.current);
       }
