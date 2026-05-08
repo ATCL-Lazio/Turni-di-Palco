@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Screen } from '../ui/Screen';
 import {
   applyChoice,
@@ -6,7 +6,6 @@ import {
   evaluateChoice,
   fetchScene,
   isSceneAvailable,
-  listRegisteredScenes,
   loadScene,
   MAXWELL_ID_PREFIX,
   type NarrativeChoice,
@@ -67,6 +66,10 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
     resolveInitialState(sceneId, roleId, roleStats)
   );
 
+  const startLoad = useCallback(() => {
+    setLocal({ phase: 'loading' });
+  }, []);
+
   // Async load for Maxwell-generated scenes (phase: 'loading')
   useEffect(() => {
     if (local.phase !== 'loading') return;
@@ -78,13 +81,7 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
       if (controller.signal.aborted) return;
 
       if (!scene) {
-        // Maxwell unavailable — fall back to the first static scene available for this role
-        const fallbackScene = listRegisteredScenes().find(s => isSceneAvailable(s, ctx));
-        if (fallbackScene) {
-          setLocal({ phase: 'choosing', run: createRunState(fallbackScene.id), scene: fallbackScene });
-        } else {
-          setLocal({ phase: 'error', message: 'Maxwell non è disponibile e nessuno scenario di fallback è stato trovato.' });
-        }
+        setLocal({ phase: 'error', message: 'Maxwell non è disponibile. Riprova tra qualche secondo.' });
         return;
       }
 
@@ -96,7 +93,7 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
     });
 
     return () => controller.abort();
-  }, []);
+  }, [local.phase]);
 
   if (local.phase === 'loading') {
     return (
@@ -110,17 +107,29 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
   }
 
   if (local.phase === 'error') {
+    const canRetry = sceneId.startsWith(MAXWELL_ID_PREFIX);
     return (
       <Screen withBottomNavPadding={false}>
         <h1 className="text-xl font-semibold">Scenario non disponibile</h1>
         <p className="text-sm text-[#9a9697]">{local.message}</p>
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-4 self-start rounded-xl bg-[#a82847] px-4 py-2 text-sm font-medium text-white"
-        >
-          Torna indietro
-        </button>
+        <div className="mt-4 flex gap-3">
+          {canRetry && (
+            <button
+              type="button"
+              onClick={startLoad}
+              className="rounded-xl bg-[#a82847] px-4 py-2 text-sm font-medium text-white"
+            >
+              Riprova
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-[#4a3f41] px-4 py-2 text-sm font-medium text-[#b8b2b3]"
+          >
+            Torna indietro
+          </button>
+        </div>
       </Screen>
     );
   }
