@@ -142,6 +142,7 @@ export type CompleteActivityResult =
     slotsTotal: number;
     cachetBalanceAfter: number;
     reputationAfter: number;
+    isDuplicate?: boolean;
   }
   | {
     ok: false;
@@ -4641,6 +4642,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           slotsTotal,
           cachetBalanceAfter: rpcResponse.cachet_balance_after,
           reputationAfter: rpcResponse.reputation_after,
+          isDuplicate: rpcResponse.status === 'duplicate',
         };
       } catch (error) {
         const errorMessage = formatSyncError(error);
