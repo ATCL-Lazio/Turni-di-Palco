@@ -652,7 +652,7 @@ export function AppShell() {
             onViewPrivacy={() => nav.openLegal('privacy', 'account-settings')}
             onViewSupport={openSupport} onViewTicketPrototype={openTicketQrPrototype}
             onChangePassword={() => { nav.setIsPasswordRecovery(false); nav.navigate('change-password'); }}
-            onResetProgress={async () => { await resetProgress(); handleTabChange('home'); nav.navigate('role-selection'); }}
+            onResetProgress={async () => { try { await resetProgress(); handleTabChange('home'); nav.navigate('role-selection'); } catch (err) { console.error('[AppShell] resetProgress failed:', err); throw err; } }}
             onResetTutorial={() => { gameState.resetTutorial(); nav.navigate('home'); }}
             onDeleteAccount={deleteAccount}
             onExportData={exportUserData}
@@ -670,7 +670,7 @@ export function AppShell() {
               onViewPrivacy={() => nav.openLegal('privacy', 'account-settings')}
               onViewSupport={openSupport} onViewTicketPrototype={openTicketQrPrototype}
               onChangePassword={() => { nav.setIsPasswordRecovery(false); nav.navigate('change-password'); }}
-              onResetProgress={async () => { await resetProgress(); handleTabChange('home'); nav.navigate('role-selection'); }}
+              onResetProgress={async () => { try { await resetProgress(); handleTabChange('home'); nav.navigate('role-selection'); } catch (err) { console.error('[AppShell] resetProgress failed:', err); throw err; } }}
               onResetTutorial={() => { gameState.resetTutorial(); nav.navigate('home'); }}
               onDeleteAccount={deleteAccount}
               onExportData={exportUserData}
@@ -715,7 +715,7 @@ export function AppShell() {
               onViewPrivacy={() => nav.openLegal('privacy', 'account-settings')}
               onViewSupport={openSupport} onViewTicketPrototype={openTicketQrPrototype}
               onChangePassword={() => { nav.setIsPasswordRecovery(false); nav.navigate('change-password'); }}
-              onResetProgress={async () => { await resetProgress(); handleTabChange('home'); nav.navigate('role-selection'); }}
+              onResetProgress={async () => { try { await resetProgress(); handleTabChange('home'); nav.navigate('role-selection'); } catch (err) { console.error('[AppShell] resetProgress failed:', err); throw err; } }}
               onResetTutorial={() => { gameState.resetTutorial(); nav.navigate('home'); }}
               onDeleteAccount={deleteAccount}
               onExportData={exportUserData}

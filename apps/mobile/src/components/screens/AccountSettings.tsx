@@ -29,7 +29,7 @@ interface AccountSettingsProps {
   onViewSupport: () => void;
   onViewTicketPrototype: () => void;
   onChangePassword: () => void;
-  onResetProgress: () => void;
+  onResetProgress: () => Promise<void>;
   onResetTutorial: () => void;
   onDeleteAccount: () => Promise<void>;
   onExportData: () => void;
@@ -53,6 +53,7 @@ export function AccountSettings({
   const supportStatus = useSupportStatus(showAiSupport);
   const { geoConsent, grantGeoConsent, denyGeoConsent } = useGeoConsent();
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   // In-app confirm dialog state (replaces window.confirm for all destructive actions)
   type ConfirmPending = 'tutorial' | 'reset' | 'delete' | null;
@@ -68,7 +69,13 @@ export function AccountSettings({
     if (action === 'tutorial') {
       onResetTutorial();
     } else if (action === 'reset') {
-      onResetProgress();
+      setResetError(null);
+      try {
+        await onResetProgress();
+      } catch (err) {
+        console.error('[AccountSettings] resetProgress failed:', err);
+        setResetError(err instanceof Error ? err.message : 'Impossibile resettare i progressi. Riprova.');
+      }
     } else if (action === 'delete') {
       setDeleteError(null);
       try {
@@ -173,6 +180,7 @@ export function AccountSettings({
         <SettingsActionCard icon={Trash2} label="Resetta progressi" subtitle="Azzeramento irreversibile della carriera" onClick={handleReset} iconColor="text-[#ff4d4f]" />
 
         <div className="mt-auto flex flex-col gap-4">
+          {resetError && <p className="text-[14px] leading-[20px] text-[#ff4d4f] text-center">{resetError}</p>}
           {deleteError && <p className="text-[14px] leading-[20px] text-[#ff4d4f] text-center">{deleteError}</p>}
           <CopyrightNotice />
           <button type="button" onClick={handleDeleteAccount}
