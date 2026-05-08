@@ -586,7 +586,7 @@ export function AppShell() {
                 const completion = await completeActivity(nav.selectedActivityId, outcome);
                 if (!completion.ok) { setInfoToast(completion.error ?? 'Errore nel completamento attività.'); handleTabChange('activities'); return; }
                 setActivityOutcome(outcome);
-                setActivityCompletion({ activity: completion.activity, rewards: completion.rewards });
+                setActivityCompletion({ activity: completion.activity, rewards: completion.rewards, isDuplicate: completion.isDuplicate });
                 nav.navigate('activity-result');
               })();
             }} />
@@ -594,7 +594,7 @@ export function AppShell() {
 
       case 'activity-result':
         return activityCompletion && activityOutcome ? (
-          <ActivityResult activity={activityCompletion.activity} rewards={activityCompletion.rewards} outcome={activityOutcome} onDone={() => handleTabChange('activities')} />
+          <ActivityResult activity={activityCompletion.activity} rewards={activityCompletion.rewards} outcome={activityOutcome} isDuplicate={activityCompletion.isDuplicate} onDone={() => handleTabChange('activities')} />
         ) : (
           <Activities activities={visibleActivities} activeRole={roleJourneyEnabled ? selectedRole : undefined}
             slotsStatus={activitySlotsStatus} slotsLoading={activitySlotsLoading}

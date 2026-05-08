@@ -10,7 +10,7 @@ export function useActivityState(
   roleJourneyEnabled: boolean,
 ) {
   const [activityOutcome, setActivityOutcome] = useState<MinigameOutcome | null>(null);
-  const [activityCompletion, setActivityCompletion] = useState<{ activity: Activity; rewards: Rewards } | null>(null);
+  const [activityCompletion, setActivityCompletion] = useState<{ activity: Activity; rewards: Rewards; isDuplicate?: boolean } | null>(null);
   const [activitiesSection, setActivitiesSection] = useState<ActivitiesHubSection>('activities');
 
   const selectedRole = useMemo(

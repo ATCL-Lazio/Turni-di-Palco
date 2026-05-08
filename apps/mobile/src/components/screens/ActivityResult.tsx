@@ -10,10 +10,11 @@ interface ActivityResultProps {
   activity: Activity;
   rewards: Rewards;
   outcome: MinigameOutcome;
+  isDuplicate?: boolean;
   onDone: () => void;
 }
 
-export function ActivityResult({ activity, rewards, outcome, onDone }: ActivityResultProps) {
+export function ActivityResult({ activity, rewards, outcome, isDuplicate, onDone }: ActivityResultProps) {
   const durationLabel = useMemo(() => {
     if (!outcome.durationMs) return null;
     const seconds = Math.max(1, Math.round(outcome.durationMs / 1000));
@@ -37,11 +38,12 @@ export function ActivityResult({ activity, rewards, outcome, onDone }: ActivityR
     <div className="min-h-screen pb-24">
       <div className="app-content px-6 pt-6 space-y-6">
         <div className="text-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-[#52c41a] to-[#389e0d] rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${isDuplicate ? 'bg-gradient-to-br from-[#b8b2b3] to-[#9a9697]' : 'bg-gradient-to-br from-[#52c41a] to-[#389e0d]'}`}>
             <CheckCircle2 className="text-white" size={40} />
           </div>
-          <h2 className="text-white mb-2">Attivita completata</h2>
+          <h2 className="text-white mb-2">{isDuplicate ? 'Attivita gia completata' : 'Attivita completata'}</h2>
           <p className="text-sm text-[#b8b2b3]">{activity.title}</p>
+          {isDuplicate && <p className="text-sm text-[#9a9697] mt-1">Hai gia completato questa attivita. Nessun premio aggiuntivo e stato assegnato.</p>}
         </div>
 
         <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
