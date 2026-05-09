@@ -278,9 +278,14 @@ export function AppShell() {
 
   const handleUploadImage = useCallback(async (file: File) => {
     if (!authUserId) return;
-    const url = await uploadProfileImage(authUserId, file);
-    updateProfile({ profileImage: url });
-  }, [authUserId, updateProfile]);
+    try {
+      const url = await uploadProfileImage(authUserId, file);
+      updateProfile({ profileImage: url });
+    } catch (err) {
+      console.error('[AppShell] uploadProfileImage failed:', err);
+      setInfoToast('Errore durante il caricamento dell\'immagine profilo.');
+    }
+  }, [authUserId, updateProfile, setInfoToast]);
 
   // === Effects ===
 
