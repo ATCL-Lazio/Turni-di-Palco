@@ -3614,7 +3614,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !authUserId) return;
-    refreshEventPlanning(catalog.events);
+    refreshEventPlanning(catalog.events).catch((err) => {
+      console.warn('[store] refreshEventPlanning failed in useEffect:', err);
+    });
   }, [authUserId, catalog.events, refreshEventPlanning]);
 
   useEffect(() => {
