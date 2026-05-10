@@ -94,7 +94,15 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
         const video = videoRef.current;
         if (!video) throw new Error('Video element non disponibile.');
         video.srcObject = stream; video.muted = true;
-        await video.play().catch(() => {});
+        try {
+          await video.play();
+        } catch (playError) {
+          if (cancelled) return;
+          stopCamera();
+          setCameraError(formatCameraError(playError));
+          setIsStartingCamera(false);
+          return;
+        }
         if (cancelled) return;
         setIsStartingCamera(false);
 
