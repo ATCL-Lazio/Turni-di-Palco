@@ -10,8 +10,10 @@ function parseEnvList(value: string): string[] {
 
 function getUserRoles(user: User): string[] {
   const roles = new Set<string>();
-  for (const meta of [user.app_metadata, user.user_metadata]) {
-    if (!meta) continue;
+  // Only trust app_metadata (server-side, not writable by the client).
+  // user_metadata is intentionally excluded to prevent privilege escalation.
+  const meta = user.app_metadata;
+  if (meta) {
     const r = meta.role;
     const rs = meta.roles;
     if (typeof r === "string") roles.add(r);
