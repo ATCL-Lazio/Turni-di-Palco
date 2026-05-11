@@ -139,7 +139,12 @@ export async function requireDevAccess(): Promise<boolean> {
           return;
         }
 
-        const { data: fresh } = await supabase!.auth.getUser();
+        const { data: fresh, error: freshError } = await supabase!.auth.getUser();
+        if (freshError) {
+          setBusy(gate, false);
+          setMessage(gate.message, "Errore di rete. Riprova.", "error");
+          return;
+        }
         if (!isUserAllowed(fresh.user)) {
           await supabase!.auth.signOut();
           setBusy(gate, false);
