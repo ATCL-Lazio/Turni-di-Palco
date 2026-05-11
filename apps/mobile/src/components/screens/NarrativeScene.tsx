@@ -90,6 +90,9 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
         return;
       }
       setLocal({ phase: 'choosing', run: createRunState(scene.id), scene });
+    }).catch(() => {
+      if (controller.signal.aborted) return;
+      setLocal({ phase: 'error', message: 'Maxwell non è disponibile. Riprova tra qualche secondo.' });
     });
 
     return () => controller.abort();
