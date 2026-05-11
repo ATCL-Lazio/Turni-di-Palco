@@ -36,7 +36,7 @@ services:
   - key: VITE_SUPABASE_URL
     sync: false
   - key: AI_SUPPORT_ALLOWED_ORIGINS
-    value: https://turni-di-palco-fq85.onrender.com,https://turni-di-palco-fq85.onrender.com/mobile,https://turni-di-palco.vercel.app
+    value: https://turni-di-palco-fq85.onrender.com,https://turni-di-palco-fq85.onrender.com/mobile,https://turni-di-palco.vercel.app,https://turni-di-palco-*-atcl.vercel.app
   - key: AI_SUPPORT_GH_REPO
     value: ATCL-Lazio/Turni-di-Palco
   - key: GITHUB_APP_ID
