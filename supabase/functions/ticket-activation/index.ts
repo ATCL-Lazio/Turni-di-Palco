@@ -244,7 +244,7 @@ serve(async (req: Request) => {
           query = query.eq('event_id', payload.eventID.trim());
         }
 
-        const { data: tickets, error: searchError } = await query;
+        const { data: tickets, error: searchError } = await query.limit(2);
 
         if (searchError) throw searchError;
 
