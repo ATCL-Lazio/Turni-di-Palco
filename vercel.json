@@ -4,7 +4,10 @@
   "buildCommand": "npm --workspace apps/mobile run build",
   "outputDirectory": "apps/mobile/build",
   "rewrites": [
-    { "source": "/api/promotions/proxy", "destination": "/api/promotions/proxy.js" }
+    { "source": "/api/promotions/proxy", "destination": "/api/promotions/proxy.js" },
+    { "source": "/api/ai/chat", "destination": "/api/ai/chat.js" },
+    { "source": "/api/ai/issue", "destination": "/api/ai/issue.js" },
+    { "source": "/api/ai/health", "destination": "/api/ai/health.js" }
   ],
   "redirects": [
     { "source": "/", "destination": "/mobile/", "statusCode": 301 }
