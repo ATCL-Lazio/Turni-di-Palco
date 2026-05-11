@@ -153,6 +153,11 @@ function extractReply(payload: AiSupportResponse | string | null) {
   return null;
 }
 
+/** Returns the resolved Maxwell chat endpoint URL (respects VITE_AI_SUPPORT_ENDPOINT). */
+export function resolveAiChatEndpoint(override?: string): string {
+  return resolveEndpoint(override);
+}
+
 export async function requestAiSupport({
   userName,
   memory,

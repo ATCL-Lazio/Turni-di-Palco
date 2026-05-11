@@ -6,6 +6,7 @@ import { Tag } from '../ui/Tag';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Screen } from '../ui/Screen';
 import { Activity, ActivitySlotsStatus, Role, computeActivityRewards, getRoleActivityOverride } from '../../state/store';
+import { MAXWELL_ID_PREFIX } from '../../gameplay/narrative';
 
 interface ActivitiesProps {
   activities: Activity[];
@@ -53,7 +54,7 @@ export function Activities({
         slotsLoading={slotsLoading}
       />
 
-      {onOpenScenario && <ScenarioPreviewCard onOpen={() => onOpenScenario('debug_intro')} />}
+      {onOpenScenario && <ScenarioPreviewCard onOpen={() => onOpenScenario(`${MAXWELL_ID_PREFIX}scenario`)} />}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">

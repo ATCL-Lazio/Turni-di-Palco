@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Screen } from '../ui/Screen';
 import {
   applyChoice,
   createRunState,
   evaluateChoice,
+  fetchScene,
   isSceneAvailable,
   loadScene,
+  MAXWELL_ID_PREFIX,
   type NarrativeChoice,
   type NarrativeContext,
   type NarrativeOutcome,
@@ -27,6 +29,7 @@ interface NarrativeSceneProps {
 }
 
 type LocalState =
+  | { phase: 'loading' }
   | { phase: 'choosing'; run: NarrativeRunState; scene: NarrativeSceneData }
   | { phase: 'submitting'; run: NarrativeRunState; scene: NarrativeSceneData; choiceId: string }
   | { phase: 'outcome'; run: NarrativeRunState; scene: NarrativeSceneData; outcome: NarrativeOutcome; rewards: Rewards; finished: boolean }
@@ -44,29 +47,89 @@ function makeCtx(roleId: RoleId | null, roleStats: RoleStats | null, flags: Read
   return { roleId, stats: roleStats, flags };
 }
 
+function resolveInitialState(sceneId: string, roleId: RoleId | null, roleStats: RoleStats | null): LocalState {
+  // Dynamic scenes require async loading — start in loading phase
+  if (sceneId.startsWith(MAXWELL_ID_PREFIX)) return { phase: 'loading' };
+
+  // Static scene — resolve synchronously from the registry
+  const scene = loadScene(sceneId);
+  if (!scene) return { phase: 'error', message: `Scenario "${sceneId}" non trovato.` };
+  const ctx = makeCtx(roleId, roleStats, new Set());
+  if (!isSceneAvailable(scene, ctx)) {
+    return { phase: 'error', message: 'Accesso allo scenario non consentito per il tuo ruolo o le tue attività.' };
+  }
+  return { phase: 'choosing', run: createRunState(scene.id), scene };
+}
+
 export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }: NarrativeSceneProps) {
-  const [local, setLocal] = useState<LocalState>(() => {
-    const scene = loadScene(sceneId);
-    if (!scene) return { phase: 'error', message: `Scenario "${sceneId}" non trovato.` };
+  const [local, setLocal] = useState<LocalState>(() =>
+    resolveInitialState(sceneId, roleId, roleStats)
+  );
+
+  const startLoad = useCallback(() => {
+    setLocal({ phase: 'loading' });
+  }, []);
+
+  // Async load for Maxwell-generated scenes (phase: 'loading')
+  useEffect(() => {
+    if (local.phase !== 'loading') return;
+
     const ctx = makeCtx(roleId, roleStats, new Set());
-    if (!isSceneAvailable(scene, ctx)) {
-      return { phase: 'error', message: 'Accesso allo scenario non consentito per il tuo ruolo o le tue attività.' };
-    }
-    return { phase: 'choosing', run: createRunState(scene.id), scene };
-  });
+    const controller = new AbortController();
+
+    fetchScene(sceneId, ctx, { signal: controller.signal }).then(scene => {
+      if (controller.signal.aborted) return;
+
+      if (!scene) {
+        setLocal({ phase: 'error', message: 'Maxwell non è disponibile. Riprova tra qualche secondo.' });
+        return;
+      }
+
+      if (!isSceneAvailable(scene, ctx)) {
+        setLocal({ phase: 'error', message: 'Accesso allo scenario non consentito per il tuo ruolo o le tue attività.' });
+        return;
+      }
+      setLocal({ phase: 'choosing', run: createRunState(scene.id), scene });
+    });
+
+    return () => controller.abort();
+  }, [local.phase]);
+
+  if (local.phase === 'loading') {
+    return (
+      <Screen withBottomNavPadding={false}>
+        <div className="flex flex-1 flex-col items-center justify-center gap-4">
+          <div className="size-8 animate-spin rounded-full border-2 border-[#a82847] border-t-transparent" aria-hidden="true" />
+          <p className="text-sm text-[#9a9697]">Maxwell sta preparando uno scenario…</p>
+        </div>
+      </Screen>
+    );
+  }
 
   if (local.phase === 'error') {
+    const canRetry = sceneId.startsWith(MAXWELL_ID_PREFIX);
     return (
       <Screen withBottomNavPadding={false}>
         <h1 className="text-xl font-semibold">Scenario non disponibile</h1>
         <p className="text-sm text-[#9a9697]">{local.message}</p>
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-4 self-start rounded-xl bg-[#a82847] px-4 py-2 text-sm font-medium text-white"
-        >
-          Torna indietro
-        </button>
+        <div className="mt-4 flex gap-3">
+          {canRetry && (
+            <button
+              type="button"
+              onClick={startLoad}
+              className="rounded-xl bg-[#a82847] px-4 py-2 text-sm font-medium text-white"
+            >
+              Riprova
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-[#4a3f41] px-4 py-2 text-sm font-medium text-[#b8b2b3]"
+          >
+            Torna indietro
+          </button>
+        </div>
       </Screen>
     );
   }
