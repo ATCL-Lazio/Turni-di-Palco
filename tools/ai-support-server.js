@@ -1001,6 +1001,13 @@ function resolveCorsOrigin(origin, allowedOrigins) {
   if (!origin) return allowedOrigins.includes('*') ? '*' : '';
   if (allowedOrigins.includes('*')) return '*';
   if (allowedOrigins.includes(origin)) return origin;
+  // Wildcard pattern support (e.g. https://turni-di-palco-*-atcl.vercel.app)
+  for (const pattern of allowedOrigins) {
+    if (pattern.includes('*')) {
+      const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^.]*');
+      if (new RegExp(`^${escaped}$`).test(origin)) return origin;
+    }
+  }
   return '';
 }
 
