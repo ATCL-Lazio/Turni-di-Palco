@@ -1,0 +1,42 @@
+name: Console Audit
+
+on:
+  schedule:
+    # Every day at 08:00 UTC
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: console-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Console Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.14.0
+
+      # Install Playwright without touching the project's package.json
+      - name: Install Playwright
+        run: npm install --no-save playwright
+
+      - name: Install Chromium browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run console audit
+        run: node tools/console-audit.js
+        env:
+          DEPLOYMENT_URL: ${{ secrets.VERCEL_PRODUCTION_URL }}
+          GITHUB_TOKEN:   ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO:        ${{ github.repository }}
