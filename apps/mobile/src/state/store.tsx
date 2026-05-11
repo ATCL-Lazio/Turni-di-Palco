@@ -745,7 +745,8 @@ const OFFLINE_SYNC_SERVER_LOG_MIRROR_ENV =
 
 // Hostname pattern used to identify preview environments where server log behavior
 // may differ (e.g., additional logging or relaxed limits).
-const OFFLINE_SYNC_SERVER_LOG_PREVIEW_HOST_RE = /^turni-di-palco-pr-\d+\.onrender\.com$/i;
+const OFFLINE_SYNC_SERVER_LOG_PREVIEW_HOST_RE =
+  /^turni-di-palco-pr-\d+\.onrender\.com$|^turni-di-palco-git-.+\.vercel\.app$/i;
 
 // Common prefix for all offline sync–related log messages to make them easy to filter.
 const OFFLINE_SYNC_LOG_PREFIX = '[TDP Offline Sync]';

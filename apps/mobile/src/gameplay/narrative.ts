@@ -254,7 +254,7 @@ export function assertValidScene(scene: unknown): asserts scene is NarrativeScen
 
 export const MAXWELL_ID_PREFIX = 'maxwell_';
 const SESSION_CACHE_PREFIX = 'tdp-narrative-scene:';
-const MAXWELL_FETCH_TIMEOUT_MS = 3000;
+const MAXWELL_FETCH_TIMEOUT_MS = 12000;
 
 // Reward bounds from shared/config/balancing.ts ACTIVITY_REWARDS.narrative_scene
 const REWARD_XP_MIN = 15;
@@ -399,9 +399,16 @@ async function callMaxwellForScene(
     data = await response.json();
   } catch { return null; }
 
-  const reply = typeof (data as { reply?: unknown }).reply === 'string'
-    ? (data as { reply: string }).reply
-    : null;
+  // Accept any of the reply field names Maxwell / OpenAI-compatible servers may use.
+  const d = data as Record<string, unknown>;
+  const reply =
+    typeof d.reply === 'string' ? d.reply :
+    typeof d.message === 'string' ? d.message :
+    typeof d.content === 'string' ? d.content :
+    typeof d.text === 'string' ? d.text :
+    typeof (d.choices as Array<{ message?: { content?: unknown } }>)?.[0]?.message?.content === 'string'
+      ? String((d.choices as Array<{ message?: { content?: unknown } }>)[0].message!.content)
+      : null;
   if (!reply) return null;
 
   // Strip markdown fences that some models emit
