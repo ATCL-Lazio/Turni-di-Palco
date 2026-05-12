@@ -3051,6 +3051,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setHasHydratedRemote(false);
+    appliedNarrativeChoicesRef.current = new Set();
   }, [authUserId]);
 
   useEffect(() => {
