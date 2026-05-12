@@ -5,7 +5,7 @@ export function useQrLanding(
     _authReady: boolean,
     _isAuthValid: boolean,
     isOnboarded: boolean,
-    onLanding: (target: 'welcome' | 'install' | 'role-selection') => void,
+    onLanding: (target: 'welcome' | 'home' | 'install' | 'role-selection') => void,
 ) {
     const hasHandledQrLanding = useRef(false);
 
@@ -31,7 +31,8 @@ export function useQrLanding(
             // New user arriving via QR deep-link: skip first mission, just choose role
             onLanding('role-selection');
         } else {
-            onLanding('welcome');
+            // Onboarded user arriving via QR: go directly to home, not to the login screen
+            onLanding('home');
         }
 
         try {
