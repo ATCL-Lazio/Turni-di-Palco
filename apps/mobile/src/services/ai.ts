@@ -58,8 +58,20 @@ const SUPPORT_PROMPT =
 
 const FALLBACK_PORT = '8787';
 const DEFAULT_PORT = import.meta.env.VITE_AI_SUPPORT_PORT ?? FALLBACK_PORT;
-const DEFAULT_ENDPOINT =
-  import.meta.env.VITE_AI_SUPPORT_ENDPOINT ?? buildDefaultEndpoint('/api/ai/chat');
+// On non-localhost deployments always route through the same-origin Vercel proxy
+// (/api/ai/chat) to avoid CORS issues, regardless of VITE_AI_SUPPORT_ENDPOINT.
+const DEFAULT_ENDPOINT = (() => {
+  const configured = import.meta.env.VITE_AI_SUPPORT_ENDPOINT;
+  if (
+    configured &&
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1'
+  ) {
+    return buildDefaultEndpoint('/api/ai/chat');
+  }
+  return configured ?? buildDefaultEndpoint('/api/ai/chat');
+})();
 const DEFAULT_ISSUE_ENDPOINT =
   import.meta.env.VITE_AI_SUPPORT_ISSUE_ENDPOINT ?? null;
 const AI_SUPPORT_REQUEST_WATCHDOG_MS = 25000;
@@ -136,7 +148,7 @@ function resolveIssueEndpoint(override?: string) {
 
 function resolveHealthEndpoint(endpoint: string) {
   if (endpoint.includes('/api/ai/chat')) {
-    return endpoint.replace(/\/api\/ai\/chat\/?$/, '/health');
+    return endpoint.replace(/\/api\/ai\/chat\/?$/, '/api/ai/health');
   }
   return endpoint;
 }
@@ -151,6 +163,11 @@ function extractReply(payload: AiSupportResponse | string | null) {
   const choice = payload.choices?.[0]?.message?.content;
   if (typeof choice === 'string') return choice;
   return null;
+}
+
+/** Returns the resolved Maxwell chat endpoint URL (respects VITE_AI_SUPPORT_ENDPOINT). */
+export function resolveAiChatEndpoint(override?: string): string {
+  return resolveEndpoint(override);
 }
 
 export async function requestAiSupport({
