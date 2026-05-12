@@ -3689,12 +3689,12 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 difficulty: activity.difficulty as Activity['difficulty'],
               }));
 
+          if (!isMounted) return;
           setCatalog({
             roles: nextRoles,
             events: nextEvents,
             activities: nextActivities,
           });
-          if (!isMounted) return;
           await refreshEventPlanning(nextEvents);
         },
         {
