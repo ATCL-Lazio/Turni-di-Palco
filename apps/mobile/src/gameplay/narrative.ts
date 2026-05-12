@@ -1,6 +1,7 @@
 import type { RoleId } from '../state/store';
 import type { RoleStats } from './minigames';
 import { resolveAiChatEndpoint } from '../services/ai';
+import { ACTIVITY_REWARDS } from '../../../../shared/config/balancing';
 
 // Pure narrative engine (no React, no DOM). See issue #328.
 // Loads scenes registered in `../data/narrative` and applies player choices.
@@ -283,11 +284,8 @@ export function markDailySceneCompleted(ctx: NarrativeContext): void {
   } catch { /* quota exceeded — ignore */ }
 }
 
-// Reward bounds from shared/config/balancing.ts ACTIVITY_REWARDS.narrative_scene
-const REWARD_XP_MIN = 15;
-const REWARD_XP_MAX = 30;
-const REWARD_CACHET_MIN = 5;
-const REWARD_CACHET_MAX = 15;
+const { xp: { min: REWARD_XP_MIN, max: REWARD_XP_MAX }, cachet: { min: REWARD_CACHET_MIN, max: REWARD_CACHET_MAX } } =
+  ACTIVITY_REWARDS.narrative_scene;
 
 const SCENE_GENERATION_SYSTEM_PROMPT =
   'Sei Maxwell, narratore del gioco teatrale "Turni di Palco". ' +

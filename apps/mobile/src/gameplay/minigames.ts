@@ -1,7 +1,8 @@
 import type { RoleId } from '../state/store';
+import { STAT_EFFECTS } from '../../../../shared/config/balancing';
 
 // Closes #471 — tolleranza adattiva basata sulla stat primaria del ruolo.
-// Formula: effectiveTolerance = round(baseTolerance * (1 + (stat - 50) / 200))
+// Formula: effectiveTolerance = round(baseTolerance * (1 + (stat - statBaseline) / 200))
 export type RoleStats = { presence: number; precision: number; leadership: number; creativity: number };
 
 // Stat primaria per attività; determina quale caratteristica allarga la finestra di tolleranza.
@@ -166,7 +167,7 @@ export function getMinigameConfig(activityId: string, roleId?: RoleId | null, ro
     const statKey = ACTIVITY_PRIMARY_STAT[activityId];
     const statValue = statKey ? roleStats[statKey] : null;
     if (statValue != null) {
-      const factor = 1 + (statValue - 50) / 200;
+      const factor = 1 + (statValue - STAT_EFFECTS.statBaseline) / 200;
       return {
         ...base,
         rounds: base.rounds.map(r => ({
