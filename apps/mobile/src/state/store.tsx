@@ -4519,9 +4519,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           },
         }));
 
-        void refreshActivitySlotsStatus();
+        refreshActivitySlotsStatus().catch(() => {});
         if (rpcResponse.theatre) {
-          void refreshTheatreReputation();
+          refreshTheatreReputation().catch(() => {});
         }
 
         return {
