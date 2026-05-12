@@ -4250,36 +4250,36 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       );
 
       if (!isSupabaseConfigured || !supabase || !authUserId) {
+        // Compute all derived values outside the setState updater so they are
+        // available as stable references after setState returns (the updater
+        // may be called more than once in React concurrent mode).
         let localBoostApplied = false;
         let localBoostRejectionReason: string | null = null;
         let localRewards = computeTurnRewards(event, roleId);
-        let nextTokenAtcl = 0;
-        let localSyncStatus: TurnSyncStatus = 'synced';
-        let localTurnRecord: TurnRecord | null = null;
-        setState((prev: GameState) => {
-          let workingToken = prev.profile.tokenAtcl;
-          if (boostRequested) {
-            if (workingToken > 0) {
-              localBoostApplied = true;
-              workingToken -= 1;
-              localRewards = {
-                ...localRewards,
-                xp: Math.ceil(localRewards.xp * 1.1),
-                cachet: Math.ceil(localRewards.cachet * 1.1),
-              };
-            } else {
-              localBoostRejectionReason = 'insufficient_token_balance';
-            }
+        let workingToken = state.profile.tokenAtcl;
+        if (boostRequested) {
+          if (workingToken > 0) {
+            localBoostApplied = true;
+            workingToken -= 1;
+            localRewards = {
+              ...localRewards,
+              xp: Math.ceil(localRewards.xp * 1.1),
+              cachet: Math.ceil(localRewards.cachet * 1.1),
+            };
+          } else {
+            localBoostRejectionReason = 'insufficient_token_balance';
           }
-          nextTokenAtcl = workingToken;
-          localSyncStatus = boostRequested && !localBoostApplied ? 'failed_boost_fallback' : 'synced';
-          localTurnRecord = buildTurnRecordFromPayload(
-            turnRegisterPayload,
-            localRewards,
-            localSyncStatus,
-            localBoostApplied,
-            localBoostRejectionReason
-          );
+        }
+        const nextTokenAtcl = workingToken;
+        const localSyncStatus: TurnSyncStatus = boostRequested && !localBoostApplied ? 'failed_boost_fallback' : 'synced';
+        const localTurnRecord: TurnRecord = buildTurnRecordFromPayload(
+          turnRegisterPayload,
+          localRewards,
+          localSyncStatus,
+          localBoostApplied,
+          localBoostRejectionReason
+        );
+        setState((prev: GameState) => {
           const rewardedProfile = applyRewards(prev.profile, localRewards, 'turn');
           return {
             profile: {
@@ -4287,7 +4287,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               tokenAtcl: nextTokenAtcl,
             },
             eventPlans: prev.eventPlans,
-            turns: localTurnRecord ? [localTurnRecord, ...prev.turns].slice(0, MAX_TURNS) : prev.turns,
+            turns: [localTurnRecord, ...prev.turns].slice(0, MAX_TURNS),
           };
         });
         if (!localTurnRecord) {
