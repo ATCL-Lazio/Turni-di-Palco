@@ -4637,7 +4637,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           };
         });
 
-        void refreshBadges();
+        refreshBadges().catch(() => {});
 
         return {
           ok: true,
