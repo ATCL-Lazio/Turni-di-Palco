@@ -170,19 +170,24 @@ serve(async (req) => {
     return jsonResponse({ error: 'Autenticazione richiesta' }, 401);
   }
 
-  const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  const callerToken = authHeader.slice('Bearer '.length);
 
-  const { data: { user }, error: userError } = await userClient.auth.getUser();
-  if (userError || !user) {
-    return jsonResponse({ error: 'Sessione non valida' }, 401);
-  }
+  // Service-role key allows the control-plane to call this function without a user session.
+  if (callerToken !== serviceKey) {
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
-  const userRole = (user.app_metadata as Record<string, unknown>)?.role as string | undefined;
-  if (userRole !== 'admin') {
-    return jsonResponse({ error: 'Accesso negato: ruolo admin richiesto' }, 403);
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
+      return jsonResponse({ error: 'Sessione non valida' }, 401);
+    }
+
+    const userRole = (user.app_metadata as Record<string, unknown>)?.role as string | undefined;
+    if (userRole !== 'admin') {
+      return jsonResponse({ error: 'Accesso negato: ruolo admin richiesto' }, 403);
+    }
   }
 
   const supabase = createClient(supabaseUrl, serviceKey);

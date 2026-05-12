@@ -126,6 +126,13 @@ const COMMAND_CATALOG = Object.freeze({
     description: "Cleanup eventi vecchi in Supabase.",
     label: "Supabase cleanup old events",
   },
+  "supabase.events.import": {
+    minRole: "dev_operator",
+    riskLevel: "medium",
+    requiresConfirmText: DEFAULT_CONFIRM_TEXT,
+    description: "Importa eventi da sorgente esterna (spazio-rossellini | atcl-lazio).",
+    label: "Supabase import events",
+  },
   "supabase.db.mutate": {
     minRole: "dev_admin",
     riskLevel: "high",
@@ -1710,6 +1717,70 @@ async function executeAllowlistedCommand(entry, auth, effectiveDryRun) {
           deletedRows: Array.isArray(data) ? data.length : 0,
           thresholdIso,
         },
+      };
+    }
+
+    case "supabase.events.import": {
+      if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+        return { status: "failed", message: "SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY non configurati.", payload: {} };
+      }
+
+      const ALLOWED_SOURCES = new Set(["spazio-rossellini", "atcl-lazio"]);
+      const source = asString(entry.payload.source || entry.target).toLowerCase().trim();
+      if (!ALLOWED_SOURCES.has(source)) {
+        return {
+          status: "failed",
+          message: `source non valido: "${source}". Valori consentiti: ${[...ALLOWED_SOURCES].join(", ")}.`,
+          payload: {},
+        };
+      }
+
+      const functionName = source === "spazio-rossellini" ? "import-spazio-rossellini" : "import-atcl-lazio";
+      const baseUrl = SUPABASE_URL.replace(/\/+$/, "");
+      const fnUrl = new URL(`${baseUrl}/functions/v1/${functionName}`);
+
+      if (source === "atcl-lazio") {
+        const rawLookback = entry.payload.lookback_days;
+        if (rawLookback != null) {
+          const lookback = parseInteger(rawLookback, 400, 30, 730);
+          fnUrl.searchParams.set("lookback_days", String(lookback));
+        }
+      }
+
+      let result;
+      try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 60_000);
+        const resp = await fetch(fnUrl.toString(), {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json",
+          },
+        });
+        clearTimeout(tid);
+        result = await resp.json().catch(() => ({}));
+
+        if (!resp.ok) {
+          return {
+            status: "failed",
+            message: `Edge function ${functionName} ha risposto con ${resp.status}: ${result?.error ?? "errore sconosciuto"}`,
+            payload: result,
+          };
+        }
+      } catch (err) {
+        return {
+          status: "failed",
+          message: `Errore chiamata a ${functionName}: ${err?.message ?? String(err)}`,
+          payload: {},
+        };
+      }
+
+      return {
+        status: "succeeded",
+        message: `Import ${source} completato.`,
+        payload: result,
       };
     }
 
