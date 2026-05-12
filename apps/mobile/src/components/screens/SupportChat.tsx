@@ -33,6 +33,10 @@ const ISSUE_DRAFT_MARKER = 'ISSUE_DRAFT:';
 export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
   const displayName = userName || 'Utente';
   const historyId = userId || displayName;
+  const displayNameRef = useRef(displayName);
+  displayNameRef.current = displayName;
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
   const greetingMessage = useMemo(() => buildSupportMessage('assistant',
     `Ciao ${displayName}! Sono Maxwell, pronto a darti una mano. Come posso aiutarti?`), [displayName]);
   const isMobile = useIsMobile();
@@ -61,21 +65,29 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, isLoading]);
 
+  // Only re-initialize chat state when the user identity (historyId) changes,
+  // not when displayName changes after auth hydration (which would wipe an
+  // in-progress conversation). Refs are used for displayName/userId so the
+  // effect captures their latest values without being re-triggered by them.
   useEffect(() => {
-    const stored = loadChatHistory(displayName, userId);
+    const currentDisplayName = displayNameRef.current;
+    const currentUserId = userIdRef.current;
+    const stored = loadChatHistory(currentDisplayName, currentUserId);
     if (stored.length) {
       setChatSessions(stored);
       setActiveSessionId(stored[0].id);
       setMessages(stored[0].messages);
     } else {
       const sessionId = buildMessageId();
-      const session: ChatSession = { id: sessionId, createdAt: Date.now(), updatedAt: Date.now(), messages: [greetingMessage] };
+      const greeting = buildSupportMessage('assistant',
+        `Ciao ${currentDisplayName}! Sono Maxwell, pronto a darti una mano. Come posso aiutarti?`);
+      const session: ChatSession = { id: sessionId, createdAt: Date.now(), updatedAt: Date.now(), messages: [greeting] };
       setChatSessions([session]);
       setActiveSessionId(sessionId);
       setMessages(session.messages);
     }
     hasLoadedRef.current = true;
-  }, [historyId, greetingMessage]);
+  }, [historyId]);
 
   useEffect(() => () => { abortControllerRef.current?.abort(); }, []);
 
