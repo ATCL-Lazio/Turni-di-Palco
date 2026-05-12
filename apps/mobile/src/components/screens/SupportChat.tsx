@@ -35,6 +35,8 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
   const historyId = userId || displayName;
   const displayNameRef = useRef(displayName);
   displayNameRef.current = displayName;
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
   const greetingMessage = useMemo(() => buildSupportMessage('assistant',
     `Ciao ${displayName}! Sono Maxwell, pronto a darti una mano. Come posso aiutarti?`), [displayName]);
   const isMobile = useIsMobile();
@@ -65,10 +67,12 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
 
   // Only re-initialize chat state when the user identity (historyId) changes,
   // not when displayName changes after auth hydration (which would wipe an
-  // in-progress conversation).
+  // in-progress conversation). Refs are used for displayName/userId so the
+  // effect captures their latest values without being re-triggered by them.
   useEffect(() => {
     const currentDisplayName = displayNameRef.current;
-    const stored = loadChatHistory(currentDisplayName, userId);
+    const currentUserId = userIdRef.current;
+    const stored = loadChatHistory(currentDisplayName, currentUserId);
     if (stored.length) {
       setChatSessions(stored);
       setActiveSessionId(stored[0].id);
@@ -83,7 +87,6 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
       setMessages(session.messages);
     }
     hasLoadedRef.current = true;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyId]);
 
   useEffect(() => () => { abortControllerRef.current?.abort(); }, []);
