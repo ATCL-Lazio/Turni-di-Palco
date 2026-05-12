@@ -1,5 +1,5 @@
 import type { RoleId } from '../state/store';
-import { STAT_EFFECTS } from '../../../../shared/config/balancing';
+import { MINIGAME_TARGET_RANGE, STAT_EFFECTS } from '../../../../shared/config/balancing';
 
 // Closes #471 — tolleranza adattiva basata sulla stat primaria del ruolo.
 // Formula: effectiveTolerance = round(baseTolerance * (1 + (stat - statBaseline) / 200))
@@ -153,6 +153,14 @@ export function isMinigameAvailableForRole(activityId: string, roleId?: RoleId |
   return roleId ? config.allowedRoles.includes(roleId) : false;
 }
 
+function randomTarget(): number {
+  return Math.floor(Math.random() * (MINIGAME_TARGET_RANGE.max - MINIGAME_TARGET_RANGE.min + 1)) + MINIGAME_TARGET_RANGE.min;
+}
+
+function withRandomTargets(config: MinigameConfig): MinigameConfig {
+  return { ...config, rounds: config.rounds.map(r => ({ ...r, target: randomTarget() }) ) };
+}
+
 export function getMinigameConfig(activityId: string, roleId?: RoleId | null, roleStats?: RoleStats | null): MinigameConfig {
   const config = MINIGAME_BY_ACTIVITY[activityId] ?? FALLBACK_CONFIG;
 
@@ -168,17 +176,17 @@ export function getMinigameConfig(activityId: string, roleId?: RoleId | null, ro
     const statValue = statKey ? roleStats[statKey] : null;
     if (statValue != null) {
       const factor = 1 + (statValue - STAT_EFFECTS.statBaseline) / 200;
-      return {
+      return withRandomTargets({
         ...base,
         rounds: base.rounds.map(r => ({
           ...r,
           tolerance: Math.max(1, Math.round(r.tolerance * factor)),
         })),
-      };
+      });
     }
   }
 
-  return base;
+  return withRandomTargets(base);
 }
 
 export function computeRoundScore(target: number, hit: number, tolerance: number) {
