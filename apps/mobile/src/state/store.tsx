@@ -2310,7 +2310,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   // in this session. Guards completeNarrativeChoice against double-credit on
   // re-render, offline-queue replay, or any other duplicate invocation.
   const appliedNarrativeChoicesRef = useRef<Set<string>>(new Set());
+  // Ref so refreshActivitySlotsStatus can read the latest extraActivitySlots
+  // without being recreated on every shop purchase.
+  const extraActivitySlotsRef = useRef(state.profile.extraActivitySlots);
   useEffect(() => { eventPlansRef.current = state.eventPlans; }, [state.eventPlans]);
+  useEffect(() => { extraActivitySlotsRef.current = state.profile.extraActivitySlots; }, [state.profile.extraActivitySlots]);
 
   const syncLocalEventPlanning = useCallback(
     (plans: EventPlanning[]) => {
@@ -3239,7 +3243,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   const refreshActivitySlotsStatus = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase || !authUserId) {
-      const totalSlots = 3 + state.profile.extraActivitySlots;
+      const totalSlots = 3 + extraActivitySlotsRef.current;
       setActivitySlotsStatus({
         usedToday: 0,
         totalSlots,
@@ -3280,7 +3284,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         message: 'Il controllo slot attività sta impiegando troppo tempo.',
       }
     );
-  }, [authUserId, state.profile.extraActivitySlots]);
+  }, [authUserId]);
 
   const applyFeatureFlagsSnapshot = useCallback(
     (
