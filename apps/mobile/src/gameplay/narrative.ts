@@ -253,8 +253,35 @@ export function assertValidScene(scene: unknown): asserts scene is NarrativeScen
 // ---------------------------------------------------------------------------
 
 export const MAXWELL_ID_PREFIX = 'maxwell_';
-const SESSION_CACHE_PREFIX = 'tdp-narrative-scene:';
+const DAILY_CACHE_PREFIX = 'tdp-narrative-daily:';
+const DAILY_DONE_PREFIX = 'tdp-narrative-daily-done:';
 const MAXWELL_FETCH_TIMEOUT_MS = 12000;
+
+function todayStr(): string {
+  return new Date().toLocaleDateString('en-CA');
+}
+
+function dailyCacheKey(ctx: NarrativeContext): string {
+  return `${DAILY_CACHE_PREFIX}${ctx.roleId ?? 'none'}:${todayStr()}`;
+}
+
+function dailyDoneKey(ctx: NarrativeContext): string {
+  return `${DAILY_DONE_PREFIX}${ctx.roleId ?? 'none'}:${todayStr()}`;
+}
+
+export function isDailySceneCompleted(ctx: NarrativeContext): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(dailyDoneKey(ctx)) === 'true';
+  } catch { return false; }
+}
+
+export function markDailySceneCompleted(ctx: NarrativeContext): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(dailyDoneKey(ctx), 'true');
+  } catch { /* quota exceeded — ignore */ }
+}
 
 // Reward bounds from shared/config/balancing.ts ACTIVITY_REWARDS.narrative_scene
 const REWARD_XP_MIN = 15;
@@ -346,17 +373,10 @@ function clampRewards(scene: NarrativeScene): NarrativeScene {
   };
 }
 
-function sessionCacheKey(ctx: NarrativeContext): string {
-  const statsStr = ctx.stats
-    ? `${ctx.stats.presence}:${ctx.stats.precision}:${ctx.stats.leadership}:${ctx.stats.creativity}`
-    : 'null';
-  return `${SESSION_CACHE_PREFIX}${ctx.roleId ?? 'none'}:${statsStr}`;
-}
-
-function readSessionCache(ctx: NarrativeContext): NarrativeScene | null {
+function readDailyCache(ctx: NarrativeContext): NarrativeScene | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.sessionStorage.getItem(sessionCacheKey(ctx));
+    const raw = window.localStorage.getItem(dailyCacheKey(ctx));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as unknown;
     if (validateScene(parsed).length > 0) return null;
@@ -364,10 +384,10 @@ function readSessionCache(ctx: NarrativeContext): NarrativeScene | null {
   } catch { return null; }
 }
 
-function writeSessionCache(scene: NarrativeScene, ctx: NarrativeContext): void {
+function writeDailyCache(scene: NarrativeScene, ctx: NarrativeContext): void {
   if (typeof window === 'undefined') return;
   try {
-    window.sessionStorage.setItem(sessionCacheKey(ctx), JSON.stringify(scene));
+    window.localStorage.setItem(dailyCacheKey(ctx), JSON.stringify(scene));
   } catch { /* quota exceeded — ignore */ }
 }
 
@@ -449,8 +469,8 @@ export async function fetchScene(
   // 2. Only attempt Maxwell for sentinel IDs
   if (!id.startsWith(MAXWELL_ID_PREFIX)) return null;
 
-  // 3. sessionStorage cache
-  const cached = readSessionCache(ctx);
+  // 3. Daily localStorage cache (persists across tabs; keyed by role + date)
+  const cached = readDailyCache(ctx);
   if (cached) {
     registerScenes([cached]);
     return cached;
@@ -480,7 +500,7 @@ export async function fetchScene(
     const scene = await callMaxwellForScene(ctx, combinedSignal);
     if (timeoutId !== null) window.clearTimeout(timeoutId);
     if (!scene) return null;
-    writeSessionCache(scene, ctx);
+    writeDailyCache(scene, ctx);
     registerScenes([scene]);
     return scene;
   } catch {

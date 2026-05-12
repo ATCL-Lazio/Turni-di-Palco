@@ -5,8 +5,10 @@ import {
   createRunState,
   evaluateChoice,
   fetchScene,
+  isDailySceneCompleted,
   isSceneAvailable,
   loadScene,
+  markDailySceneCompleted,
   MAXWELL_ID_PREFIX,
   type NarrativeChoice,
   type NarrativeContext,
@@ -30,6 +32,7 @@ interface NarrativeSceneProps {
 
 type LocalState =
   | { phase: 'loading' }
+  | { phase: 'daily_done' }
   | { phase: 'choosing'; run: NarrativeRunState; scene: NarrativeSceneData }
   | { phase: 'submitting'; run: NarrativeRunState; scene: NarrativeSceneData; choiceId: string }
   | { phase: 'outcome'; run: NarrativeRunState; scene: NarrativeSceneData; outcome: NarrativeOutcome; rewards: Rewards; finished: boolean }
@@ -48,8 +51,12 @@ function makeCtx(roleId: RoleId | null, roleStats: RoleStats | null, flags: Read
 }
 
 function resolveInitialState(sceneId: string, roleId: RoleId | null, roleStats: RoleStats | null): LocalState {
-  // Dynamic scenes require async loading — start in loading phase
-  if (sceneId.startsWith(MAXWELL_ID_PREFIX)) return { phase: 'loading' };
+  // Dynamic scenes: check if today's daily challenge was already completed
+  if (sceneId.startsWith(MAXWELL_ID_PREFIX)) {
+    const ctx = makeCtx(roleId, roleStats, new Set());
+    if (isDailySceneCompleted(ctx)) return { phase: 'daily_done' };
+    return { phase: 'loading' };
+  }
 
   // Static scene — resolve synchronously from the registry
   const scene = loadScene(sceneId);
@@ -104,6 +111,24 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
         <div className="flex flex-1 flex-col items-center justify-center gap-4">
           <div className="size-8 animate-spin rounded-full border-2 border-[#a82847] border-t-transparent" aria-hidden="true" />
           <p className="text-sm text-[#9a9697]">Maxwell sta preparando uno scenario…</p>
+        </div>
+      </Screen>
+    );
+  }
+
+  if (local.phase === 'daily_done') {
+    return (
+      <Screen withBottomNavPadding={false}>
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+          <h1 className="text-xl font-semibold text-[#f5f0f1]">Sfida completata!</h1>
+          <p className="text-sm text-[#9a9697]">Hai già completato lo scenario di oggi.<br />Torna domani per la prossima sfida.</p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-2 rounded-xl bg-[#a82847] px-6 py-2 text-sm font-medium text-white"
+          >
+            Torna alle attività
+          </button>
         </div>
       </Screen>
     );
@@ -207,6 +232,10 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
     if (!submitResult.ok) {
       setLocal({ phase: 'error', message: submitResult.error ?? 'Errore nel salvataggio della scelta' });
       return;
+    }
+
+    if (finished && sceneId.startsWith(MAXWELL_ID_PREFIX)) {
+      markDailySceneCompleted(makeCtx(roleId, roleStats, new Set()));
     }
 
     setLocal({
