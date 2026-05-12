@@ -120,6 +120,14 @@ export const STAT_EFFECTS = {
 } as const;
 
 /**
+ * Random target range for minigame rounds.
+ * Targets are re-rolled each time a minigame starts to prevent pattern memorisation.
+ * The range avoids the extremes [0, 14] and [86, 100] so the bar always has
+ * visible travel on both sides of the target.
+ */
+export const MINIGAME_TARGET_RANGE = { min: 15, max: 85 } as const;
+
+/**
  * Daily / weekly activity caps. The numbers exist to validate the principle
  * "1 corso ogni 2 settimane di gioco attivo" without inventing them ad-hoc
  * inside scheduling code.

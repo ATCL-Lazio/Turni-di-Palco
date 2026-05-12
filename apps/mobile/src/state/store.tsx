@@ -10,6 +10,7 @@ import {
 import { resolveDisplayName } from '../lib/profile-utils';
 import { COOKIE_CONSENT_KEY, GEO_CONSENT_KEY } from '../constants/privacy';
 import { formatErrorDetails, reportCriticalError } from '../services/error-handler';
+import { getXpToNextLevel } from '../../../../shared/config/balancing';
 import { withMobileWatchdog } from '../services/mobile-watchdog';
 import {
   applyMobileFeatureFlagOverrides,
@@ -2160,7 +2161,7 @@ function applyRewards(profile: PlayerProfile, rewards: Rewards, source: 'turn' |
   while (nextXp >= nextThreshold) {
     nextXp -= nextThreshold;
     nextLevel += 1;
-    nextThreshold = 800 + nextLevel * 200; // closes #475 — curva più morbida (ex 1000 + n*250)
+    nextThreshold = getXpToNextLevel(nextLevel);
   }
 
   return {
