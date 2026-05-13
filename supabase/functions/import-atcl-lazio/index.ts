@@ -58,12 +58,8 @@ function parseTime(text: string): string | null {
 function stripTags(html: string): string {
   return html
     .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
     .replace(/&#\d+;/g, ' ')
-    .replace(/&[a-z]+;/g, ' ')
+    .replace(/&[a-z]+;/g, ' ')  // replaces &nbsp; &amp; &lt; &gt; etc. with a space
     .replace(/\s+/g, ' ')
     .trim();
 }
