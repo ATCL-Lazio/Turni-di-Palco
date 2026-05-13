@@ -96,12 +96,17 @@ serve(async (req) => {
     return errorResponse('Impossibile caricare il changelog', 502);
   }
 
-  let json: any[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let json: any[];
   try {
     const parsed = await response.json();
-    json = Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) {
+      console.warn('[app-version] unexpected GitHub API response shape', parsed);
+      return errorResponse('GitHub API returned unexpected format', 502);
+    }
+    json = parsed;
   } catch {
-    json = [];
+    return errorResponse('Impossibile analizzare la risposta GitHub', 502);
   }
 
   const changelog: ChangelogEntry[] = json.map((item) => {
