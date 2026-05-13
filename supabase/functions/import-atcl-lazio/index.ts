@@ -149,7 +149,13 @@ async function fetchShowPosts(categoryId: number, modifiedAfter: string): Promis
     const url =
       `${WP_API}/posts?categories=${categoryId}&per_page=${POSTS_PER_PAGE}&page=${page}` +
       `&modified_after=${encodeURIComponent(modifiedAfter)}&orderby=modified&order=desc&${fields}`;
-    const res = await fetchWithTimeout(url);
+    let res: Response;
+    try {
+      res = await fetchWithTimeout(url);
+    } catch (err) {
+      console.warn(`[import-atcl-lazio] fetchShowPosts network error on page ${page} (${url}):`, err);
+      break;
+    }
     if (!res.ok) break;
     const batch = (await res.json()) as WpPost[];
     if (!Array.isArray(batch) || batch.length === 0) break;
