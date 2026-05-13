@@ -95,8 +95,12 @@ serve(async (req: Request) => {
     }
 
     if (action === 'reserve_hash') {
-      const userRole = authenticatedUser?.app_metadata?.role as string | undefined;
-      if (userRole !== 'admin') {
+      const roleSingle = authenticatedUser?.app_metadata?.role as string | undefined;
+      const rolesArray = authenticatedUser?.app_metadata?.roles as string[] | undefined;
+      const isAdmin =
+        roleSingle === 'admin' ||
+        (Array.isArray(rolesArray) && rolesArray.includes('admin'));
+      if (!isAdmin) {
         return jsonResponse({ error: 'Accesso negato: ruolo admin richiesto' }, 403);
       }
 
