@@ -14,6 +14,14 @@ const MAX_LIMIT = 200;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 60;
 const RATE_LIMIT_SWEEP_EVERY = 128;
+// NOTE: rateBuckets is module-level state within a single Deno isolate instance.
+// Supabase Edge Functions may spin up multiple isolate instances concurrently (one per
+// request or per region), each with their own memory. This Map is NOT shared across
+// isolates, so rate limiting is only effective within a single isolate — concurrent
+// requests routed to different isolates bypass this check entirely.
+// For production-grade rate limiting, use a shared persistent store (e.g. Supabase KV,
+// a Redis-compatible store, or Supabase dashboard rate-limit rules applied before the
+// function is invoked). See issue #1028.
 const rateBuckets = new Map<string, number[]>();
 let rateLimitCallsSinceSweep = 0;
 
