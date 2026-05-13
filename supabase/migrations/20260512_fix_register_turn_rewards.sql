@@ -176,10 +176,6 @@ begin
       update public.profiles
         set token_atcl = token_atcl - v_boost_cost
         where id = v_user_id;
-      insert into public.token_ledger (user_id, reason, delta, balance_after, metadata)
-        values (v_user_id, 'spend_boost', -v_boost_cost, v_token_working,
-                jsonb_build_object('event_id', p_event_id,
-                                   'client_action_id', p_client_action_id));
     else
       v_boost_applied := false;
       v_boost_rejection_reason := 'insufficient_token_balance';
@@ -216,6 +212,7 @@ begin
     if p_checkin_latitude < -90 or p_checkin_latitude > 90 then
       if v_boost_applied then
         update public.profiles set token_atcl = token_atcl + v_boost_cost where id = v_user_id;
+        v_token_working := v_token_working + v_boost_cost;
       end if;
       return query
         select false, false, p_boost_requested, 'invalid_coordinates'::text,
@@ -228,6 +225,7 @@ begin
     if p_checkin_longitude < -180 or p_checkin_longitude > 180 then
       if v_boost_applied then
         update public.profiles set token_atcl = token_atcl + v_boost_cost where id = v_user_id;
+        v_token_working := v_token_working + v_boost_cost;
       end if;
       return query
         select false, false, p_boost_requested, 'invalid_coordinates'::text,
@@ -287,6 +285,7 @@ begin
           v_geofence_ok := false;
           if v_boost_applied then
             update public.profiles set token_atcl = token_atcl + v_boost_cost where id = v_user_id;
+            v_token_working := v_token_working + v_boost_cost;
           end if;
           return query
             select false, false, p_boost_requested, 'outside_geofence'::text,
@@ -367,7 +366,16 @@ begin
     last_activity_at = now()
   where id = v_user_id;
 
-  -- ── 14. Token ledger – earn_turn ──────────────────────────────────────────
+  -- ── 14. Token ledger ─────────────────────────────────────────────────────
+  -- spend_boost is written here (not at pre-deduction) so aborted registrations
+  -- (geofence failure, invalid coords) leave no stray ledger entries to reverse.
+  if v_boost_applied then
+    insert into public.token_ledger (user_id, reason, delta, balance_after, metadata)
+      values (v_user_id, 'spend_boost', -v_boost_cost, v_token_working,
+              jsonb_build_object('event_id', p_event_id,
+                                 'client_action_id', p_client_action_id));
+  end if;
+
   insert into public.token_ledger (user_id, reason, delta, balance_after, metadata)
     values (v_user_id, 'earn_turn', v_turn_token_reward, v_token_after,
             jsonb_build_object(
