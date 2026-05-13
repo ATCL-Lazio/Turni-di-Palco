@@ -1,0 +1,37 @@
+{
+  "id": "rspp_formazione",
+  "title": "Formazione obbligatoria",
+  "setting": "Sala riunioni — settimana di allestimento",
+  "allowedRoles": ["rspp"],
+  "prompt": "Devi tenere il modulo di formazione antincendio obbligatoria per nuovi tecnici. Sono in sette. Due di loro hanno già fatto il corso altrove ma non hanno il certificato aggiornato.",
+  "choices": [
+    {
+      "id": "corso_completo",
+      "label": "Fai il corso completo per tutti",
+      "outcome": {
+        "text": "Tre ore di formazione rigorosa. Tutti certificati. Qualcuno si annoia, ma la documentazione è inattaccabile.",
+        "rewards": { "xp": 30, "reputation": 3 },
+        "next": null
+      }
+    },
+    {
+      "id": "corso_differenziato",
+      "label": "Differenzi il percorso per esperti",
+      "requires": { "stat": "leadership", "min": 60 },
+      "outcome": {
+        "text": "Gli esperti fanno un modulo breve di aggiornamento, i nuovi il corso completo. Risparmi due ore senza abbassare la qualità.",
+        "rewards": { "xp": 45, "cachet": 8, "reputation": 4 },
+        "next": null
+      }
+    },
+    {
+      "id": "rimanda",
+      "label": "Rimandi il modulo a dopo il debutto",
+      "outcome": {
+        "text": "Il debutto passa bene, ma il verbale di sicurezza risulta incompleto. L'ispettore lo noterà al prossimo controllo.",
+        "rewards": { "xp": 10 },
+        "next": null
+      }
+    }
+  ]
+}

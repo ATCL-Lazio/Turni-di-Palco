@@ -1,0 +1,38 @@
+{
+  "id": "attore_sostituzione",
+  "title": "Sostituzione dell'ultimo minuto",
+  "setting": "Camerino — 20 minuti al sipario",
+  "allowedRoles": ["attore"],
+  "prompt": "Il collega che doveva recitare il ruolo del Commissario ha la febbre. Il regista ti chiede di coprirlo: hai visto le prove ma non hai mai studiato le battute. Il pubblico è già in sala.",
+  "choices": [
+    {
+      "id": "accetta_copione",
+      "label": "Accetti con copione in mano",
+      "outcome": {
+        "text": "Entri in scena con il testo. Il pubblico capisce la situazione e applaude il coraggio. Non è la serata migliore, ma reggi.",
+        "rewards": { "xp": 25, "cachet": 5 },
+        "next": null
+      }
+    },
+    {
+      "id": "improvvisa_personaggio",
+      "label": "Improvvisi fedele al testo",
+      "requires": { "stat": "presence", "min": 65 },
+      "outcome": {
+        "text": "La tua presenza scenica tiene insieme ogni momento di incertezza. Il regista ti stringe la mano a fine serata.",
+        "rewards": { "xp": 45, "cachet": 12, "reputation": 3 },
+        "setFlags": ["covered_last_minute"],
+        "next": null
+      }
+    },
+    {
+      "id": "rifiuta",
+      "label": "Declini: troppo rischio",
+      "outcome": {
+        "text": "La compagnia capisce, ma la serata viene cancellata. Qualcuno ci resterà male ancora per un po'.",
+        "rewards": { "xp": 5 },
+        "next": null
+      }
+    }
+  ]
+}

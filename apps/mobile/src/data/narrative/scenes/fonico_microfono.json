@@ -1,0 +1,37 @@
+{
+  "id": "fonico_microfono",
+  "title": "Microfono morto",
+  "setting": "Cabina audio — secondo atto in corso",
+  "allowedRoles": ["fonico"],
+  "prompt": "Durante il secondo atto il radiomicrofono della protagonista smette di trasmettere. Lei è al centro del palco, il pubblico non sente. Hai trenta secondi prima che la situazione diventi evidente.",
+  "choices": [
+    {
+      "id": "switch_canale",
+      "label": "Switchi su canale di riserva",
+      "requires": { "stat": "precision", "min": 70 },
+      "outcome": {
+        "text": "Il cambio è quasi impercettibile. L'attrice lo sente nell'auricolare e si adatta. Il pubblico non capisce cosa è successo.",
+        "rewards": { "xp": 50, "cachet": 15, "reputation": 3 },
+        "next": null
+      }
+    },
+    {
+      "id": "segnala_attrice",
+      "label": "Segnali all'assistente di palco",
+      "outcome": {
+        "text": "L'assistente porta il microfono di riserva. C'è una pausa di dieci secondi che il pubblico nota. La serata si salva.",
+        "rewards": { "xp": 25, "cachet": 6 },
+        "next": null
+      }
+    },
+    {
+      "id": "alza_ambiente",
+      "label": "Alzi i microfoni d'ambiente",
+      "outcome": {
+        "text": "L'audio è meno definito ma presente. La scena perde intensità ma non si interrompe. Il regista ti chiede un report a fine serata.",
+        "rewards": { "xp": 20 },
+        "next": null
+      }
+    }
+  ]
+}

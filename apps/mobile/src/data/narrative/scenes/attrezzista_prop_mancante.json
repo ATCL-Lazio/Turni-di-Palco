@@ -1,0 +1,38 @@
+{
+  "id": "attrezzista_prop_mancante",
+  "title": "Prop mancante",
+  "setting": "Magazzino scenico — un'ora prima del debutto",
+  "allowedRoles": ["attrezzista"],
+  "prompt": "La lettera che l'attore deve strappare in scena non si trova. Il prop era elencato nel foglio di lavorazione ma non è in magazzino. Il debutto è tra un'ora.",
+  "choices": [
+    {
+      "id": "ricrea_prop",
+      "label": "Ricrei il prop con quello che hai",
+      "requires": { "stat": "creativity", "min": 55 },
+      "outcome": {
+        "text": "Con carta invecchiata a mano e un po' di tè, ottieni qualcosa di credibile. L'attore lo approva. Nessuno se ne accorgerà.",
+        "rewards": { "xp": 40, "cachet": 10 },
+        "setFlags": ["prop_improvvisato"],
+        "next": null
+      }
+    },
+    {
+      "id": "cerca_sostituto",
+      "label": "Cerchi un sostituto in teatro",
+      "outcome": {
+        "text": "Trovi una busta d'ufficio che può funzionare. Non è perfetta, ma l'attore adatta il gesto. Si salva.",
+        "rewards": { "xp": 20, "cachet": 5 },
+        "next": null
+      }
+    },
+    {
+      "id": "avvisa_regia",
+      "label": "Avvisi immediatamente la regia",
+      "outcome": {
+        "text": "Il regista modifica la scena: la lettera non si strappa più, viene solo appoggiata sul tavolo. Funziona diversamente, ma funziona.",
+        "rewards": { "xp": 15, "cachet": 3 },
+        "next": null
+      }
+    }
+  ]
+}

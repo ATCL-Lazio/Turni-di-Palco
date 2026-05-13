@@ -1,0 +1,37 @@
+{
+  "id": "attrezzista_danno",
+  "title": "Danno accidentale",
+  "setting": "Palco — smontaggio dopo lo spettacolo",
+  "allowedRoles": ["attrezzista"],
+  "prompt": "Durante lo smontaggio, un elemento scenico si rompe per un movimento sbagliato tuo. Il danno è visibile e il pezzo sarà necessario per la replica di domani.",
+  "choices": [
+    {
+      "id": "riferisci_subito",
+      "label": "Riferisci subito al responsabile",
+      "outcome": {
+        "text": "Il responsabile apprezza l'onestà. Si trova una soluzione notturna. Il danno viene riparato in tempo per domani.",
+        "rewards": { "xp": 30, "reputation": 4 },
+        "next": null
+      }
+    },
+    {
+      "id": "ripara_da_solo",
+      "label": "Tenti la riparazione da solo",
+      "requires": { "stat": "precision", "min": 65 },
+      "outcome": {
+        "text": "Con la colla e i materiali in magazzino riesci a rimediare. Il danno non si vede. Hai imparato qualcosa stasera.",
+        "rewards": { "xp": 40, "cachet": 8 },
+        "next": null
+      }
+    },
+    {
+      "id": "nascondi",
+      "label": "Sposti il pezzo sperando che nessuno noti",
+      "outcome": {
+        "text": "Il danno viene scoperto il giorno dopo. Sei già noto come la persona che non ha detto niente. Ci vorrà un po' per recuperare la fiducia.",
+        "rewards": { "xp": 5 },
+        "next": null
+      }
+    }
+  ]
+}

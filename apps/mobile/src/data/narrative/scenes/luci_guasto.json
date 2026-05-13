@@ -1,0 +1,38 @@
+{
+  "id": "luci_guasto",
+  "title": "Guasto al dimmer",
+  "setting": "Cabina regia — 10 minuti al sipario",
+  "allowedRoles": ["luci"],
+  "prompt": "Un dimmer del banco luci non risponde. La scena di apertura prevede un controluce specifico che sarà impossibile senza quel canale. Il regista non sa ancora nulla.",
+  "choices": [
+    {
+      "id": "avvisa_subito",
+      "label": "Avvisi subito il regista",
+      "outcome": {
+        "text": "Il regista adatta la scena d'apertura in cinque minuti con quello che c'è. Meno elegante, ma professionale.",
+        "rewards": { "xp": 20, "cachet": 5 },
+        "next": null
+      }
+    },
+    {
+      "id": "bypass_manuale",
+      "label": "Tenti un bypass manuale",
+      "requires": { "stat": "precision", "min": 70 },
+      "outcome": {
+        "text": "Trovi una soluzione tecnica in extremis. Il controluce funziona. Il regista non saprà mai nulla del problema.",
+        "rewards": { "xp": 50, "cachet": 15 },
+        "setFlags": ["luci_salvato_guasto"],
+        "next": null
+      }
+    },
+    {
+      "id": "vai_senza",
+      "label": "Vai in scena senza quel canale",
+      "outcome": {
+        "text": "La scena apre in modo piatto. Il regista se ne accorge e ti chiede spiegazioni nell'intervallo.",
+        "rewards": { "xp": 10 },
+        "next": null
+      }
+    }
+  ]
+}

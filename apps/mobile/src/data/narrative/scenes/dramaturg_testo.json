@@ -1,0 +1,39 @@
+{
+  "id": "dramaturg_testo",
+  "title": "Taglio nel testo",
+  "setting": "Sala prove — settimana prima del debutto",
+  "allowedRoles": ["dramaturg"],
+  "prompt": "Il regista vuole tagliare il monologo finale perché la durata dello spettacolo supera le due ore. È il monologo che chiude l'arco emotivo del protagonista. Gli attori sono contrari.",
+  "choices": [
+    {
+      "id": "difendi_testo",
+      "label": "Difendi il monologo con argomentazioni",
+      "requires": { "stat": "presence", "min": 60 },
+      "outcome": {
+        "text": "Il regista ascolta. Trovate un compromesso: il monologo si accorcia di un terzo ma resta. Il finale tiene.",
+        "rewards": { "xp": 40, "reputation": 4 },
+        "next": null
+      }
+    },
+    {
+      "id": "proponi_alternativa",
+      "label": "Proponi un taglio alternativo",
+      "requires": { "stat": "creativity", "min": 65 },
+      "outcome": {
+        "text": "Individui due scene del secondo atto non essenziali. Il taglio lì recupera venti minuti senza toccare la chiusura. Il regista è sorpreso dalla soluzione.",
+        "rewards": { "xp": 50, "cachet": 12, "reputation": 5 },
+        "setFlags": ["dramaturg_taglio_alternativo"],
+        "next": null
+      }
+    },
+    {
+      "id": "accetta",
+      "label": "Accetti il taglio",
+      "outcome": {
+        "text": "Il monologo sparisce. Lo spettacolo è più veloce ma meno compiuto. Due attori ti guardano in un certo modo.",
+        "rewards": { "xp": 15 },
+        "next": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "attore_critico",
+  "title": "Visita del critico",
+  "setting": "Backstage — dopo il primo atto",
+  "allowedRoles": ["attore"],
+  "requiresFlags": ["covered_last_minute"],
+  "prompt": "Un critico del Corriere della Sera era in sala stanotte. Un assistente ti cerca in camerino: vuole intervistarti sul momento di sostituzione dell'ultimo minuto che hai gestito.",
+  "choices": [
+    {
+      "id": "racconta_tutto",
+      "label": "Racconti con generosità",
+      "outcome": {
+        "text": "L'articolo uscirà positivo. Citi la compagnia, il regista, il collega malato. La stampa ti vuole bene.",
+        "rewards": { "xp": 40, "reputation": 5 },
+        "next": null
+      }
+    },
+    {
+      "id": "schivo",
+      "label": "Rimandi al regista",
+      "requires": { "stat": "leadership", "min": 60 },
+      "outcome": {
+        "text": "Il critico apprezza la discrezione. L'articolo si concentra sullo spettacolo, non sul gossip. Un punto di stile.",
+        "rewards": { "xp": 25, "reputation": 3, "cachet": 5 },
+        "next": null
+      }
+    }
+  ]
+}

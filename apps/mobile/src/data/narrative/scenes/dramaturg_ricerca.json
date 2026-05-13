@@ -1,0 +1,37 @@
+{
+  "id": "dramaturg_ricerca",
+  "title": "Fonte contestata",
+  "setting": "Biblioteca — fase di ricerca",
+  "allowedRoles": ["dramaturg"],
+  "prompt": "Stai preparando le note di sala. Hai trovato una citazione perfetta attribuita all'autore del testo, ma cercando meglio non riesci a verificarne l'autenticità. La scadenza è domani.",
+  "choices": [
+    {
+      "id": "escludi_citazione",
+      "label": "Escludi la citazione non verificata",
+      "outcome": {
+        "text": "Le note di sala sono più brevi ma inattaccabili. La direzione artistica apprezza il rigore.",
+        "rewards": { "xp": 30, "reputation": 4 },
+        "next": null
+      }
+    },
+    {
+      "id": "cita_con_dubbio",
+      "label": "La citi segnalando l'incertezza",
+      "requires": { "stat": "precision", "min": 55 },
+      "outcome": {
+        "text": "La nota metodologica sulla fonte incerta diventa essa stessa un punto di interesse per il pubblico più attento.",
+        "rewards": { "xp": 35, "reputation": 3 },
+        "next": null
+      }
+    },
+    {
+      "id": "usa_comunque",
+      "label": "La usi senza segnalare il dubbio",
+      "outcome": {
+        "text": "Nessuno lo nota in platea, ma un accademico in sala scrive un post di correzione. Il teatro dovrà chiedere scusa pubblicamente.",
+        "rewards": { "xp": 5 },
+        "next": null
+      }
+    }
+  ]
+}

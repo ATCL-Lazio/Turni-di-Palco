@@ -1,0 +1,37 @@
+{
+  "id": "rspp_evacuazione",
+  "title": "Allarme antincendio",
+  "setting": "Teatro — durante la replica, sala piena",
+  "allowedRoles": ["rspp"],
+  "prompt": "L'allarme antincendio suona durante il secondo atto. Non vedi fumo e non sai se sia un falso allarme. La sala ha 380 spettatori. La decisione di evacuare è tua.",
+  "choices": [
+    {
+      "id": "evacua",
+      "label": "Evacui immediatamente",
+      "outcome": {
+        "text": "Era un falso allarme: un sensore in camerino. Ma la procedura è filata liscia. Il prefetto elogerà la gestione.",
+        "rewards": { "xp": 40, "reputation": 5 },
+        "next": null
+      }
+    },
+    {
+      "id": "verifica_prima",
+      "label": "Verifichi la fonte prima di agire",
+      "requires": { "stat": "precision", "min": 70 },
+      "outcome": {
+        "text": "In novanta secondi confermi che è un falso allarme. La sala non si svuota, lo spettacolo riprende. Rischio calcolato, risultato ottimo.",
+        "rewards": { "xp": 50, "cachet": 10, "reputation": 4 },
+        "next": null
+      }
+    },
+    {
+      "id": "aspetta_istruzioni",
+      "label": "Aspetti istruzioni dalla direzione",
+      "outcome": {
+        "text": "La direzione non risponde in tempo. Inizi l'evacuazione con ritardo. Nessun danno, ma il verbale della serata non è lusinghiero.",
+        "rewards": { "xp": 15 },
+        "next": null
+      }
+    }
+  ]
+}

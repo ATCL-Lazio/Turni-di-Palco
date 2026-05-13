@@ -1,0 +1,38 @@
+{
+  "id": "attore_conflitto",
+  "title": "Conflitto in prova",
+  "setting": "Sala prove — pomeriggio",
+  "allowedRoles": ["attore"],
+  "prompt": "Durante la prova generale, un tuo collega interrompe continuamente le tue scene per suggerire come dovresti recitare. Il regista tace. La tensione sta bloccando tutto il gruppo.",
+  "choices": [
+    {
+      "id": "parla_regista",
+      "label": "Chiedi al regista di intervenire",
+      "requires": { "stat": "leadership", "min": 55 },
+      "outcome": {
+        "text": "Il regista riprende le redini. Il collega si calma, le prove riprendono con più fluidità.",
+        "rewards": { "xp": 30, "cachet": 5, "reputation": 2 },
+        "next": null
+      }
+    },
+    {
+      "id": "confronto_diretto",
+      "label": "Parli direttamente al collega",
+      "outcome": {
+        "text": "Il confronto è teso ma onesto. Alla fine trovate un accordo: ognuno al suo posto. La prova finisce bene.",
+        "rewards": { "xp": 35, "cachet": 8 },
+        "setFlags": ["resolved_conflict_directly"],
+        "next": null
+      }
+    },
+    {
+      "id": "ignora",
+      "label": "Ignori e vai avanti",
+      "outcome": {
+        "text": "Assorbi i commenti e continui. La tensione resta, ma non peggiora. Guadagni rispetto per la pazienza.",
+        "rewards": { "xp": 15 },
+        "next": null
+      }
+    }
+  ]
+}

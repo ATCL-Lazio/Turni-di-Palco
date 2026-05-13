@@ -1,0 +1,37 @@
+{
+  "id": "palco_sicurezza",
+  "title": "Rischio in quota",
+  "setting": "Graticcia — durante l'allestimento",
+  "allowedRoles": ["palco"],
+  "prompt": "Un collega sta lavorando in quota senza aver agganciato correttamente il moschettone di sicurezza. Lo vedi tu, ma lui non si è accorto. Il capomacchinista è a terra e non vede.",
+  "choices": [
+    {
+      "id": "ferma_subito",
+      "label": "Fermi subito il lavoro",
+      "outcome": {
+        "text": "Il collega si aggiusta e ti ringrazia. Il capomacchinista viene informato. Cinque minuti persi, nessun infortunio.",
+        "rewards": { "xp": 35, "reputation": 5 },
+        "next": null
+      }
+    },
+    {
+      "id": "avvisa_capomacchinista",
+      "label": "Avvisi il capomacchinista",
+      "requires": { "stat": "precision", "min": 50 },
+      "outcome": {
+        "text": "Il capomacchinista interviene con autorità. Il collega viene fatto scendere e istruito. Procedura rispettata.",
+        "rewards": { "xp": 30, "reputation": 4 },
+        "next": null
+      }
+    },
+    {
+      "id": "ignora",
+      "label": "Pensi che sia affar suo",
+      "outcome": {
+        "text": "Nulla accade stasera, ma il rischio era reale. Il senso di responsabilità collettiva ha un prezzo quando manca.",
+        "rewards": { "xp": 5 },
+        "next": null
+      }
+    }
+  ]
+}

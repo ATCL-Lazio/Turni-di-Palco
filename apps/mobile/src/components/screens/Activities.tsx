@@ -104,9 +104,9 @@ function ScenarioPreviewCard({ onOpen }: { onOpen: () => void }) {
         <span className="text-xs uppercase tracking-wider text-[#a82847]">Scenario narrativo</span>
         <Tag size="sm" variant="info">Anteprima</Tag>
       </div>
-      <p className="text-sm text-white">Cinque minuti al sipario</p>
+      <p className="text-sm text-white">Scenario del giorno</p>
       <p className="text-sm text-[#9a9697]">
-        Una scelta rapida prima dell'apertura. Conseguenze immediate.
+        Maxwell genera uno scenario su misura per il tuo ruolo. Una scelta, conseguenze reali.
       </p>
       <button
         type="button"

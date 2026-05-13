@@ -1,0 +1,38 @@
+{
+  "id": "luci_budget",
+  "title": "Budget ridotto",
+  "setting": "Riunione di produzione — settimana prima del debutto",
+  "allowedRoles": ["luci"],
+  "prompt": "La produzione ha tagliato il noleggio dei faretti aggiuntivi: puoi tenere solo la metà degli strumenti previsti in progetto. Devi ridisegnare il piano luci in 48 ore.",
+  "choices": [
+    {
+      "id": "ridisegna_solo",
+      "label": "Ridisegni il piano da solo",
+      "requires": { "stat": "creativity", "min": 60 },
+      "outcome": {
+        "text": "Il nuovo disegno è più essenziale ma più coerente. Il critico scriverà che la regia della luce era 'geometrica e nitida'.",
+        "rewards": { "xp": 40, "cachet": 10, "reputation": 2 },
+        "next": null
+      }
+    },
+    {
+      "id": "coinvolgi_regista",
+      "label": "Coinvolgi il regista nella scelta",
+      "outcome": {
+        "text": "Il regista apprezza la collaborazione. Le scelte sono condivise, il risultato è discreto ma difendibile.",
+        "rewards": { "xp": 25, "cachet": 8 },
+        "next": null
+      }
+    },
+    {
+      "id": "negozia_produzione",
+      "label": "Tratti con la produzione",
+      "requires": { "stat": "leadership", "min": 65 },
+      "outcome": {
+        "text": "Riesci a recuperare tre strumenti chiave. Non tutti, ma abbastanza da salvare le scene centrali.",
+        "rewards": { "xp": 35, "cachet": 12, "reputation": 3 },
+        "next": null
+      }
+    }
+  ]
+}

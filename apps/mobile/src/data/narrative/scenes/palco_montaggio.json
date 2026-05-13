@@ -1,0 +1,37 @@
+{
+  "id": "palco_montaggio",
+  "title": "Montaggio in ritardo",
+  "setting": "Palco — giorno di allestimento",
+  "allowedRoles": ["palco"],
+  "prompt": "Il camion con la scenografia è arrivato con tre ore di ritardo. Il montaggio deve finire entro stasera per la prova generale. La squadra è stanca e mancano due tecnici.",
+  "choices": [
+    {
+      "id": "ridistribuisci",
+      "label": "Ridistribuisci i compiti",
+      "requires": { "stat": "leadership", "min": 60 },
+      "outcome": {
+        "text": "Riorganizzi la squadra per priorità: prima le strutture portanti, poi i dettagli. Finite con mezz'ora di anticipo.",
+        "rewards": { "xp": 45, "cachet": 12, "reputation": 3 },
+        "next": null
+      }
+    },
+    {
+      "id": "chiedi_aiuto",
+      "label": "Chiedi rinforzi alla produzione",
+      "outcome": {
+        "text": "La produzione manda due persone in più. Il montaggio finisce in tempo, ma la squadra capisce che potevi gestirlo da solo.",
+        "rewards": { "xp": 20, "cachet": 5 },
+        "next": null
+      }
+    },
+    {
+      "id": "taglia_elementi",
+      "label": "Proponi di tagliare elementi non essenziali",
+      "outcome": {
+        "text": "Il regista accetta con fatica. La scena finale perde un arco scenico, ma la prova generale si fa. Si recupera domani.",
+        "rewards": { "xp": 15 },
+        "next": null
+      }
+    }
+  ]
+}

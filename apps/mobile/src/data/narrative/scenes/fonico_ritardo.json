@@ -1,0 +1,37 @@
+{
+  "id": "fonico_ritardo",
+  "title": "Ritardo in prova",
+  "setting": "Palco — prova del suono, inizio ritardato di 40 minuti",
+  "allowedRoles": ["fonico"],
+  "prompt": "Il sistema di diffusione non ha caricato correttamente i file audio per la scena finale. La prova è già in ritardo. Gli attori aspettano sul palco.",
+  "choices": [
+    {
+      "id": "ricarica_rapida",
+      "label": "Ricarichi i file al volo",
+      "requires": { "stat": "precision", "min": 60 },
+      "outcome": {
+        "text": "In otto minuti tutto è pronto. La prova riprende senza ulteriori intoppi. Il regista non dice nulla, che è già un ottimo segno.",
+        "rewards": { "xp": 35, "cachet": 10 },
+        "next": null
+      }
+    },
+    {
+      "id": "usa_backup",
+      "label": "Usi il file di backup",
+      "outcome": {
+        "text": "Il backup è di qualità leggermente inferiore ma funziona. La prova va avanti. Noti la differenza, gli altri forse no.",
+        "rewards": { "xp": 20, "cachet": 5 },
+        "next": null
+      }
+    },
+    {
+      "id": "salta_scena",
+      "label": "Proponi di saltare la scena finale",
+      "outcome": {
+        "text": "Il regista non è contento, ma accetta. La scena finale si proverà domani a parte. Perdi un'ora di lavoro collettivo.",
+        "rewards": { "xp": 10 },
+        "next": null
+      }
+    }
+  ]
+}
