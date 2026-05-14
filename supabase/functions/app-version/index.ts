@@ -110,12 +110,15 @@ serve(async (req) => {
   }
 
   const changelog: ChangelogEntry[] = json.map((item) => {
-    const message = String(item?.commit?.message ?? '').split('\n')[0].trim();
+    const commit = item?.commit;
+    const author = commit?.author;
+    const committer = commit?.committer;
+    const message = String(commit?.message ?? '').split('\n')[0].trim();
     return {
       sha: String(item?.sha ?? '').slice(0, 7),
       message: message || 'Aggiornamento',
-      date: item?.commit?.committer?.date ?? item?.commit?.author?.date ?? null,
-      author: item?.commit?.author?.name ?? item?.commit?.committer?.name ?? 'Unknown',
+      date: committer?.date ?? author?.date ?? null,
+      author: author?.name ?? committer?.name ?? 'Unknown',
       url: item?.html_url ?? '',
     };
   });
