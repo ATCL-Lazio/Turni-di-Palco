@@ -11,7 +11,7 @@ import { decodeJwt } from "jose";
 import { createClient } from "@supabase/supabase-js";
 
 const CONTROL_PLANE_VERSION = (process.env.CONTROL_PLANE_VERSION || "2026.02.09").trim();
-const DEFAULT_CONTROL_PLANE_PORT = Number.parseInt(String.fromCharCode(56, 55, 56, 55), 10);
+const DEFAULT_CONTROL_PLANE_PORT = 8787;
 const CONTROL_PLANE_PORT = parseInteger(
   process.env.CONTROL_PLANE_PORT || process.env.PORT,
   DEFAULT_CONTROL_PLANE_PORT,
@@ -384,7 +384,7 @@ app.use((error, req, res, _next) => {
 setInterval(() => {
   cleanupRateLimits();
   void cleanupExpiredPendingConfirmations();
-}, 30_000).unref?.();
+}, 30_000).unref();
 
 app.listen(CONTROL_PLANE_PORT, () => {
   console.info(
@@ -1005,7 +1005,7 @@ async function fetchMobileAppVersion() {
 
   const abortController = new AbortController();
   const timeout = setTimeout(() => abortController.abort(), 5000);
-  timeout.unref?.();
+  timeout.unref();
 
   try {
     const response = await fetch(APP_VERSION_FUNCTION_ENDPOINT, {
