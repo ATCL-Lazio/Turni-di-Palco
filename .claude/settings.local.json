@@ -19,7 +19,11 @@
       "mcp__render__select_workspace",
       "mcp__render__list_deploys",
       "mcp__render__get_deploy",
-      "mcp__render__list_logs"
+      "mcp__render__list_logs",
+      "mcp__Render__list_services",
+      "mcp__Render__list_workspaces",
+      "mcp__Render__select_workspace",
+      "mcp__Render__list_deploys"
     ]
   },
   "enabledMcpjsonServers": [
