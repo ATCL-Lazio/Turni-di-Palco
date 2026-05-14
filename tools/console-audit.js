@@ -164,7 +164,15 @@ async function createIssue(errors) {
     }),
   });
 
+  if (!res.ok) {
+    const errorBody = await res.text().catch(() => '');
+    throw new Error(`GitHub issue creation failed (${res.status} ${res.statusText}): ${errorBody}`);
+  }
+
   const issue = await res.json();
+  if (!issue?.html_url) {
+    throw new Error('GitHub issue creation returned an unexpected response (missing html_url).');
+  }
   return issue.html_url;
 }
 
