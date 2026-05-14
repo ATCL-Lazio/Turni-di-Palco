@@ -56,6 +56,7 @@ Template developed by [Heartran](https://github.com/heartran)
 - **Merge policy (MANDATORY for all agents): unless explicitly specified otherwise by the user, the merge target is ALWAYS `main`.**
   - If the target branch is not written clearly in the request, assume `main`.
   - Do not infer a different merge target from recent context/history.
+  - **NEVER use `--squash` or `--rebase` when merging PRs. ALWAYS use `--merge` (merge commit `--no-ff`). Squash and rebase merges are CATEGORICALLY FORBIDDEN.**
 
 ## Identity & Git Hygiene
 
