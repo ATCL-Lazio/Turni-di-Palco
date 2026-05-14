@@ -126,7 +126,7 @@ async function createIssue(errors) {
   const overflow = errors.length - shown.length;
 
   const tableRows = shown
-    .map(e => `| \`${e.source}\` | ${e.level} | ${e.message.replace(/[|]/g, '\\|')} | \`${e.page}\` |`)
+    .map(e => `| \`${e.source}\` | ${e.level} | ${e.message.replace(/\\/g, '\\\\').replace(/\|/g, '\\|')} | \`${e.page}\` |`)
     .join('\n');
 
   const body = [
