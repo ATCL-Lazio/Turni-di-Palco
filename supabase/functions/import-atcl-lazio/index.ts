@@ -59,7 +59,7 @@ function stripTags(html: string): string {
   return html
     .replace(/<[^>]+>/g, ' ')
     .replace(/&#\d+;/g, ' ')
-    .replace(/&[a-z]+;/g, ' ')  // replaces &nbsp; &amp; &lt; &gt; etc. with a space
+    .replace(/&[a-zA-Z]+;/gi, ' ')  // replaces named entities (any case) like &nbsp; &Agrave; &ETH;
     .replace(/\s+/g, ' ')
     .trim();
 }
