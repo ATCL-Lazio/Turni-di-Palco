@@ -384,7 +384,7 @@ app.use((error, req, res, _next) => {
 setInterval(() => {
   cleanupRateLimits();
   void cleanupExpiredPendingConfirmations();
-}, 30_000).unref?.();
+}, 30_000).unref();
 
 app.listen(CONTROL_PLANE_PORT, () => {
   console.info(
