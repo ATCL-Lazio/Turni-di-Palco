@@ -8,7 +8,7 @@
 
 ---
 
-> **⚠️ Nota importante**: Questo repository è pubblico per motivi di trasparenza e documentazione. Il software è **proprietario di ATCL** e non può essere riutilizzato, modificato o distribuito senza autorizzazione esplicita. Consulta la licenza per i dettagli.
+> **⚠️ Nota importante**: Questo repository è pubblico per motivi di trasparenza e documentazione. Il software è **proprietario di ATCL** e non può essere riutilizzato, modificato o distribuito senza autorizzazione esplicita. Consulta la [licenza](LICENSE) per i dettagli.
 
 ---
 
@@ -90,6 +90,7 @@ Turni di Palco nasce dall'esigenza di rendere il teatro un'esperienza continuati
 ## Accesso all'applicazione
 
 L'applicazione è accessibile tramite:
+
 - **Web**: [turni-di-palco.vercel.app](https://turni-di-palco.vercel.app)
 
 ---
