@@ -1005,7 +1005,7 @@ async function fetchMobileAppVersion() {
 
   const abortController = new AbortController();
   const timeout = setTimeout(() => abortController.abort(), 5000);
-  timeout.unref?.();
+  timeout.unref();
 
   try {
     const response = await fetch(APP_VERSION_FUNCTION_ENDPOINT, {
