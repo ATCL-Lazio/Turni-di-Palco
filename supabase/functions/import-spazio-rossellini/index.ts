@@ -185,7 +185,9 @@ serve(async (req) => {
     }
 
     const userRole = (user.app_metadata as Record<string, unknown>)?.role as string | undefined;
-    if (userRole !== 'admin') {
+    const userRoles = (user.app_metadata as Record<string, unknown>)?.roles as string[] | undefined;
+    const isAdmin = userRole === 'admin' || (Array.isArray(userRoles) && userRoles.includes('admin'));
+    if (!isAdmin) {
       return jsonResponse({ error: 'Accesso negato: ruolo admin richiesto' }, 403);
     }
   }
