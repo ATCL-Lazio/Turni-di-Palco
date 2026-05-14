@@ -87,8 +87,16 @@ async function auditBrowser() {
 
 // ── GitHub helpers ───────────────────────────────────────────────────────────
 
+function parseGitHubRepo(repoEnv) {
+  const match = /^([^/]+)\/([^/]+)$/.exec(repoEnv);
+  if (!match) {
+    throw new Error(`Invalid GH_REPO value "${repoEnv}". Expected format: "owner/repo".`);
+  }
+  return { owner: match[1], repo: match[2] };
+}
+
 function ghFetch(path, init = {}) {
-  const [owner, repo] = GH_REPO.split('/');
+  const { owner, repo } = parseGitHubRepo(GH_REPO);
   return fetch(`https://api.github.com/repos/${owner}/${repo}${path}`, {
     ...init,
     headers: {
@@ -114,10 +122,29 @@ async function ensureLabel() {
 
 async function hasIssueToday() {
   const today = new Date().toISOString().slice(0, 10);
-  const res = await ghFetch(`/issues?labels=${encodeURIComponent(AUDIT_LABEL)}&state=open&per_page=10`);
-  if (!res.ok) return false;
-  const issues = await res.json();
-  return Array.isArray(issues) && issues.some(i => i.title?.includes(today));
+  try {
+    const res = await ghFetch(`/issues?labels=${encodeURIComponent(AUDIT_LABEL)}&state=open&per_page=10`);
+    if (!res.ok) {
+      let responseText = '';
+      try {
+        responseText = await res.text();
+      } catch {
+        responseText = '';
+      }
+      console.error(
+        `[console-audit] GitHub API request failed in hasIssueToday: ${res.status} ${res.statusText}` +
+        (responseText ? ` — ${responseText.slice(0, 500)}` : '')
+      );
+      return false;
+    }
+    const issues = await res.json();
+    return Array.isArray(issues) && issues.some(i => i.title?.includes(today));
+  } catch (err) {
+    console.error(
+      `[console-audit] Error in hasIssueToday while querying GitHub issues: ${err?.message ?? String(err)}`
+    );
+    return false;
+  }
 }
 
 async function createIssue(errors) {
@@ -164,7 +191,15 @@ async function createIssue(errors) {
     }),
   });
 
+  if (!res.ok) {
+    const errorBody = await res.text().catch(() => '');
+    throw new Error(`GitHub issue creation failed (${res.status} ${res.statusText}): ${errorBody}`);
+  }
+
   const issue = await res.json();
+  if (!issue?.html_url) {
+    throw new Error('GitHub issue creation returned an unexpected response (missing html_url).');
+  }
   return issue.html_url;
 }
 
