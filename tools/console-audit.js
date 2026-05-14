@@ -87,8 +87,16 @@ async function auditBrowser() {
 
 // ── GitHub helpers ───────────────────────────────────────────────────────────
 
+function parseGitHubRepo(repoEnv) {
+  const match = /^([^/]+)\/([^/]+)$/.exec(repoEnv);
+  if (!match) {
+    throw new Error(`Invalid GH_REPO value "${repoEnv}". Expected format: "owner/repo".`);
+  }
+  return { owner: match[1], repo: match[2] };
+}
+
 function ghFetch(path, init = {}) {
-  const [owner, repo] = GH_REPO.split('/');
+  const { owner, repo } = parseGitHubRepo(GH_REPO);
   return fetch(`https://api.github.com/repos/${owner}/${repo}${path}`, {
     ...init,
     headers: {
