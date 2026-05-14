@@ -38,6 +38,11 @@ const MOBILE_APP_VERSION_BADGE_COLOR = (process.env.APP_VERSION_BADGE_COLOR || "
 const APP_VERSION_FUNCTION_ENDPOINT = SUPABASE_URL
   ? `${SUPABASE_URL.replace(/\/+$/, "")}/functions/v1/app-version`
   : "";
+const SENSITIVE_KEY_PATTERN =
+  /(password|passphrase|secret|token|api[_-]?key|authorization|cookie|jwt|private[_-]?key|access[_-]?key)/i;
+const JWT_PATTERN = /^[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+$/;
+const VALID_COLUMN_NAME = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
 const CONTROL_PLANE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const MOBILE_APP_VERSION_LOGO_PATH = path.join(
   CONTROL_PLANE_ROOT,
@@ -78,11 +83,6 @@ const MUTATE_TABLE_ALLOWLIST = buildAllowlist(
   process.env.CONTROL_PLANE_DB_MUTATE_ALLOWLIST,
   [CONFIRM_TABLE, EXECUTION_TABLE, AUDIT_TABLE]
 );
-
-const SENSITIVE_KEY_PATTERN =
-  /(password|passphrase|secret|token|api[_-]?key|authorization|cookie|jwt|private[_-]?key|access[_-]?key)/i;
-const JWT_PATTERN = /^[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+$/;
-const VALID_COLUMN_NAME = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 
 const ROLE_RANK = Object.freeze({
   dev_viewer: 1,
