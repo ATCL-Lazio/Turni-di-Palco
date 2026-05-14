@@ -50,7 +50,9 @@ serve(async (req) => {
     }
 
     const userRole = (user.app_metadata as Record<string, unknown>)?.role as string | undefined
-    if (userRole !== 'admin') {
+    const userRoles = (user.app_metadata as Record<string, unknown>)?.roles as string[] | undefined
+    const isAdmin = userRole === 'admin' || (Array.isArray(userRoles) && userRoles.includes('admin'))
+    if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Accesso negato: ruolo admin richiesto' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 403,
