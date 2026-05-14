@@ -153,7 +153,10 @@ async function fetchShowPosts(categoryId: number, modifiedAfter: string): Promis
     try {
       res = await fetchWithTimeout(url);
     } catch (err) {
-      console.warn(`[import-atcl-lazio] fetchShowPosts network error on page ${page} (${url}):`, err);
+      console.warn(
+        `[import-atcl-lazio] fetchShowPosts network error on page ${page} (endpoint: ${WP_API}/posts):`,
+        err,
+      );
       break;
     }
     if (!res.ok) break;
