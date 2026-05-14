@@ -11,7 +11,7 @@ import { decodeJwt } from "jose";
 import { createClient } from "@supabase/supabase-js";
 
 const CONTROL_PLANE_VERSION = (process.env.CONTROL_PLANE_VERSION || "2026.02.09").trim();
-const DEFAULT_CONTROL_PLANE_PORT = Number.parseInt(String.fromCharCode(56, 55, 56, 55), 10);
+const DEFAULT_CONTROL_PLANE_PORT = 8787;
 const CONTROL_PLANE_PORT = parseInteger(
   process.env.CONTROL_PLANE_PORT || process.env.PORT,
   DEFAULT_CONTROL_PLANE_PORT,
