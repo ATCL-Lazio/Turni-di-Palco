@@ -114,10 +114,29 @@ async function ensureLabel() {
 
 async function hasIssueToday() {
   const today = new Date().toISOString().slice(0, 10);
-  const res = await ghFetch(`/issues?labels=${encodeURIComponent(AUDIT_LABEL)}&state=open&per_page=10`);
-  if (!res.ok) return false;
-  const issues = await res.json();
-  return Array.isArray(issues) && issues.some(i => i.title?.includes(today));
+  try {
+    const res = await ghFetch(`/issues?labels=${encodeURIComponent(AUDIT_LABEL)}&state=open&per_page=10`);
+    if (!res.ok) {
+      let responseText = '';
+      try {
+        responseText = await res.text();
+      } catch {
+        responseText = '';
+      }
+      console.error(
+        `[console-audit] GitHub API request failed in hasIssueToday: ${res.status} ${res.statusText}` +
+        (responseText ? ` — ${responseText.slice(0, 500)}` : '')
+      );
+      return false;
+    }
+    const issues = await res.json();
+    return Array.isArray(issues) && issues.some(i => i.title?.includes(today));
+  } catch (err) {
+    console.error(
+      `[console-audit] Error in hasIssueToday while querying GitHub issues: ${err?.message ?? String(err)}`
+    );
+    return false;
+  }
 }
 
 async function createIssue(errors) {
