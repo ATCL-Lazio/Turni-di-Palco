@@ -3843,7 +3843,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             }));
           }
 
-          if (profileRow || !profileRes.error) {
+          if (profileRow) {
             setHasHydratedRemote(true);
           }
         },
