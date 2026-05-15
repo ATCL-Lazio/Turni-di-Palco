@@ -122,7 +122,16 @@ const fetchAllEvents = async () => {
     visited.add(nextUrl);
     const res = await fetchWithTimeout(nextUrl);
     if (!res.ok) throw new Error(`Events API fetch failed: ${res.status}`);
-    const payload = await res.json();
+    let payload: { events?: SpazioEvent[]; next_rest_url?: string };
+    try {
+      payload = await res.json();
+    } catch (err) {
+      console.warn(
+        `[import-spazio-rossellini] fetchAllEvents invalid JSON (url: ${nextUrl}):`,
+        err,
+      );
+      break;
+    }
     if (Array.isArray(payload.events)) {
       events.push(...payload.events);
     }
