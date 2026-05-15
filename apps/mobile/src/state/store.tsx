@@ -3073,7 +3073,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') return;
     logOfflineSync('Online/offline sync listeners started', {
       authUserId,
-      retryIntervalMs: OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS,
+      baseRetryIntervalMs: OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS,
     });
 
     const handleOnline = () => {
@@ -3082,21 +3082,42 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     };
 
     window.addEventListener('online', handleOnline);
-    const intervalId = window.setInterval(
-      () => {
+
+    // Use a setTimeout-based loop so the delay between retries scales with the
+    // number of attempts already made (exponential backoff via getOfflineSyncRetryDelayMs),
+    // instead of always waiting the fixed OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS.
+    let timeoutId: ReturnType<typeof window.setTimeout> | null = null;
+    let cancelled = false;
+
+    const scheduleNextTick = () => {
+      if (cancelled) return;
+      const queuedForUser = readQueuedSupabaseMutations().filter(
+        (entry) => entry.userId === authUserId
+      );
+      const maxAttempts = queuedForUser.reduce(
+        (max, entry) => Math.max(max, entry.attempts ?? 0),
+        0
+      );
+      const delay = getOfflineSyncRetryDelayMs(maxAttempts);
+      timeoutId = window.setTimeout(() => {
+        if (cancelled) return;
         const hasQueuedForUser = readQueuedSupabaseMutations().some(
           (entry) => entry.userId === authUserId
         );
-        if (!hasQueuedForUser) return;
-        logOfflineSync('Periodic retry tick: queued mutations detected', { authUserId });
-        void flushQueuedSupabaseMutations();
-      },
-      OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS
-    );
+        if (hasQueuedForUser) {
+          logOfflineSync('Periodic retry tick: queued mutations detected', { authUserId, delay });
+          void flushQueuedSupabaseMutations();
+        }
+        scheduleNextTick();
+      }, delay);
+    };
+
+    scheduleNextTick();
 
     return () => {
+      cancelled = true;
       window.removeEventListener('online', handleOnline);
-      window.clearInterval(intervalId);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
       logOfflineSync('Online/offline sync listeners stopped', { authUserId });
     };
   }, [authUserId, flushQueuedSupabaseMutations]);
