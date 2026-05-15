@@ -3086,7 +3086,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     // Use a setTimeout-based loop so the delay between retries scales with the
     // number of attempts already made (exponential backoff via getOfflineSyncRetryDelayMs),
     // instead of always waiting the fixed OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS.
-    let timeoutId: ReturnType<typeof window.setTimeout> | null = null;
+    let timeoutId: number | null = null;
     let cancelled = false;
 
     const scheduleNextTick = () => {
