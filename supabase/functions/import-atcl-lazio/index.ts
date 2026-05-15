@@ -160,7 +160,16 @@ async function fetchShowPosts(categoryId: number, modifiedAfter: string): Promis
       break;
     }
     if (!res.ok) break;
-    const batch = (await res.json()) as WpPost[];
+    let batch: WpPost[];
+    try {
+      batch = (await res.json()) as WpPost[];
+    } catch (err) {
+      console.warn(
+        `[import-atcl-lazio] fetchShowPosts invalid JSON on page ${page} (endpoint: ${WP_API}/posts):`,
+        err,
+      );
+      break;
+    }
     if (!Array.isArray(batch) || batch.length === 0) break;
     posts.push(...batch);
     if (batch.length < POSTS_PER_PAGE) break;
