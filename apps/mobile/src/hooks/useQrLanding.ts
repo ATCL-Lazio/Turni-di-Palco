@@ -2,14 +2,18 @@ import { useEffect, useRef } from 'react';
 import { INSTALL_DISMISS_KEY, isStandaloneApp } from '../lib/pwa';
 
 export function useQrLanding(
-    _authReady: boolean,
-    _isAuthValid: boolean,
+    authReady: boolean,
+    isAuthValid: boolean,
     isOnboarded: boolean,
     onLanding: (target: 'welcome' | 'home' | 'install' | 'role-selection') => void,
 ) {
     const hasHandledQrLanding = useRef(false);
 
     useEffect(() => {
+        // Wait for auth state to be resolved before making any routing decision.
+        // Without this guard the effect can fire before the Supabase session is
+        // restored, locking hasHandledQrLanding to true with stale auth state.
+        if (!authReady) return;
         if (typeof window === 'undefined') return;
         if (hasHandledQrLanding.current) return;
 
@@ -30,8 +34,12 @@ export function useQrLanding(
         } else if (!isOnboarded) {
             // New user arriving via QR deep-link: skip first mission, just choose role
             onLanding('role-selection');
+        } else if (!isAuthValid) {
+            // Onboarded user with an expired/missing session: send to login screen
+            // so they can re-authenticate before reaching the protected home screen.
+            onLanding('welcome');
         } else {
-            // Onboarded user arriving via QR: go directly to home, not to the login screen
+            // Onboarded user with a valid session arriving via QR: go directly to home
             onLanding('home');
         }
 
@@ -43,5 +51,5 @@ export function useQrLanding(
         } catch {
             // ignore
         }
-    }, [isOnboarded, onLanding]);
+    }, [authReady, isAuthValid, isOnboarded, onLanding]);
 }
