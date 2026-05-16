@@ -71,14 +71,23 @@ function cleanupOldRecords() {
     nonActivatedToKeep.forEach(([key, value]) => localActivationStore.set(key, value));
   }
 
-  // Every entry in localManualActivationStore represents an activated
-  // ticket, so we cannot drop any without breaking session dedup. Skip
-  // pruning and warn when the store grows unusually large so we can
-  // revisit the strategy (e.g. a persistent TTL) if needed.
-  if (localManualActivationStore.size > MAX_STORE_SIZE && import.meta.env.DEV) {
-    console.warn(
-      '[ticket-activation] localManualActivationStore exceeds MAX_STORE_SIZE; retaining all activated entries for session dedup.'
-    );
+  // Prune localManualActivationStore entries older than 8 hours when the
+  // store exceeds MAX_STORE_SIZE. Recent entries are kept for session dedup;
+  // tickets activated more than 8 hours ago are outside any realistic shift
+  // window and safe to evict.
+  if (localManualActivationStore.size > MAX_STORE_SIZE) {
+    const cutoff = Date.now() - 8 * 60 * 60 * 1000;
+    for (const [key, value] of localManualActivationStore) {
+      if (new Date(value.activatedAtIso).getTime() < cutoff) {
+        localManualActivationStore.delete(key);
+      }
+    }
+    if (import.meta.env.DEV) {
+      console.info(
+        '[ticket-activation] localManualActivationStore pruned; size now:',
+        localManualActivationStore.size,
+      );
+    }
   }
 }
 
