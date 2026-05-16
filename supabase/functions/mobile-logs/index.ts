@@ -128,17 +128,27 @@ serve(async (req: Request) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return jsonResponse({ error: 'Autenticazione richiesta' }, 401);
   }
+
+  // Parse the body before passing req to resolveRequesterUserId so that
+  // req.body is consumed exactly once — resolveRequesterUserId only reads
+  // headers, but structuring the code this way prevents a double-consume
+  // bug if the function is ever modified to read the body later.
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return jsonResponse({ error: 'Payload non valido' }, 400);
+  }
+  if (!isRecord(body)) {
+    return jsonResponse({ error: 'Payload non valido' }, 400);
+  }
+
   const requesterUserIdFromAuth = await resolveRequesterUserId(req);
   if (!requesterUserIdFromAuth) {
     return jsonResponse({ error: 'Sessione non valida o scaduta' }, 401);
   }
 
   try {
-    const body = await req.json();
-    if (!isRecord(body)) {
-      return jsonResponse({ error: 'Payload non valido' }, 400);
-    }
-
     const action = typeof body.action === 'string' ? body.action.trim() : 'ingest_logs';
     if (action !== 'ingest_logs') {
       return jsonResponse({ error: `Azione non supportata: ${action}` }, 400);
