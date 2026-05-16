@@ -72,7 +72,8 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
   useEffect(() => {
     const currentDisplayName = displayNameRef.current;
     const currentUserId = userIdRef.current;
-    const stored = loadChatHistory(currentDisplayName, currentUserId);
+    const currentHistoryId = currentUserId || currentDisplayName;
+    const stored = loadChatHistory(currentHistoryId);
     if (stored.length) {
       setChatSessions(stored);
       setActiveSessionId(stored[0].id);
@@ -102,8 +103,8 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
 
   useEffect(() => {
     if (!hasLoadedRef.current || !chatSessions.length) return;
-    saveChatHistory(displayName, chatSessions, userId);
-  }, [chatSessions, displayName, userId]);
+    saveChatHistory(historyId, chatSessions);
+  }, [chatSessions, historyId]);
 
   const hasInput = input.trim().length > 0;
   const activeSession = useMemo(
@@ -441,9 +442,8 @@ function buildSupportMessage(role: SupportMessage['role'], content: string): Sup
   return { id: buildMessageId(), role, content, createdAt: Date.now() };
 }
 
-function getHistoryKey(displayName: string, userId?: string) {
-  if (userId) return `${HISTORY_KEY_PREFIX}${userId}`;
-  return `${HISTORY_KEY_PREFIX}${displayName.trim().toLowerCase().replace(/\s+/g, '-') || 'utente'}`;
+function getHistoryKey(historyId: string) {
+  return `${HISTORY_KEY_PREFIX}${historyId.trim().toLowerCase().replace(/\s+/g, '-') || 'utente'}`;
 }
 
 function validateSupportMessage(raw: unknown): SupportMessage | null {
@@ -465,10 +465,10 @@ function validateSupportMessage(raw: unknown): SupportMessage | null {
   return { id, role, content, createdAt };
 }
 
-function loadChatHistory(displayName: string, userId?: string): ChatSession[] {
+function loadChatHistory(historyId: string): ChatSession[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = window.localStorage.getItem(getHistoryKey(displayName, userId));
+    const raw = window.localStorage.getItem(getHistoryKey(historyId));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -492,10 +492,10 @@ function loadChatHistory(displayName: string, userId?: string): ChatSession[] {
   } catch { return []; }  
 }
 
-function saveChatHistory(displayName: string, sessions: ChatSession[], userId?: string) {
+function saveChatHistory(historyId: string, sessions: ChatSession[]) {
   if (typeof window === 'undefined') return;
   const trimmed = [...sessions].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, MAX_SESSIONS);
-  try { window.localStorage.setItem(getHistoryKey(displayName, userId), JSON.stringify(trimmed)); } catch { /* noop */ }
+  try { window.localStorage.setItem(getHistoryKey(historyId), JSON.stringify(trimmed)); } catch { /* noop */ }
 }
 
 function trimMessages(messages: SupportMessage[]) {
