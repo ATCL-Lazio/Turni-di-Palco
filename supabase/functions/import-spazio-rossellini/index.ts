@@ -42,7 +42,7 @@ async function fetchWithTimeout(url: string, timeoutMs = FETCH_TIMEOUT_MS): Prom
   }
 }
 
-const formatDate = (details?: SpazioEvent['start_date_details'], fallback?: string) => {
+const formatDate = (details?: SpazioEvent['start_date_details'], fallback?: string): string | null => {
   if (details?.year && details?.month && details?.day) {
     const month = String(details.month).padStart(2, '0');
     const day = String(details.day).padStart(2, '0');
@@ -55,7 +55,7 @@ const formatDate = (details?: SpazioEvent['start_date_details'], fallback?: stri
       return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
   }
-  return '2026-01-01';
+  return null;
 };
 
 const formatTime = (details?: SpazioEvent['start_date_details'], fallback?: string) => {
@@ -81,35 +81,48 @@ const resolveGenre = (categories: SpazioEvent['categories'] = [], allowedSlugs: 
   return (preferred?.name ?? categories[0]?.name ?? 'Teatro').toString();
 };
 
-const fetchSitemapUrls = async () => {
-  const res = await fetchWithTimeout(SITEMAP_URL);
-  if (!res.ok) throw new Error(`Sitemap fetch failed: ${res.status}`);
-  const xml = await res.text();
-  const urls = new Set<string>();
-  const regex = /<loc>(?:<!\[CDATA\[)?([^<\]]+)(?:\]\]>)?<\/loc>/g;
-  let match;
-  while ((match = regex.exec(xml))) {
-    const url = match[1].trim();
-    if (url.includes('/event/')) {
-      urls.add(normalizeUrl(url));
+const fetchSitemapUrls = async (): Promise<Set<string>> => {
+  try {
+    const res = await fetchWithTimeout(SITEMAP_URL);
+    if (!res.ok) {
+      console.warn('[import-spazio-rossellini] sitemap fetch failed:', res.status);
+      return new Set<string>();
     }
+    const xml = await res.text();
+    const urls = new Set<string>();
+    const regex = /<loc>(?:<!\[CDATA\[)?([^<\]]+)(?:\]\]>)?<\/loc>/g;
+    let match;
+    while ((match = regex.exec(xml))) {
+      const url = match[1].trim();
+      if (url.includes('/event/')) {
+        urls.add(normalizeUrl(url));
+      }
+    }
+    return urls;
+  } catch (err) {
+    console.warn('[import-spazio-rossellini] fetchSitemapUrls error:', err);
+    return new Set<string>();
   }
-  return urls;
 };
 
-const fetchCategorySlugs = async () => {
-  const res = await fetchWithTimeout(CATEGORY_SITEMAP_URL);
-  if (!res.ok) return new Set<string>();
-  const xml = await res.text();
-  const slugs = new Set<string>();
-  const regex = /<loc>(?:<!\[CDATA\[)?([^<\]]+)(?:\]\]>)?<\/loc>/g;
-  let match;
-  while ((match = regex.exec(xml))) {
-    const url = match[1].trim();
-    const slugMatch = url.match(/\/events\/categoria\/([^/]+)\//);
-    if (slugMatch?.[1]) slugs.add(slugMatch[1]);
+const fetchCategorySlugs = async (): Promise<Set<string>> => {
+  try {
+    const res = await fetchWithTimeout(CATEGORY_SITEMAP_URL);
+    if (!res.ok) return new Set<string>();
+    const xml = await res.text();
+    const slugs = new Set<string>();
+    const regex = /<loc>(?:<!\[CDATA\[)?([^<\]]+)(?:\]\]>)?<\/loc>/g;
+    let match;
+    while ((match = regex.exec(xml))) {
+      const url = match[1].trim();
+      const slugMatch = url.match(/\/events\/categoria\/([^/]+)\//);
+      if (slugMatch?.[1]) slugs.add(slugMatch[1]);
+    }
+    return slugs;
+  } catch (err) {
+    console.warn('[import-spazio-rossellini] fetchCategorySlugs error:', err);
+    return new Set<string>();
   }
-  return slugs;
 };
 
 const MAX_PAGINATION_PAGES = 50;
@@ -140,16 +153,23 @@ const fetchAllEvents = async () => {
   return events;
 };
 
-const mapEvent = (event: SpazioEvent, allowedCategories: Set<string>) => ({
-  id: `SR-${event.id}`,
-  name: event.title,
-  theatre: event.venue?.venue ?? 'Spazio Rossellini',
-  event_date: formatDate(event.start_date_details, event.start_date),
-  event_time: formatTime(event.start_date_details, event.start_date),
-  genre: resolveGenre(event.categories ?? [], allowedCategories),
-  base_rewards: DEFAULT_REWARDS,
-  focus_role: null,
-});
+const mapEvent = (event: SpazioEvent, allowedCategories: Set<string>) => {
+  const event_date = formatDate(event.start_date_details, event.start_date);
+  if (!event_date) {
+    console.warn(`[import-spazio-rossellini] no parseable date for event id=${event.id} slug=${event.url}; skipping.`);
+    return null;
+  }
+  return {
+    id: `SR-${event.id}`,
+    name: event.title,
+    theatre: event.venue?.venue ?? 'Spazio Rossellini',
+    event_date,
+    event_time: formatTime(event.start_date_details, event.start_date),
+    genre: resolveGenre(event.categories ?? [], allowedCategories),
+    base_rewards: DEFAULT_REWARDS,
+    focus_role: null,
+  };
+};
 
 const jsonResponse = (body: Record<string, unknown>, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -212,7 +232,9 @@ serve(async (req) => {
     const matched = apiEvents.filter((event) =>
       sitemapUrls.has(normalizeUrl(event.url ?? ''))
     );
-    const rows = matched.map((event) => mapEvent(event, categorySlugs));
+    const mappedEvents = matched.map((event) => mapEvent(event, categorySlugs));
+    const rows = mappedEvents.filter((row): row is NonNullable<typeof row> => row !== null);
+    const skippedCount = mappedEvents.length - rows.length;
 
     const { error } = await supabase.from('events').upsert(rows, { onConflict: 'id' });
     if (error) {
@@ -225,6 +247,7 @@ serve(async (req) => {
       apiCount: apiEvents.length,
       matchedCount: matched.length,
       upserted: rows.length,
+      skipped: skippedCount,
     });
   } catch (error) {
     console.error('[import-spazio-rossellini] unexpected error', error);
