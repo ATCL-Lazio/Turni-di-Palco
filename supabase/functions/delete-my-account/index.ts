@@ -32,8 +32,9 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
 
-  if (!supabaseUrl || !serviceKey) {
+  if (!supabaseUrl || !serviceKey || !anonKey) {
     return errorResponse('Configurazione server non disponibile', 500);
   }
 
@@ -44,7 +45,7 @@ serve(async (req) => {
   }
 
   // User-scoped client (respects RLS) – used to verify identity
-  const userClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
+  const userClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
     auth: { autoRefreshToken: false, persistSession: false },
   });
