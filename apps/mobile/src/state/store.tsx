@@ -3532,6 +3532,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const cancelEventPlan = useCallback(
     async (eventId: string) => {
       logOfflineSync('Action cancelEventPlan', { eventId });
+      const plan = eventPlans.find((p) => p.eventId === eventId);
+      const plannedRoleId = plan?.roleId ?? 'attore';
       setState((prev) => ({
         ...prev,
         eventPlans: removeEventPlan(prev.eventPlans, eventId),
@@ -3554,7 +3556,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         payload: {
           user_id: authUserId,
           event_id: eventId,
-          planned_role_id: state.profile.roleId,
+          planned_role_id: plannedRoleId,
           planning_status: 'planned',
         },
       };
@@ -3595,7 +3597,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         enqueueSupabaseMutation(queuedMutation);
       });
     },
-    [authUserId, enqueueSupabaseMutation, state.profile.roleId]
+    [authUserId, enqueueSupabaseMutation, eventPlans]
   );
 
   const followEvent = useCallback(
