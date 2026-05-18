@@ -133,8 +133,16 @@ const fetchAllEvents = async () => {
   const visited = new Set<string>();
   while (nextUrl && !visited.has(nextUrl) && visited.size < MAX_PAGINATION_PAGES) {
     visited.add(nextUrl);
-    const res = await fetchWithTimeout(nextUrl);
-    if (!res.ok) throw new Error(`Events API fetch failed: ${res.status}`);
+    const page = visited.size;
+    let res: Response;
+    try {
+      res = await fetchWithTimeout(nextUrl);
+    } catch (err) {
+      throw new Error(
+        `Events API network error on page ${page} (url: ${nextUrl}): ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    if (!res.ok) throw new Error(`Events API fetch failed: ${res.status} (page ${page}, url: ${nextUrl})`);
     let payload: { events?: SpazioEvent[]; next_rest_url?: string };
     try {
       payload = await res.json();
