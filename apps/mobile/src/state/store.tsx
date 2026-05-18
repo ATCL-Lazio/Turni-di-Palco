@@ -3762,6 +3762,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
           if (turnsRes.error) {
             notifyCriticalError('Non riusciamo a caricare i turni dal database.', [turnsRes.error]);
+            return;
           }
 
           if (userRes.error) {
