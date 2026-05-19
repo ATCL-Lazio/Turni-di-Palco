@@ -12,6 +12,8 @@ import { hasStoredAuthState, PUBLIC_SCREENS } from '../lib/auth-storage';
 import { openInMaps, openEventsMap } from '../lib/navigation-utils';
 import { uploadProfileImage } from '../services/storage';
 import { initErrorHandler, subscribeToCriticalErrors, getLastCriticalError, clearLastCriticalError } from '../services/error-handler';
+import { trackShareClicked } from '../services/analytics';
+import { buildPublicProfileUrl, sharePayload } from '../lib/share';
 import { PENDING_EVENT_KEY, readPendingEventFromUrl, stripEventLinkParams } from '../lib/event-linking';
 import type { ActivatedEventPayload } from '../services/ticket-activation';
 
@@ -599,7 +601,7 @@ export function AppShell() {
 
       case 'activity-result':
         return activityCompletion && activityOutcome ? (
-          <ActivityResult activity={activityCompletion.activity} rewards={activityCompletion.rewards} outcome={activityOutcome} isDuplicate={activityCompletion.isDuplicate} onDone={() => handleTabChange('activities')} />
+          <ActivityResult activity={activityCompletion.activity} rewards={activityCompletion.rewards} outcome={activityOutcome} isDuplicate={activityCompletion.isDuplicate} roleStats={roleJourneyEnabled ? selectedRole?.stats ?? null : null} onDone={() => handleTabChange('activities')} />
         ) : (
           <Activities activities={visibleActivities} activeRole={roleJourneyEnabled ? selectedRole : undefined}
             slotsStatus={activitySlotsStatus} slotsLoading={activitySlotsLoading}
@@ -636,7 +638,17 @@ export function AppShell() {
             profileImage={state.profile.profileImage} showCarriera={tabFlags.career}
             onViewCarriera={openCareer} onViewTitoli={openEarnedTitles}
             onSettings={() => nav.navigate('account-settings')} onLogout={handleLogout}
-            onUploadProfileImage={handleUploadImage} />
+            onUploadProfileImage={handleUploadImage}
+            onShareProfile={authUserId ? () => {
+              void (async () => {
+                const url = buildPublicProfileUrl(authUserId);
+                const text = `${state.profile.name} · ${selectedRole?.name ?? 'Ruolo'} · Liv. ${state.profile.level} su Turni di Palco`;
+                const result = await sharePayload({ title: 'Turni di Palco', text, url });
+                trackShareClicked(authUserId, 'profile', result.kind === 'error' ? 'error' : result.kind);
+                if (result.kind === 'copied') setInfoToast('Link copiato negli appunti');
+                else if (result.kind === 'unsupported') setInfoToast('Condivisione non disponibile su questo dispositivo');
+              })();
+            } : undefined} />
         );
 
       case 'public-profile':

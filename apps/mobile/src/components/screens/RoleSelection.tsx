@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Users, Lightbulb, Volume2, Package, Clipboard, ChevronRight, Star, ArrowLeft, BookOpen, ShieldCheck } from 'lucide-react';
+import { Users, Lightbulb, Volume2, Package, Clipboard, ChevronRight, Star, ArrowLeft, BookOpen, ShieldCheck, Sparkles } from 'lucide-react';
 import { Role } from '../../state/store';
 import { Screen, ScreenHeader } from '../ui/Screen';
+import { getRoleStatPreviews } from '../../gameplay/role-effects';
 
 const roleIcons: Record<string, React.ElementType> = {
   attore: Users,
@@ -110,6 +111,33 @@ export function RoleSelection({ roles, showRoleJourney = true, onComplete }: Rol
                       className="h-full bg-gradient-to-r from-[#e6a23c] to-[#f4bf4f] rounded-full transition-all duration-500"
                       style={{ width: `${value}%` }}
                     />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* #471 — Anteprima: cosa cambia in gioco con queste stat */}
+          <Card className="mb-4 border border-[#f4bf4f]/20">
+            <h4 className="mb-3 text-[#f4bf4f]">Cosa cambia in gioco</h4>
+            <div className="space-y-3">
+              {getRoleStatPreviews(selectedRole.stats).map(preview => (
+                <div
+                  key={preview.stat}
+                  className={`flex gap-3 items-start text-sm ${preview.active ? 'text-white' : 'text-[#7a7475]'}`}
+                >
+                  <Sparkles
+                    size={14}
+                    className={`mt-1 flex-shrink-0 ${preview.active ? 'text-[#f4bf4f]' : 'text-[#4d4849]'}`}
+                  />
+                  <div className="min-w-0">
+                    <p className="font-semibold leading-snug">
+                      {preview.label}
+                      {preview.active ? null : (
+                        <span className="ml-2 text-xs text-[#7a7475] font-normal">(inattiva)</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-[#b8b2b3] mt-0.5">{preview.effect}</p>
                   </div>
                 </div>
               ))}
