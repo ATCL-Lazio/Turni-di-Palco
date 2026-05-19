@@ -10,7 +10,7 @@
   },
   "title": "Storia segreta del Teatro Manlio",
   "setting": "Teatro Manlio — Magliano Sabina",
-  "prompt": "Dopo tre serate registrate qui, un membro storico della compagnia ti prende da parte e ti racconta che questo teatro teatro all'italiana ottocentesco, gioiello in miniatura della Sabina. Adesso ti chiede se vuoi raccogliere il testimone.",
+  "prompt": "Dopo tre serate registrate qui, un membro storico della compagnia ti prende da parte e ti racconta che questo teatro è un teatro all'italiana ottocentesco, gioiello in miniatura della Sabina. Adesso ti chiede se vuoi raccogliere il testimone.",
   "choices": [
     {
       "id": "accolgo_eredita",

@@ -57,5 +57,8 @@ La lista canonica vive nello script [`tools/generate-theater-scenes.js`](../../.
 1. Edita il seed nello script.
 2. Esegui `node tools/generate-theater-scenes.js` dalla root (rigenera **solo**
    i file che non esistono ancora; non sovrascrive le scene già scritte a mano).
-3. Aggiungi l'import in [`../index.ts`](../index.ts).
-4. Lancia `npm run validate:content`.
+3. Lancia `npm run validate:content`.
+
+> Non serve toccare [`../index.ts`](../index.ts): il registry usa
+> `import.meta.glob` e raccoglie automaticamente ogni nuovo `.json` in
+> questa cartella al successivo build/dev.

@@ -81,15 +81,20 @@ export function hasAnalyticsConsent(): boolean {
 }
 
 /**
- * Pseudonimizzazione GDPR-friendly dell'userId: SHA-256 con salt iniettato a
- * build time (`VITE_ANALYTICS_SALT`). 256 bit + secret server-side rendono
- * sia il bruteforce sia le rainbow table impraticabili nel dominio dei
- * Supabase user UUID.
+ * Pseudonimizzazione dell'userId: SHA-256 + salt iniettato a build time
+ * (`VITE_ANALYTICS_SALT`).
+ *
+ * **Limite noto**: `VITE_*` è una variabile Vite, viene embeddata nel bundle
+ * JS e distribuita a tutti i client — NON è un secret server-side. Questo
+ * livello di pseudonimizzazione protegge da chi guarda solo gli eventi
+ * analitici (no PII visibile), ma un attaccante che (a) recupera il bundle
+ * della PWA e (b) conosce un set di Supabase UUID può ricalcolare gli hash
+ * corrispondenti. Per pseudonimizzazione GDPR-grade, l'hashing va spostato
+ * lato Supabase Edge Function con un secret che non lascia mai il server.
  *
  * Se il salt non è configurato, ritorniamo `undefined` invece di un hash
- * non salted: meglio perdere il join cross-event che dare una finta
- * pseudonimizzazione. Per garanzie più forti (k-anonymity), l'hashing va
- * eventualmente spostato lato Supabase Edge Function.
+ * non-salted: meglio perdere il join cross-event che dare una finta
+ * pseudonimizzazione.
  */
 async function pseudonymize(userId: string, salt: string): Promise<string | undefined> {
   if (typeof crypto === 'undefined' || !crypto.subtle?.digest) return undefined;

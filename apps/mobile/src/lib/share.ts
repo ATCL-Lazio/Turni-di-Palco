@@ -84,14 +84,3 @@ export function buildShareUrl(
   const safeRef = encodeURIComponent(refHash);
   return `${origin}/?ref=${safeRef}`;
 }
-
-/**
- * @deprecated alias retained for backward compatibility with #473's first
- * iteration. New callers should use `buildShareUrl`.
- */
-export function buildPublicProfileUrl(
-  userIdOrHash: string,
-  options?: { origin?: string },
-): string {
-  return buildShareUrl(userIdOrHash, options);
-}
