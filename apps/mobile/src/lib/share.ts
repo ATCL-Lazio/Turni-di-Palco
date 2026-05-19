@@ -78,8 +78,17 @@ const FALLBACK_ORIGIN = 'https://turni.atcllazio.it';
  * @param refHash hash anonimo (es. quello prodotto da analytics.getUserHash)
  *                — non usare userId in chiaro qui.
  */
+function isHttpOrigin(origin: string): boolean {
+  return /^https?:\/\//i.test(origin);
+}
+
 export function buildShareUrl(refHash: string | null | undefined): string {
-  const origin = typeof window !== 'undefined' ? window.location.origin : FALLBACK_ORIGIN;
+  // `window.location.origin` può essere `file://`, `capacitor://localhost`,
+  // `ionic://localhost` o simili quando l'app viene servita da un wrapper
+  // nativo / static bundle. In quei casi l'URL condiviso non sarebbe
+  // apribile da un altro dispositivo: ricadiamo sul dominio canonico.
+  const winOrigin = typeof window !== 'undefined' ? window.location.origin : null;
+  const origin = winOrigin && isHttpOrigin(winOrigin) ? winOrigin : FALLBACK_ORIGIN;
   if (!refHash) return origin;
   const safeRef = encodeURIComponent(refHash);
   return `${origin}/?ref=${safeRef}`;

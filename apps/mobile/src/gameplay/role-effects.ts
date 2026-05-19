@@ -93,6 +93,10 @@ export type RewardBreakdown = {
  * truth anche nello store, l'UI mostra il breakdown come "Impatto
  * teorico delle tue statistiche".
  *
+ * TODO(#471 follow-up): unificare lo store su STAT_EFFECTS così che il
+ * breakdown UI corrisponda 1:1 ai reward effettivi e il disclaimer
+ * "impatto teorico" possa sparire.
+ *
  * Le formule sono in `shared/config/balancing.ts`; qui solo composizione.
  */
 export function computeRewardBreakdown({

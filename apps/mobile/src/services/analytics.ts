@@ -105,12 +105,24 @@ async function pseudonymize(userId: string, salt: string): Promise<string | unde
     .join('');
 }
 
+let saltWarned = false;
+
 function readSalt(): string | null {
   // Vite expone `import.meta.env` solo al bundling; in test/SSR fallback su
   // process.env per dare flessibilità.
   try {
-    const fromVite = (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_ANALYTICS_SALT;
+    const env = (import.meta as { env?: Record<string, string | undefined> }).env;
+    const fromVite = env?.VITE_ANALYTICS_SALT;
     if (typeof fromVite === 'string' && fromVite.length > 0) return fromVite;
+    // Aiuta gli sviluppatori a intercettare deploy mal configurati: in dev
+    // logga una volta che il salt è mancante. In produzione resta silenzioso.
+    if (!saltWarned && env?.DEV) {
+      saltWarned = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[analytics] VITE_ANALYTICS_SALT non configurato: getUserHash ritorna undefined; gli eventi non porteranno userHash.',
+      );
+    }
   } catch {
     /* import.meta.env not available */
   }
@@ -142,7 +154,14 @@ export function getUserHash(userId: string | null | undefined): Promise<string |
   if (!salt) return Promise.resolve(undefined);
   let pending = hashCache.get(userId);
   if (!pending) {
-    if (hashCache.size >= MAX_CACHE_ENTRIES) hashCache.clear();
+    if (hashCache.size >= MAX_CACHE_ENTRIES) {
+      // LRU eviction: Map preserva l'ordine di inserimento, quindi la prima
+      // chiave è la meno recente. Evictiamo solo quella invece di un wipe
+      // completo, così switch d'account multipli non causano burst di
+      // `crypto.subtle.digest` su utenti ancora attivi nella tab.
+      const oldest = hashCache.keys().next().value;
+      if (oldest !== undefined) hashCache.delete(oldest);
+    }
     pending = pseudonymize(userId, salt);
     hashCache.set(userId, pending);
   }
@@ -206,10 +225,11 @@ export async function track(
   };
 
   try {
-    const result = currentSink(payload);
-    if (result && typeof (result as Promise<unknown>).catch === 'function') {
-      await (result as Promise<unknown>).catch(() => { /* swallow — analytics never breaks UX */ });
-    }
+    // `Promise.resolve(...)` accetta valori sync, Promise native e thenable
+    // custom in modo uniforme; più robusto del duck-typing su `.catch`.
+    await Promise.resolve(currentSink(payload)).catch(() => {
+      /* swallow — analytics never breaks UX */
+    });
   } catch {
     /* swallow — analytics never breaks UX */
   }
