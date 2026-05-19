@@ -120,7 +120,21 @@ function readSalt(): string | null {
   return null;
 }
 
+// La cache è un'ottimizzazione (un userId → una sola digest async). Le chiavi
+// sono raw UUID Supabase: in una PWA mono-utente questo è trascurabile, ma se
+// si supportano switch d'account senza reload — o si chiudono/aprono profili
+// diversi nella stessa tab — vogliamo che i vecchi UUID non restino in memoria.
+//
+// Strategie:
+//   1. Limite hard di MAX_CACHE_ENTRIES per evitare crescita illimitata.
+//   2. `clearAnalyticsCache()` esposta come hook che il code path di logout /
+//      account switch può chiamare esplicitamente.
+const MAX_CACHE_ENTRIES = 16;
 const hashCache = new Map<string, Promise<string | undefined>>();
+
+export function clearAnalyticsCache(): void {
+  hashCache.clear();
+}
 
 export function getUserHash(userId: string | null | undefined): Promise<string | undefined> {
   if (!userId) return Promise.resolve(undefined);
@@ -128,15 +142,17 @@ export function getUserHash(userId: string | null | undefined): Promise<string |
   if (!salt) return Promise.resolve(undefined);
   let pending = hashCache.get(userId);
   if (!pending) {
+    if (hashCache.size >= MAX_CACHE_ENTRIES) hashCache.clear();
     pending = pseudonymize(userId, salt);
     hashCache.set(userId, pending);
   }
   return pending;
 }
 
-// Test-only: clears the in-memory hash cache. Not exported via public surface.
+// Test-only: alias di `clearAnalyticsCache` mantenuto per i test esistenti
+// che lo importano via questo nome. Non rimuovere senza aggiornare i test.
 export function __resetAnalyticsCacheForTests(): void {
-  hashCache.clear();
+  clearAnalyticsCache();
 }
 
 /**

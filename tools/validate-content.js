@@ -189,16 +189,23 @@ function validateMinigame(file, mg) {
 // Main
 // ---------------------------------------------------------------------------
 
-// Cross-file validation: every `outcome.next` reference must point to a
-// scene ID that exists in the registry (either generic scene or theater).
+// Cross-file validation:
+//   1. Every `scene.id` must be globally unique across scenes/ and theaters/.
+//      The runtime registry would silently overwrite a duplicate at module
+//      load (Map.set behaviour); catching it here keeps CI as the gate.
+//   2. Every `outcome.next` reference must point to a scene ID that exists
+//      in the registered set.
 function validateNextReferences(scenes) {
-  const idsByFile = new Map();
+  const seenIds = new Map(); // sceneId → file path of first occurrence
   const allIds = new Set();
   for (const { file, scene } of scenes) {
-    if (scene && typeof scene.id === 'string') {
-      idsByFile.set(file, scene.id);
-      allIds.add(scene.id);
+    if (!scene || typeof scene.id !== 'string') continue;
+    if (seenIds.has(scene.id)) {
+      report(file, `duplicate scene id "${scene.id}" (first seen in ${path.relative(process.cwd(), seenIds.get(scene.id))})`);
+      continue;
     }
+    seenIds.set(scene.id, file);
+    allIds.add(scene.id);
   }
   for (const { file, scene } of scenes) {
     if (!scene || !Array.isArray(scene.choices)) continue;

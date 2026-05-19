@@ -55,6 +55,8 @@ export async function sharePayload(payload: SharePayload): Promise<ShareResult> 
   return { kind: 'error', message: 'share_failed' };
 }
 
+const FALLBACK_ORIGIN = 'https://turni.atcllazio.it';
+
 /**
  * Costruisce un URL condivisibile che apre l'app sulla home.
  *
@@ -67,19 +69,17 @@ export async function sharePayload(payload: SharePayload): Promise<ShareResult> 
  * normalmente, e l'hash anonimo può essere usato a fini di tracking senza
  * esporre l'userId.
  *
- * Una volta che #1086 (deep-link profile route) sarà mergeato, questa
- * funzione potrà ritornare l'URL pieno al profilo specifico.
+ * L'origin è **sempre** quello dell'app correntemente caricata
+ * (`window.location.origin`), con un fallback al dominio canonico per
+ * contesti SSR/test. Non accettiamo un origin esterno per evitare un open
+ * redirect latente — se in futuro un caller avesse bisogno di un origin
+ * diverso, lo si introduce con allow-list esplicita.
  *
  * @param refHash hash anonimo (es. quello prodotto da analytics.getUserHash)
  *                — non usare userId in chiaro qui.
  */
-export function buildShareUrl(
-  refHash: string | null | undefined,
-  options?: { origin?: string },
-): string {
-  const origin =
-    options?.origin
-    ?? (typeof window !== 'undefined' ? window.location.origin : 'https://turni.atcllazio.it');
+export function buildShareUrl(refHash: string | null | undefined): string {
+  const origin = typeof window !== 'undefined' ? window.location.origin : FALLBACK_ORIGIN;
   if (!refHash) return origin;
   const safeRef = encodeURIComponent(refHash);
   return `${origin}/?ref=${safeRef}`;
