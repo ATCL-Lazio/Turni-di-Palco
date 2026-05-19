@@ -149,12 +149,6 @@ export function getUserHash(userId: string | null | undefined): Promise<string |
   return pending;
 }
 
-// Test-only: alias di `clearAnalyticsCache` mantenuto per i test esistenti
-// che lo importano via questo nome. Non rimuovere senza aggiornare i test.
-export function __resetAnalyticsCacheForTests(): void {
-  clearAnalyticsCache();
-}
-
 /**
  * Allowlist (NON blocklist) delle property ammesse negli eventi.
  *
