@@ -128,6 +128,7 @@ export function RoleSelection({ roles, showRoleJourney = true, onComplete }: Rol
                 >
                   <Sparkles
                     size={14}
+                    aria-hidden="true"
                     className={`mt-1 flex-shrink-0 ${preview.active ? 'text-[#f4bf4f]' : 'text-[#6f6a6b]'}`}
                   />
                   <div className="min-w-0">

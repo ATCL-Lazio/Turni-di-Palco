@@ -294,13 +294,22 @@ export function AppShell() {
   // non esiste — vedi `lib/share.ts` per la nota completa.
   const handleShareProfile = useCallback(async () => {
     if (!authUserId) return;
-    const refHash = await getUserHash(authUserId);
-    const url = buildShareUrl(refHash ?? null);
-    const text = `${state.profile.name} · ${selectedRole?.name ?? 'Ruolo'} · Liv. ${state.profile.level} su Turni di Palco`;
-    const result = await sharePayload({ title: 'Turni di Palco', text, url });
-    void trackShareClicked(authUserId, 'profile', result.kind === 'error' ? 'error' : result.kind);
-    if (result.kind === 'copied') setInfoToast('Link copiato negli appunti');
-    else if (result.kind === 'unsupported') setInfoToast('Condivisione non disponibile su questo dispositivo');
+    try {
+      // `getUserHash` usa `crypto.subtle.digest`, che lancia in contesti non
+      // sicuri (HTTP, alcune WebView legacy). In quel caso passiamo null
+      // come refHash e il bottone resta funzionale come fallback.
+      const refHash = await getUserHash(authUserId).catch(() => null);
+      const url = buildShareUrl(refHash ?? null);
+      const text = `${state.profile.name} · ${selectedRole?.name ?? 'Ruolo'} · Liv. ${state.profile.level} su Turni di Palco`;
+      const result = await sharePayload({ title: 'Turni di Palco', text, url });
+      void trackShareClicked(authUserId, 'profile', result.kind === 'error' ? 'error' : result.kind);
+      if (result.kind === 'copied') setInfoToast('Link copiato negli appunti');
+      else if (result.kind === 'unsupported') setInfoToast('Condivisione non disponibile su questo dispositivo');
+      else if (result.kind === 'error') setInfoToast('Errore durante la condivisione.');
+    } catch (err) {
+      console.error('[AppShell] handleShareProfile failed:', err);
+      setInfoToast('Errore durante la condivisione.');
+    }
   }, [authUserId, state.profile.name, state.profile.level, selectedRole?.name, setInfoToast]);
 
   // === Effects ===

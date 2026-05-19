@@ -83,21 +83,20 @@ function MinigameShell({
         </Badge>
 
         {statBenefits && statBenefits.length > 0 ? (
-          <div
-            role="group"
+          <ul
             aria-label="Benefici delle statistiche attivi"
-            className="flex flex-wrap gap-2"
+            className="flex flex-wrap gap-2 list-none p-0 m-0"
           >
             {statBenefits.map(benefit => (
-              <span
+              <li
                 key={benefit.stat}
                 className="inline-flex items-center gap-1 rounded-full border border-[#f4bf4f]/40 bg-[#f4bf4f]/10 px-3 py-1 text-xs text-[#f4bf4f]"
               >
                 <Sparkles size={12} aria-hidden="true" />
                 Beneficio {benefit.label} attivo
-              </span>
+              </li>
             ))}
-          </div>
+          </ul>
         ) : null}
 
         {children}
