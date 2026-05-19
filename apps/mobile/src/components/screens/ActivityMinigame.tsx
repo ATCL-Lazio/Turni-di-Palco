@@ -83,7 +83,11 @@ function MinigameShell({
         </Badge>
 
         {statBenefits && statBenefits.length > 0 ? (
-          <div className="flex flex-wrap gap-2" aria-label="Beneficio statistiche attivo">
+          <div
+            role="group"
+            aria-label="Benefici delle statistiche attivi"
+            className="flex flex-wrap gap-2"
+          >
             {statBenefits.map(benefit => (
               <span
                 key={benefit.stat}

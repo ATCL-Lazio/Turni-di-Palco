@@ -92,7 +92,7 @@ export const STAT_EFFECTS = {
     /** Cachet multiplier earned per stat point above baseline. */
     cachetMultPerPoint: 0.003,
     cachetMultCap: 0.2,
-    affectedActivities: ['luci', 'fonico', 'sequenza_luci', 'equalizzazione'] as const,
+    affectedActivities: ['luci', 'fonico', 'audio', 'sequenza_luci', 'equalizzazione'] as const,
   },
   presence: {
     /** Combo bonus threshold; below this, no extra combo points. */

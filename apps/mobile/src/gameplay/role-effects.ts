@@ -42,15 +42,12 @@ export function isImproviseRoundUnlocked(stats: RoleStats | null | undefined): b
   return stats.creativity >= STAT_EFFECTS.creativity.improviseRoundUnlockThreshold;
 }
 
-type ActivityFamily = 'luci' | 'fonico' | 'recitazione' | 'palco' | 'altro';
-
-function familyFromActivity(activityId: string): ActivityFamily {
-  if (STAT_EFFECTS.precision.affectedActivities.includes(activityId as never)) return 'luci';
-  if (activityId === 'audio' || activityId === 'equalizzazione') return 'fonico';
-  if (STAT_EFFECTS.presence.affectedActivities.includes(activityId as never)) return 'recitazione';
-  if (STAT_EFFECTS.creativity.affectedActivities.includes(activityId as never)) return 'palco';
-  return 'altro';
-}
+// Helpers di appartenenza: leggono direttamente `STAT_EFFECTS.X.affectedActivities`
+// da `shared/config/balancing.ts`, così l'elenco vive in un solo posto e
+// aggiungere una nuova attività al gioco non richiede toccare role-effects.
+const PRECISION_ACTIVITIES = STAT_EFFECTS.precision.affectedActivities as readonly string[];
+const PRESENCE_ACTIVITIES = STAT_EFFECTS.presence.affectedActivities as readonly string[];
+const CREATIVITY_ACTIVITIES = STAT_EFFECTS.creativity.affectedActivities as readonly string[];
 
 export type RewardBonusBreakdown = {
   /** Identifica la stat (`precision`, `presence`, ...) o `'leadership'` per il bonus globale. */
@@ -114,13 +111,12 @@ export function computeRewardBreakdown({
     };
   }
 
-  const family = familyFromActivity(activityId);
   const bonuses: RewardBonusBreakdown[] = [];
   let xpDelta = 0;
   let cachetDelta = 0;
 
   // Precision → cachet su attività luci/fonico (delta sulla BASE)
-  if (family === 'luci' || family === 'fonico') {
+  if (PRECISION_ACTIVITIES.includes(activityId)) {
     const mult = getStatMultiplier('precision', 'cachet', stats.precision);
     if (mult > 1) {
       const delta = Math.round(baseCachet * (mult - 1));
@@ -132,7 +128,7 @@ export function computeRewardBreakdown({
   }
 
   // Presence → xp su recitazione/copione (delta sulla BASE)
-  if (family === 'recitazione') {
+  if (PRESENCE_ACTIVITIES.includes(activityId)) {
     const mult = getStatMultiplier('presence', 'xp', stats.presence);
     if (mult > 1) {
       const delta = Math.round(baseXp * (mult - 1));
@@ -144,7 +140,7 @@ export function computeRewardBreakdown({
   }
 
   // Creativity → xp su palco/attrezzista (delta sulla BASE)
-  if (family === 'palco') {
+  if (CREATIVITY_ACTIVITIES.includes(activityId)) {
     const mult = getStatMultiplier('creativity', 'xp', stats.creativity);
     if (mult > 1) {
       const delta = Math.round(baseXp * (mult - 1));
@@ -242,16 +238,15 @@ export function getActiveStatBenefitsForActivity(
 ): Array<{ stat: StatKey; label: string }> {
   if (!stats) return [];
   const baseline = STAT_EFFECTS.statBaseline;
-  const family = familyFromActivity(activityId);
   const active: Array<{ stat: StatKey; label: string }> = [];
 
-  if ((family === 'luci' || family === 'fonico') && stats.precision > baseline) {
+  if (PRECISION_ACTIVITIES.includes(activityId) && stats.precision > baseline) {
     active.push({ stat: 'precision', label: STAT_LABEL.precision });
   }
-  if (family === 'recitazione' && stats.presence > baseline) {
+  if (PRESENCE_ACTIVITIES.includes(activityId) && stats.presence > baseline) {
     active.push({ stat: 'presence', label: STAT_LABEL.presence });
   }
-  if (family === 'palco' && stats.creativity > baseline) {
+  if (CREATIVITY_ACTIVITIES.includes(activityId) && stats.creativity > baseline) {
     active.push({ stat: 'creativity', label: STAT_LABEL.creativity });
   }
   if (stats.leadership > baseline) {
