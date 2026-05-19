@@ -156,12 +156,28 @@ export function __resetAnalyticsCacheForTests(): void {
 }
 
 /**
- * Strip di chiavi PII potenziali dalle props. Per ora drop preventivo
- * di pattern noti; le proprietà permesse sono valori scalari "neutri".
+ * Allowlist (NON blocklist) delle property ammesse negli eventi.
+ *
+ * Una blocklist è fragile: ogni nuova chiave che il chiamante decide di
+ * passare arriva nel sink per default, e se per errore una chiave PII
+ * non è in lista (es. `userId`, `id`, `user_id`) viene leakata in chiaro.
+ * Invertiamo la logica: solo chiavi esplicitamente registrate qui passano
+ * il filtro, le altre vengono droppate silenziosamente.
+ *
+ * Per aggiungere una property nuova:
+ *   1. Verifica che NON contenga PII (mai userId, mai email, ecc.).
+ *   2. Aggiungi la chiave qui.
+ *   3. Aggiorna il tipo di chiamata corrispondente (es. `trackActivityCompleted`).
  */
-const FORBIDDEN_KEYS = new Set([
-  'email', 'name', 'userName', 'firstName', 'lastName',
-  'address', 'phone', 'token', 'password', 'session',
+const ALLOWED_PROP_KEYS = new Set([
+  // share_clicked
+  'surface', 'outcome',
+  // onboarding_completed
+  'variant',
+  // first_scenario_completed / activity_completed
+  'sceneId', 'activityId', 'rating', 'score', 'durationMs',
+  // turn_registered
+  'theatreHash', 'boostRequested', 'boostApplied',
 ]);
 
 function sanitizeProps(
@@ -171,7 +187,7 @@ function sanitizeProps(
   const out: Record<string, string | number | boolean | null> = {};
   let any = false;
   for (const [k, v] of Object.entries(props)) {
-    if (FORBIDDEN_KEYS.has(k)) continue;
+    if (!ALLOWED_PROP_KEYS.has(k)) continue;
     out[k] = v;
     any = true;
   }

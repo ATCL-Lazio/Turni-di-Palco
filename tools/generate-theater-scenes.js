@@ -62,6 +62,28 @@ function sceneIdFor(slug) {
   return `theater_${slug.replace(/-/g, '_')}`;
 }
 
+// Italian contracted article "del/dello/dell'" before the theatre name.
+// Drives the title; the rest of the template uses "questo teatro" (which
+// is grammatically safe regardless of the noun that follows).
+function delForNoun(noun) {
+  const first = noun.charAt(0).toLowerCase();
+  // dell' before a vowel
+  if (/[aeiouàèéìòù]/.test(first)) return "dell'";
+  // dello before s+consonant, z, gn, ps, x, y (Italian "s impura" etc.)
+  if (first === 'z' || first === 'x' || first === 'y') return 'dello ';
+  if (first === 's' && /^s[bcdfgjklmnpqrtvwxz]/i.test(noun)) return 'dello ';
+  if (first === 'g' && /^gn/.test(noun)) return 'dello ';
+  if (first === 'p' && /^ps/.test(noun)) return 'dello ';
+  return 'del ';
+}
+
+function titleFor(theatre) {
+  const article = delForNoun(theatre);
+  // "del Teatro X" keeps a space after "del"; "dell'Auditorium" already
+  // includes the apostrophe, so no leading space.
+  return `Storia segreta ${article}${theatre}`;
+}
+
 function buildScene({ slug, city, theatre, hook }) {
   const id = sceneIdFor(slug);
   return {
@@ -70,7 +92,7 @@ function buildScene({ slug, city, theatre, hook }) {
     city,
     season: '2025-2026',
     requires: { theatreVisits: { min: 3 } },
-    title: `Storia segreta del ${theatre}`,
+    title: titleFor(theatre),
     setting: `${theatre} — ${city}`,
     prompt:
       `Dopo tre serate registrate qui, un membro storico della compagnia ti prende da parte ` +
@@ -116,23 +138,27 @@ function main() {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 
+  const force = process.argv.includes('--force');
   let created = 0;
   let skipped = 0;
+  let overwritten = 0;
 
   for (const venue of VENUES) {
     const filename = `${venue.slug}.json`;
     const target = path.join(OUTPUT_DIR, filename);
-    if (fs.existsSync(target)) {
+    const exists = fs.existsSync(target);
+    if (exists && !force) {
       skipped += 1;
       continue;
     }
     const scene = buildScene(venue);
     fs.writeFileSync(target, JSON.stringify(scene, null, 2) + '\n', 'utf8');
-    created += 1;
+    if (exists) overwritten += 1;
+    else created += 1;
   }
 
   process.stdout.write(
-    `[generate-theater-scenes] created=${created} skipped=${skipped} total=${VENUES.length}\n`,
+    `[generate-theater-scenes] created=${created} overwritten=${overwritten} skipped=${skipped} total=${VENUES.length}\n`,
   );
 }
 

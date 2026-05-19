@@ -180,7 +180,11 @@ export type StatPreview = {
   active: boolean;
 };
 
-const STAT_LABEL: Record<StatKey, string> = {
+/**
+ * Etichette user-facing per le quattro stat. Esportata per evitare la
+ * duplicazione delle stringhe in più componenti (vedi #471 review pass).
+ */
+export const STAT_LABEL: Readonly<Record<StatKey, string>> = {
   presence: 'Presenza scenica',
   precision: 'Precisione',
   leadership: 'Leadership',

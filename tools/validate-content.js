@@ -202,9 +202,12 @@ function validateNextReferences(scenes) {
     if (!scene || typeof scene.id !== 'string') continue;
     if (seenIds.has(scene.id)) {
       report(file, `duplicate scene id "${scene.id}" (first seen in ${path.relative(process.cwd(), seenIds.get(scene.id))})`);
-      continue;
+      // NB: do NOT skip the registration step — the id stays in allIds so
+      // that any `next` reference pointing to a duplicated id is not also
+      // flagged as dangling. The duplicate report is enough to fail CI.
+    } else {
+      seenIds.set(scene.id, file);
     }
-    seenIds.set(scene.id, file);
     allIds.add(scene.id);
   }
   for (const { file, scene } of scenes) {

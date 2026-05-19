@@ -302,7 +302,7 @@ export function AppShell() {
       const url = buildShareUrl(refHash ?? null);
       const text = `${state.profile.name} · ${selectedRole?.name ?? 'Ruolo'} · Liv. ${state.profile.level} su Turni di Palco`;
       const result = await sharePayload({ title: 'Turni di Palco', text, url });
-      void trackShareClicked(authUserId, 'profile', result.kind === 'error' ? 'error' : result.kind);
+      void trackShareClicked(authUserId, 'profile', result.kind);
       if (result.kind === 'copied') setInfoToast('Link copiato negli appunti');
       else if (result.kind === 'unsupported') setInfoToast('Condivisione non disponibile su questo dispositivo');
       else if (result.kind === 'error') setInfoToast('Errore durante la condivisione.');

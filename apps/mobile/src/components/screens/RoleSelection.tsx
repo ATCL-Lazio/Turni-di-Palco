@@ -120,9 +120,9 @@ export function RoleSelection({ roles, showRoleJourney = true, onComplete }: Rol
           {/* #471 — Anteprima: cosa cambia in gioco con queste stat */}
           <Card className="mb-4 border border-[#f4bf4f]/20">
             <h4 className="mb-3 text-[#f4bf4f]">Cosa cambia in gioco</h4>
-            <div className="space-y-3">
+            <ul className="space-y-3 list-none p-0 m-0">
               {getRoleStatPreviews(selectedRole.stats).map(preview => (
-                <div
+                <li
                   key={preview.stat}
                   className={`flex gap-3 items-start text-sm ${preview.active ? 'text-white' : 'text-[#b8b2b3]'}`}
                 >
@@ -140,9 +140,9 @@ export function RoleSelection({ roles, showRoleJourney = true, onComplete }: Rol
                     </p>
                     <p className="text-xs text-[#b8b2b3] mt-0.5">{preview.effect}</p>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </Card>
 
           {showRoleJourney && selectedRole.profile?.journey ? (

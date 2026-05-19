@@ -2,7 +2,7 @@
 import { CheckCircle2, Coins, Award, TrendingUp, Star, Sparkles } from 'lucide-react';
 import { Activity, Rewards } from '../../state/store';
 import { MinigameOutcome, RoleStats } from '../../gameplay/minigames';
-import { computeRewardBreakdown } from '../../gameplay/role-effects';
+import { computeRewardBreakdown, STAT_LABEL } from '../../gameplay/role-effects';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -17,11 +17,11 @@ interface ActivityResultProps {
   onDone: () => void;
 }
 
-const STAT_BADGE_LABEL: Record<string, string> = {
-  precision: 'Precisione',
-  presence: 'Presenza scenica',
-  leadership: 'Leadership',
-  creativity: 'Creatività',
+// Etichette delle source del breakdown bonus. Le quattro stat puntano alla
+// costante esportata da role-effects per evitare duplicazione; solo
+// `leadership_global` resta locale perché è un'etichetta UI-specifica.
+const BONUS_SOURCE_LABEL: Record<string, string> = {
+  ...STAT_LABEL,
   leadership_global: 'Leadership (globale)',
 };
 
@@ -135,7 +135,7 @@ export function ActivityResult({ activity, rewards, outcome, isDuplicate, roleSt
         {statBreakdown ? (
           <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20] border border-[#f4bf4f]/20">
             <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="text-[#f4bf4f]" size={16} />
+              <Sparkles className="text-[#f4bf4f]" size={16} aria-hidden="true" />
               <h4 className="text-[#f4bf4f]">Impatto teorico delle tue stat</h4>
             </div>
             <p className="text-xs text-[#b8b2b3] mb-3">
@@ -150,7 +150,7 @@ export function ActivityResult({ activity, rewards, outcome, isDuplicate, roleSt
                   className="flex items-center justify-between text-sm"
                 >
                   <span className="text-white">
-                    {STAT_BADGE_LABEL[bonus.source] ?? bonus.source}
+                    {BONUS_SOURCE_LABEL[bonus.source] ?? bonus.source}
                   </span>
                   <span className="text-[#f4bf4f] font-semibold">
                     +{bonus.delta} {bonus.kind === 'xp' ? 'XP' : 'Cachet'}
