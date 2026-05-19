@@ -41,13 +41,15 @@ function readNavState(): PersistedNavState | null {
         if (parsed.version !== NAV_STATE_VERSION) return null;
         if (!parsed.screen || !VALID_SCREENS.has(parsed.screen)) return null;
         if (!parsed.activeTab || !VALID_TABS.has(parsed.activeTab)) return null;
-        if (!parsed.legalReturnScreen || !VALID_LEGAL_RETURN_SCREENS.has(parsed.legalReturnScreen)) return null;
+        const legalReturnScreen = parsed.legalReturnScreen && VALID_LEGAL_RETURN_SCREENS.has(parsed.legalReturnScreen)
+            ? parsed.legalReturnScreen
+            : 'welcome';
 
         return {
             version: NAV_STATE_VERSION,
             screen: parsed.screen,
             activeTab: parsed.activeTab,
-            legalReturnScreen: parsed.legalReturnScreen,
+            legalReturnScreen,
             scannedEventId: typeof parsed.scannedEventId === 'string' ? parsed.scannedEventId : '',
             selectedActivityId: typeof parsed.selectedActivityId === 'string' ? parsed.selectedActivityId : '',
             currentNarrativeSceneId: typeof parsed.currentNarrativeSceneId === 'string' ? parsed.currentNarrativeSceneId : '',
