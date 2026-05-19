@@ -3,7 +3,6 @@ import { Cookie, MapPin, Lock, Trash2 } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { CopyrightNotice } from '../ui/CopyrightNotice';
 import { COOKIE_CONSENT_KEY } from '../../constants/privacy';
-import { setAnalyticsConsent } from '../../services/analytics';
 import welcomeLogo from '../../assets/figma/welcome-logo.svg';
 
 interface CookieConsentProps {
@@ -41,10 +40,10 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(COOKIE_CONSENT_KEY, new Date().toISOString());
     }
-    // KPI tracking, privacy-friendly (#477). Solo gli eventi anonimizzati
-    // sono inviati; l'opt-in qui è esplicito perché l'utente sta accettando
-    // i cookie tecnici nello stesso flusso.
-    setAnalyticsConsent(true);
+    // L'opt-in analytics (#477) NON viene impostato qui di default: GDPR
+    // art. 7 richiede consensi granulari, distinguibili dal cookie consent
+    // tecnico. L'utente potrà attivare il tracking dalla schermata
+    // "Gestisci account" → Privacy in un toggle separato.
     onAccept();
   };
 

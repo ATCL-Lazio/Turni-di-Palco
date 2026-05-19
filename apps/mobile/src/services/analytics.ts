@@ -81,27 +81,57 @@ export function hasAnalyticsConsent(): boolean {
 }
 
 /**
- * Hash veloce non-crittografico (FNV-1a 32-bit). Sufficiente per de-anonimizzare
- * gli eventi senza esporre l'userId. Non usare per scopi di sicurezza.
+ * Pseudonimizzazione GDPR-friendly dell'userId: SHA-256 con salt iniettato a
+ * build time (`VITE_ANALYTICS_SALT`). 256 bit + secret server-side rendono
+ * sia il bruteforce sia le rainbow table impraticabili nel dominio dei
+ * Supabase user UUID.
+ *
+ * Se il salt non è configurato, ritorniamo `undefined` invece di un hash
+ * non salted: meglio perdere il join cross-event che dare una finta
+ * pseudonimizzazione. Per garanzie più forti (k-anonymity), l'hashing va
+ * eventualmente spostato lato Supabase Edge Function.
  */
-function fnv1aHash(input: string): string {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < input.length; i += 1) {
-    h ^= input.charCodeAt(i);
-    h = (h * 0x01000193) >>> 0;
-  }
-  return h.toString(16).padStart(8, '0');
+async function pseudonymize(userId: string, salt: string): Promise<string | undefined> {
+  if (typeof crypto === 'undefined' || !crypto.subtle?.digest) return undefined;
+  const encoded = new TextEncoder().encode(`${salt}:${userId}`);
+  const buf = await crypto.subtle.digest('SHA-256', encoded);
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
-let cachedHash: string | null = null;
-let cachedHashSource: string | null = null;
+function readSalt(): string | null {
+  // Vite expone `import.meta.env` solo al bundling; in test/SSR fallback su
+  // process.env per dare flessibilità.
+  try {
+    const fromVite = (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_ANALYTICS_SALT;
+    if (typeof fromVite === 'string' && fromVite.length > 0) return fromVite;
+  } catch {
+    /* import.meta.env not available */
+  }
+  if (typeof process !== 'undefined' && process.env?.VITE_ANALYTICS_SALT) {
+    return process.env.VITE_ANALYTICS_SALT;
+  }
+  return null;
+}
 
-export function getUserHash(userId: string | null | undefined): string | undefined {
-  if (!userId) return undefined;
-  if (cachedHashSource === userId && cachedHash) return cachedHash;
-  cachedHash = fnv1aHash(userId);
-  cachedHashSource = userId;
-  return cachedHash;
+const hashCache = new Map<string, Promise<string | undefined>>();
+
+export function getUserHash(userId: string | null | undefined): Promise<string | undefined> {
+  if (!userId) return Promise.resolve(undefined);
+  const salt = readSalt();
+  if (!salt) return Promise.resolve(undefined);
+  let pending = hashCache.get(userId);
+  if (!pending) {
+    pending = pseudonymize(userId, salt);
+    hashCache.set(userId, pending);
+  }
+  return pending;
+}
+
+// Test-only: clears the in-memory hash cache. Not exported via public surface.
+export function __resetAnalyticsCacheForTests(): void {
+  hashCache.clear();
 }
 
 /**
@@ -127,18 +157,19 @@ function sanitizeProps(
   return any ? out : undefined;
 }
 
-export function track(
+export async function track(
   event: AnalyticsEventName,
   options?: {
     userId?: string | null;
     props?: Record<string, string | number | boolean | null>;
   },
-): void {
+): Promise<void> {
   if (!readConsent()) return;
 
+  const userHash = await getUserHash(options?.userId ?? null);
   const payload: AnalyticsEventPayload = {
     event,
-    userHash: getUserHash(options?.userId ?? null),
+    userHash,
     props: sanitizeProps(options?.props),
     ts: new Date().toISOString(),
   };
@@ -146,7 +177,7 @@ export function track(
   try {
     const result = currentSink(payload);
     if (result && typeof (result as Promise<unknown>).catch === 'function') {
-      (result as Promise<unknown>).catch(() => { /* swallow — analytics never breaks UX */ });
+      await (result as Promise<unknown>).catch(() => { /* swallow — analytics never breaks UX */ });
     }
   } catch {
     /* swallow — analytics never breaks UX */
@@ -158,46 +189,46 @@ export function track(
 // di sparpagliare letterali ovunque e per centralizzare le `props`.
 // ---------------------------------------------------------------------------
 
-export function trackSessionStart(userId?: string | null): void {
-  track('session_start', { userId });
+export function trackSessionStart(userId?: string | null): Promise<void> {
+  return track('session_start', { userId });
 }
 
-export function trackOnboardingStarted(userId?: string | null): void {
-  track('onboarding_started', { userId });
+export function trackOnboardingStarted(userId?: string | null): Promise<void> {
+  return track('onboarding_started', { userId });
 }
 
 export function trackOnboardingCompleted(
   userId: string | null | undefined,
   variant: 'full' | 'skipped_qr' | 'skipped_manual',
-): void {
-  track('onboarding_completed', { userId, props: { variant } });
+): Promise<void> {
+  return track('onboarding_completed', { userId, props: { variant } });
 }
 
 export function trackFirstScenarioCompleted(
   userId: string | null | undefined,
   sceneId: string,
-): void {
-  track('first_scenario_completed', { userId, props: { sceneId } });
+): Promise<void> {
+  return track('first_scenario_completed', { userId, props: { sceneId } });
 }
 
 export function trackActivityCompleted(
   userId: string | null | undefined,
   props: { activityId: string; rating: string; score: number; durationMs: number },
-): void {
-  track('activity_completed', { userId, props });
+): Promise<void> {
+  return track('activity_completed', { userId, props });
 }
 
 export function trackTurnRegistered(
   userId: string | null | undefined,
   props: { theatreHash: string; boostRequested: boolean; boostApplied: boolean },
-): void {
-  track('turn_registered', { userId, props });
+): Promise<void> {
+  return track('turn_registered', { userId, props });
 }
 
 export function trackShareClicked(
   userId: string | null | undefined,
   surface: 'profile' | 'turn_certified' | 'level_up' | 'badge',
   outcome: 'shared' | 'copied' | 'cancelled' | 'unsupported' | 'error',
-): void {
-  track('share_clicked', { userId, props: { surface, outcome } });
+): Promise<void> {
+  return track('share_clicked', { userId, props: { surface, outcome } });
 }

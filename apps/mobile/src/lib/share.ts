@@ -56,17 +56,42 @@ export async function sharePayload(payload: SharePayload): Promise<ShareResult> 
 }
 
 /**
- * Costruisce l'URL canonico per il profilo pubblico condivisibile.
- * Tiene conto di `window.location.origin` quando disponibile, altrimenti
- * ripiega su un dominio noto (utile per SSR/test).
+ * Costruisce un URL condivisibile che apre l'app sulla home.
+ *
+ * **Perché non `/profile/<userId>`**: il router della PWA non ha (ancora)
+ * una rotta per il profilo pubblico arbitrario via deep-link — `PublicProfile`
+ * è renderizzato solo quando `selectedLeaderboardEntry` viene impostato
+ * dalla classifica in-app. Un URL `/profile/<userId>` finirebbe su un 404
+ * dello static host. Finché il routing del deep-link non esiste, condividiamo
+ * la home con un parametro `?ref=<hash>` (referral-only): l'app si carica
+ * normalmente, e l'hash anonimo può essere usato a fini di tracking senza
+ * esporre l'userId.
+ *
+ * Una volta che #1086 (deep-link profile route) sarà mergeato, questa
+ * funzione potrà ritornare l'URL pieno al profilo specifico.
+ *
+ * @param refHash hash anonimo (es. quello prodotto da analytics.getUserHash)
+ *                — non usare userId in chiaro qui.
  */
-export function buildPublicProfileUrl(
-  userId: string,
+export function buildShareUrl(
+  refHash: string | null | undefined,
   options?: { origin?: string },
 ): string {
   const origin =
     options?.origin
     ?? (typeof window !== 'undefined' ? window.location.origin : 'https://turni.atcllazio.it');
-  const safeId = encodeURIComponent(userId);
-  return `${origin}/profile/${safeId}`;
+  if (!refHash) return origin;
+  const safeRef = encodeURIComponent(refHash);
+  return `${origin}/?ref=${safeRef}`;
+}
+
+/**
+ * @deprecated alias retained for backward compatibility with #473's first
+ * iteration. New callers should use `buildShareUrl`.
+ */
+export function buildPublicProfileUrl(
+  userIdOrHash: string,
+  options?: { origin?: string },
+): string {
+  return buildShareUrl(userIdOrHash, options);
 }

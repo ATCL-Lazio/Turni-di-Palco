@@ -124,17 +124,17 @@ export function RoleSelection({ roles, showRoleJourney = true, onComplete }: Rol
               {getRoleStatPreviews(selectedRole.stats).map(preview => (
                 <div
                   key={preview.stat}
-                  className={`flex gap-3 items-start text-sm ${preview.active ? 'text-white' : 'text-[#7a7475]'}`}
+                  className={`flex gap-3 items-start text-sm ${preview.active ? 'text-white' : 'text-[#b8b2b3]'}`}
                 >
                   <Sparkles
                     size={14}
-                    className={`mt-1 flex-shrink-0 ${preview.active ? 'text-[#f4bf4f]' : 'text-[#4d4849]'}`}
+                    className={`mt-1 flex-shrink-0 ${preview.active ? 'text-[#f4bf4f]' : 'text-[#6f6a6b]'}`}
                   />
                   <div className="min-w-0">
                     <p className="font-semibold leading-snug">
                       {preview.label}
                       {preview.active ? null : (
-                        <span className="ml-2 text-xs text-[#7a7475] font-normal">(inattiva)</span>
+                        <span className="ml-2 text-xs text-[#b8b2b3] font-normal">(inattiva)</span>
                       )}
                     </p>
                     <p className="text-xs text-[#b8b2b3] mt-0.5">{preview.effect}</p>

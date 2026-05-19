@@ -12,8 +12,8 @@ import { hasStoredAuthState, PUBLIC_SCREENS } from '../lib/auth-storage';
 import { openInMaps, openEventsMap } from '../lib/navigation-utils';
 import { uploadProfileImage } from '../services/storage';
 import { initErrorHandler, subscribeToCriticalErrors, getLastCriticalError, clearLastCriticalError } from '../services/error-handler';
-import { trackShareClicked } from '../services/analytics';
-import { buildPublicProfileUrl, sharePayload } from '../lib/share';
+import { getUserHash, trackShareClicked } from '../services/analytics';
+import { buildShareUrl, sharePayload } from '../lib/share';
 import { PENDING_EVENT_KEY, readPendingEventFromUrl, stripEventLinkParams } from '../lib/event-linking';
 import type { ActivatedEventPayload } from '../services/ticket-activation';
 
@@ -288,6 +288,20 @@ export function AppShell() {
       setInfoToast('Errore durante il caricamento dell\'immagine profilo.');
     }
   }, [authUserId, updateProfile, setInfoToast]);
+
+  // Share del profilo: l'URL è un referral-only verso la home (#473).
+  // Il deep-link al profilo specifico richiede una rotta dedicata che oggi
+  // non esiste — vedi `lib/share.ts` per la nota completa.
+  const handleShareProfile = useCallback(async () => {
+    if (!authUserId) return;
+    const refHash = await getUserHash(authUserId);
+    const url = buildShareUrl(refHash ?? null);
+    const text = `${state.profile.name} · ${selectedRole?.name ?? 'Ruolo'} · Liv. ${state.profile.level} su Turni di Palco`;
+    const result = await sharePayload({ title: 'Turni di Palco', text, url });
+    void trackShareClicked(authUserId, 'profile', result.kind === 'error' ? 'error' : result.kind);
+    if (result.kind === 'copied') setInfoToast('Link copiato negli appunti');
+    else if (result.kind === 'unsupported') setInfoToast('Condivisione non disponibile su questo dispositivo');
+  }, [authUserId, state.profile.name, state.profile.level, selectedRole?.name, setInfoToast]);
 
   // === Effects ===
 
@@ -639,16 +653,7 @@ export function AppShell() {
             onViewCarriera={openCareer} onViewTitoli={openEarnedTitles}
             onSettings={() => nav.navigate('account-settings')} onLogout={handleLogout}
             onUploadProfileImage={handleUploadImage}
-            onShareProfile={authUserId ? () => {
-              void (async () => {
-                const url = buildPublicProfileUrl(authUserId);
-                const text = `${state.profile.name} · ${selectedRole?.name ?? 'Ruolo'} · Liv. ${state.profile.level} su Turni di Palco`;
-                const result = await sharePayload({ title: 'Turni di Palco', text, url });
-                trackShareClicked(authUserId, 'profile', result.kind === 'error' ? 'error' : result.kind);
-                if (result.kind === 'copied') setInfoToast('Link copiato negli appunti');
-                else if (result.kind === 'unsupported') setInfoToast('Condivisione non disponibile su questo dispositivo');
-              })();
-            } : undefined} />
+            onShareProfile={authUserId ? handleShareProfile : undefined} />
         );
 
       case 'public-profile':

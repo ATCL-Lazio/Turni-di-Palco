@@ -82,6 +82,20 @@ export type RewardBreakdown = {
  * Calcola la decomposizione bonus stat → ricompensa finale.
  * Vincolo: pure function, niente effetti collaterali, niente RNG.
  *
+ * **Modello additivo, non composto.** Ogni bonus stat è calcolato sulla
+ * `baseXp` / `baseCachet` originali, mai sul valore già aumentato da un
+ * bonus precedente. Questo evita lo stacking moltiplicativo che farebbe
+ * divergere il breakdown UI dai reward effettivi calcolati dallo store
+ * (vedi `state/store.tsx:getRoleActivityOverride`, che applica un
+ * `xpMultiplier`/`cachetMultiplier` singolo per coppia ruolo×attività).
+ *
+ * Il breakdown qui è quindi una **stima del contributo isolato di ogni
+ * stat** rispetto alla reward base. Lo store può applicare in aggiunta
+ * moltiplicatori specifici di ruolo (override) che non sono catturati
+ * da questo modello; finché STAT_EFFECTS non diventa l'unica source of
+ * truth anche nello store, l'UI mostra il breakdown come "Impatto
+ * teorico delle tue statistiche".
+ *
  * Le formule sono in `shared/config/balancing.ts`; qui solo composizione.
  */
 export function computeRewardBreakdown({
@@ -102,60 +116,60 @@ export function computeRewardBreakdown({
 
   const family = familyFromActivity(activityId);
   const bonuses: RewardBonusBreakdown[] = [];
-  let xp = baseXp;
-  let cachet = baseCachet;
+  let xpDelta = 0;
+  let cachetDelta = 0;
 
-  // Precision → cachet su attività luci/fonico
+  // Precision → cachet su attività luci/fonico (delta sulla BASE)
   if (family === 'luci' || family === 'fonico') {
     const mult = getStatMultiplier('precision', 'cachet', stats.precision);
     if (mult > 1) {
-      const delta = Math.round(cachet * (mult - 1));
+      const delta = Math.round(baseCachet * (mult - 1));
       if (delta > 0) {
         bonuses.push({ source: 'precision', kind: 'cachet', multiplier: mult, delta });
-        cachet += delta;
+        cachetDelta += delta;
       }
     }
   }
 
-  // Presence → xp su recitazione/copione
+  // Presence → xp su recitazione/copione (delta sulla BASE)
   if (family === 'recitazione') {
     const mult = getStatMultiplier('presence', 'xp', stats.presence);
     if (mult > 1) {
-      const delta = Math.round(xp * (mult - 1));
+      const delta = Math.round(baseXp * (mult - 1));
       if (delta > 0) {
         bonuses.push({ source: 'presence', kind: 'xp', multiplier: mult, delta });
-        xp += delta;
+        xpDelta += delta;
       }
     }
   }
 
-  // Creativity → xp su palco/attrezzista
+  // Creativity → xp su palco/attrezzista (delta sulla BASE)
   if (family === 'palco') {
     const mult = getStatMultiplier('creativity', 'xp', stats.creativity);
     if (mult > 1) {
-      const delta = Math.round(xp * (mult - 1));
+      const delta = Math.round(baseXp * (mult - 1));
       if (delta > 0) {
         bonuses.push({ source: 'creativity', kind: 'xp', multiplier: mult, delta });
-        xp += delta;
+        xpDelta += delta;
       }
     }
   }
 
-  // Leadership → cachet globale (su tutte le attività)
+  // Leadership → cachet globale (delta sulla BASE, non sul cachet già aumentato)
   const leadershipMult = getLeadershipCachetMultiplier(stats.leadership);
   if (leadershipMult > 1) {
-    const delta = Math.round(cachet * (leadershipMult - 1));
+    const delta = Math.round(baseCachet * (leadershipMult - 1));
     if (delta > 0) {
       bonuses.push({ source: 'leadership_global', kind: 'cachet', multiplier: leadershipMult, delta });
-      cachet += delta;
+      cachetDelta += delta;
     }
   }
 
   return {
     baseXp,
     baseCachet,
-    finalXp: xp,
-    finalCachet: cachet,
+    finalXp: baseXp + xpDelta,
+    finalCachet: baseCachet + cachetDelta,
     bonuses,
   };
 }

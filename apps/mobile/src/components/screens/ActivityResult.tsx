@@ -134,12 +134,14 @@ export function ActivityResult({ activity, rewards, outcome, isDuplicate, roleSt
 
         {statBreakdown ? (
           <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20] border border-[#f4bf4f]/20">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-2">
               <Sparkles className="text-[#f4bf4f]" size={16} />
-              <h4 className="text-[#f4bf4f]">Bonus dalle tue statistiche</h4>
+              <h4 className="text-[#f4bf4f]">Impatto teorico delle tue stat</h4>
             </div>
             <p className="text-xs text-[#b8b2b3] mb-3">
-              Base: {statBreakdown.baseXp} XP · {statBreakdown.baseCachet} Cachet
+              Stima del contributo di ogni statistica rispetto alla base
+              ({statBreakdown.baseXp} XP · {statBreakdown.baseCachet} Cachet).
+              Il reward finale può differire per i moltiplicatori specifici di ruolo applicati alle attività.
             </p>
             <div className="space-y-2">
               {statBreakdown.bonuses.map(bonus => (

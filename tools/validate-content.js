@@ -189,8 +189,32 @@ function validateMinigame(file, mg) {
 // Main
 // ---------------------------------------------------------------------------
 
+// Cross-file validation: every `outcome.next` reference must point to a
+// scene ID that exists in the registry (either generic scene or theater).
+function validateNextReferences(scenes) {
+  const idsByFile = new Map();
+  const allIds = new Set();
+  for (const { file, scene } of scenes) {
+    if (scene && typeof scene.id === 'string') {
+      idsByFile.set(file, scene.id);
+      allIds.add(scene.id);
+    }
+  }
+  for (const { file, scene } of scenes) {
+    if (!scene || !Array.isArray(scene.choices)) continue;
+    scene.choices.forEach((choice, idx) => {
+      const next = choice && choice.outcome && choice.outcome.next;
+      if (typeof next !== 'string') return;
+      if (!allIds.has(next)) {
+        report(file, `choices[${idx}].outcome.next "${next}" does not match any registered scene id`);
+      }
+    });
+  }
+}
+
 function main() {
   let count = 0;
+  const collectedScenes = [];
 
   for (const dir of SCENARIOS_DIRS) {
     for (const file of listJsonFiles(dir)) {
@@ -199,8 +223,11 @@ function main() {
       if (data === null) continue;
       const scene = validateScene(file, data);
       if (dir.endsWith(`${path.sep}theaters`)) validateTheaterScene(file, scene);
+      collectedScenes.push({ file, scene });
     }
   }
+
+  validateNextReferences(collectedScenes);
 
   for (const file of listJsonFiles(COURSES_DIR)) {
     count += 1;
