@@ -1,0 +1,64 @@
+{
+  "id": "theater_frascati_spazio_teatro_faber",
+  "theatre": "Spazio Teatro Faber",
+  "city": "Frascati",
+  "season": "2025-2026",
+  "requires": {
+    "theatreVisits": {
+      "min": 3
+    }
+  },
+  "title": "Storia segreta del Spazio Teatro Faber",
+  "setting": "Spazio Teatro Faber — Frascati",
+  "prompt": "Dopo tre serate registrate qui, un membro storico della compagnia ti prende da parte e ti racconta che questo teatro nato come fucina di laboratori, oggi punto di riferimento per la scena indipendente dei Castelli Romani. Adesso ti chiede se vuoi raccogliere il testimone.",
+  "choices": [
+    {
+      "id": "accolgo_eredita",
+      "label": "Accogli il racconto",
+      "outcome": {
+        "text": "Resti ad ascoltare. Quando esci, guardi Spazio Teatro Faber con occhi diversi: sai di farne parte adesso, non di passaggio.",
+        "rewards": {
+          "xp": 25,
+          "reputation": 3,
+          "cachet": 5
+        },
+        "setFlags": [
+          "theater_frascati_spazio_teatro_faber_storia_appresa"
+        ],
+        "next": null
+      }
+    },
+    {
+      "id": "mi_concentro_sul_lavoro",
+      "label": "Ringrazi ma resti sul lavoro",
+      "outcome": {
+        "text": "Annuisci e torni alle tue cose. Niente di sbagliato, ma quella storia non te la racconterà più nessuno.",
+        "rewards": {
+          "xp": 10,
+          "cachet": 5
+        },
+        "next": null
+      }
+    },
+    {
+      "id": "cerco_di_capire_di_piu",
+      "label": "Fai una domanda specifica",
+      "requires": {
+        "stat": "creativity",
+        "min": 65
+      },
+      "outcome": {
+        "text": "La domanda giusta apre una porta: il custode tira fuori un quaderno con appunti che nessuno aveva mai chiesto di vedere.",
+        "rewards": {
+          "xp": 35,
+          "reputation": 5,
+          "cachet": 10
+        },
+        "setFlags": [
+          "theater_frascati_spazio_teatro_faber_quaderno_trovato"
+        ],
+        "next": null
+      }
+    }
+  ]
+}
