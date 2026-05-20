@@ -40,6 +40,10 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(COOKIE_CONSENT_KEY, new Date().toISOString());
     }
+    // L'opt-in analytics (#477) NON viene impostato qui di default: GDPR
+    // art. 7 richiede consensi granulari, distinguibili dal cookie consent
+    // tecnico. L'utente potrà attivare il tracking dalla schermata
+    // "Gestisci account" → Privacy in un toggle separato.
     onAccept();
   };
 

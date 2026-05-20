@@ -1,5 +1,5 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { X, Timer, SlidersHorizontal, Target } from 'lucide-react';
+import { X, Timer, SlidersHorizontal, Target, Sparkles } from 'lucide-react';
 import { Activity, RoleId } from '../../state/store';
 import {
   computeOutcome,
@@ -9,6 +9,7 @@ import {
   MinigameOutcome,
   RoleStats,
 } from '../../gameplay/minigames';
+import { getActiveStatBenefitsForActivity } from '../../gameplay/role-effects';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
@@ -37,6 +38,7 @@ interface MinigameShellProps {
   activityTitle: string;
   roundLabel: string;
   icon: React.ReactNode;
+  statBenefits?: Array<{ stat: string; label: string }>;
   onCancel: () => void;
   children: React.ReactNode;
 }
@@ -46,6 +48,7 @@ function MinigameShell({
   activityTitle,
   roundLabel,
   icon,
+  statBenefits,
   onCancel,
   children,
 }: MinigameShellProps) {
@@ -79,6 +82,23 @@ function MinigameShell({
           {activityTitle}
         </Badge>
 
+        {statBenefits && statBenefits.length > 0 ? (
+          <ul
+            aria-label="Benefici delle statistiche attivi"
+            className="flex flex-wrap gap-2 list-none p-0 m-0"
+          >
+            {statBenefits.map(benefit => (
+              <li
+                key={benefit.stat}
+                className="inline-flex items-center gap-1 rounded-full border border-[#f4bf4f]/40 bg-[#f4bf4f]/10 px-3 py-1 text-xs text-[#f4bf4f]"
+              >
+                <Sparkles size={12} aria-hidden="true" />
+                Beneficio {benefit.label} attivo
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
         {children}
       </div>
     </div>
@@ -88,11 +108,12 @@ function MinigameShell({
 interface TimingMinigameProps {
   config: MinigameConfig;
   activityTitle: string;
+  statBenefits?: Array<{ stat: string; label: string }>;
   onComplete: (outcome: MinigameOutcome) => void;
   onCancel: () => void;
 }
 
-function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingMinigameProps) {
+function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCancel }: TimingMinigameProps) {
   const { accessibleMode } = useAccessibilityPreferences();
   const rounds = useMemo(
     () => (accessibleMode
@@ -221,6 +242,7 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
       activityTitle={activityTitle}
       roundLabel={roundLabel}
       icon={<Timer className="text-[#f4bf4f]" size={24} />}
+      statBenefits={statBenefits}
       onCancel={onCancel}
     >
       <Card
@@ -309,11 +331,12 @@ function TimingMinigame({ config, activityTitle, onComplete, onCancel }: TimingM
 interface AudioMinigameProps {
   config: MinigameConfig;
   activityTitle: string;
+  statBenefits?: Array<{ stat: string; label: string }>;
   onComplete: (outcome: MinigameOutcome) => void;
   onCancel: () => void;
 }
 
-function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMinigameProps) {
+function AudioMinigame({ config, activityTitle, statBenefits, onComplete, onCancel }: AudioMinigameProps) {
   const { accessibleMode } = useAccessibilityPreferences();
   const rounds = useMemo(
     () => (accessibleMode
@@ -392,6 +415,7 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
       activityTitle={activityTitle}
       roundLabel={roundLabel}
       icon={<SlidersHorizontal className="text-[#f4bf4f]" size={22} />}
+      statBenefits={statBenefits}
       onCancel={onCancel}
     >
       <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
@@ -489,10 +513,14 @@ function AudioMinigame({ config, activityTitle, onComplete, onCancel }: AudioMin
 
 export function ActivityMinigame({ activity, roleId, roleStats, onComplete, onCancel }: ActivityMinigameProps) {
   const config = useMemo(() => getMinigameConfig(activity.id, roleId, roleStats), [activity.id, roleId, roleStats]);
+  const statBenefits = useMemo(
+    () => getActiveStatBenefitsForActivity(activity.id, roleStats),
+    [activity.id, roleStats],
+  );
 
   if (config.type === 'audio') {
-    return <AudioMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
+    return <AudioMinigame config={config} activityTitle={activity.title} statBenefits={statBenefits} onComplete={onComplete} onCancel={onCancel} />;
   }
 
-  return <TimingMinigame config={config} activityTitle={activity.title} onComplete={onComplete} onCancel={onCancel} />;
+  return <TimingMinigame config={config} activityTitle={activity.title} statBenefits={statBenefits} onComplete={onComplete} onCancel={onCancel} />;
 }

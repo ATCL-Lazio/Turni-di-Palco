@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Award, BarChart3, Camera, ChevronRight, Info, LogOut, Settings, Theater, User } from 'lucide-react';
+import { Award, BarChart3, Camera, ChevronRight, Info, LogOut, Settings, Share2, Theater, User } from 'lucide-react';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Screen } from '../ui/Screen';
 
@@ -29,6 +29,8 @@ interface ProfileProps {
   onSettings: () => void;
   onLogout: () => void;
   onUploadProfileImage: (file: File) => void;
+  /** Condivisione del profilo pubblico (#473). Se omesso, il bottone non viene mostrato. */
+  onShareProfile?: () => void;
 }
 
 export function Profile({
@@ -36,6 +38,7 @@ export function Profile({
   cachet, tokenAtcl, theatreReputation, theatreReputationLoading,
   badgesUnlockedCount, newBadgesCount, profileImage, showCarriera = true,
   onViewCarriera, onViewTitoli, onSettings, onLogout, onUploadProfileImage,
+  onShareProfile,
 }: ProfileProps) {
   const safeXpTotal = Math.max(xpTotal, 1);
   const roleLabel = (userRole ?? 'Ruolo').replace(/\s*\/\s*/g, '/');
@@ -72,6 +75,15 @@ export function Profile({
             newBadgesCount={newBadgesCount}
             onClick={onViewTitoli}
           />
+
+          {onShareProfile ? (
+            <ProfileMenuButton
+              icon={Share2}
+              label="Condividi profilo"
+              subtitle="Una card sintetica della tua carriera"
+              onClick={onShareProfile}
+            />
+          ) : null}
 
           <ProfileMenuButton
             icon={Settings}

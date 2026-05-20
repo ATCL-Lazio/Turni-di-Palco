@@ -1,7 +1,8 @@
 ﻿import React, { useMemo } from 'react';
-import { CheckCircle2, Coins, Award, TrendingUp, Star } from 'lucide-react';
+import { CheckCircle2, Coins, Award, TrendingUp, Star, Sparkles } from 'lucide-react';
 import { Activity, Rewards } from '../../state/store';
-import { MinigameOutcome } from '../../gameplay/minigames';
+import { MinigameOutcome, RoleStats } from '../../gameplay/minigames';
+import { computeRewardBreakdown, STAT_LABEL } from '../../gameplay/role-effects';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -11,15 +12,39 @@ interface ActivityResultProps {
   rewards: Rewards;
   outcome: MinigameOutcome;
   isDuplicate?: boolean;
+  /** Stat del ruolo correntemente selezionato; abilita il breakdown bonus stat (#471). */
+  roleStats?: RoleStats | null;
   onDone: () => void;
 }
 
-export function ActivityResult({ activity, rewards, outcome, isDuplicate, onDone }: ActivityResultProps) {
+// Etichette delle source del breakdown bonus. Le quattro stat puntano alla
+// costante esportata da role-effects per evitare duplicazione; solo
+// `leadership_global` resta locale perché è un'etichetta UI-specifica.
+const BONUS_SOURCE_LABEL: Record<string, string> = {
+  ...STAT_LABEL,
+  leadership_global: 'Leadership (globale)',
+};
+
+export function ActivityResult({ activity, rewards, outcome, isDuplicate, roleStats, onDone }: ActivityResultProps) {
   const durationLabel = useMemo(() => {
     if (!outcome.durationMs) return null;
     const seconds = Math.max(1, Math.round(outcome.durationMs / 1000));
     return `${seconds}s`;
   }, [outcome.durationMs]);
+
+  // Breakdown dei bonus dalle statistiche del ruolo (#471). Calcola sui
+  // valori base dell'attività; lo store applica i moltiplicatori in modo
+  // indipendente, qui spieghiamo quali bonus stat sono in gioco.
+  const statBreakdown = useMemo(() => {
+    if (!roleStats) return null;
+    const result = computeRewardBreakdown({
+      baseXp: activity.xpReward,
+      baseCachet: activity.cachetReward,
+      activityId: activity.id,
+      stats: roleStats,
+    });
+    return result.bonuses.length > 0 ? result : null;
+  }, [activity.id, activity.xpReward, activity.cachetReward, roleStats]);
 
   const ratingVariant = useMemo(() => {
     switch (outcome.rating) {
@@ -106,6 +131,35 @@ export function ActivityResult({ activity, rewards, outcome, isDuplicate, onDone
             </div>
           </div>
         </Card>
+
+        {statBreakdown ? (
+          <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20] border border-[#f4bf4f]/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="text-[#f4bf4f]" size={16} aria-hidden="true" />
+              <h4 className="text-[#f4bf4f]">Impatto teorico delle tue stat</h4>
+            </div>
+            <p className="text-xs text-[#b8b2b3] mb-3">
+              Stima del contributo di ogni statistica rispetto alla base
+              ({statBreakdown.baseXp} XP · {statBreakdown.baseCachet} Cachet).
+              Il reward finale può differire per i moltiplicatori specifici di ruolo applicati alle attività.
+            </p>
+            <div className="space-y-2">
+              {statBreakdown.bonuses.map(bonus => (
+                <div
+                  key={`${bonus.source}-${bonus.kind}`}
+                  className="flex items-center justify-between text-sm"
+                >
+                  <span className="text-white">
+                    {BONUS_SOURCE_LABEL[bonus.source] ?? bonus.source}
+                  </span>
+                  <span className="text-[#f4bf4f] font-semibold">
+                    +{bonus.delta} {bonus.kind === 'xp' ? 'XP' : 'Cachet'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        ) : null}
 
         <Button variant="primary" size="lg" fullWidth onClick={onDone}>
           Torna alle attivita

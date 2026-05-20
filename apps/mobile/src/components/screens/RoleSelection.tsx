@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Users, Lightbulb, Volume2, Package, Clipboard, ChevronRight, Star, ArrowLeft, BookOpen, ShieldCheck } from 'lucide-react';
+import { Users, Lightbulb, Volume2, Package, Clipboard, ChevronRight, Star, ArrowLeft, BookOpen, ShieldCheck, Sparkles } from 'lucide-react';
 import { Role } from '../../state/store';
 import { Screen, ScreenHeader } from '../ui/Screen';
+import { getRoleStatPreviews } from '../../gameplay/role-effects';
 
 const roleIcons: Record<string, React.ElementType> = {
   attore: Users,
@@ -114,6 +115,34 @@ export function RoleSelection({ roles, showRoleJourney = true, onComplete }: Rol
                 </div>
               ))}
             </div>
+          </Card>
+
+          {/* #471 — Anteprima: cosa cambia in gioco con queste stat */}
+          <Card className="mb-4 border border-[#f4bf4f]/20">
+            <h4 className="mb-3 text-[#f4bf4f]">Cosa cambia in gioco</h4>
+            <ul className="space-y-3 list-none p-0 m-0">
+              {getRoleStatPreviews(selectedRole.stats).map(preview => (
+                <li
+                  key={preview.stat}
+                  className={`flex gap-3 items-start text-sm ${preview.active ? 'text-white' : 'text-[#b8b2b3]'}`}
+                >
+                  <Sparkles
+                    size={14}
+                    aria-hidden="true"
+                    className={`mt-1 flex-shrink-0 ${preview.active ? 'text-[#f4bf4f]' : 'text-[#6f6a6b]'}`}
+                  />
+                  <div className="min-w-0">
+                    <p className="font-semibold leading-snug">
+                      {preview.label}
+                      {preview.active ? null : (
+                        <span className="ml-2 text-xs text-[#b8b2b3] font-normal">(inattiva)</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-[#b8b2b3] mt-0.5">{preview.effect}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </Card>
 
           {showRoleJourney && selectedRole.profile?.journey ? (
