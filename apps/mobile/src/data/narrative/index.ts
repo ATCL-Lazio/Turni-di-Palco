@@ -52,15 +52,19 @@ let theaterScenesPromise: Promise<void> | null = null;
 
 /**
  * Ensures every `./theaters/*.json` scene is parsed, validated and
- * registered. Idempotent: subsequent calls return the same Promise so
- * multiple consumers can share the same load.
+ * registered. Idempotent: subsequent successful calls return the same
+ * Promise so multiple consumers can share the same load.
+ *
+ * On failure the cached promise is reset to `null` so the next caller
+ * retries the chunk fetch (otherwise a transient network blip would
+ * keep every theater scene permanently unreachable for the session).
  *
  * Call this before showing UI that depends on a specific theater scene
  * being available (e.g. just before `loadScene(theaterId)` lookup).
  */
 export function ensureTheaterScenesLoaded(): Promise<void> {
   if (theaterScenesPromise) return theaterScenesPromise;
-  theaterScenesPromise = (async () => {
+  const pending = (async () => {
     const modules = await Promise.all(
       Object.values(theaterLoaders).map(loader => loader()),
     );
@@ -69,7 +73,14 @@ export function ensureTheaterScenesLoaded(): Promise<void> {
     }
     registerScenes(modules as NarrativeScene[]);
   })();
-  return theaterScenesPromise;
+  pending.catch(() => {
+    // Drop the cached rejection so the next caller can retry. We don't
+    // re-throw here: the original `pending` already carries the rejection
+    // for the current caller.
+    if (theaterScenesPromise === pending) theaterScenesPromise = null;
+  });
+  theaterScenesPromise = pending;
+  return pending;
 }
 
 // Auto-init: generic scenes synchronously, theater scenes in background.

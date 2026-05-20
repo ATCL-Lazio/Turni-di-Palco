@@ -45,6 +45,13 @@ export type AnalyticsEventPayload = {
 export type AnalyticsSink = (event: AnalyticsEventPayload) => void | Promise<void>;
 
 let currentSink: AnalyticsSink = (event) => {
+  // Default sink in dev/preview: scrive su console e nient'altro.
+  //
+  // TODO(production): in `AppShell.tsx` (o equivalente bootstrap), DOPO
+  // aver verificato il consenso analytics, chiamare `setAnalyticsSink`
+  // con l'implementazione di produzione (Plausible custom-event endpoint
+  // o Supabase Edge Function `ingest-analytics`). Senza override gli
+  // eventi sono solo loggati e mai persistiti.
   if (typeof console !== 'undefined') {
     console.debug('[analytics]', event.event, event.props ?? {});
   }

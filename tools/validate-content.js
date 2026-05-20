@@ -106,6 +106,13 @@ function validateTheaterScene(file, scene) {
   if (typeof scene.theatre !== 'string' || !scene.theatre.length) {
     report(file, 'theaters/*.json: "theatre" required (string)');
   }
+  // Theater scenes are lazy-loaded based on the `theater_` prefix
+  // (see `components/screens/NarrativeScene.tsx`). An id without the
+  // prefix would silently fail the prefix check at runtime and never
+  // resolve via the lazy chunk path — catch it in CI instead.
+  if (typeof scene.id === 'string' && !scene.id.startsWith('theater_')) {
+    report(file, `theaters/*.json: id "${scene.id}" must start with "theater_" (runtime gate in NarrativeScene)`);
+  }
   if (scene.requires && typeof scene.requires === 'object') {
     const visits = scene.requires.theatreVisits;
     if (visits != null) {
