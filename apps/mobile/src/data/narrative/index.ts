@@ -9,39 +9,71 @@
 //   3. The registry validates every scene at module load: an invalid file
 //      throws immediately in dev/build, so content errors cannot reach prod.
 //
+// Loading strategy:
+// - **Generic scenes** (`./scenes/*.json`) load **eagerly**: they include
+//   the FTUE / debug scene that the app needs available at first render.
+// - **Theater scenes** (`./theaters/*.json`) load **lazily** in a separate
+//   chunk: 25+ files only relevant after the player has registered ≥3 turns
+//   at a venue, so we don't want them in the main bundle (TTI impact).
+//   They are pre-fetched in background as soon as this module is imported,
+//   and consumers that need a guaranteed-ready theater scene can
+//   `await ensureTheaterScenesLoaded()` before lookup.
+//
 // See `./scenes/README.md` for the schema, `./theaters/README.md` for the
 // theater-specific extension (#478).
 
 import { assertValidScene, registerScenes, type NarrativeScene } from '../../gameplay/narrative';
 
-// Vite's eager glob: returns the parsed JSON of every file matching the
-// pattern at build time. `import: 'default'` unwraps the default export so
-// `scene` is the JSON object, not `{ default: ... }`.
+// Generic scenes — eager: parsed and registered at module load.
 const sceneModules = import.meta.glob('./scenes/*.json', {
   eager: true,
   import: 'default',
 });
-const theaterModules = import.meta.glob('./theaters/*.json', {
-  eager: true,
+
+// Theater scenes — lazy: each entry is a `() => Promise<...>` factory.
+const theaterLoaders = import.meta.glob<unknown>('./theaters/*.json', {
   import: 'default',
 });
 
-const SCENES: unknown[] = [
-  ...Object.values(sceneModules),
-  ...Object.values(theaterModules),
-];
+const GENERIC_SCENES: unknown[] = Object.values(sceneModules);
 
-let initialized = false;
+let genericInitialized = false;
 
 export function initNarrativeRegistry(): void {
-  if (initialized) return;
-  for (const raw of SCENES) {
+  if (genericInitialized) return;
+  for (const raw of GENERIC_SCENES) {
     assertValidScene(raw);
   }
-  registerScenes(SCENES as NarrativeScene[]);
-  initialized = true;
+  registerScenes(GENERIC_SCENES as NarrativeScene[]);
+  genericInitialized = true;
 }
 
-// Auto-init on import. Call sites can also invoke explicitly (e.g. tests
-// that registered fixtures and then cleared the registry).
+let theaterScenesPromise: Promise<void> | null = null;
+
+/**
+ * Ensures every `./theaters/*.json` scene is parsed, validated and
+ * registered. Idempotent: subsequent calls return the same Promise so
+ * multiple consumers can share the same load.
+ *
+ * Call this before showing UI that depends on a specific theater scene
+ * being available (e.g. just before `loadScene(theaterId)` lookup).
+ */
+export function ensureTheaterScenesLoaded(): Promise<void> {
+  if (theaterScenesPromise) return theaterScenesPromise;
+  theaterScenesPromise = (async () => {
+    const modules = await Promise.all(
+      Object.values(theaterLoaders).map(loader => loader()),
+    );
+    for (const raw of modules) {
+      assertValidScene(raw);
+    }
+    registerScenes(modules as NarrativeScene[]);
+  })();
+  return theaterScenesPromise;
+}
+
+// Auto-init: generic scenes synchronously, theater scenes in background.
+// Tests that registered fixtures and then cleared the registry can also
+// invoke `initNarrativeRegistry()` explicitly.
 initNarrativeRegistry();
+void ensureTheaterScenesLoaded();

@@ -19,8 +19,11 @@ import {
 import type { CompleteNarrativeChoiceInput, RoleId, Rewards } from '../../state/store';
 import type { RoleStats } from '../../gameplay/minigames';
 
-// Eagerly initialize the scene registry on module load.
-import '../../data/narrative';
+// Eagerly initialize the scene registry on module load (generic scenes only;
+// theater scenes are loaded lazily via `ensureTheaterScenesLoaded`).
+import { ensureTheaterScenesLoaded } from '../../data/narrative';
+
+const THEATER_ID_PREFIX = 'theater_';
 
 interface NarrativeSceneProps {
   sceneId: string;
@@ -58,6 +61,12 @@ function resolveInitialState(sceneId: string, roleId: RoleId | null, roleStats: 
     return { phase: 'loading' };
   }
 
+  // Theater scenes live in a lazy chunk (#478). Show the loading state and
+  // let the effect await `ensureTheaterScenesLoaded()` before lookup.
+  if (sceneId.startsWith(THEATER_ID_PREFIX)) {
+    return { phase: 'loading' };
+  }
+
   // Static scene — resolve synchronously from the registry
   const scene = loadScene(sceneId);
   if (!scene) return { phase: 'error', message: `Scenario "${sceneId}" non trovato.` };
@@ -77,12 +86,34 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
     setLocal({ phase: 'loading' });
   }, []);
 
-  // Async load for Maxwell-generated scenes (phase: 'loading')
+  // Async load for theater scenes (lazy chunk) and Maxwell-generated scenes
   useEffect(() => {
     if (local.phase !== 'loading') return;
 
     const ctx = makeCtx(roleId, roleStats, new Set());
     const controller = new AbortController();
+
+    // Theater scenes: wait for the lazy chunk, then resolve from the
+    // already-populated registry. No Maxwell call needed.
+    if (sceneId.startsWith(THEATER_ID_PREFIX)) {
+      ensureTheaterScenesLoaded().then(() => {
+        if (controller.signal.aborted) return;
+        const scene = loadScene(sceneId);
+        if (!scene) {
+          setLocal({ phase: 'error', message: `Scenario "${sceneId}" non trovato.` });
+          return;
+        }
+        if (!isSceneAvailable(scene, ctx)) {
+          setLocal({ phase: 'error', message: 'Accesso allo scenario non consentito per il tuo ruolo o le tue attività.' });
+          return;
+        }
+        setLocal({ phase: 'choosing', run: createRunState(scene.id), scene });
+      }).catch(() => {
+        if (controller.signal.aborted) return;
+        setLocal({ phase: 'error', message: `Scenario "${sceneId}" non disponibile al momento.` });
+      });
+      return () => controller.abort();
+    }
 
     fetchScene(sceneId, ctx, { signal: controller.signal }).then(scene => {
       if (controller.signal.aborted) return;
