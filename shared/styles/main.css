@@ -468,6 +468,7 @@ html[data-theme="light"] .text-white {
   /* WCAG 2.1 — 2.4.1 Bypass Blocks: skip-link visible only on focus. */
   .skip-link {
     position: fixed;
+    /* 56px floor: garantisce visibilità sotto status bar/notch quando env(safe-area-inset-top) è 0 (es. browser tab non-PWA). */
     top: max(env(safe-area-inset-top, 0px) + 8px, 56px);
     left: 50%;
     transform: translate(-50%, -150%);
