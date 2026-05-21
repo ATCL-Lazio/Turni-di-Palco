@@ -2313,8 +2313,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   // Ref so refreshActivitySlotsStatus can read the latest extraActivitySlots
   // without being recreated on every shop purchase.
   const extraActivitySlotsRef = useRef(state.profile.extraActivitySlots);
+  const catalogEventsRef = useRef(catalog.events);
   useEffect(() => { eventPlansRef.current = state.eventPlans; }, [state.eventPlans]);
   useEffect(() => { extraActivitySlotsRef.current = state.profile.extraActivitySlots; }, [state.profile.extraActivitySlots]);
+  useEffect(() => { catalogEventsRef.current = catalog.events; }, [catalog.events]);
 
   const syncLocalEventPlanning = useCallback(
     (plans: EventPlanning[]) => {
@@ -4027,7 +4029,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'planned_participations', filter: `user_id=eq.${authUserId}` },
         () => {
-          refreshEventPlanning(catalog.events).catch(console.error);
+          refreshEventPlanning(catalogEventsRef.current).catch(console.error);
         }
       )
       .on(
@@ -4058,7 +4060,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     };
   }, [
     authUserId,
-    catalog.events,
     refreshBadges,
     refreshActivitySlotsStatus,
     refreshEventPlanning,
