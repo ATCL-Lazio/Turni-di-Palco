@@ -274,7 +274,8 @@ export function useAuth(
             mounted = false;
             authListener?.subscription.unsubscribe();
         };
-    }, [applyUserProfileFromAuth, onLogout]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return {
         authError,
