@@ -474,6 +474,8 @@ html[data-theme="light"] .text-white {
     z-index: 1000;
     padding: 10px 16px;
     max-width: calc(100vw - 32px);
+    overflow: hidden;
+    text-overflow: ellipsis;
     background: var(--color-bg-surface-elevated);
     color: var(--color-gold-400);
     border: 2px solid var(--color-gold-400);
