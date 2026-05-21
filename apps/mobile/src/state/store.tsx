@@ -4714,12 +4714,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       const choiceKey = `${input.sceneId}:${input.choiceId}`;
       if (appliedNarrativeChoicesRef.current.has(choiceKey)) {
         logOfflineSync('completeNarrativeChoice skipped — already applied', { choiceKey }, 'warn');
-        const rewards: Rewards = {
-          xp: Math.max(0, Math.round(input.rewards.xp ?? 0)),
-          cachet: Math.max(0, Math.round(input.rewards.cachet ?? 0)),
-          reputation: Math.max(0, Math.round(input.rewards.reputation ?? 0)),
-        };
-        return { ok: true, rewards };
+        return { ok: true, rewards: { xp: 0, cachet: 0, reputation: 0 } };
       }
       appliedNarrativeChoicesRef.current.add(choiceKey);
 
