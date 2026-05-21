@@ -3760,15 +3760,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               userRes.error,
               profileRes.error,
             ]);
+            return;
           }
 
           if (turnsRes.error) {
             notifyCriticalError('Non riusciamo a caricare i turni dal database.', [turnsRes.error]);
-            return;
-          }
-
-          if (userRes.error) {
-            console.warn('[loadRemoteState] auth error, aborting profile load:', userRes.error);
             return;
           }
 
