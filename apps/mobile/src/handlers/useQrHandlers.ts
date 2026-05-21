@@ -219,8 +219,11 @@ export function useQrHandlers(deps: QrHandlerDeps) {
     }
 
     // Standard confirmation (no ticket activation)
+    if (!scannedEventId) {
+      return { ok: false, error: 'Evento non selezionato.' };
+    }
     const turnResult = await registerTurn({
-      eventId: scannedEventId ?? '',
+      eventId: scannedEventId,
       roleId: profileRoleId,
       eventOverride: confirmationEventOverride ?? undefined,
       boostRequested,
