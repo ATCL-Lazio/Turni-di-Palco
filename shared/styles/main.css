@@ -468,11 +468,15 @@ html[data-theme="light"] .text-white {
   /* WCAG 2.1 — 2.4.1 Bypass Blocks: skip-link visible only on focus. */
   .skip-link {
     position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    /* 56px floor: garantisce visibilità sotto status bar/notch quando env(safe-area-inset-top) è 0 (es. browser tab non-PWA). */
+    top: max(env(safe-area-inset-top, 0px) + 8px, 56px);
     left: 50%;
     transform: translate(-50%, -150%);
     z-index: 1000;
     padding: 10px 16px;
+    max-width: calc(100vw - 32px);
+    overflow: hidden;
+    text-overflow: ellipsis;
     background: var(--color-bg-surface-elevated);
     color: var(--color-gold-400);
     border: 2px solid var(--color-gold-400);
@@ -480,6 +484,7 @@ html[data-theme="light"] .text-white {
     font-size: 0.875rem;
     font-weight: 600;
     text-decoration: none;
+    white-space: nowrap;
     transition: transform 150ms ease-out;
   }
 
