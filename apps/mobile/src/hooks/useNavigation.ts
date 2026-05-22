@@ -8,7 +8,7 @@ const NAV_STATE_VERSION = 1 as const;
 
 const VALID_SCREENS = new Set<Screen>([
     'cookie-consent',
-    'welcome', 'login', 'signup', 'install', 'role-selection',
+    'welcome', 'login', 'signup', 'install', 'role-selection', 'onboarding-first-mission',
     'home', 'turns', 'leaderboard', 'qr-scanner', 'event-confirmation',
     'event-details', 'activities', 'shop', 'activity-detail', 'activity-minigame', 'activity-result', 'profile', 'public-profile',
     'account-settings', 'support', 'change-password', 'career',
