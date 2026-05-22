@@ -3865,9 +3865,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             }));
           }
 
-          if (profileRow) {
-            setHasHydratedRemote(true);
-          }
+          setHasHydratedRemote(true);
         },
         {
           operation: 'loadRemoteState',
