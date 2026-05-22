@@ -41,6 +41,9 @@ _site/
 docs and references/plan.md
 /.runner
 
+# Claude Code agent worktrees (ephemeral, never commit)
+.claude/worktrees/
+
 # Windows executable files
 *.exe
 
