@@ -2314,9 +2314,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   // without being recreated on every shop purchase.
   const extraActivitySlotsRef = useRef(state.profile.extraActivitySlots);
   const catalogEventsRef = useRef(catalog.events);
+  const profileRoleIdRef = useRef(state.profile.roleId);
   useEffect(() => { eventPlansRef.current = state.eventPlans; }, [state.eventPlans]);
   useEffect(() => { extraActivitySlotsRef.current = state.profile.extraActivitySlots; }, [state.profile.extraActivitySlots]);
   useEffect(() => { catalogEventsRef.current = catalog.events; }, [catalog.events]);
+  useEffect(() => { profileRoleIdRef.current = state.profile.roleId; }, [state.profile.roleId]);
 
   const syncLocalEventPlanning = useCallback(
     (plans: EventPlanning[]) => {
@@ -3175,7 +3177,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 .map((row) => {
                   const roleId = resolveEventPlanningRoleId(
                     row.role_id,
-                    state.profile.roleId
+                    profileRoleIdRef.current
                   );
                   const updatedAt = row.updated_at ? new Date(row.updated_at).getTime() : Date.now();
                   return {
@@ -3228,8 +3230,15 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         }
       );
     },
-    [authUserId, syncLocalEventPlanning, state.profile.roleId]
+    [authUserId, syncLocalEventPlanning]
   );
+
+  // Stable ref so the realtime channel useEffect does not re-subscribe on every
+  // role change (which would previously happen because refreshEventPlanning had
+  // state.profile.roleId in its useCallback deps, making the function reference
+  // change on every role update).
+  const refreshEventPlanningRef = useRef(refreshEventPlanning);
+  useEffect(() => { refreshEventPlanningRef.current = refreshEventPlanning; }, [refreshEventPlanning]);
 
   const refreshShopCatalog = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase || !authUserId) {
@@ -4023,7 +4032,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'planned_participations', filter: `user_id=eq.${authUserId}` },
         () => {
-          refreshEventPlanning(catalogEventsRef.current).catch(console.error);
+          refreshEventPlanningRef.current(catalogEventsRef.current).catch(console.error);
         }
       )
       .on(
@@ -4056,7 +4065,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     authUserId,
     refreshBadges,
     refreshActivitySlotsStatus,
-    refreshEventPlanning,
     refreshFeatureFlags,
     refreshShopCatalog,
     refreshTheatreReputation,
