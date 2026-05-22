@@ -1,2 +1,0 @@
-[functions.ticket-activation]
-verify_jwt = false
