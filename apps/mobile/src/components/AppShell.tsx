@@ -164,7 +164,7 @@ export function AppShell() {
   );
 
   // Auth hook
-  const { authError, setAuthError, isDemoMode, handleLogin, handleSignup, handleLogout } = useAuth(
+  const { authError, setAuthError, isDemoMode, handleLogin, handleSignup, handleLogout, markVoluntaryLogout } = useAuth(
     state.profile,
     updateProfile,
     (screen, isRecovery) => {
@@ -191,6 +191,13 @@ export function AppShell() {
       nav.navigate('welcome');
     },
   );
+
+  // Wrap deleteAccount so the SIGNED_OUT listener knows this is a voluntary
+  // sign-out and does not show the misleading "session expired" error banner.
+  const handleDeleteAccount = useCallback(async () => {
+    markVoluntaryLogout();
+    await deleteAccount();
+  }, [markVoluntaryLogout, deleteAccount]);
 
   // Tab change handler with feature gates
   const handleTabChange = useCallback((tab: Tab) => {
@@ -685,7 +692,7 @@ export function AppShell() {
             onChangePassword={() => { nav.setIsPasswordRecovery(false); nav.navigate('change-password'); }}
             onResetProgress={async () => { try { await resetProgress(); handleTabChange('home'); nav.navigate('role-selection'); } catch (err) { console.error('[AppShell] resetProgress failed:', err); throw err; } }}
             onResetTutorial={() => { gameState.resetTutorial(); nav.navigate('home'); }}
-            onDeleteAccount={deleteAccount}
+            onDeleteAccount={handleDeleteAccount}
             onExportData={exportUserData}
             onToggleLeaderboard={(visible) => updateProfile({ leaderboardVisible: visible })}
             onLogout={handleLogout} />
@@ -703,7 +710,7 @@ export function AppShell() {
               onChangePassword={() => { nav.setIsPasswordRecovery(false); nav.navigate('change-password'); }}
               onResetProgress={async () => { try { await resetProgress(); handleTabChange('home'); nav.navigate('role-selection'); } catch (err) { console.error('[AppShell] resetProgress failed:', err); throw err; } }}
               onResetTutorial={() => { gameState.resetTutorial(); nav.navigate('home'); }}
-              onDeleteAccount={deleteAccount}
+              onDeleteAccount={handleDeleteAccount}
               onExportData={exportUserData}
               onToggleLeaderboard={(visible) => updateProfile({ leaderboardVisible: visible })}
               onLogout={handleLogout} />;
@@ -748,7 +755,7 @@ export function AppShell() {
               onChangePassword={() => { nav.setIsPasswordRecovery(false); nav.navigate('change-password'); }}
               onResetProgress={async () => { try { await resetProgress(); handleTabChange('home'); nav.navigate('role-selection'); } catch (err) { console.error('[AppShell] resetProgress failed:', err); throw err; } }}
               onResetTutorial={() => { gameState.resetTutorial(); nav.navigate('home'); }}
-              onDeleteAccount={deleteAccount}
+              onDeleteAccount={handleDeleteAccount}
               onExportData={exportUserData}
               onToggleLeaderboard={(visible) => updateProfile({ leaderboardVisible: visible })}
               onLogout={handleLogout} />;
