@@ -277,6 +277,12 @@ export function useAuth(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Exposed so callers (e.g. deleteAccount in AppShell) can set the flag
+    // before triggering a signOut that was not initiated through handleLogout.
+    const markVoluntaryLogout = useCallback(() => {
+        isVoluntaryLogoutRef.current = true;
+    }, []);
+
     return {
         authError,
         setAuthError,
@@ -284,5 +290,6 @@ export function useAuth(
         handleLogin,
         handleSignup,
         handleLogout: handleLogoutAction,
+        markVoluntaryLogout,
     };
 }
