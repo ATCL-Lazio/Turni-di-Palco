@@ -3779,15 +3779,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             return;
           }
 
-          // If the profile SELECT itself errored (e.g. transient DB/network
-          // blip), profileRes.data is also null — but the profile likely exists.
-          // Attempting an INSERT in this case would trigger a PK conflict and
-          // surface a misleading "unable to create profile" critical error.
-          // Propagate the fetch error and bail out early instead.
-          if (profileRes.error) {
-            console.warn('[loadRemoteState] profile fetch error, aborting:', profileRes.error);
-            return;
-          }
+          // Note: profileRes.error is guaranteed falsy here — the combined check
+          // at line ~3769 already returned early on any userRes/profileRes error.
+          // The dead guard that previously appeared here has been removed to keep
+          // the control-flow explicit and avoid confusion during future refactors.
 
           let profileRow: DbProfileRow | null = profileRes.data as DbProfileRow | null;
 
@@ -3870,7 +3865,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                   : prev.profile.onboardingVariant,
               },
               eventPlans: prev.eventPlans,
-              turns: turnsRes.error ? prev.turns : remoteTurns,
+              turns: remoteTurns,
             }));
           }
 
