@@ -3870,7 +3870,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                   : prev.profile.onboardingVariant,
               },
               eventPlans: prev.eventPlans,
-              turns: turnsRes.error ? prev.turns : remoteTurns,
+              turns: remoteTurns,
             }));
           }
 
