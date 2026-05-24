@@ -40,7 +40,7 @@ serve(async (req) => {
 
   // Verify the caller's JWT to obtain their user ID
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return errorResponse('Autenticazione richiesta', 401);
   }
 
