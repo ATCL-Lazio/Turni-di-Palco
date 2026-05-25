@@ -389,6 +389,10 @@ type DbProfileRow = {
   leaderboard_visible?: boolean | null;
   onboarding_completed_at?: string | null;
   onboarding_variant?: string | null;
+  // Course state — Issue #327 / migration 20260525000000.
+  skills?: { precision: number; presence: number; creativity: number; leadership: number } | null;
+  active_courses?: Record<string, string> | null;
+  completed_courses?: Record<string, string> | null;
 };
 
 type DbBadgeRow = {
@@ -833,6 +837,10 @@ type ProfileUpsertPayload = {
   cookie_consent_at?: string | null;
   onboarding_completed_at?: string | null;
   onboarding_variant?: 'full' | 'skipped_qr' | 'skipped_manual' | null;
+  // Course state — Issue #327. Persisted as JSONB via migration 20260525000000.
+  skills?: Record<string, number>;
+  active_courses?: Record<string, string>;
+  completed_courses?: Record<string, string>;
 };
 
 type TurnInsertPayload = {
@@ -1745,6 +1753,10 @@ function buildProfileUpsertPayload(userId: string, profile: PlayerProfile): Prof
     ...(cookieConsentAt ? { cookie_consent_at: cookieConsentAt } : {}),
     onboarding_completed_at: profile.onboardingCompletedAt ?? null,
     onboarding_variant: profile.onboardingVariant ?? null,
+    // Course state — Issue #327 / migration 20260525000000.
+    skills: profile.skills ?? {},
+    active_courses: profile.activeCourses ?? {},
+    completed_courses: profile.completedCourses ?? {},
   };
 }
 
@@ -3907,6 +3919,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 onboardingVariant: (profileRow.onboarding_variant === 'full' || profileRow.onboarding_variant === 'skipped_qr' || profileRow.onboarding_variant === 'skipped_manual')
                   ? profileRow.onboarding_variant
                   : prev.profile.onboardingVariant,
+                // Course state — Issue #327. Prefer remote values when present; fall
+                // back to local (localStorage) so offline mutations are not lost.
+                skills: profileRow.skills ?? prev.profile.skills,
+                activeCourses: profileRow.active_courses ?? prev.profile.activeCourses,
+                completedCourses: profileRow.completed_courses ?? prev.profile.completedCourses,
               },
               eventPlans: prev.eventPlans,
               turns: remoteTurns,
@@ -4977,6 +4994,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       if (!course) return { ok: false, error: 'Corso non trovato.' };
 
       let result: { ok: true } | { ok: false; error: string } = { ok: true };
+      // Captured outside the updater so we can call persistProfile below —
+      // same pattern used by updateProfile above.
+      let capturedProfile: PlayerProfile | null = null;
 
       setState((prev) => {
         const profile = prev.profile;
@@ -5024,14 +5044,22 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             [courseId]: new Date().toISOString(),
           },
         };
-        const nextState: GameState = { ...prev, profile: nextProfile };
-        saveState(nextState);
-        return nextState;
+        capturedProfile = nextProfile;
+        // saveState is handled by the useEffect(() => { saveState(state); }, [state])
+        // above — calling it here would be a side effect inside a setState updater,
+        // which React StrictMode executes twice, causing double-writes.
+        return { ...prev, profile: nextProfile };
       });
+
+      // Sync course state to Supabase so a page refresh doesn't reset progress.
+      // capturedProfile is non-null only when the setState updater produced a new state.
+      if (capturedProfile !== null) {
+        persistProfile(capturedProfile);
+      }
 
       return result;
     },
-    [],
+    [persistProfile],
   );
 
   // Issue #327 — Completa un corso attivo.
@@ -5050,6 +5078,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         ok: false,
         error: 'Errore interno.',
       };
+      let capturedProfile: PlayerProfile | null = null;
 
       setState((prev) => {
         const profile = prev.profile;
@@ -5105,14 +5134,20 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         };
 
         result = { ok: true, xpGained, skillGained, pointsGained };
-        const nextState: GameState = { ...prev, profile: nextProfile };
-        saveState(nextState);
-        return nextState;
+        capturedProfile = nextProfile;
+        // saveState is handled by the useEffect(() => { saveState(state); }, [state])
+        // above — see comment in startCourse for the StrictMode rationale.
+        return { ...prev, profile: nextProfile };
       });
+
+      // Sync completed skills and cooldown timestamps to Supabase.
+      if (capturedProfile !== null) {
+        persistProfile(capturedProfile);
+      }
 
       return result;
     },
-    [],
+    [persistProfile],
   );
 
   const resetState = useCallback(() => {
