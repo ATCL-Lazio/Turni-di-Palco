@@ -32,7 +32,6 @@ export function PasswordInput({ hasError, className, ...props }: PasswordInputPr
         type="button"
         onClick={() => setVisible(v => !v)}
         aria-label={visible ? 'Nascondi password' : 'Mostra password'}
-        tabIndex={-1}
         className="flex-shrink-0 flex items-center justify-center w-10 h-full text-[--color-text-tertiary] hover:text-[--color-text-secondary] transition-colors"
       >
         {visible
