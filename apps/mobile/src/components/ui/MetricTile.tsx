@@ -28,7 +28,7 @@ export function MetricTile({ label, value, helper, icon, onClick, progress, anim
       </div>
       <div
         className={cn(
-          'text-[52px] leading-none mt-2 mb-4 text-white font-semibold tracking-tight',
+          'text-[36px] leading-none mt-1 mb-3 text-white font-semibold tracking-tight',
           animateOnMount ? 'animate-number-pop' : ''
         )}
       >

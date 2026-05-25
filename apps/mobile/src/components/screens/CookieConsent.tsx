@@ -124,7 +124,7 @@ export function CookieConsent({ onAccept, onViewPrivacy }: CookieConsentProps) {
             type="button"
             onClick={() => setRejected(true)}
             aria-label="Rifiuta i cookie"
-            className="text-[--color-text-tertiary] text-sm underline"
+            className="h-[44px] w-full max-w-[300px] rounded-2xl border border-[--color-bg-surface-hover] bg-transparent text-[--color-text-secondary] text-[15px] font-medium active:scale-[0.98] active:bg-[--color-bg-surface-elevated] transition-all duration-150"
           >
             Rifiuta
           </button>

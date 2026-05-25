@@ -8,7 +8,6 @@ import { Button } from '../ui/Button';
 import { Screen } from '../ui/Screen';
 import {
   Play,
-  Calendar,
   TrendingUp,
   Award,
   ChevronRight,
@@ -499,6 +498,24 @@ function UpcomingEventSection({
   );
 }
 
+/** Mini tile che mostra giorno + mese abbreviato in italiano a partire da una data ISO "YYYY-MM-DD". */
+function EventDateTile({ date }: { date: string }) {
+  // Append T00:00:00 to parse as local date (avoid UTC midnight off-by-one).
+  const parsed = date ? new Date(date.length === 10 ? `${date}T00:00:00` : date) : null;
+  const isValid = parsed && !isNaN(parsed.getTime());
+  const day = isValid ? String(parsed!.getDate()) : '—';
+  const month = isValid
+    ? parsed!.toLocaleDateString('it-IT', { month: 'short' }).replace('.', '').toUpperCase()
+    : '';
+
+  return (
+    <div className="flex-shrink-0 bg-[--color-bg-surface-elevated] rounded-xl flex flex-col items-center justify-center w-[60px] h-[70px] gap-0.5 border border-[--color-bg-surface-hover]">
+      <span className="text-[28px] font-bold leading-none text-white tabular-nums">{day}</span>
+      <span className="text-[10px] font-semibold leading-none text-[--color-gold-400] tracking-[0.08em]">{month}</span>
+    </div>
+  );
+}
+
 function EventCard({
   event,
   totalTurns,
@@ -513,10 +530,7 @@ function EventCard({
   return (
     <div className="space-y-2">
       <div className="flex items-start gap-3 mb-4">
-        <div className="flex-shrink-0 bg-[--color-bg-surface-elevated] rounded-lg flex flex-col items-center justify-center w-[70px] h-[70px] gap-1">
-          <Calendar className="text-[--color-gold-400] block" size={50} />
-          <p className="text-xs leading-none text-[--color-gold-400] !m-0">{event.date?.slice(0, 6)}</p>
-        </div>
+        <EventDateTile date={event.date} />
         <div className="flex-1 min-w-0">
           <h4 className="text-white text-lg leading-tight line-clamp-2">{event.name}</h4>
           <p className="text-sm text-[--color-text-secondary]">{event.theatre} &middot; {event.time}</p>

@@ -47,7 +47,9 @@ interface AuthLayoutProps {
 }
 
 export function AuthFormLayout({ children }: AuthLayoutProps) {
+  // overflow-y-auto + min-h-0 ensure the form is scrollable when the
+  // soft keyboard shrinks the viewport (especially on signup with many fields).
   return (
-    <div className="flex h-full flex-col">{children}</div>
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto">{children}</div>
   );
 }

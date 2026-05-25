@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { FormField, FormInput, AuthFormLayout } from '../ui/FormField';
+import { PasswordInput } from '../ui/PasswordInput';
 import { Button } from '../ui/Button';
 
 interface LoginProps {
@@ -49,8 +50,8 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
           <p className="text-base text-[--color-text-secondary]">Inizia la tua carriera teatrale</p>
         </div>
 
-        <form onSubmit={handleSubmit} autoComplete="on"
-          className="mt-8 flex w-full max-w-[300px] flex-col gap-6 mx-auto">
+        <form onSubmit={handleSubmit} method="post" action="/login" autoComplete="on"
+          className="mt-8 flex w-full max-w-[340px] flex-col gap-6 mx-auto">
 
           <FormField label="Email" htmlFor="login-email" error={errors.email}>
             <FormInput
@@ -63,14 +64,14 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
           </FormField>
 
           <FormField label="Password" htmlFor="login-password" error={errors.password}>
-            <FormInput
-              id="login-password" name="password" type="password"
+            <PasswordInput
+              id="login-password" name="password"
               value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               autoComplete="current-password" hasError={!!errors.password}
               placeholder="••••••••" enterKeyHint="go"
             />
             <button type="button" onClick={onForgotPassword}
-              className="self-start rounded-md px-2 py-2.5 mt-2 text-base text-[--color-gold-400]">
+              className="self-start rounded-md px-2 py-1 mt-1 text-sm text-[--color-gold-400]">
               Password dimenticata?
             </button>
           </FormField>

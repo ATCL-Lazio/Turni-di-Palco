@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Check } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { FormField, FormInput, AuthFormLayout } from '../ui/FormField';
+import { PasswordInput } from '../ui/PasswordInput';
 import { Button } from '../ui/Button';
 
 interface SignupProps {
@@ -56,7 +57,7 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
           <p className="text-base text-[--color-text-secondary]">Inizia la tua carriera teatrale</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-8 flex w-full max-w-[300px] flex-col gap-6 mx-auto">
+        <form onSubmit={handleSubmit} className="mt-8 flex w-full max-w-[340px] flex-col gap-6 mx-auto">
           <FormField label="Nome visualizzato" error={errors.name}>
             <FormInput type="text" value={name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
               autoComplete="name" hasError={!!errors.name} placeholder="Come vuoi essere chiamato" />
@@ -69,13 +70,13 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
 
           <div className="flex flex-col gap-4 w-full">
             <FormField label="Password" error={errors.password}>
-              <FormInput type="password" value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+              <PasswordInput value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 autoComplete="new-password" hasError={!!errors.password} placeholder="••••••••" />
-              <p className="mt-2 !mb-0 text-base text-[--color-text-tertiary]">Almeno 8 caratteri</p>
+              <p className="mt-1.5 !mb-0 text-sm text-[--color-text-tertiary]">Almeno 8 caratteri</p>
             </FormField>
 
             <FormField label="Conferma password" error={errors.confirmPassword}>
-              <FormInput type="password" value={confirmPassword} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+              <PasswordInput value={confirmPassword} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                 autoComplete="new-password" hasError={!!errors.confirmPassword} placeholder="••••••••" />
             </FormField>
           </div>
@@ -124,19 +125,45 @@ function TermsCheckbox({
 }) {
   return (
     <div>
-      <label htmlFor="terms" className="flex gap-3 items-start rounded-md py-1.5 text-sm text-[--color-text-secondary]">
-        <input id="terms" type="checkbox" checked={checked}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.checked)}
-          className="bg-[--color-bg-surface-elevated] border border-[--color-bg-surface-hover] size-6 accent-[--color-burgundy-600]" />
+      {/* Custom styled checkbox — replaces native <input type="checkbox">
+          for visual consistency with the app design system. */}
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className="flex gap-3 items-start w-full rounded-md py-1.5 text-left text-sm text-[--color-text-secondary]"
+      >
+        <span
+          aria-hidden="true"
+          className={[
+            'flex-shrink-0 flex items-center justify-center size-[22px] rounded-[6px] border-2 transition-colors duration-150 mt-[1px]',
+            checked
+              ? 'bg-[--color-burgundy-600] border-[--color-burgundy-600]'
+              : 'bg-[--color-bg-surface-elevated] border-[--color-bg-surface-hover]',
+          ].join(' ')}
+        >
+          {checked && <Check size={13} className="text-white" strokeWidth={3} />}
+        </span>
         <span>
           Accetto i{' '}
-          <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onViewTerms(); }}
-            className="text-[--color-gold-400] underline underline-offset-2">Termini e Condizioni</button>{' '}
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(e) => { e.stopPropagation(); onViewTerms(); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onViewTerms(); } }}
+            className="text-[--color-gold-400] underline underline-offset-2 cursor-pointer"
+          >Termini e Condizioni</span>{' '}
           e la{' '}
-          <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onViewPrivacy(); }}
-            className="text-[--color-gold-400] underline underline-offset-2">Privacy Policy</button>
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(e) => { e.stopPropagation(); onViewPrivacy(); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onViewPrivacy(); } }}
+            className="text-[--color-gold-400] underline underline-offset-2 cursor-pointer"
+          >Privacy Policy</span>
         </span>
-      </label>
+      </button>
       {error && <p className="text-sm text-[--color-error] mt-1">{error}</p>}
     </div>
   );

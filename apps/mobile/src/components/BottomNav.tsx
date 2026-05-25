@@ -83,7 +83,7 @@ const TabButton = React.memo(function TabButton({ id, icon: Icon, label, isActiv
         strokeWidth={isActive ? 2.5 : 1.8}
         className={isActive ? 'tab-icon-pulse' : ''}
       />
-      <span className="text-[9.5px] leading-none tracking-[0.02em] font-medium w-full px-1 text-center truncate">
+      <span className="text-[11px] leading-none tracking-[0.02em] font-medium w-full px-1 text-center truncate">
         {label}
       </span>
     </button>
