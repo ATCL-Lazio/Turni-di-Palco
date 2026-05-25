@@ -119,6 +119,14 @@ serve(async (req: Request) => {
     return jsonResponse({ error: 'userId too long' }, 400);
   }
 
+  // --- IDOR guard: only allow hashing your own userId ---
+  // Without this check any authenticated user can query the hash for
+  // arbitrary UUIDs, turning this endpoint into a hash oracle and
+  // undermining the GDPR pseudonymization model.
+  if (trimmedUserId !== user.id) {
+    return jsonResponse({ error: 'Forbidden' }, 403);
+  }
+
   // --- Compute HMAC-SHA256 hash ---
   try {
     const hash = await hmacSha256Hex(analyticsSalt, trimmedUserId);

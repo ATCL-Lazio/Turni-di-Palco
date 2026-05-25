@@ -125,6 +125,14 @@ export function Courses({ embedded = false }: CoursesProps) {
     return () => clearInterval(interval);
   }, []);
 
+  // Auto-clear feedback con cleanup al rimontaggio per evitare state updates
+  // su componenti smontati e cancellazioni inattese del feedback.
+  useEffect(() => {
+    if (!feedback) return;
+    const t = setTimeout(() => setFeedback(null), 3000);
+    return () => clearTimeout(t);
+  }, [feedback]);
+
   const handleStart = useCallback(
     (courseId: string) => {
       const result = startCourse(courseId);
@@ -133,7 +141,6 @@ export function Courses({ embedded = false }: CoursesProps) {
       } else {
         setFeedback(result.error);
       }
-      setTimeout(() => setFeedback(null), 3000);
     },
     [startCourse],
   );
@@ -148,7 +155,6 @@ export function Courses({ embedded = false }: CoursesProps) {
       } else {
         setFeedback(result.error);
       }
-      setTimeout(() => setFeedback(null), 4000);
     },
     [completeCourse],
   );

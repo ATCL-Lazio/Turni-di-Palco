@@ -165,7 +165,14 @@ export function getUserHash(userId: string | null | undefined): Promise<string |
       const oldest = hashCache.keys().next().value;
       if (oldest !== undefined) hashCache.delete(oldest);
     }
-    pending = fetchUserHash(userId);
+    // Cache the promise immediately to deduplicate concurrent calls for the
+    // same userId. However, if the fetch resolves to `undefined` (network
+    // error, 401 before auth token is available, etc.) we evict the entry so
+    // that a future call — after the token is set — can retry successfully.
+    pending = fetchUserHash(userId).then((hash) => {
+      if (hash === undefined) hashCache.delete(userId);
+      return hash;
+    });
     hashCache.set(userId, pending);
   }
   return pending;
