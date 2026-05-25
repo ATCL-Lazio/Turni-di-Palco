@@ -9,6 +9,14 @@
 // - Lo storage degli eventi è un sink pluggabile: di default un endpoint
 //   Supabase Edge Function, ma in dev/test scrive su `console.debug`.
 //
+// Pseudonimizzazione (issue #1086):
+// - L'hashing degli userId è delegato alla Edge Function `pseudonymize-user-id`.
+// - Il salt `ANALYTICS_SALT` è un secret server-side: non è mai incluso nel
+//   bundle JS distribuito ai client.
+// - Il client invia l'userId all'Edge Function via HTTPS con JWT autenticato
+//   e riceve in cambio soltanto l'hash (stringa hex HMAC-SHA256). Il salt non
+//   lascia mai il server Supabase.
+//
 // Eventi tracciati (lista chiusa, no eventi free-form):
 //   - session_start
 //   - onboarding_started
@@ -87,67 +95,39 @@ export function hasAnalyticsConsent(): boolean {
   return readConsent();
 }
 
+// ---------------------------------------------------------------------------
+// Auth token management
+//
+// Il consumer (AppShell) chiama `setAnalyticsAuthToken` dopo ogni cambio di
+// sessione Supabase per fornire il JWT corrente. Il token viene incluso nelle
+// richieste all'Edge Function `pseudonymize-user-id` come Authorization header.
+// Al logout il consumer chiama `setAnalyticsAuthToken(null)`.
+// ---------------------------------------------------------------------------
+
+let _authToken: string | null = null;
+
 /**
- * Pseudonimizzazione dell'userId: SHA-256 + salt iniettato a build time
- * (`VITE_ANALYTICS_SALT`).
- *
- * **Limite noto**: `VITE_*` è una variabile Vite, viene embeddata nel bundle
- * JS e distribuita a tutti i client — NON è un secret server-side. Questo
- * livello di pseudonimizzazione protegge da chi guarda solo gli eventi
- * analitici (no PII visibile), ma un attaccante che (a) recupera il bundle
- * della PWA e (b) conosce un set di Supabase UUID può ricalcolare gli hash
- * corrispondenti. Per pseudonimizzazione GDPR-grade, l'hashing va spostato
- * lato Supabase Edge Function con un secret che non lascia mai il server.
- *
- * Se il salt non è configurato, ritorniamo `undefined` invece di un hash
- * non-salted: meglio perdere il join cross-event che dare una finta
- * pseudonimizzazione.
+ * Imposta il JWT Supabase dell'utente corrente da usare nelle chiamate
+ * all'Edge Function di pseudonimizzazione. Chiamare con `null` al logout.
  */
-async function pseudonymize(userId: string, salt: string): Promise<string | undefined> {
-  if (typeof crypto === 'undefined' || !crypto.subtle?.digest) return undefined;
-  const encoded = new TextEncoder().encode(`${salt}:${userId}`);
-  const buf = await crypto.subtle.digest('SHA-256', encoded);
-  return Array.from(new Uint8Array(buf))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+export function setAnalyticsAuthToken(token: string | null): void {
+  _authToken = token;
 }
 
-let saltWarned = false;
-
-function readSalt(): string | null {
-  // Vite expone `import.meta.env` solo al bundling; in test/SSR fallback su
-  // process.env per dare flessibilità.
-  try {
-    const env = (import.meta as { env?: Record<string, string | undefined> }).env;
-    const fromVite = env?.VITE_ANALYTICS_SALT;
-    if (typeof fromVite === 'string' && fromVite.length > 0) return fromVite;
-    // Aiuta gli sviluppatori a intercettare deploy mal configurati: in dev
-    // logga una volta che il salt è mancante. In produzione resta silenzioso.
-    if (!saltWarned && env?.DEV) {
-      saltWarned = true;
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[analytics] VITE_ANALYTICS_SALT non configurato: getUserHash ritorna undefined; gli eventi non porteranno userHash.',
-      );
-    }
-  } catch {
-    /* import.meta.env not available */
-  }
-  if (typeof process !== 'undefined' && process.env?.VITE_ANALYTICS_SALT) {
-    return process.env.VITE_ANALYTICS_SALT;
-  }
-  return null;
-}
-
-// La cache è un'ottimizzazione (un userId → una sola digest async). Le chiavi
-// sono raw UUID Supabase: in una PWA mono-utente questo è trascurabile, ma se
-// si supportano switch d'account senza reload — o si chiudono/aprono profili
-// diversi nella stessa tab — vogliamo che i vecchi UUID non restino in memoria.
+// ---------------------------------------------------------------------------
+// Hash cache
+//
+// La cache è un'ottimizzazione: un userId → una sola chiamata HTTP all'Edge
+// Function per sessione. In una PWA mono-utente questo è trascurabile, ma se
+// si supportano switch d'account senza reload vogliamo che i vecchi hash non
+// restino in memoria.
 //
 // Strategie:
 //   1. Limite hard di MAX_CACHE_ENTRIES per evitare crescita illimitata.
 //   2. `clearAnalyticsCache()` esposta come hook che il code path di logout /
 //      account switch può chiamare esplicitamente.
+// ---------------------------------------------------------------------------
+
 const MAX_CACHE_ENTRIES = 16;
 const hashCache = new Map<string, Promise<string | undefined>>();
 
@@ -155,24 +135,92 @@ export function clearAnalyticsCache(): void {
   hashCache.clear();
 }
 
+/**
+ * Restituisce l'hash pseudonimizzato dell'userId via Edge Function Supabase.
+ *
+ * Il salt `ANALYTICS_SALT` è un secret server-side configurato su Supabase
+ * (`supabase secrets set ANALYTICS_SALT=<value>`) e non è mai incluso nel
+ * bundle JS distribuito ai client. La Edge Function `pseudonymize-user-id`
+ * esegue HMAC-SHA256(ANALYTICS_SALT, userId) lato server e restituisce solo
+ * il digest hex — la pseudonimizzazione è GDPR-grade (issue #1086).
+ *
+ * L'hash è deterministico (stesso userId → stesso hash) e viene cachato in
+ * memoria per tutta la sessione. Al logout, chiamare `clearAnalyticsCache()`
+ * per rimuovere gli hash in memoria.
+ *
+ * Se la fetch fallisce o `VITE_SUPABASE_URL` non è configurato, restituisce
+ * `undefined` — gli eventi analitici vengono inviati senza `userHash` invece
+ * di interrompere l'UX.
+ */
 export function getUserHash(userId: string | null | undefined): Promise<string | undefined> {
   if (!userId) return Promise.resolve(undefined);
-  const salt = readSalt();
-  if (!salt) return Promise.resolve(undefined);
+
   let pending = hashCache.get(userId);
   if (!pending) {
     if (hashCache.size >= MAX_CACHE_ENTRIES) {
       // LRU eviction: Map preserva l'ordine di inserimento, quindi la prima
       // chiave è la meno recente. Evictiamo solo quella invece di un wipe
-      // completo, così switch d'account multipli non causano burst di
-      // `crypto.subtle.digest` su utenti ancora attivi nella tab.
+      // completo, così switch d'account multipli non causano burst di richieste
+      // HTTP su utenti ancora attivi nella tab.
       const oldest = hashCache.keys().next().value;
       if (oldest !== undefined) hashCache.delete(oldest);
     }
-    pending = pseudonymize(userId, salt);
+    pending = fetchUserHash(userId);
     hashCache.set(userId, pending);
   }
   return pending;
+}
+
+/**
+ * Chiama l'Edge Function `pseudonymize-user-id` per ottenere l'hash HMAC-SHA256
+ * dell'userId. Restituisce `undefined` in caso di errore (never throws).
+ */
+async function fetchUserHash(userId: string): Promise<string | undefined> {
+  try {
+    const supabaseUrl = (import.meta as { env?: Record<string, string | undefined> }).env
+      ?.VITE_SUPABASE_URL;
+
+    if (!supabaseUrl || supabaseUrl.length === 0) {
+      return undefined;
+    }
+
+    const edgeFnUrl = `${supabaseUrl.replace(/\/$/, '')}/functions/v1/pseudonymize-user-id`;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (_authToken) {
+      headers['Authorization'] = `Bearer ${_authToken}`;
+    }
+
+    const response = await fetch(edgeFnUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ userId }),
+    });
+
+    if (!response.ok) {
+      // Log solo in dev per non inquinare la produzione con warning non
+      // actionable (es. utente non autenticato non ha ancora il token).
+      const env = (import.meta as { env?: Record<string, string | undefined> }).env;
+      if (env?.DEV) {
+        console.warn(
+          `[analytics] pseudonymize-user-id responded ${response.status} — userHash omitted.`,
+        );
+      }
+      return undefined;
+    }
+
+    const data = await response.json() as { hash?: string };
+    if (typeof data.hash === 'string' && data.hash.length > 0) {
+      return data.hash;
+    }
+    return undefined;
+  } catch {
+    // Network error, Edge Function not deployed, etc. — degrade gracefully.
+    return undefined;
+  }
 }
 
 /**
