@@ -6,6 +6,7 @@ import {
   clearAnalyticsCache,
   getUserHash,
   setAnalyticsAuthToken,
+  setAnalyticsSupabaseUrl,
 } from '../services/analytics';
 
 // ---------------------------------------------------------------------------
@@ -30,6 +31,7 @@ function makeErrorResponse(status: number): Response {
 beforeEach(() => {
   clearAnalyticsCache();
   setAnalyticsAuthToken(null);
+  setAnalyticsSupabaseUrl(null);
   vi.restoreAllMocks();
 });
 
@@ -64,7 +66,7 @@ describe('getUserHash — Edge Function fetch', () => {
     vi.stubGlobal('fetch', mockFetch);
 
     // Provide VITE_SUPABASE_URL via import.meta.env simulation
-    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+    setAnalyticsSupabaseUrl('https://test.supabase.co');
 
     const result = await getUserHash('user-uuid-1');
     expect(result).toBe('abc123');
@@ -79,7 +81,7 @@ describe('getUserHash — Edge Function fetch', () => {
     setAnalyticsAuthToken('my-jwt-token');
     const mockFetch = vi.fn().mockResolvedValueOnce(makeSuccessResponse('deadbeef'));
     vi.stubGlobal('fetch', mockFetch);
-    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+    setAnalyticsSupabaseUrl('https://test.supabase.co');
 
     await getUserHash('user-uuid-2');
 
@@ -90,7 +92,7 @@ describe('getUserHash — Edge Function fetch', () => {
   it('omits Authorization header when no auth token is set', async () => {
     const mockFetch = vi.fn().mockResolvedValueOnce(makeSuccessResponse('cafebabe'));
     vi.stubGlobal('fetch', mockFetch);
-    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+    setAnalyticsSupabaseUrl('https://test.supabase.co');
 
     await getUserHash('user-uuid-3');
 
@@ -100,7 +102,7 @@ describe('getUserHash — Edge Function fetch', () => {
 
   it('returns undefined when fetch throws (network error)', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValueOnce(new Error('Network error')));
-    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+    setAnalyticsSupabaseUrl('https://test.supabase.co');
 
     const result = await getUserHash('user-uuid-4');
     expect(result).toBeUndefined();
@@ -108,7 +110,7 @@ describe('getUserHash — Edge Function fetch', () => {
 
   it('returns undefined when the Edge Function returns a non-200 status', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(makeErrorResponse(401)));
-    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+    setAnalyticsSupabaseUrl('https://test.supabase.co');
 
     const result = await getUserHash('user-uuid-5');
     expect(result).toBeUndefined();
@@ -118,7 +120,7 @@ describe('getUserHash — Edge Function fetch', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(
       new Response(JSON.stringify({ error: 'missing salt' }), { status: 200 }),
     ));
-    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+    setAnalyticsSupabaseUrl('https://test.supabase.co');
 
     const result = await getUserHash('user-uuid-6');
     expect(result).toBeUndefined();
@@ -133,7 +135,7 @@ describe('getUserHash — caching', () => {
   it('caches the result and calls fetch only once per userId', async () => {
     const mockFetch = vi.fn().mockResolvedValue(makeSuccessResponse('cached-hash'));
     vi.stubGlobal('fetch', mockFetch);
-    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+    setAnalyticsSupabaseUrl('https://test.supabase.co');
 
     const [r1, r2] = await Promise.all([
       getUserHash('user-uuid-cache'),
@@ -152,7 +154,7 @@ describe('getUserHash — caching', () => {
       .mockResolvedValueOnce(makeSuccessResponse('first-hash'))
       .mockResolvedValueOnce(makeSuccessResponse('second-hash'));
     vi.stubGlobal('fetch', mockFetch);
-    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+    setAnalyticsSupabaseUrl('https://test.supabase.co');
 
     const first = await getUserHash('user-uuid-clear');
     expect(first).toBe('first-hash');
@@ -178,7 +180,7 @@ describe('setAnalyticsAuthToken', () => {
       .mockResolvedValueOnce(makeSuccessResponse('hash1'))
       .mockResolvedValueOnce(makeSuccessResponse('hash2'));
     vi.stubGlobal('fetch', mockFetch);
-    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+    setAnalyticsSupabaseUrl('https://test.supabase.co');
 
     await getUserHash('user-a');
     clearAnalyticsCache();
@@ -197,7 +199,7 @@ describe('setAnalyticsAuthToken', () => {
 
     const mockFetch = vi.fn().mockResolvedValue(makeSuccessResponse('any-hash'));
     vi.stubGlobal('fetch', mockFetch);
-    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+    setAnalyticsSupabaseUrl('https://test.supabase.co');
 
     setAnalyticsAuthToken(null);
     await getUserHash('user-b');

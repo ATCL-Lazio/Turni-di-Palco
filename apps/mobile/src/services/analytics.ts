@@ -115,6 +115,27 @@ export function setAnalyticsAuthToken(token: string | null): void {
 }
 
 // ---------------------------------------------------------------------------
+// Supabase URL — configurable for testing
+//
+// In produzione l'URL viene letto da `import.meta.env.VITE_SUPABASE_URL` (valore
+// iniettato da Vite al build time). Nei test è possibile sovrascriverlo via
+// `setAnalyticsSupabaseUrl` per evitare dipendenze da `vi.stubEnv`, che non
+// aggiorna `import.meta.env` in modo affidabile in tutti gli ambienti CI.
+// ---------------------------------------------------------------------------
+
+let _supabaseUrl: string | null =
+  (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_SUPABASE_URL ?? null;
+
+/**
+ * Imposta l'URL base di Supabase usato dall'Edge Function di pseudonimizzazione.
+ * Utile nei test per iniettare un URL fittizio senza ricorrere a `vi.stubEnv`.
+ * Chiamare con `null` per ripristinare il comportamento di default (nessun hash).
+ */
+export function setAnalyticsSupabaseUrl(url: string | null): void {
+  _supabaseUrl = url;
+}
+
+// ---------------------------------------------------------------------------
 // Hash cache
 //
 // La cache è un'ottimizzazione: un userId → una sola chiamata HTTP all'Edge
@@ -184,8 +205,7 @@ export function getUserHash(userId: string | null | undefined): Promise<string |
  */
 async function fetchUserHash(userId: string): Promise<string | undefined> {
   try {
-    const supabaseUrl = (import.meta as { env?: Record<string, string | undefined> }).env
-      ?.VITE_SUPABASE_URL;
+    const supabaseUrl = _supabaseUrl;
 
     if (!supabaseUrl || supabaseUrl.length === 0) {
       return undefined;
