@@ -10,7 +10,17 @@ import {
 import { resolveDisplayName } from '../lib/profile-utils';
 import { COOKIE_CONSENT_KEY, GEO_CONSENT_KEY } from '../constants/privacy';
 import { formatErrorDetails, reportCriticalError } from '../services/error-handler';
-import { getXpToNextLevel } from '../../../../shared/config/balancing';
+import {
+  getXpToNextLevel,
+  getStatMultiplier,
+  getLeadershipCachetMultiplier,
+} from '../../../../shared/config/balancing';
+import {
+  COURSES_CATALOG,
+  COURSE_COMPLETION_XP,
+  COURSE_COOLDOWN_MS,
+  type CourseSkill,
+} from '../gameplay/courses';
 import { withMobileWatchdog } from '../services/mobile-watchdog';
 import {
   applyMobileFeatureFlagOverrides,
@@ -221,6 +231,17 @@ export type PlayerProfile = {
   onboardingCompletedAt: string | null;
   /** 'full' = ha giocato la prima missione; 'skipped_qr' = bypass via deep-link evento; 'skipped_manual' = ha saltato dal bottone "Salta". */
   onboardingVariant: 'full' | 'skipped_qr' | 'skipped_manual' | null;
+  /** Statistiche skill guadagnate dai corsi (Issue #327). Valori iniziali: 0. */
+  skills: {
+    precision: number;
+    presence: number;
+    creativity: number;
+    leadership: number;
+  };
+  /** Record dei corsi completati: courseId → timestamp ISO dell'ultimo completamento. */
+  completedCourses: Record<string, string>;
+  /** Corsi attualmente in corso: courseId → timestamp ISO di avvio. */
+  activeCourses: Record<string, string>;
 };
 
 export type RegisterTurnInput = {
@@ -368,6 +389,10 @@ type DbProfileRow = {
   leaderboard_visible?: boolean | null;
   onboarding_completed_at?: string | null;
   onboarding_variant?: string | null;
+  // Course state — Issue #327 / migration 20260525000000.
+  skills?: { precision: number; presence: number; creativity: number; leadership: number } | null;
+  active_courses?: Record<string, string> | null;
+  completed_courses?: Record<string, string> | null;
 };
 
 type DbBadgeRow = {
@@ -812,6 +837,10 @@ type ProfileUpsertPayload = {
   cookie_consent_at?: string | null;
   onboarding_completed_at?: string | null;
   onboarding_variant?: 'full' | 'skipped_qr' | 'skipped_manual' | null;
+  // Course state — Issue #327. Persisted as JSONB via migration 20260525000000.
+  skills?: Record<string, number>;
+  active_courses?: Record<string, string>;
+  completed_courses?: Record<string, string>;
 };
 
 type TurnInsertPayload = {
@@ -1255,16 +1284,29 @@ export function getRoleActivityOverride(
 
 export function computeActivityRewards(
   activity: Activity,
-  role: Role | null | undefined
+  role: Role | null | undefined,
+  skills?: { precision: number; presence: number; creativity: number; leadership: number } | null,
 ): Rewards {
   const override = getRoleActivityOverride(role, activity.id);
   const xpMultiplier = override?.xpMultiplier ?? 1;
   const cachetMultiplier = override?.cachetMultiplier ?? 1;
   const reputationBonus = override?.reputationBonus ?? 0;
 
+  // Applica bonus skill derivati dai corsi completati (Issue #327).
+  let skillXpMult = 1;
+  let skillCachetMult = 1;
+  if (skills) {
+    skillXpMult =
+      getStatMultiplier('presence', 'xp', skills.presence) *
+      getStatMultiplier('creativity', 'xp', skills.creativity);
+    skillCachetMult =
+      getStatMultiplier('precision', 'cachet', skills.precision) *
+      getLeadershipCachetMultiplier(skills.leadership);
+  }
+
   return {
-    xp: Math.max(0, Math.round(activity.xpReward * xpMultiplier)),
-    cachet: Math.max(0, Math.round(activity.cachetReward * cachetMultiplier)),
+    xp: Math.max(0, Math.round(activity.xpReward * xpMultiplier * skillXpMult)),
+    cachet: Math.max(0, Math.round(activity.cachetReward * cachetMultiplier * skillCachetMult)),
     reputation: Math.max(0, 5 + reputationBonus),
   };
 }
@@ -1711,6 +1753,10 @@ function buildProfileUpsertPayload(userId: string, profile: PlayerProfile): Prof
     ...(cookieConsentAt ? { cookie_consent_at: cookieConsentAt } : {}),
     onboarding_completed_at: profile.onboardingCompletedAt ?? null,
     onboarding_variant: profile.onboardingVariant ?? null,
+    // Course state — Issue #327 / migration 20260525000000.
+    skills: profile.skills ?? {},
+    active_courses: profile.activeCourses ?? {},
+    completed_courses: profile.completedCourses ?? {},
   };
 }
 
@@ -1914,6 +1960,9 @@ function createInitialState(): GameState {
       tutorialCompleted: false,
       onboardingCompletedAt: null,
       onboardingVariant: null,
+      skills: { precision: 0, presence: 0, creativity: 0, leadership: 0 },
+      completedCourses: {},
+      activeCourses: {},
     },
     turns: [],
     eventPlans: [],
@@ -1941,6 +1990,9 @@ function createDemoState(): GameState {
       tutorialCompleted: false,
       onboardingCompletedAt: null,
       onboardingVariant: null,
+      skills: { precision: 0, presence: 0, creativity: 0, leadership: 0 },
+      completedCourses: {},
+      activeCourses: {},
     },
     turns: [
       {
@@ -2246,6 +2298,10 @@ type GameContextValue = {
   resetTutorial: () => void;
   /** Marca l'onboarding come completato e persiste su Supabase. Applica opzionalmente un bonus XP al profilo. */
   completeOnboarding: (variant: 'full' | 'skipped_qr' | 'skipped_manual', xpReward?: number) => void;
+  /** Avvia un corso: scala il cachet e segna il corso come attivo. Issue #327. */
+  startCourse: (courseId: string) => { ok: true } | { ok: false; error: string };
+  /** Completa un corso attivo: assegna XP, incrementa la skill. Issue #327. */
+  completeCourse: (courseId: string) => { ok: true; xpGained: number; skillGained: CourseSkill; pointsGained: number } | { ok: false; error: string };
   resetState: () => void;
 };
 
@@ -3863,6 +3919,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 onboardingVariant: (profileRow.onboarding_variant === 'full' || profileRow.onboarding_variant === 'skipped_qr' || profileRow.onboarding_variant === 'skipped_manual')
                   ? profileRow.onboarding_variant
                   : prev.profile.onboardingVariant,
+                // Course state — Issue #327. Prefer remote values when present; fall
+                // back to local (localStorage) so offline mutations are not lost.
+                skills: profileRow.skills ?? prev.profile.skills,
+                activeCourses: profileRow.active_courses ?? prev.profile.activeCourses,
+                completedCourses: profileRow.completed_courses ?? prev.profile.completedCourses,
               },
               eventPlans: prev.eventPlans,
               turns: remoteTurns,
@@ -4926,6 +4987,169 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     [featureFlags]
   );
 
+  // Issue #327 — Avvia un corso formativo.
+  const startCourse = useCallback(
+    (courseId: string): { ok: true } | { ok: false; error: string } => {
+      const course = COURSES_CATALOG.find((c) => c.id === courseId);
+      if (!course) return { ok: false, error: 'Corso non trovato.' };
+
+      let result: { ok: true } | { ok: false; error: string } = { ok: true };
+      // Captured outside the updater so we can call persistProfile below —
+      // same pattern used by updateProfile above.
+      let capturedProfile: PlayerProfile | null = null;
+
+      setState((prev) => {
+        const profile = prev.profile;
+        const skills = profile.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
+        const completedCourses = profile.completedCourses ?? {};
+        const activeCourses = profile.activeCourses ?? {};
+
+        // Controlla se il corso è già attivo
+        if (activeCourses[courseId]) {
+          result = { ok: false, error: 'Corso già in corso.' };
+          return prev;
+        }
+
+        // Controlla cooldown
+        const lastCompleted = completedCourses[courseId];
+        if (lastCompleted) {
+          const elapsed = Date.now() - new Date(lastCompleted).getTime();
+          if (elapsed < COURSE_COOLDOWN_MS) {
+            const remainingMs = COURSE_COOLDOWN_MS - elapsed;
+            const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
+            result = {
+              ok: false,
+              error: `Corso in cooldown. Disponibile tra ${remainingHours} ore.`,
+            };
+            return prev;
+          }
+        }
+
+        // Controlla cachet sufficiente
+        if (profile.cachet < course.costCachet) {
+          result = {
+            ok: false,
+            error: `Cachet insufficiente. Necessari: ${course.costCachet}, disponibili: ${profile.cachet}.`,
+          };
+          return prev;
+        }
+
+        const nextProfile: PlayerProfile = {
+          ...profile,
+          cachet: profile.cachet - course.costCachet,
+          skills,
+          completedCourses,
+          activeCourses: {
+            ...activeCourses,
+            [courseId]: new Date().toISOString(),
+          },
+        };
+        capturedProfile = nextProfile;
+        // saveState is handled by the useEffect(() => { saveState(state); }, [state])
+        // above — calling it here would be a side effect inside a setState updater,
+        // which React StrictMode executes twice, causing double-writes.
+        return { ...prev, profile: nextProfile };
+      });
+
+      // Sync course state to Supabase so a page refresh doesn't reset progress.
+      // capturedProfile is non-null only when the setState updater produced a new state.
+      if (capturedProfile !== null) {
+        persistProfile(capturedProfile);
+      }
+
+      return result;
+    },
+    [persistProfile],
+  );
+
+  // Issue #327 — Completa un corso attivo.
+  const completeCourse = useCallback(
+    (
+      courseId: string,
+    ):
+      | { ok: true; xpGained: number; skillGained: CourseSkill; pointsGained: number }
+      | { ok: false; error: string } => {
+      const course = COURSES_CATALOG.find((c) => c.id === courseId);
+      if (!course) return { ok: false, error: 'Corso non trovato.' };
+
+      let result:
+        | { ok: true; xpGained: number; skillGained: CourseSkill; pointsGained: number }
+        | { ok: false; error: string } = {
+        ok: false,
+        error: 'Errore interno.',
+      };
+      let capturedProfile: PlayerProfile | null = null;
+
+      setState((prev) => {
+        const profile = prev.profile;
+        const skills = profile.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
+        const completedCourses = profile.completedCourses ?? {};
+        const activeCourses = profile.activeCourses ?? {};
+
+        const startedAt = activeCourses[courseId];
+        if (!startedAt) {
+          result = { ok: false, error: 'Corso non avviato.' };
+          return prev;
+        }
+
+        // In DEV il tempo minimo è 10 secondi, in produzione durationMinutes completi.
+        const requiredMs = import.meta.env.DEV
+          ? 10 * 1000
+          : course.durationMinutes * 60 * 1000;
+
+        const elapsed = Date.now() - new Date(startedAt).getTime();
+        if (elapsed < requiredMs) {
+          const remainingSec = Math.ceil((requiredMs - elapsed) / 1000);
+          result = {
+            ok: false,
+            error: `Corso non ancora completato. Tempo rimanente: ${remainingSec} secondi.`,
+          };
+          return prev;
+        }
+
+        const xpGained = COURSE_COMPLETION_XP;
+        const skillGained: CourseSkill = course.skill;
+        const pointsGained = course.skillPoints;
+
+        // Applica XP tramite lo stesso helper usato dalle attività.
+        const rewards: Rewards = { xp: xpGained, cachet: 0, reputation: 0 };
+        const profileWithXp = applyRewards(profile, rewards, 'activity');
+
+        const updatedSkills = {
+          ...skills,
+          [skillGained]: (skills[skillGained] ?? 0) + pointsGained,
+        };
+
+        // Rimuovi dai corsi attivi e aggiungi ai completati.
+        const { [courseId]: _removed, ...remainingActive } = activeCourses;
+
+        const nextProfile: PlayerProfile = {
+          ...profileWithXp,
+          skills: updatedSkills,
+          completedCourses: {
+            ...completedCourses,
+            [courseId]: new Date().toISOString(),
+          },
+          activeCourses: remainingActive,
+        };
+
+        result = { ok: true, xpGained, skillGained, pointsGained };
+        capturedProfile = nextProfile;
+        // saveState is handled by the useEffect(() => { saveState(state); }, [state])
+        // above — see comment in startCourse for the StrictMode rationale.
+        return { ...prev, profile: nextProfile };
+      });
+
+      // Sync completed skills and cooldown timestamps to Supabase.
+      if (capturedProfile !== null) {
+        persistProfile(capturedProfile);
+      }
+
+      return result;
+    },
+    [persistProfile],
+  );
+
   const resetState = useCallback(() => {
     const next = createDefaultState();
     setState(next);
@@ -5087,6 +5311,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       exportUserData,
       changePassword,
       sendPasswordResetEmail,
+      startCourse,
+      completeCourse,
       resetState,
     }),
     [
@@ -5141,6 +5367,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       exportUserData,
       changePassword,
       sendPasswordResetEmail,
+      startCourse,
+      completeCourse,
       resetState,
     ]
   );

@@ -274,7 +274,6 @@ export function useAuth(
             mounted = false;
             authListener?.subscription.unsubscribe();
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Exposed so callers (e.g. deleteAccount in AppShell) can set the flag

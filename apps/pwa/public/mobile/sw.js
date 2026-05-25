@@ -6,10 +6,7 @@ self.addEventListener("install", (event) => {
     caches
       .open(CACHE_VERSION)
       .then((cache) => cache.addAll(PRECACHE_URLS))
-      .catch((err) => {
-        console.warn("Cache precache failed:", err);
-        return undefined;
-      })
+      .catch(() => undefined)
   );
   self.skipWaiting();
 });
