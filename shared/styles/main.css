@@ -1,4 +1,4 @@
-﻿﻿﻿﻿@import "tailwindcss";
+﻿﻿﻿﻿﻿@import "tailwindcss";
 @source "../../apps/mobile/src/**/*.{ts,tsx,js,jsx,html}";
 @source "../../apps/mobile/index.html";
 @source "../../apps/mobile/*.html";

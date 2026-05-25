@@ -16,15 +16,15 @@ export function MetricTile({ label, value, helper, icon, onClick, progress, anim
   return (
     <div
       className={cn(
-        'bg-[#1a1617] rounded-2xl p-3 border border-[#2d2728]',
-        onClick ? 'hover:bg-[#241f20] cursor-pointer active:scale-[0.98] transition-all duration-150 mobile-card-hover' : '',
+        'bg-[--color-bg-surface] rounded-2xl p-3 border border-[--color-bg-surface-hover]',
+        onClick ? 'hover:bg-[--color-bg-surface-elevated] cursor-pointer active:scale-[0.98] transition-all duration-150 mobile-card-hover' : '',
         animateOnMount ? 'animate-card-in' : ''
       )}
       onClick={onClick}
     >
       <div className="flex items-start justify-between gap-2 mb-2 min-h-[32px]">
-        <div className="text-xs leading-4 text-[#b8b2b3]">{label}</div>
-        {icon ? <div className="text-[#f4bf4f]">{icon}</div> : null}
+        <div className="text-xs leading-4 text-[--color-text-secondary]">{label}</div>
+        {icon ? <div className="text-[--color-gold-400]">{icon}</div> : null}
       </div>
       <div
         className={cn(
@@ -34,7 +34,7 @@ export function MetricTile({ label, value, helper, icon, onClick, progress, anim
       >
         {value}
       </div>
-      {helper ? <div className="text-xs text-[#9a9697]">{helper}</div> : null}
+      {helper ? <div className="text-xs text-[--color-text-tertiary]">{helper}</div> : null}
       {progress ? (
         <div className="mt-2">
           <ProgressBar value={progress.value} max={progress.max} size="sm" color={progress.color ?? 'burgundy'} />
