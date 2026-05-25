@@ -3864,6 +3864,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               notifyCriticalError('Non riusciamo a creare il profilo utente.', [insertRes.error]);
             }
             profileRow = insertRes.data ?? null;
+          } else if (!profileRow) {
+            // No profile row exists and the authenticated user has no email address
+            // (e.g. anonymous auth, OAuth provider that did not supply an email).
+            // Silently unblocking the app with a blank profile would leave it in an
+            // invalid state, so surface a critical error instead. Closes #1123.
+            notifyCriticalError('Non riusciamo a creare il profilo utente: email mancante.', []);
+            return;
           }
 
           if (!isMounted) return;
