@@ -60,7 +60,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          claude_args: "--max-turns 20"
+          claude_args: "--max-turns 40"
           prompt: |
             Sei la AI reviewer di **Turni-di-Palco**, app di gestione turni di
             ATCL-Lazio. Stack: Jekyll + Node/serverless, backend Supabase,
