@@ -192,11 +192,12 @@ export function AppShell() {
     },
   );
 
-  // Wrap deleteAccount so the SIGNED_OUT listener knows this is a voluntary
-  // sign-out and does not show the misleading "session expired" error banner.
+  // Wrap deleteAccount passing markVoluntaryLogout as onBeforeSignOut so the
+  // flag is set synchronously right before supabase.auth.signOut() fires the
+  // SIGNED_OUT event, preventing the misleading "session expired" banner
+  // regardless of timing (issue #1124).
   const handleDeleteAccount = useCallback(async () => {
-    markVoluntaryLogout();
-    await deleteAccount();
+    await deleteAccount({ onBeforeSignOut: markVoluntaryLogout });
   }, [markVoluntaryLogout, deleteAccount]);
 
   // Tab change handler with feature gates
