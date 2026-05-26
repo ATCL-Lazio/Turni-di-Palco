@@ -4752,10 +4752,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
         const rewards = rpcResponse.rewards_applied;
         setState((prev: GameState) => {
-          const profileAfterRewards =
-            rpcResponse.status === 'duplicate'
-              ? prev.profile
-              : applyRewards(prev.profile, rewards, 'activity');
+          if (rpcResponse.status === 'duplicate') {
+            // Duplicate: rewards already counted — do not overwrite local
+            // cachet/reputation with potentially-stale server balances that
+            // may not reflect concurrent mutations (e.g. a shop purchase).
+            return prev;
+          }
+          const profileAfterRewards = applyRewards(prev.profile, rewards, 'activity');
           return {
             ...prev,
             profile: {
