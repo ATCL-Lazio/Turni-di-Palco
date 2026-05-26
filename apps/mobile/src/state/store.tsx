@@ -2288,8 +2288,21 @@ type GameContextValue = {
   ) => Promise<CompleteActivityResult>;
   completeNarrativeChoice: (input: CompleteNarrativeChoiceInput) => Promise<CompleteNarrativeChoiceResult>;
   resetProgress: () => Promise<void>;
-  /** GDPR Art. 17 – elimina account e tutti i dati dal server e dal dispositivo. */
-  deleteAccount: () => Promise<void>;
+  /** GDPR Art. 17 – elimina account e tutti i dati dal server e dal dispositivo.
+   *
+   * ⚠️  **ATTENZIONE per i futuri call site**: se questo metodo viene chiamato senza
+   * `options.onBeforeSignOut`, l'evento `SIGNED_OUT` emesso da `supabase.auth.signOut()`
+   * causerà il banner «Sessione scaduta» in `useAuth`. Passare sempre `markVoluntaryLogout`
+   * da `useAuth` come `onBeforeSignOut` — e `unmarkVoluntaryLogout` come `onSignOutFailed`
+   * — per gestire correttamente sia il caso nominale che l'errore (issue #1124).
+   *
+   * @param options.onBeforeSignOut - invocato immediatamente prima di `signOut()`.
+   *   Usare per impostare `isVoluntaryLogoutRef = true` in `useAuth`.
+   * @param options.onSignOutFailed - invocato se `signOut()` lancia un'eccezione, prima
+   *   di rithrowing. Usare per resettare `isVoluntaryLogoutRef = false` in `useAuth`
+   *   (altrimenti il ref resta bloccato a `true` e la prossima scadenza involontaria
+   *   della sessione non mostrerebbe il banner). */
+  deleteAccount: (options?: { onBeforeSignOut?: () => void; onSignOutFailed?: () => void }) => Promise<void>;
   /** GDPR Art. 15/20 – scarica copia di tutti i dati personali in JSON. */
   exportUserData: () => void;
   changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
@@ -3862,6 +3875,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               .single();
             if (insertRes.error) {
               notifyCriticalError('Non riusciamo a creare il profilo utente.', [insertRes.error]);
+              // Fix #1127 (Bug 1): must return here — without this the execution
+              // continues with profileRow=null, if(profileRow) is false, and
+              // setHasHydratedRemote(true) is still reached, unblocking the app
+              // with stale/default local state instead of valid remote data.
+              return;
             }
             profileRow = insertRes.data ?? null;
           } else if (!profileRow) {
@@ -3870,6 +3888,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             // Silently unblocking the app with a blank profile would leave it in an
             // invalid state, so surface a critical error instead. Closes #1123.
             notifyCriticalError('Non riusciamo a creare il profilo utente: email mancante.', []);
+            // Fix #1127 (Bug 2): set hasHydratedRemote=true before returning so
+            // the guard doesn't stay false permanently after the error is dismissed,
+            // which would block sync operations and certain effects indefinitely.
+            setHasHydratedRemote(true);
             return;
           }
 
@@ -5178,7 +5200,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // GDPR Art. 17 – Diritto alla cancellazione: elimina account e tutti i dati utente.
-  const deleteAccount = useCallback(async () => {
+  const deleteAccount = useCallback(async (options?: { onBeforeSignOut?: () => void; onSignOutFailed?: () => void }) => {
     if (!isSupabaseConfigured || !supabase) {
       throw new Error('Supabase non configurato');
     }
@@ -5208,7 +5230,21 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         }
       }
     }
-    await supabase.auth.signOut();
+    // Invoke the caller's pre-signOut hook (e.g. markVoluntaryLogout from useAuth)
+    // immediately before signOut() so isVoluntaryLogoutRef is set synchronously
+    // right before the SIGNED_OUT event fires — eliminates any timing gap and
+    // ensures the flag is always set regardless of the call site (issue #1124).
+    options?.onBeforeSignOut?.();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      // signOut failed: no SIGNED_OUT event will fire, so isVoluntaryLogoutRef
+      // would stay permanently true without this reset. Call onSignOutFailed
+      // (e.g. unmarkVoluntaryLogout) so the caller can restore the ref to false,
+      // ensuring the next involuntary session expiry still shows the banner.
+      options?.onSignOutFailed?.();
+      throw e;
+    }
     resetState();
   }, [authUserId, resetState]);
 

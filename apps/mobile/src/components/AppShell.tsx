@@ -164,7 +164,7 @@ export function AppShell() {
   );
 
   // Auth hook
-  const { authError, setAuthError, isDemoMode, handleLogin, handleSignup, handleLogout, markVoluntaryLogout } = useAuth(
+  const { authError, setAuthError, isDemoMode, handleLogin, handleSignup, handleLogout, markVoluntaryLogout, unmarkVoluntaryLogout } = useAuth(
     state.profile,
     updateProfile,
     (screen, isRecovery) => {
@@ -192,12 +192,17 @@ export function AppShell() {
     },
   );
 
-  // Wrap deleteAccount so the SIGNED_OUT listener knows this is a voluntary
-  // sign-out and does not show the misleading "session expired" error banner.
+  // Wrap deleteAccount passing the voluntary-logout hooks so the SIGNED_OUT
+  // listener behaves correctly in both the success and failure paths (issue #1124):
+  //   onBeforeSignOut  → sets isVoluntaryLogoutRef=true right before signOut()
+  //   onSignOutFailed  → resets isVoluntaryLogoutRef=false if signOut() throws,
+  //                      so the next involuntary session expiry still shows the banner.
   const handleDeleteAccount = useCallback(async () => {
-    markVoluntaryLogout();
-    await deleteAccount();
-  }, [markVoluntaryLogout, deleteAccount]);
+    await deleteAccount({
+      onBeforeSignOut: markVoluntaryLogout,
+      onSignOutFailed: unmarkVoluntaryLogout,
+    });
+  }, [markVoluntaryLogout, unmarkVoluntaryLogout, deleteAccount]);
 
   // Tab change handler with feature gates
   const handleTabChange = useCallback((tab: Tab) => {

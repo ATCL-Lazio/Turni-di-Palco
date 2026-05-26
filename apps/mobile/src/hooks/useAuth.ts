@@ -282,6 +282,14 @@ export function useAuth(
         isVoluntaryLogoutRef.current = true;
     }, []);
 
+    // Exposed so callers can reset the flag if signOut fails and no SIGNED_OUT
+    // event fires (which would normally reset it at useAuth.ts:245). Without
+    // this, the ref stays true and the next involuntary session expiry would
+    // be silently suppressed (issue #1124).
+    const unmarkVoluntaryLogout = useCallback(() => {
+        isVoluntaryLogoutRef.current = false;
+    }, []);
+
     return {
         authError,
         setAuthError,
@@ -290,5 +298,6 @@ export function useAuth(
         handleSignup,
         handleLogout: handleLogoutAction,
         markVoluntaryLogout,
+        unmarkVoluntaryLogout,
     };
 }
