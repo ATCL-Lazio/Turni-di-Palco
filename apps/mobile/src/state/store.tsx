@@ -3875,6 +3875,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               .single();
             if (insertRes.error) {
               notifyCriticalError('Non riusciamo a creare il profilo utente.', [insertRes.error]);
+              // Fix #1127 (Bug 1): must return here — without this the execution
+              // continues with profileRow=null, if(profileRow) is false, and
+              // setHasHydratedRemote(true) is still reached, unblocking the app
+              // with stale/default local state instead of valid remote data.
+              return;
             }
             profileRow = insertRes.data ?? null;
           } else if (!profileRow) {
@@ -3883,6 +3888,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             // Silently unblocking the app with a blank profile would leave it in an
             // invalid state, so surface a critical error instead. Closes #1123.
             notifyCriticalError('Non riusciamo a creare il profilo utente: email mancante.', []);
+            // Fix #1127 (Bug 2): set hasHydratedRemote=true before returning so
+            // the guard doesn't stay false permanently after the error is dismissed,
+            // which would block sync operations and certain effects indefinitely.
+            setHasHydratedRemote(true);
             return;
           }
 
