@@ -29,15 +29,24 @@ export function useQrLanding(
         const isInstalled = isStandaloneApp();
         const dismissed = window.sessionStorage.getItem(INSTALL_DISMISS_KEY) === '1';
 
-        if (!isInstalled && !dismissed) {
-            onLanding('install');
-        } else if (!isOnboarded) {
-            // New user arriving via QR deep-link: skip first mission, just choose role
-            onLanding('role-selection');
+        // Auth/onboarding checks take precedence over the install prompt so that
+        // authenticated onboarded users arriving via QR are never incorrectly
+        // bounced to the install screen (closes #1134).
+        if (!isOnboarded) {
+            // New user arriving via QR deep-link: skip first mission, just choose role.
+            // Show install prompt first if the app is not installed.
+            if (!isInstalled && !dismissed) {
+                onLanding('install');
+            } else {
+                onLanding('role-selection');
+            }
         } else if (!isAuthValid) {
             // Onboarded user with an expired/missing session: send to login screen
             // so they can re-authenticate before reaching the protected home screen.
             onLanding('welcome');
+        } else if (!isInstalled && !dismissed) {
+            // Onboarded, authenticated user on a non-installed browser: prompt install.
+            onLanding('install');
         } else {
             // Onboarded user with a valid session arriving via QR: go directly to home
             onLanding('home');
