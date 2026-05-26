@@ -5214,6 +5214,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     // Clear the narrative idempotency guard so that replaying scenes after a
     // progress reset in the same session yields rewards correctly (closes #1130).
     appliedNarrativeChoicesRef.current = new Set();
+    // Reset hydration flag so persistProfile's guard re-arms and does not sync
+    // blank default state to the DB if called before the next remote hydration
+    // completes (closes #1132).
+    setHasHydratedRemote(false);
   }, []);
 
   // GDPR Art. 17 – Diritto alla cancellazione: elimina account e tutti i dati utente.
