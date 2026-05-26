@@ -207,7 +207,9 @@ serve(async (req) => {
   const callerToken = authHeader.slice('Bearer '.length);
 
   // Service-role key allows the control-plane to call this function without a user session.
-  if (callerToken !== serviceKey) {
+  // The non-empty check prevents an empty-string SUPABASE_SERVICE_ROLE_KEY from
+  // accidentally matching an empty Bearer token and bypassing auth (closes #1131).
+  if (!serviceKey || callerToken !== serviceKey) {
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
       auth: { autoRefreshToken: false, persistSession: false },
