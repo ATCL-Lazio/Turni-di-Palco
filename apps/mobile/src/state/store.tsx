@@ -5211,6 +5211,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       totalSlots,
       remainingSlots: totalSlots,
     });
+    // Clear the narrative idempotency guard so that replaying scenes after a
+    // progress reset in the same session yields rewards correctly (closes #1130).
+    appliedNarrativeChoicesRef.current = new Set();
   }, []);
 
   // GDPR Art. 17 – Diritto alla cancellazione: elimina account e tutti i dati utente.
