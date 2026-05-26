@@ -547,6 +547,15 @@ export async function activateTicketHash(
     if (remote !== null) {
       return { ok: false, error: 'Risposta server inattesa durante l\'attivazione ticket.' };
     }
+
+    // remote === null means activateRemotely returned early because the
+    // supabase client was null at invocation time (race condition). When
+    // Supabase is configured, we must NOT fall through to local-only
+    // activation — that would mark the ticket as activated without any
+    // server confirmation (closes #1133).
+    if (isSupabaseConfigured) {
+      return { ok: false, error: 'Servizio non disponibile. Riprova tra qualche istante.' };
+    }
   } catch (error) {
     if (shouldLogActivationError(error)) {
       console.error('Remote activation failed:', error);
