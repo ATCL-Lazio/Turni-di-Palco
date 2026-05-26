@@ -882,6 +882,13 @@ type ActivityInsertPayload = {
   user_id: string;
   activity_id: string;
   rewards: Rewards;
+  // Optional telemetry fields — included when the activity was queued online
+  // and replayed during offline-sync flush. Missing fields default to null/1
+  // on the server, but omitting them loses telemetry entirely (closes #1129).
+  score?: number | null;
+  rating?: string | null;
+  attempts?: number | null;
+  duration_ms?: number | null;
 };
 
 type FollowEventMutationPayload = {
@@ -2762,6 +2769,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           const { data, error } = await supabase.rpc('complete_activity_with_slots', {
             p_activity_id: mutation.payload.activity_id,
             p_client_action_id: mutation.payload.id,
+            p_score: mutation.payload.score ?? null,
+            p_rating: mutation.payload.rating ?? null,
+            p_attempts: mutation.payload.attempts ?? 1,
+            p_duration_ms: mutation.payload.duration_ms ?? null,
           });
           if (error) {
             return shouldRetrySyncError(error)
