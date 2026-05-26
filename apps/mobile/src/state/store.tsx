@@ -4950,9 +4950,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           }
 
           if (currentPassword) {
-            const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-            if (sessionError) throw sessionError;
-            const email = sessionData.session?.user.email;
+            // Use getUser() (network-verified) instead of getSession() (locally
+            // cached) so that an empty/stale local session cache does not cause
+            // a false "Email mancante" error when the user IS authenticated
+            // (closes #1135).
+            const { data: userData, error: userError } = await supabase.auth.getUser();
+            if (userError) throw userError;
+            const email = userData.user?.email;
             if (!email) {
               throw new Error('Email mancante');
             }
