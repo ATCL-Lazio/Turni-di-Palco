@@ -164,7 +164,7 @@ export function AppShell() {
   );
 
   // Auth hook
-  const { authError, setAuthError, isDemoMode, handleLogin, handleSignup, handleLogout, markVoluntaryLogout } = useAuth(
+  const { authError, setAuthError, isDemoMode, handleLogin, handleSignup, handleLogout, markVoluntaryLogout, unmarkVoluntaryLogout } = useAuth(
     state.profile,
     updateProfile,
     (screen, isRecovery) => {
@@ -192,13 +192,17 @@ export function AppShell() {
     },
   );
 
-  // Wrap deleteAccount passing markVoluntaryLogout as onBeforeSignOut so the
-  // flag is set synchronously right before supabase.auth.signOut() fires the
-  // SIGNED_OUT event, preventing the misleading "session expired" banner
-  // regardless of timing (issue #1124).
+  // Wrap deleteAccount passing the voluntary-logout hooks so the SIGNED_OUT
+  // listener behaves correctly in both the success and failure paths (issue #1124):
+  //   onBeforeSignOut  → sets isVoluntaryLogoutRef=true right before signOut()
+  //   onSignOutFailed  → resets isVoluntaryLogoutRef=false if signOut() throws,
+  //                      so the next involuntary session expiry still shows the banner.
   const handleDeleteAccount = useCallback(async () => {
-    await deleteAccount({ onBeforeSignOut: markVoluntaryLogout });
-  }, [markVoluntaryLogout, deleteAccount]);
+    await deleteAccount({
+      onBeforeSignOut: markVoluntaryLogout,
+      onSignOutFailed: unmarkVoluntaryLogout,
+    });
+  }, [markVoluntaryLogout, unmarkVoluntaryLogout, deleteAccount]);
 
   // Tab change handler with feature gates
   const handleTabChange = useCallback((tab: Tab) => {

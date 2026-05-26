@@ -2289,10 +2289,20 @@ type GameContextValue = {
   completeNarrativeChoice: (input: CompleteNarrativeChoiceInput) => Promise<CompleteNarrativeChoiceResult>;
   resetProgress: () => Promise<void>;
   /** GDPR Art. 17 – elimina account e tutti i dati dal server e dal dispositivo.
-   * @param options.onBeforeSignOut - callback invocato immediatamente prima di `supabase.auth.signOut()`.
-   *   Usare per impostare il flag `isVoluntaryLogoutRef` nell'hook `useAuth` e prevenire
-   *   il banner "Sessione scaduta" (issue #1124). */
-  deleteAccount: (options?: { onBeforeSignOut?: () => void }) => Promise<void>;
+   *
+   * ⚠️  **ATTENZIONE per i futuri call site**: se questo metodo viene chiamato senza
+   * `options.onBeforeSignOut`, l'evento `SIGNED_OUT` emesso da `supabase.auth.signOut()`
+   * causerà il banner «Sessione scaduta» in `useAuth`. Passare sempre `markVoluntaryLogout`
+   * da `useAuth` come `onBeforeSignOut` — e `unmarkVoluntaryLogout` come `onSignOutFailed`
+   * — per gestire correttamente sia il caso nominale che l'errore (issue #1124).
+   *
+   * @param options.onBeforeSignOut - invocato immediatamente prima di `signOut()`.
+   *   Usare per impostare `isVoluntaryLogoutRef = true` in `useAuth`.
+   * @param options.onSignOutFailed - invocato se `signOut()` lancia un'eccezione, prima
+   *   di rithrowing. Usare per resettare `isVoluntaryLogoutRef = false` in `useAuth`
+   *   (altrimenti il ref resta bloccato a `true` e la prossima scadenza involontaria
+   *   della sessione non mostrerebbe il banner). */
+  deleteAccount: (options?: { onBeforeSignOut?: () => void; onSignOutFailed?: () => void }) => Promise<void>;
   /** GDPR Art. 15/20 – scarica copia di tutti i dati personali in JSON. */
   exportUserData: () => void;
   changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
@@ -5181,7 +5191,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // GDPR Art. 17 – Diritto alla cancellazione: elimina account e tutti i dati utente.
-  const deleteAccount = useCallback(async (options?: { onBeforeSignOut?: () => void }) => {
+  const deleteAccount = useCallback(async (options?: { onBeforeSignOut?: () => void; onSignOutFailed?: () => void }) => {
     if (!isSupabaseConfigured || !supabase) {
       throw new Error('Supabase non configurato');
     }
@@ -5216,7 +5226,16 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     // right before the SIGNED_OUT event fires — eliminates any timing gap and
     // ensures the flag is always set regardless of the call site (issue #1124).
     options?.onBeforeSignOut?.();
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      // signOut failed: no SIGNED_OUT event will fire, so isVoluntaryLogoutRef
+      // would stay permanently true without this reset. Call onSignOutFailed
+      // (e.g. unmarkVoluntaryLogout) so the caller can restore the ref to false,
+      // ensuring the next involuntary session expiry still shows the banner.
+      options?.onSignOutFailed?.();
+      throw e;
+    }
     resetState();
   }, [authUserId, resetState]);
 
