@@ -149,7 +149,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const action = typeof body.action === 'string' ? body.action.trim() : 'ingest_logs';
+    const action = typeof body.action === 'string' ? body.action.trim().slice(0, 100) : 'ingest_logs';
     if (action !== 'ingest_logs') {
       return jsonResponse({ error: `Azione non supportata: ${action}` }, 400);
     }
