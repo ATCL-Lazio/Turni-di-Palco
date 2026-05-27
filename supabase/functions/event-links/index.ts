@@ -110,6 +110,7 @@ serve(async (req) => {
     global: {
       headers: { Authorization: authHeader },
     },
+    auth: { autoRefreshToken: false, persistSession: false },
   });
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
