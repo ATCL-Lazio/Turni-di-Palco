@@ -4261,6 +4261,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const completeOnboarding = useCallback(
     (variant: 'full' | 'skipped_qr' | 'skipped_manual', xpReward?: number) => {
       const completedAt = new Date().toISOString();
+      let nextProfile: PlayerProfile | null = null;
       setState((prev: GameState) => {
         let profile: PlayerProfile = {
           ...prev.profile,
@@ -4270,9 +4271,12 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         if (xpReward && xpReward > 0) {
           profile = applyRewards(profile, { xp: xpReward, cachet: 0, reputation: 0 }, 'activity');
         }
-        persistProfile(profile);
+        nextProfile = profile;
         return { ...prev, profile };
       });
+      if (nextProfile !== null) {
+        persistProfile(nextProfile);
+      }
     },
     [persistProfile],
   );
