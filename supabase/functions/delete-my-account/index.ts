@@ -67,6 +67,7 @@ serve(async (req) => {
     { table: 'activity_completions', key: 'user_id' },
     { table: 'user_badges', key: 'user_id' },
     { table: 'planned_participations', key: 'user_id' },
+    { table: 'narrative_history', key: 'user_id' },
     { table: 'turns', key: 'user_id' },
     { table: 'profiles', key: 'id' },
   ] as const;
