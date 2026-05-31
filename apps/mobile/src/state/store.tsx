@@ -4656,15 +4656,23 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           };
         }
 
-        setState((prev: GameState) => ({
-          ...prev,
-          profile: {
-            ...prev.profile,
-            cachet: rpcResponse.cachet_balance_after,
-            reputation: rpcResponse.profile_reputation_after,
-            extraActivitySlots: rpcResponse.extra_slots_after,
-          },
-        }));
+        setState((prev: GameState) => {
+          if (rpcResponse.status === 'duplicate') {
+            // Duplicate: purchase already counted — do not overwrite local
+            // cachet/reputation/extraActivitySlots with potentially-stale
+            // server balances that reflect pre-purchase state.
+            return prev;
+          }
+          return {
+            ...prev,
+            profile: {
+              ...prev.profile,
+              cachet: rpcResponse.cachet_balance_after,
+              reputation: rpcResponse.profile_reputation_after,
+              extraActivitySlots: rpcResponse.extra_slots_after,
+            },
+          };
+        });
 
         refreshActivitySlotsStatus().catch(() => {});
         if (rpcResponse.theatre) {
