@@ -4072,6 +4072,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               onboardingVariant: (profile.onboarding_variant === 'full' || profile.onboarding_variant === 'skipped_qr' || profile.onboarding_variant === 'skipped_manual')
                 ? profile.onboarding_variant
                 : prev.profile.onboardingVariant,
+              skills: profile.skills ?? prev.profile.skills,
+              activeCourses: profile.active_courses ?? prev.profile.activeCourses,
+              completedCourses: profile.completed_courses ?? prev.profile.completedCourses,
             },
           }));
           setHasHydratedRemote(true);
