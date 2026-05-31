@@ -4912,6 +4912,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             cachet: 0,
             tokenAtcl: 0,
             extraActivitySlots: 0,
+            skills: { precision: 0, presence: 0, creativity: 0, leadership: 0 },
+            activeCourses: {},
+            completedCourses: {},
+            onboardingCompletedAt: null,
+            onboardingVariant: null,
           },
           turns: [],
         }));
