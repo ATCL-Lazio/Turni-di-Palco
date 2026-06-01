@@ -4937,6 +4937,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           totalSlots: 3,
           remainingSlots: 3,
         });
+        setEventPlans([]);
+        setEventPlansLoading(false);
+        setFollowedEvents([]);
+        setFollowedEventsLoading(false);
 
         if (isSupabaseConfigured && supabase && authUserId && !shouldQueueReset) {
           await Promise.all([refreshTurnStats(), refreshTheatreReputation(), refreshBadges()]);
