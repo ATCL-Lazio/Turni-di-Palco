@@ -4906,6 +4906,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           });
         }
 
+        if (authUserId) writeTutorialCompleted(authUserId, false);
         setState((prev: GameState) => ({
           ...prev,
           profile: {
@@ -4925,6 +4926,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             completedCourses: {},
             onboardingCompletedAt: null,
             onboardingVariant: null,
+            tutorialCompleted: false,
           },
           turns: [],
         }));
