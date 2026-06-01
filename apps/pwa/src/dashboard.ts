@@ -55,11 +55,12 @@ function flagRow(flag: FeatureFlag): string {
 }
 
 function linkCard(label: string, href: string, description: string): string {
+  const safeHref = /^https?:\/\//i.test(href) ? href : '#';
   return `
-    <a href="${href}" target="_blank" rel="noopener noreferrer"
+    <a href="${escapeHtml(safeHref)}" target="_blank" rel="noopener noreferrer"
       class="block bg-[#241f20] hover:bg-[#2e2728] border border-neutral-800 hover:border-neutral-700 rounded-lg p-4 transition-colors group">
-      <p class="text-sm font-semibold text-neutral-100 group-hover:text-[#f4bf4f] transition-colors">${label}</p>
-      <p class="text-xs text-neutral-500 mt-0.5">${description}</p>
+      <p class="text-sm font-semibold text-neutral-100 group-hover:text-[#f4bf4f] transition-colors">${escapeHtml(label)}</p>
+      <p class="text-xs text-neutral-500 mt-0.5">${escapeHtml(description)}</p>
     </a>
   `;
 }
