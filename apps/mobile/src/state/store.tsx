@@ -1594,9 +1594,12 @@ function enqueueQueuedSupabaseMutation(input: QueuedSupabaseMutationInput) {
   }
 
   if (input.kind === 'reset_progress') {
+    // When a reset_progress is queued, remove all pending follow_event_insert and
+    // follow_event_delete mutations for the same user. Those plans are wiped by the
+    // reset, so replaying them after the reset would re-create deleted plans (closes #1178).
     queue = queue.filter((mutation) => {
       if (mutation.userId !== input.userId) return true;
-      return mutation.kind === 'follow_event_insert' || mutation.kind === 'follow_event_delete';
+      return mutation.kind !== 'follow_event_insert' && mutation.kind !== 'follow_event_delete';
     });
   }
   const dedupedSize = queue.length;
