@@ -3850,11 +3850,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               userRes.error,
               profileRes.error,
             ]);
+            setHasHydratedRemote(true);
             return;
           }
 
           if (turnsRes.error) {
             notifyCriticalError('Non riusciamo a caricare i turni dal database.', [turnsRes.error]);
+            setHasHydratedRemote(true);
             return;
           }
 
