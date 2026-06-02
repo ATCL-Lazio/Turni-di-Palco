@@ -59,7 +59,9 @@ serve(async (req) => {
       })
     }
 
-    const supabaseClient = createClient(supabaseUrl, serviceKey)
+    const supabaseClient = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
 
     const url = new URL(req.url)
     const rawDays = url.searchParams.get('days') ?? ''
