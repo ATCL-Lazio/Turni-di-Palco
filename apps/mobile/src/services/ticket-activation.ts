@@ -201,6 +201,17 @@ async function getAccessTokenForFunctions(): Promise<string> {
     throw new Error(SESSION_REQUIRED_MESSAGE);
   }
 
+  // Use getUser() for server-side token verification to prevent use of stale
+  // or replayed session tokens (closes #1177). getSession() only reads from
+  // local storage and cannot detect server-side revocations.
+  const { error: userError } = await supabase.auth.getUser();
+  if (userError) {
+    await invalidateAuthSession();
+    throw new Error(SESSION_REQUIRED_MESSAGE);
+  }
+
+  // After server-verified the user is still valid, retrieve the session to
+  // obtain the access token. If the token is close to expiry, refresh it first.
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) {
     await invalidateAuthSession();
@@ -215,7 +226,7 @@ async function getAccessTokenForFunctions(): Promise<string> {
     !sessionToken || !expiresAt || expiresAt <= nowSeconds + TOKEN_REFRESH_SKEW_SECONDS;
 
   if (!shouldRefresh && sessionToken) {
-    if (import.meta.env.DEV) console.log('[ticket-activation] Using cached token, hasToken:', true, 'remaining_s:', expiresAt - nowSeconds);
+    if (import.meta.env.DEV) console.log('[ticket-activation] Using server-verified token, hasToken:', true, 'remaining_s:', expiresAt - nowSeconds);
     return sessionToken;
   }
 
