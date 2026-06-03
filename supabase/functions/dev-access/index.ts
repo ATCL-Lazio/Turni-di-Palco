@@ -127,7 +127,9 @@ serve(async (req) => {
   }
 
   if (serviceRoleKey) {
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
     const userRoles = getUserRoles(user as Record<string, unknown>);
     const auditEntry: DevAccessAudit = {
       user_id: user.id,
