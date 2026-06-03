@@ -231,7 +231,9 @@ serve(async (req) => {
     }
   }
 
-  const supabase = createClient(supabaseUrl, serviceKey);
+  const supabase = createClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 
   try {
     const [sitemapUrls, categorySlugs, apiEvents] = await Promise.all([
