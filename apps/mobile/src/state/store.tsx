@@ -5239,6 +5239,19 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     setFeatureFlags({ ...MOBILE_FEATURE_FLAGS_DEFAULTS });
     setFeatureFlagsSource('default');
     setFeatureFlagsReady(true);
+    // Reset remote-state arrays and loading flags so stale data from a previous
+    // session is not visible after logout (closes #1185).
+    setRemoteTurnStats(null);
+    setStatsLoading(false);
+    setRemoteTheatreReputation([]);
+    setTheatreReputationLoading(false);
+    setLeaderboard([]);
+    setLeaderboardLoading(false);
+    setRemoteBadges([]);
+    setBadgesLoading(false);
+    setShopCatalog(DEFAULT_SHOP_CATALOG);
+    setShopCatalogLoading(false);
+    setActivitySlotsLoading(false);
     const totalSlots = 3 + next.profile.extraActivitySlots;
     setActivitySlotsStatus({
       usedToday: 0,
