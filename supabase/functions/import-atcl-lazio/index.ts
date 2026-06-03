@@ -228,7 +228,9 @@ serve(async (req) => {
     }
   }
 
-  const supabase = createClient(supabaseUrl, serviceKey);
+  const supabase = createClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 
   try {
     const url = new URL(req.url);
