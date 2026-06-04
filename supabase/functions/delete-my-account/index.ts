@@ -64,7 +64,7 @@ serve(async (req) => {
 
   // 1. Delete game data (cascade-safe: ordered by FK dependencies)
   const tablesToDelete = [
-    { table: 'ticket_activations', key: 'user_id' },
+    { table: 'ticket_activations', key: 'activated_by' },
     { table: 'activity_completions', key: 'user_id' },
     { table: 'user_badges', key: 'user_id' },
     { table: 'planned_participations', key: 'user_id' },
