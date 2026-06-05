@@ -4949,6 +4949,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         setFollowedEvents([]);
         setFollowedEventsLoading(false);
 
+        // Clear the narrative idempotency guard so that narrative rewards can
+        // be replayed after a progress reset in the same session (closes #1199).
+        appliedNarrativeChoicesRef.current = new Set();
+
         if (isSupabaseConfigured && supabase && authUserId && !shouldQueueReset) {
           await Promise.all([refreshTurnStats(), refreshTheatreReputation(), refreshBadges()]);
         }
