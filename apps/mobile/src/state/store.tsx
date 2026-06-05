@@ -4846,10 +4846,20 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       };
 
       // 1. Apply rewards locally — visible immediately in Home/profile.
-      setState((prev: GameState) => ({
-        ...prev,
-        profile: applyRewards(prev.profile, rewards, 'activity'),
-      }));
+      // Capture the resulting profile so we can persist it to Supabase below.
+      let capturedProfile: PlayerProfile | null = null;
+      setState((prev: GameState) => {
+        const nextProfile = applyRewards(prev.profile, rewards, 'activity');
+        capturedProfile = nextProfile;
+        return { ...prev, profile: nextProfile };
+      });
+
+      // 1b. Persist updated profile to server so XP/cachet/reputation survive
+      // a page reload (closes #1200). Same pattern used by startCourse /
+      // completeCourse: capturedProfile is non-null when the updater ran.
+      if (capturedProfile !== null) {
+        persistProfile(capturedProfile);
+      }
 
       // 2. Persist to narrative_history (append-only, RLS-scoped to user).
       // Best-effort: a failed insert does not roll back local rewards. Without
@@ -4874,7 +4884,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       return { ok: true, rewards };
     },
-    [authUserId]
+    [authUserId, persistProfile]
   );
 
   const resetProgress = useCallback(async () => {
