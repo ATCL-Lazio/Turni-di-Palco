@@ -49,7 +49,9 @@ serve(async (req: Request) => {
     return jsonResponse({ error: 'Missing environment variables' }, 500);
   }
 
-  const supabase = createClient(supabaseUrl, serviceKey);
+  const supabase = createClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let body: Record<string, any>;
