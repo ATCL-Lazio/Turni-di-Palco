@@ -3985,7 +3985,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       );
     };
 
-    loadRemoteState().catch((err: unknown) => console.warn('[store] loader rejected', err));
+    loadRemoteState()
+      .catch((err: unknown) => console.warn('[store] loader rejected', err))
+      .finally(() => {
+        if (isMounted) setHasHydratedRemote(true);
+      });
 
     return () => {
       isMounted = false;
