@@ -3816,6 +3816,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             activities: nextActivities,
           });
           await refreshEventPlanning(nextEvents);
+          if (!isMounted) return;
         },
         {
           operation: 'loadCatalog',
