@@ -4948,6 +4948,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             tutorialCompleted: false,
           },
           turns: [],
+          eventPlans: [],
         }));
 
         setRemoteTurnStats(null);
