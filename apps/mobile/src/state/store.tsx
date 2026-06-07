@@ -4837,7 +4837,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       // Idempotency guard: prevent double-credit if this function is called
       // more than once for the same scene+choice (re-render, offline-queue
       // replay, race condition, or app restart mid-scene).
-      const choiceKey = `${input.sceneId}:${input.choiceId}`;
+      const choiceKey = JSON.stringify([input.sceneId, input.choiceId]);
       if (appliedNarrativeChoicesRef.current.has(choiceKey)) {
         logOfflineSync('completeNarrativeChoice skipped — already applied', { choiceKey }, 'warn');
         return { ok: true, rewards: { xp: 0, cachet: 0, reputation: 0 } };
