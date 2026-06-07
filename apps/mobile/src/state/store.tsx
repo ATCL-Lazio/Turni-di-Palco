@@ -2966,7 +2966,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           continue;
         }
 
-        break;
+        continue;
       }
     } finally {
       offlineSyncInFlightRef.current = false;
