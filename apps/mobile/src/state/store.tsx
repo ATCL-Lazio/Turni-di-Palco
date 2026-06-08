@@ -3815,8 +3815,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             events: nextEvents,
             activities: nextActivities,
           });
-          await refreshEventPlanning(nextEvents);
-          if (!isMounted) return;
+          // Do NOT call refreshEventPlanning here: the useEffect watching
+          // catalog.events (below) will call it once the state update is
+          // committed, avoiding a duplicate get_my_planned_participations RPC
+          // that was fired on every catalog load (closes #1215).
         },
         {
           operation: 'loadCatalog',
