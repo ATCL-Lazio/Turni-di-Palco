@@ -4964,6 +4964,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         setEventPlansLoading(false);
         setFollowedEvents([]);
         setFollowedEventsLoading(false);
+        setLeaderboard([]);
+        setLeaderboardLoading(false);
 
         // Clear the narrative idempotency guard so that narrative rewards can
         // be replayed after a progress reset in the same session (closes #1199).
