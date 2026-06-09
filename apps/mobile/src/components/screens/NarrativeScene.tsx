@@ -134,7 +134,7 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
     });
 
     return () => controller.abort();
-  }, [local.phase]);
+  }, [local.phase, sceneId, roleId, roleStats]);
 
   if (local.phase === 'loading') {
     return (
