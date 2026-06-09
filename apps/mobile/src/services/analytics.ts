@@ -221,11 +221,20 @@ async function fetchUserHash(userId: string): Promise<string | undefined> {
       headers['Authorization'] = `Bearer ${_authToken}`;
     }
 
-    const response = await fetch(edgeFnUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ userId }),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    let response: Response;
+    try {
+      response = await fetch(edgeFnUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ userId }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       // Log solo in dev per non inquinare la produzione con warning non
