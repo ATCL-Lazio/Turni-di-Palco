@@ -223,13 +223,11 @@ export function useAuth(
         if (!supabase) return;
         let mounted = true;
 
-        supabase.auth.getSession().then(({ data, error }) => {
-            if (!mounted || error) return;
-            if (data.session?.user) {
-                applyUserProfileRef.current(data.session.user, {
-                    navigateTo: 'home',
-                });
-            }
+        supabase.auth.getUser().then(({ data, error }) => {
+            if (!mounted || error || !data.user) return;
+            applyUserProfileRef.current(data.user, {
+                navigateTo: 'home',
+            });
         }).catch(() => undefined);
 
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
