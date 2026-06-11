@@ -4584,6 +4584,18 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           error: errorMessage,
         }, 'warn');
         enqueueSupabaseMutation(queuedMutation);
+        // Add the pending turn record to local state immediately so the UI
+        // shows the turn while waiting for the offline sync flush to complete.
+        // applyTurnRegistrationResult handles duplicates by ID (merge), so
+        // adding the record here is safe and idempotent.
+        setState((prev: GameState) => {
+          const alreadyPresent = prev.turns.some((t) => t.id === pendingTurnRecord.id);
+          const nextTurns = (alreadyPresent
+            ? prev.turns.map((t) => (t.id === pendingTurnRecord.id ? { ...t, ...pendingTurnRecord } : t))
+            : [pendingTurnRecord, ...prev.turns]
+          ).slice(0, MAX_TURNS);
+          return { ...prev, turns: nextTurns };
+        });
         setTurnSyncFeedback({
           syncStatus: 'pending',
           boostRequested,
