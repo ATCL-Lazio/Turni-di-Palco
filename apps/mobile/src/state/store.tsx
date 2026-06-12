@@ -5357,7 +5357,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   }, [authUserId, resetState]);
 
   // GDPR Art. 15/20 – Diritto di accesso e portabilità: scarica tutti i dati in formato JSON.
-  const exportUserData = useCallback(() => {
+  const exportUserData = useCallback(async () => {
     // Collect chat history from localStorage (tdp-maxwell-history:* keys)
     const chatHistory: Record<string, unknown> = {};
     if (typeof window !== 'undefined') {
@@ -5370,6 +5370,35 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             chatHistory[key] = localStorage.getItem(key);
           }
         }
+      }
+    }
+
+    // Fix #1229: fetch ALL turns directly from Supabase at export time so the
+    // GDPR export is complete regardless of the MAX_TURNS=20 in-memory cap.
+    // Fall back to state.turns only when Supabase is unavailable (e.g. offline).
+    let allTurns: TurnRecord[] = state.turns;
+    if (isSupabaseConfigured && supabase && authUserId) {
+      const { data: turnsData, error: turnsError } = await supabase
+        .from('turns')
+        .select('*')
+        .eq('user_id', authUserId)
+        .order('created_at', { ascending: false });
+      if (!turnsError && Array.isArray(turnsData)) {
+        allTurns = (turnsData as DbTurnRow[]).map((turn) => ({
+          id: turn.id,
+          eventId: turn.event_id ?? '',
+          eventName: normalizeText(turn.event_name),
+          theatre: normalizeText(turn.theatre),
+          date: normalizeText(turn.event_date),
+          time: normalizeText(turn.event_time),
+          roleId: isRoleId(turn.role_id) ? turn.role_id : 'attore',
+          rewards: {
+            xp: Number(turn.rewards?.xp ?? 0),
+            reputation: Number(turn.rewards?.reputation ?? 0),
+            cachet: Number(turn.rewards?.cachet ?? 0),
+          },
+          createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
+        }));
       }
     }
 
@@ -5397,7 +5426,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         onboardingCompletedAt: state.profile.onboardingCompletedAt ?? null,
         onboardingVariant: state.profile.onboardingVariant ?? null,
       },
-      turns: state.turns,
+      turns: allTurns,
       badges,
       theatreReputation,
       plannedEvents: eventPlans,
@@ -5414,7 +5443,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [state.profile, state.turns, badges, theatreReputation, eventPlans]);
+  }, [state.profile, state.turns, authUserId, badges, theatreReputation, eventPlans]);
 
   const value = useMemo<GameContextValue>(
     () => ({
