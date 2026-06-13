@@ -4183,8 +4183,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   const persistProfile = useCallback(
     (profile: PlayerProfile) => {
-      if (!supabase || !authUserId || !hasHydratedRemote) {
-        logOfflineSync('persistProfile skipped: remote state not ready', {
+      if (!supabase || !authUserId) {
+        logOfflineSync('persistProfile skipped: missing supabase client or auth user', {
           hasSupabaseClient: Boolean(supabase),
           authUserId,
           hasHydratedRemote,
@@ -4202,6 +4202,18 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         userId: authUserId,
         payload,
       };
+      if (!hasHydratedRemote) {
+        // Remote state is still being loaded (e.g. slow connection during FTUE).
+        // Queue the mutation so it is flushed once hydration completes instead
+        // of silently discarding the profile update.
+        logOfflineSync('persistProfile queued: hydration not yet complete', {
+          authUserId,
+          roleId: profile.roleId,
+          level: profile.level,
+        }, 'warn');
+        enqueueSupabaseMutation(queuedMutation);
+        return;
+      }
       if (isNavigatorOffline()) {
         logOfflineSync('persistProfile queued because browser is offline', { authUserId });
         enqueueSupabaseMutation(queuedMutation);
