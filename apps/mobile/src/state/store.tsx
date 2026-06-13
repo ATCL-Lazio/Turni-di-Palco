@@ -5375,14 +5375,42 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
     // Fix #1229: fetch ALL turns directly from Supabase at export time so the
     // GDPR export is complete regardless of the MAX_TURNS=20 in-memory cap.
+    // Fix #1231: also fetch activity_completions, narrative_history, and
+    // shop_purchases in parallel — all tables deleted by delete-my-account must
+    // be present in the Art. 15/20 export.
     // Fall back to state.turns only when Supabase is unavailable (e.g. offline).
     let allTurns: TurnRecord[] = state.turns;
+    let activityCompletions: unknown[] = [];
+    let narrativeHistory: unknown[] = [];
+    let shopPurchases: unknown[] = [];
     if (isSupabaseConfigured && supabase && authUserId) {
-      const { data: turnsData, error: turnsError } = await supabase
-        .from('turns')
-        .select('*')
-        .eq('user_id', authUserId)
-        .order('created_at', { ascending: false });
+      const [
+        { data: turnsData, error: turnsError },
+        { data: activityData, error: activityError },
+        { data: narrativeData, error: narrativeError },
+        { data: shopData, error: shopError },
+      ] = await Promise.all([
+        supabase
+          .from('turns')
+          .select('*')
+          .eq('user_id', authUserId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('activity_completions')
+          .select('*')
+          .eq('user_id', authUserId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('narrative_history')
+          .select('*')
+          .eq('user_id', authUserId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('shop_purchases')
+          .select('*')
+          .eq('user_id', authUserId)
+          .order('created_at', { ascending: false }),
+      ]);
       if (!turnsError && Array.isArray(turnsData)) {
         allTurns = (turnsData as DbTurnRow[]).map((turn) => ({
           id: turn.id,
@@ -5399,6 +5427,15 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           },
           createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
         }));
+      }
+      if (!activityError && Array.isArray(activityData)) {
+        activityCompletions = activityData;
+      }
+      if (!narrativeError && Array.isArray(narrativeData)) {
+        narrativeHistory = narrativeData;
+      }
+      if (!shopError && Array.isArray(shopData)) {
+        shopPurchases = shopData;
       }
     }
 
@@ -5427,6 +5464,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         onboardingVariant: state.profile.onboardingVariant ?? null,
       },
       turns: allTurns,
+      activityCompletions,
+      narrativeHistory,
+      shopPurchases,
       badges,
       theatreReputation,
       plannedEvents: eventPlans,
