@@ -254,8 +254,11 @@ export async function requestAiIssue({
   payload: AiSupportIssuePayload;
   endpoint?: string;
 }) {
+  // Use a single AbortController driven by withMobileWatchdog's timeout.
+  // A redundant window.setTimeout at the same interval would create a race
+  // where the outer abort fires after withMobileWatchdog already resolved,
+  // surfacing a false watchdog error banner (closes #1239).
   const controller = new AbortController();
-  const abortTimeout = window.setTimeout(() => controller.abort(), AI_ISSUE_REQUEST_WATCHDOG_MS);
   try {
     return await withMobileWatchdog(async () => {
       const target = resolveIssueEndpoint(endpoint);
@@ -283,7 +286,5 @@ export async function requestAiIssue({
   } catch (error) {
     controller.abort();
     throw error;
-  } finally {
-    window.clearTimeout(abortTimeout);
   }
 }
