@@ -155,6 +155,15 @@ serve(async (req: Request) => {
     }
 
     if (action === 'resolve_hash') {
+      const resolveRoleSingle = authenticatedUser?.app_metadata?.role as string | undefined;
+      const resolveRolesArray = authenticatedUser?.app_metadata?.roles as string[] | undefined;
+      const isResolveAdmin =
+        resolveRoleSingle === 'admin' ||
+        (Array.isArray(resolveRolesArray) && resolveRolesArray.includes('admin'));
+      if (!isResolveAdmin) {
+        return jsonResponse({ error: 'Accesso negato: ruolo admin richiesto' }, 403);
+      }
+
       if (!hash || typeof hash !== 'string') {
         return jsonResponse({ error: 'Missing hash' }, 400);
       }
