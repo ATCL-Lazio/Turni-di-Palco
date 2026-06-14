@@ -4313,18 +4313,24 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = useCallback(
     (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {
-      let nextProfile: PlayerProfile | null = null;
+      // Use a ref object to capture the committed profile value from inside the
+      // setState updater. A plain `let` variable is unreliable under React 18
+      // concurrent rendering because the updater may run more than once
+      // (StrictMode, concurrent re-renders), and the value from a discarded run
+      // could be passed to persistProfile — same safe pattern used by
+      // completeOnboarding/startCourse/completeCourse (closes #1237).
+      const capturedProfileRef: { current: PlayerProfile | null } = { current: null };
       setState((prev: GameState) => {
         const nextRole =
           updates.roleId && catalog.roles.some((role: Role) => role.id === updates.roleId)
             ? updates.roleId
             : prev.profile.roleId;
         const profile: PlayerProfile = { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId };
-        nextProfile = profile;
+        capturedProfileRef.current = profile;
         return { ...prev, profile };
       });
-      if (nextProfile !== null) {
-        persistProfile(nextProfile);
+      if (capturedProfileRef.current !== null) {
+        persistProfile(capturedProfileRef.current);
       }
     },
     [catalog.roles, persistProfile]
