@@ -5494,7 +5494,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Delay revoking the object URL to give the browser time to start the download.
+    // Calling revokeObjectURL synchronously after a.click() can silently abort the
+    // download on Firefox and slow devices before the fetch begins (closes #1235).
+    window.setTimeout(() => URL.revokeObjectURL(url), 100);
   }, [state.profile, state.turns, authUserId, badges, theatreReputation, eventPlans]);
 
   const value = useMemo<GameContextValue>(
