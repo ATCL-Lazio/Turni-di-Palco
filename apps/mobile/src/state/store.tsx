@@ -2314,7 +2314,7 @@ type GameContextValue = {
    *   della sessione non mostrerebbe il banner). */
   deleteAccount: (options?: { onBeforeSignOut?: () => void; onSignOutFailed?: () => void }) => Promise<void>;
   /** GDPR Art. 15/20 – scarica copia di tutti i dati personali in JSON. */
-  exportUserData: () => void;
+  exportUserData: () => Promise<void>;
   changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
   completeTutorial: () => void;
