@@ -82,6 +82,20 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
     resolveInitialState(sceneId, roleId, roleStats)
   );
 
+  // Re-run resolveInitialState whenever sceneId or roleId change so that
+  // navigating between scenes or switching roles shows fresh state rather
+  // than the stale value captured by the lazy useState initializer (which
+  // only runs on the initial mount).
+  const prevSceneIdRef = React.useRef(sceneId);
+  const prevRoleIdRef = React.useRef(roleId);
+  useEffect(() => {
+    if (sceneId !== prevSceneIdRef.current || roleId !== prevRoleIdRef.current) {
+      prevSceneIdRef.current = sceneId;
+      prevRoleIdRef.current = roleId;
+      setLocal(resolveInitialState(sceneId, roleId, roleStats));
+    }
+  }, [sceneId, roleId, roleStats]);
+
   const startLoad = useCallback(() => {
     setLocal({ phase: 'loading' });
   }, []);
