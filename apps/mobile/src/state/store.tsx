@@ -2515,7 +2515,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           await supabase!.rpc('evaluate_my_badges');
           const { data, error } = await supabase!
             .from('my_badges')
-            .select('id,title,description,icon,metric,threshold,is_hidden,unlocked_at,seen_at,unlocked');
+            .select('id,title,description,icon,metric,threshold,is_hidden,unlocked_at,seen_at,unlocked')
+            .order('unlocked_at', { ascending: false, nullsFirst: false })
+            .limit(500);
           if (!error && data) {
             const nextBadges: Badge[] = (data as DbBadgeRow[]).map((row) => ({
               id: row.id,
@@ -3846,7 +3848,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           const [userRes, profileRes, turnsRes] = await Promise.all([
             supabase!.auth.getUser(),
             supabase!.from('profiles').select('*').eq('id', authUserId).maybeSingle(),
-            supabase!.from('turns').select('*').eq('user_id', authUserId).order('created_at', { ascending: false }).limit(100),
+            supabase!.from('turns').select('*').eq('user_id', authUserId).order('created_at', { ascending: false }).limit(500),
           ]);
 
           if (!isMounted) return;
