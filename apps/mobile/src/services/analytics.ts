@@ -69,6 +69,35 @@ export function setAnalyticsSink(sink: AnalyticsSink): void {
   currentSink = sink;
 }
 
+/**
+ * Install the production sink that persists events to the `ingest-analytics`
+ * Edge Function (issues #321 / #164). No-op transport when the Supabase URL is
+ * unknown; never throws (analytics must never break UX). Auth is attached from
+ * the token set via {@link setAnalyticsAuthToken}.
+ *
+ * Idempotent: calling it again simply re-registers the same sink.
+ */
+export function installIngestAnalyticsSink(): void {
+  setAnalyticsSink(async (event) => {
+    const supabaseUrl = _supabaseUrl;
+    if (!supabaseUrl || supabaseUrl.length === 0) return;
+    const url = `${supabaseUrl.replace(/\/$/, '')}/functions/v1/ingest-analytics`;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (_authToken) headers['Authorization'] = `Bearer ${_authToken}`;
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(event),
+        // Let the request outlive a page-hide (e.g. session_start on unload).
+        keepalive: true,
+      });
+    } catch {
+      /* network error / function not deployed — degrade gracefully */
+    }
+  });
+}
+
 function readConsent(): boolean {
   if (typeof window === 'undefined') return false;
   try {

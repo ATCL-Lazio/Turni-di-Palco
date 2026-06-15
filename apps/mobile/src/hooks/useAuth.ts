@@ -2,6 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { resolveDisplayName } from '../lib/profile-utils';
 import { PlayerProfile, suppressSignedInNavigation } from '../state/store';
+import {
+  clearAnalyticsCache,
+  installIngestAnalyticsSink,
+  setAnalyticsAuthToken,
+  trackSessionStart,
+} from '../services/analytics';
 
 const getEmailPrefix = (value?: string) => value?.split('@')[0]?.trim() ?? '';
 
@@ -223,6 +229,11 @@ export function useAuth(
         if (!supabase) return;
         let mounted = true;
 
+        // Privacy-first analytics (#321/#164): persist KPI events via the
+        // ingest-analytics Edge Function and keep the per-session JWT current.
+        // track*/sink calls respect the analytics consent gate internally.
+        installIngestAnalyticsSink();
+
         supabase.auth.getUser().then(({ data, error }) => {
             if (!mounted || error || !data.user) return;
             applyUserProfileRef.current(data.user, {
@@ -232,7 +243,10 @@ export function useAuth(
 
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
             if (!mounted) return;
+            // Keep the analytics JWT in sync with the current session.
+            setAnalyticsAuthToken(session?.access_token ?? null);
             if (event === 'SIGNED_OUT') {
+                clearAnalyticsCache();
                 // Only show the "session expired" message for involuntary
                 // sign-outs (e.g. token revoked by server). Voluntary logouts
                 // (initiated via handleLogoutAction) set isVoluntaryLogoutRef
@@ -252,6 +266,11 @@ export function useAuth(
                 return;
             }
             if (session?.user) {
+                // Count one session per fresh sign-in / app open (not on token
+                // refresh). No-op unless analytics consent has been granted.
+                if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+                    void trackSessionStart(session.user.id);
+                }
                 // Only navigate on an explicit sign-in transition.
                 // TOKEN_REFRESHED / USER_UPDATED / INITIAL_SESSION refresh
                 // the profile without interrupting the current screen.

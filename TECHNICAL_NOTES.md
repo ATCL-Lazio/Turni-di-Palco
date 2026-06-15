@@ -248,3 +248,56 @@ Obiettivo: introdurre un nuovo ruolo di gioco con esperienza dedicata senza fram
   - **Mitigazione:** playlist per ruolo con gating progressivo e test qualitativi rapidi.
 - **Rischio:** regressioni su utenti attuali.
   - **Mitigazione:** feature flags + fallback default + rollout progressivo.
+
+## Audience development — KPI & tracking (#321 / #164)
+
+Orientamento del prodotto: l'obiettivo primario è l'**audience development** del
+circuito ATCL (acquisizione, attivazione e retention del pubblico giovane). La
+sezione definisce in modo univoco i KPI e descrive la pipeline di tracking
+minima necessaria a misurarli.
+
+### Pipeline di tracking (privacy-first)
+
+1. Client: `apps/mobile/src/services/analytics.ts` emette una lista chiusa di
+   eventi (no PII, no eventi free-form), con gating sul consenso analitico.
+2. Pseudonimizzazione: l'userId è hashato server-side (HMAC-SHA256) dalla Edge
+   Function `pseudonymize-user-id` (salt `ANALYTICS_SALT`, secret). Il client
+   riceve solo il digest (`user_hash`).
+3. Sink di produzione: `installIngestAnalyticsSink()` invia gli eventi alla Edge
+   Function `ingest-analytics`, che valida JWT + lista chiusa e li persiste in
+   `public.analytics_events` (solo service role; RLS senza policy lato client).
+4. Query/report: KPI calcolati via SQL aggregato su `analytics_events` +
+   colonne già esistenti di `profiles` / `turns` / `activity_completions`.
+
+Eventi tracciati: `session_start`, `onboarding_started`, `onboarding_completed`
+(con `variant`), `first_scenario_completed`, `activity_completed`,
+`turn_registered`, `share_clicked`.
+
+### KPI (definizioni univoche)
+
+| KPI | Definizione | Fonte | Baseline indicativa |
+| --- | --- | --- | --- |
+| Onboarding completion % | `count(profiles WHERE onboarding_completed_at not null) / count(profiles) * 100` | `profiles.onboarding_completed_at` | ~50% |
+| D1 retention | utenti attivi (`last_activity_at >= now()-1g`) su coorte registrata ≥7g fa | `profiles.last_activity_at`, `created_at` | 35–40% |
+| D7 retention | utenti attivi (`last_activity_at >= now()-7g`) su coorte registrata ≥30g fa | `profiles.last_activity_at`, `created_at` | 15–20% |
+| Turni / utente attivo | `sum(turns) / count(utenti attivi 30g)` | `turns`, `profiles.last_activity_at` | 2–3 / mese |
+| Activity completion rate | `count(activity_completed) / count(session_start) * 100` | `analytics_events` | 15–20% |
+| Durata media sessione | `avg(activity_completed.durationMs)` | `analytics_events.props.durationMs` | 3–5 min |
+| Share distribution | `count(share_clicked) by surface / total` | `analytics_events.props.surface` | — |
+| Diversificazione teatri | teatri distinti per utente (da `turns.theatre`) | `turns.theatre` | 1.2–1.5 |
+
+Cadenza di reporting suggerita: settimanale; le baseline indicative sono target
+di partenza da validare con i dati reali (non misurate).
+
+### Stato e dipendenze operative (issue aperte)
+
+Codice e schema sono pronti, ma la chiusura di #321/#164 richiede passi
+operativi NON eseguibili dal repo:
+- deploy della migration `20260615120000_analytics_events.sql` e della Edge
+  Function `ingest-analytics` (oltre a `pseudonymize-user-id`);
+- secret `ANALYTICS_SALT` configurato su Supabase;
+- una finestra di raccolta in produzione (≈2–4 settimane) per la **prima
+  baseline**, che è parte degli acceptance criteria.
+
+Finché questi passi non sono completati, gli eventi restano non persistiti
+(sink di default su `console.debug`) e la baseline non è disponibile.
