@@ -113,10 +113,20 @@ serve(async (req) => {
 
     console.log(`🗑️ Trovati ${eventsToDelete.length} eventi da cancellare`)
 
+    const eventIds = eventsToDelete.map(e => e.id)
+
+    // Delete child rows first to avoid FK violations (planned_participations references events).
+    const { error: deleteParticipationsError } = await supabaseClient
+      .from('planned_participations')
+      .delete()
+      .in('event_id', eventIds)
+
+    if (deleteParticipationsError) throw deleteParticipationsError
+
     const { error: deleteError } = await supabaseClient
       .from('events')
       .delete()
-      .in('id', eventsToDelete.map(e => e.id))
+      .in('id', eventIds)
 
     if (deleteError) throw deleteError
 
