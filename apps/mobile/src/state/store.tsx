@@ -1362,21 +1362,65 @@ function createOfflineMutationId() {
   return `offline-${Date.now()}-${offlineMutationIdFallbackCounter}`;
 }
 
-async function readTurnGeolocationSnapshot(): Promise<TurnGeolocationSnapshot | null> {
+// Why the geolocation capture failed, so the UI/telemetry can tell a denied
+// permission apart from a GPS timeout instead of silently falling back (#323).
+export type GeolocationFailureReason =
+  | 'unsupported'
+  | 'permission_denied'
+  | 'position_unavailable'
+  | 'timeout'
+  | 'unknown';
+
+type TurnGeolocationResult =
+  | { ok: true; snapshot: TurnGeolocationSnapshot }
+  | { ok: false; reason: GeolocationFailureReason };
+
+/** User-facing copy for each geolocation failure reason. */
+export const GEOLOCATION_FAILURE_MESSAGES: Record<GeolocationFailureReason, string> = {
+  unsupported: 'Questo dispositivo non supporta la geolocalizzazione: non è possibile validare la presenza.',
+  permission_denied:
+    'Permesso di posizione negato. Abilita la posizione per questa app nelle impostazioni del dispositivo e riprova.',
+  position_unavailable: 'Posizione GPS non disponibile. Verifica che il GPS sia attivo e riprova.',
+  timeout: 'Il GPS non ha risposto in tempo. Spostati dove la ricezione è migliore e riprova.',
+  unknown: 'Impossibile ottenere la posizione. Riprova.',
+};
+
+/**
+ * Map a `GeolocationPositionError.code` to a stable reason token.
+ * Codes per the W3C Geolocation API: 1 = PERMISSION_DENIED,
+ * 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT.
+ */
+export function mapGeolocationErrorCode(code: number | undefined): GeolocationFailureReason {
+  switch (code) {
+    case 1:
+      return 'permission_denied';
+    case 2:
+      return 'position_unavailable';
+    case 3:
+      return 'timeout';
+    default:
+      return 'unknown';
+  }
+}
+
+async function readTurnGeolocationSnapshot(): Promise<TurnGeolocationResult> {
   if (typeof navigator === 'undefined' || !navigator.geolocation) {
-    return null;
+    return { ok: false, reason: 'unsupported' };
   }
 
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         resolve({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracyM: position.coords.accuracy,
+          ok: true,
+          snapshot: {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracyM: position.coords.accuracy,
+          },
         });
       },
-      () => resolve(null),
+      (error) => resolve({ ok: false, reason: mapGeolocationErrorCode(error?.code) }),
       {
         // High accuracy is intentionally enabled here to ensure reliable venue/turn validation,
         // at the cost of higher battery usage on some devices.
@@ -4380,13 +4424,21 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         && Boolean(supabase)
         && Boolean(authUserId)
         && geoConsent === 'granted';
-      const geolocationSnapshot = requiresServerGeolocation
+      const geolocationResult = requiresServerGeolocation
         ? await readTurnGeolocationSnapshot()
         : null;
+      const geolocationSnapshot = geolocationResult?.ok ? geolocationResult.snapshot : null;
+      const geolocationFailureReason =
+        geolocationResult && !geolocationResult.ok ? geolocationResult.reason : null;
 
       // Se la geolocalizzazione è richiesta ma non disponibile, procedi comunque con un avviso
+      // che distingue il motivo (permesso negato vs timeout vs GPS assente) per diagnosi e UX.
       if (requiresServerGeolocation && !geolocationSnapshot) {
-        console.warn('Geolocalizzazione non disponibile - procedo senza validazione geofence');
+        console.warn(
+          `Geolocalizzazione non disponibile (${geolocationFailureReason ?? 'unknown'}): ` +
+            `${GEOLOCATION_FAILURE_MESSAGES[geolocationFailureReason ?? 'unknown']} ` +
+            '- procedo senza validazione geofence',
+        );
       }
 
       const turnRegisterPayload: TurnRegisterPayload = {
