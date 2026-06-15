@@ -208,3 +208,36 @@ export function getLeadershipCachetMultiplier(statValue: number): number {
   const cfg = STAT_EFFECTS.leadership;
   return 1 + Math.min(cfg.cachetMultCap, cfg.cachetMultPerPoint * delta);
 }
+
+/** The four trainable skills accumulated through courses (#121). */
+export type SkillStats = Readonly<{
+  precision: number;
+  presence: number;
+  creativity: number;
+  leadership: number;
+}>;
+
+/**
+ * Combined reward multipliers earned by a player's passive skills (#121).
+ *
+ * Single source of truth shared by the client reward preview/calculation and
+ * the server RPCs (`register_turn_with_token_boost`,
+ * `complete_activity_with_slots`). The server SQL helper
+ * `public.skill_reward_multipliers` MUST mirror this exactly:
+ *   - xp     = presence(xp) * creativity(xp)
+ *   - cachet = precision(cachet) * leadership(cachet, global)
+ * Every factor is `1` at or below the baseline, so skills never penalize.
+ */
+export function computeSkillRewardMultipliers(
+  skills: SkillStats | null | undefined,
+): { xpMult: number; cachetMult: number } {
+  if (!skills) return { xpMult: 1, cachetMult: 1 };
+  return {
+    xpMult:
+      getStatMultiplier('presence', 'xp', skills.presence) *
+      getStatMultiplier('creativity', 'xp', skills.creativity),
+    cachetMult:
+      getStatMultiplier('precision', 'cachet', skills.precision) *
+      getLeadershipCachetMultiplier(skills.leadership),
+  };
+}

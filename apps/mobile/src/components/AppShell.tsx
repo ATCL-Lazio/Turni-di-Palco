@@ -544,6 +544,7 @@ export function AppShell() {
             activitiesView={
               <Activities activities={visibleActivities}
                 activeRole={roleJourneyEnabled ? selectedRole : undefined}
+                playerSkills={state.profile.skills}
                 slotsStatus={activitySlotsStatus} slotsLoading={activitySlotsLoading}
                 isOnline={typeof navigator === 'undefined' ? true : navigator.onLine}
                 canStartActivities={isFeatureEnabled('avvia_attivita')}
@@ -610,6 +611,7 @@ export function AppShell() {
       case 'activity-detail':
         return currentActivity && (
           <ActivityDetail activity={currentActivity} role={roleJourneyEnabled ? selectedRole : undefined}
+            playerSkills={state.profile.skills}
             onStart={() => {
               if (!isFeatureEnabled('avvia_attivita')) { showFeatureDisabledAlert('Avvio attivita'); return; }
               setActivityOutcome(null); setActivityCompletion(null); nav.navigate('activity-minigame');
@@ -639,6 +641,7 @@ export function AppShell() {
           <ActivityResult activity={activityCompletion.activity} rewards={activityCompletion.rewards} outcome={activityOutcome} isDuplicate={activityCompletion.isDuplicate} roleStats={roleJourneyEnabled ? selectedRole?.stats ?? null : null} onDone={() => handleTabChange('activities')} />
         ) : (
           <Activities activities={visibleActivities} activeRole={roleJourneyEnabled ? selectedRole : undefined}
+            playerSkills={state.profile.skills}
             slotsStatus={activitySlotsStatus} slotsLoading={activitySlotsLoading}
             isOnline={typeof navigator === 'undefined' ? true : navigator.onLine}
             canStartActivities={isFeatureEnabled('avvia_attivita')}

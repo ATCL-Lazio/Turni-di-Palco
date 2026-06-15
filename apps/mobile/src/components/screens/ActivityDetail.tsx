@@ -3,19 +3,21 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Play, Clock, TrendingUp, Coins, X, AlertCircle } from 'lucide-react';
-import { Activity, Role, computeActivityRewards, getRoleActivityOverride } from '../../state/store';
+import { Activity, Role, SkillStats, computeActivityRewards, getRoleActivityOverride } from '../../state/store';
 import { getMinigameConfig } from '../../gameplay/minigames';
 
 interface ActivityDetailProps {
   activity: Activity;
   role?: Role;
+  /** Passive skills from completed courses (#121), applied to the reward preview. */
+  playerSkills?: SkillStats | null;
   onStart: () => void;
   onClose: () => void;
 }
 
-export function ActivityDetail({ activity, role, onStart, onClose }: ActivityDetailProps) {
+export function ActivityDetail({ activity, role, playerSkills, onStart, onClose }: ActivityDetailProps) {
   const minigame = getMinigameConfig(activity.id, role?.id, role?.stats ?? null);
-  const rewards = computeActivityRewards(activity, role);
+  const rewards = computeActivityRewards(activity, role, playerSkills);
   const roleHighlight = getRoleActivityOverride(role, activity.id);
   return (
     <div className="fixed inset-0 app-gradient z-50 overflow-y-auto pb-24">

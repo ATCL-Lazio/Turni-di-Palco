@@ -12,9 +12,10 @@ import { COOKIE_CONSENT_KEY, GEO_CONSENT_KEY } from '../constants/privacy';
 import { formatErrorDetails, reportCriticalError } from '../services/error-handler';
 import {
   getXpToNextLevel,
-  getStatMultiplier,
-  getLeadershipCachetMultiplier,
+  computeSkillRewardMultipliers,
+  type SkillStats,
 } from '../../../../shared/config/balancing';
+export type { SkillStats } from '../../../../shared/config/balancing';
 import {
   COURSES_CATALOG,
   COURSE_COMPLETION_XP,
@@ -1292,24 +1293,16 @@ export function getRoleActivityOverride(
 export function computeActivityRewards(
   activity: Activity,
   role: Role | null | undefined,
-  skills?: { precision: number; presence: number; creativity: number; leadership: number } | null,
+  skills?: SkillStats | null,
 ): Rewards {
   const override = getRoleActivityOverride(role, activity.id);
   const xpMultiplier = override?.xpMultiplier ?? 1;
   const cachetMultiplier = override?.cachetMultiplier ?? 1;
   const reputationBonus = override?.reputationBonus ?? 0;
 
-  // Applica bonus skill derivati dai corsi completati (Issue #327).
-  let skillXpMult = 1;
-  let skillCachetMult = 1;
-  if (skills) {
-    skillXpMult =
-      getStatMultiplier('presence', 'xp', skills.presence) *
-      getStatMultiplier('creativity', 'xp', skills.creativity);
-    skillCachetMult =
-      getStatMultiplier('precision', 'cachet', skills.precision) *
-      getLeadershipCachetMultiplier(skills.leadership);
-  }
+  // Applica bonus skill derivati dai corsi completati (#121).
+  const { xpMult: skillXpMult, cachetMult: skillCachetMult } =
+    computeSkillRewardMultipliers(skills);
 
   return {
     xp: Math.max(0, Math.round(activity.xpReward * xpMultiplier * skillXpMult)),
@@ -2283,11 +2276,20 @@ function applyRewards(profile: PlayerProfile, rewards: Rewards, source: 'turn' |
   };
 }
 
-export function computeTurnRewards(event: GameEvent, roleId: RoleId): Rewards {
+export function computeTurnRewards(
+  event: GameEvent,
+  roleId: RoleId,
+  skills?: SkillStats | null,
+): Rewards {
   const bonus = event.focusRole === roleId ? 15 : 0;
+  const baseXp = event.baseRewards.xp + bonus;
+  const baseCachet = event.baseRewards.cachet + Math.round(bonus / 2);
+  // Passive-skill bonus (#121), mirrored server-side in
+  // register_turn_with_token_boost via public.skill_reward_multipliers.
+  const { xpMult, cachetMult } = computeSkillRewardMultipliers(skills);
   return {
-    xp: event.baseRewards.xp + bonus,
-    cachet: event.baseRewards.cachet + Math.round(bonus / 2),
+    xp: Math.max(0, Math.round(baseXp * xpMult)),
+    cachet: Math.max(0, Math.round(baseCachet * cachetMult)),
     reputation: event.baseRewards.reputation + Math.round(bonus / 3),
   };
 }
@@ -4483,7 +4485,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         setState((prev: GameState) => {
           let boostApplied = false;
           let boostRejectionReason: string | null = null;
-          let rewards = computeTurnRewards(event, roleId);
+          let rewards = computeTurnRewards(event, roleId, prev.profile.skills);
           let nextTokenAtcl = prev.profile.tokenAtcl;
           if (boostRequested) {
             if (nextTokenAtcl > 0) {

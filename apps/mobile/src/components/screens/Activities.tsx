@@ -5,12 +5,14 @@ import { Badge } from '../ui/Badge';
 import { Tag } from '../ui/Tag';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Screen } from '../ui/Screen';
-import { Activity, ActivitySlotsStatus, Role, computeActivityRewards, getRoleActivityOverride } from '../../state/store';
+import { Activity, ActivitySlotsStatus, Role, SkillStats, computeActivityRewards, getRoleActivityOverride } from '../../state/store';
 import { MAXWELL_ID_PREFIX } from '../../gameplay/narrative';
 
 interface ActivitiesProps {
   activities: Activity[];
   activeRole?: Role;
+  /** Passive skills from completed courses (#121), applied to reward previews. */
+  playerSkills?: SkillStats | null;
   slotsStatus: ActivitySlotsStatus;
   slotsLoading?: boolean;
   isOnline?: boolean;
@@ -28,7 +30,7 @@ const difficultyLabels: Record<Activity['difficulty'], string> = {
 };
 
 export function Activities({
-  activities, activeRole, slotsStatus, slotsLoading = false,
+  activities, activeRole, playerSkills, slotsStatus, slotsLoading = false,
   isOnline = true, canStartActivities = true, embedded = false,
   recommendedActivityId, onStartActivity, onOpenScenario,
 }: ActivitiesProps) {
@@ -69,6 +71,7 @@ export function Activities({
               activity={activity}
               index={index}
               activeRole={activeRole}
+              playerSkills={playerSkills}
               canStart={canStartActivities && isOnline && remainingSlots > 0}
               canStartActivities={canStartActivities}
               isOnline={isOnline}
@@ -165,11 +168,12 @@ function DailyProgressCard({
 }
 
 function ActivityCard({
-  activity, index, activeRole, canStart, canStartActivities, isOnline, isRecommended, onStart,
+  activity, index, activeRole, playerSkills, canStart, canStartActivities, isOnline, isRecommended, onStart,
 }: {
   activity: Activity;
   index: number;
   activeRole?: Role;
+  playerSkills?: SkillStats | null;
   canStart: boolean;
   canStartActivities: boolean;
   isOnline: boolean;
@@ -177,7 +181,7 @@ function ActivityCard({
   onStart: () => void;
 }) {
   const difficultyLabel = difficultyLabels[activity.difficulty] ?? activity.difficulty;
-  const rewardPreview = computeActivityRewards(activity, activeRole);
+  const rewardPreview = computeActivityRewards(activity, activeRole, playerSkills);
   const roleHighlight = getRoleActivityOverride(activeRole, activity.id)?.highlightLabel;
 
   return (
