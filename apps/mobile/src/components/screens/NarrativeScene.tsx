@@ -88,10 +88,20 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
   // only runs on the initial mount).
   const prevSceneIdRef = React.useRef(sceneId);
   const prevRoleIdRef = React.useRef(roleId);
+  const prevRoleStatsRef = React.useRef(roleStats);
   useEffect(() => {
-    if (sceneId !== prevSceneIdRef.current || roleId !== prevRoleIdRef.current) {
+    const prevStats = prevRoleStatsRef.current;
+    const statsChanged = roleStats !== prevStats && (
+      !roleStats || !prevStats ||
+      roleStats.presence !== prevStats.presence ||
+      roleStats.precision !== prevStats.precision ||
+      roleStats.leadership !== prevStats.leadership ||
+      roleStats.creativity !== prevStats.creativity
+    );
+    if (sceneId !== prevSceneIdRef.current || roleId !== prevRoleIdRef.current || statsChanged) {
       prevSceneIdRef.current = sceneId;
       prevRoleIdRef.current = roleId;
+      prevRoleStatsRef.current = roleStats;
       setLocal(resolveInitialState(sceneId, roleId, roleStats));
     }
   }, [sceneId, roleId, roleStats]);
