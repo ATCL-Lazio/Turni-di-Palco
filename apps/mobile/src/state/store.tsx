@@ -5431,7 +5431,22 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           .eq('user_id', authUserId)
           .order('created_at', { ascending: false }),
       ]);
-      if (!turnsError && Array.isArray(turnsData)) {
+      // Fail loudly if any query errors so the user is not shown a silently
+      // incomplete GDPR export (fixes #1253).
+      const queryErrors: { table: string; error: unknown }[] = [];
+      if (turnsError) queryErrors.push({ table: 'turns', error: turnsError });
+      if (activityError) queryErrors.push({ table: 'activity_completions', error: activityError });
+      if (narrativeError) queryErrors.push({ table: 'narrative_history', error: narrativeError });
+      if (shopError) queryErrors.push({ table: 'shop_purchases', error: shopError });
+      if (queryErrors.length > 0) {
+        const tables = queryErrors.map((e) => e.table).join(', ');
+        notifyCriticalError(
+          `Esportazione dati incompleta: impossibile recuperare i dati dalle tabelle: ${tables}. Riprova più tardi.`,
+          queryErrors.map((e) => e.error),
+        );
+        throw new Error(`exportUserData: query failed for tables: ${tables}`);
+      }
+      if (Array.isArray(turnsData)) {
         allTurns = (turnsData as DbTurnRow[]).map((turn) => ({
           id: turn.id,
           eventId: turn.event_id ?? '',
@@ -5448,13 +5463,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
         }));
       }
-      if (!activityError && Array.isArray(activityData)) {
+      if (Array.isArray(activityData)) {
         activityCompletions = activityData;
       }
-      if (!narrativeError && Array.isArray(narrativeData)) {
+      if (Array.isArray(narrativeData)) {
         narrativeHistory = narrativeData;
       }
-      if (!shopError && Array.isArray(shopData)) {
+      if (Array.isArray(shopData)) {
         shopPurchases = shopData;
       }
     }
