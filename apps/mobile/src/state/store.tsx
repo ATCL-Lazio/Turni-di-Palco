@@ -5414,22 +5414,26 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           .from('turns')
           .select('*')
           .eq('user_id', authUserId)
-          .order('created_at', { ascending: false }),
+          .order('created_at', { ascending: false })
+          .limit(10000),
         supabase
           .from('activity_completions')
           .select('*')
           .eq('user_id', authUserId)
-          .order('created_at', { ascending: false }),
+          .order('created_at', { ascending: false })
+          .limit(10000),
         supabase
           .from('narrative_history')
           .select('*')
           .eq('user_id', authUserId)
-          .order('created_at', { ascending: false }),
+          .order('created_at', { ascending: false })
+          .limit(10000),
         supabase
           .from('shop_purchases')
           .select('*')
           .eq('user_id', authUserId)
-          .order('created_at', { ascending: false }),
+          .order('created_at', { ascending: false })
+          .limit(10000),
       ]);
       if (!turnsError && Array.isArray(turnsData)) {
         allTurns = (turnsData as DbTurnRow[]).map((turn) => ({
