@@ -115,34 +115,66 @@ async function resolveFunctionErrorMessage(error: unknown, fallback: string): Pr
 
   if (context && typeof context === 'object') {
     const cloneFn = typeof context.clone === 'function' ? context.clone.bind(context) : null;
-    const source = cloneFn ? (cloneFn() as typeof context) : context;
 
-    if (source && typeof source.json === 'function') {
-      try {
-        const body = await source.json();
-        if (body && typeof body === 'object') {
-          const payload = body as { error?: unknown; message?: unknown };
-          const bodyMessage =
-            (typeof payload.error === 'string' && payload.error.trim()) ||
-            (typeof payload.message === 'string' && payload.message.trim()) ||
-            '';
-          if (bodyMessage) {
-            if (/invalid jwt/i.test(bodyMessage)) {
+    if (cloneFn) {
+      const source = cloneFn() as typeof context;
+      if (source && typeof source.json === 'function') {
+        try {
+          const body = await source.json();
+          if (body && typeof body === 'object') {
+            const payload = body as { error?: unknown; message?: unknown };
+            const bodyMessage =
+              (typeof payload.error === 'string' && payload.error.trim()) ||
+              (typeof payload.message === 'string' && payload.message.trim()) ||
+              '';
+            if (bodyMessage) {
+              if (/invalid jwt/i.test(bodyMessage)) {
+                return SESSION_REQUIRED_MESSAGE;
+              }
+              return bodyMessage;
+            }
+          }
+        } catch {
+          // fall back to text below
+        }
+      }
+
+      const sourceForText = cloneFn() as typeof context;
+      if (sourceForText && typeof sourceForText.text === 'function') {
+        try {
+          const text = (await sourceForText.text()).trim();
+          if (text) {
+            if (/invalid jwt/i.test(text)) {
               return SESSION_REQUIRED_MESSAGE;
             }
-            return bodyMessage;
+            return text;
           }
+        } catch {
+          // ignore and continue fallback
         }
-      } catch {
-        // fall back to text/message below
       }
-    }
-
-    const sourceForText = cloneFn ? (cloneFn() as typeof context) : context;
-    if (sourceForText && typeof sourceForText.text === 'function') {
+    } else if (typeof context.text === 'function') {
+      // No clone available: read body as text once, then try JSON.parse
       try {
-        const text = (await sourceForText.text()).trim();
+        const text = (await context.text()).trim();
         if (text) {
+          try {
+            const body = JSON.parse(text) as { error?: unknown; message?: unknown };
+            if (body && typeof body === 'object') {
+              const bodyMessage =
+                (typeof body.error === 'string' && body.error.trim()) ||
+                (typeof body.message === 'string' && body.message.trim()) ||
+                '';
+              if (bodyMessage) {
+                if (/invalid jwt/i.test(bodyMessage)) {
+                  return SESSION_REQUIRED_MESSAGE;
+                }
+                return bodyMessage;
+              }
+            }
+          } catch {
+            // not JSON — use raw text
+          }
           if (/invalid jwt/i.test(text)) {
             return SESSION_REQUIRED_MESSAGE;
           }
