@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Accessibility,
   ArrowLeft, Bell, Camera, ChevronRight, Download, FileText, History, KeyRound,
@@ -549,9 +549,15 @@ function usePermissions() {
     notifications: null, camera: null, geolocation: null,
   });
 
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
   const refreshAll = useCallback(async () => {
     if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
-      setPermissionStatuses({ notifications: 'unsupported', camera: 'unsupported', geolocation: 'unsupported' });
+      if (isMountedRef.current) setPermissionStatuses({ notifications: 'unsupported', camera: 'unsupported', geolocation: 'unsupported' });
       return;
     }
     const queryPerm = (name: string) =>
@@ -561,7 +567,7 @@ function usePermissions() {
     const [notifications, camera, geolocation] = await Promise.all([
       queryPerm('notifications'), queryPerm('camera'), queryPerm('geolocation'),
     ]);
-    setPermissionStatuses({ notifications, camera, geolocation });
+    if (isMountedRef.current) setPermissionStatuses({ notifications, camera, geolocation });
   }, []);
 
   useEffect(() => { void refreshAll().catch(() => {}); }, [refreshAll]);
