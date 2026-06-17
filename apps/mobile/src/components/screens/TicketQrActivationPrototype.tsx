@@ -75,9 +75,14 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
     const hash = pendingActivationHash;
     setPendingActivationHash(null);
     setBusy(true);
-    const result = await activateTicketHash(hash, userId);
-    setScanMessage(result.ok ? 'Ticket attivato correttamente.' : result.error);
-    setBusy(false);
+    try {
+      const result = await activateTicketHash(hash, userId);
+      setScanMessage(result.ok ? 'Ticket attivato correttamente.' : result.error);
+    } catch (error) {
+      setScanMessage(error instanceof Error ? error.message : 'Errore durante l\'attivazione del ticket.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
