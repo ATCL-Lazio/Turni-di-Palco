@@ -46,6 +46,8 @@ export function Shop({
       } else {
         setFeedback({ type: 'error', message: formatRejection(result) });
       }
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Errore durante l\'acquisto. Riprova.' });
     } finally {
       setBusyItemCode(null);
     }
