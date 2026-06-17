@@ -277,12 +277,18 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
       return;
     }
 
-    const submitResult = await onSubmit({
-      sceneId: activeScene.id,
-      choiceId: choice.id,
-      rewards: outcome.rewards,
-      setFlags: outcome.setFlags,
-    });
+    let submitResult: { ok: boolean; rewards?: Rewards; error?: string };
+    try {
+      submitResult = await onSubmit({
+        sceneId: activeScene.id,
+        choiceId: choice.id,
+        rewards: outcome.rewards,
+        setFlags: outcome.setFlags,
+      });
+    } catch (error) {
+      setLocal({ phase: 'error', message: error instanceof Error ? error.message : 'Errore nel salvataggio della scelta' });
+      return;
+    }
 
     if (!submitResult.ok) {
       setLocal({ phase: 'error', message: submitResult.error ?? 'Errore nel salvataggio della scelta' });
