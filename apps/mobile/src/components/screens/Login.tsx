@@ -16,6 +16,7 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({ email: '', password: '' });
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,9 +25,12 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
     if (!email) newErrors.email = 'Email richiesta';
     if (!password) newErrors.password = 'Password richiesta';
     if (newErrors.email || newErrors.password) { setErrors(newErrors); return; }
+    setSubmitError(null);
     setIsSubmitting(true);
     try {
       await onLogin(email.trim().toLowerCase(), password);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Errore durante il login. Riprova.');
     } finally {
       setIsSubmitting(false);
     }
@@ -75,8 +79,8 @@ export function Login({ onBack, onLogin, onSignup, onForgotPassword, errorMessag
             </button>
           </FormField>
 
-          {errorMessage && (
-            <p className="text-sm text-[#ff4d4f] text-center">{errorMessage}</p>
+          {(errorMessage || submitError) && (
+            <p className="text-sm text-[#ff4d4f] text-center">{submitError ?? errorMessage}</p>
           )}
 
           <Button type="submit" fullWidth disabled={isSubmitting} className={isSubmitting ? 'opacity-50 pointer-events-none' : ''}>
