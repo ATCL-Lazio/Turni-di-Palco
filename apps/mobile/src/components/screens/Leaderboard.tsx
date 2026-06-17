@@ -13,6 +13,7 @@ export function Leaderboard({ onSelectEntry }: LeaderboardProps) {
   const [hasBootstrapped, setHasBootstrapped] = useState(false);
   const rowRefs = useRef(new Map<string, HTMLDivElement>());
   const previousRowTops = useRef(new Map<string, number>());
+  const timerIdsRef = useRef<number[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,7 +32,11 @@ export function Leaderboard({ onSelectEntry }: LeaderboardProps) {
   );
 
   useLayoutEffect(() => {
-    animateRowTransitions(sorted, rowRefs, previousRowTops);
+    animateRowTransitions(sorted, rowRefs, previousRowTops, timerIdsRef);
+    return () => {
+      timerIdsRef.current.forEach(id => clearTimeout(id));
+      timerIdsRef.current = [];
+    };
   }, [sorted]);
 
   const showInitialLoading = leaderboardLoading && !hasBootstrapped && sorted.length === 0;
@@ -166,6 +171,7 @@ function animateRowTransitions(
   sorted: { id: string }[],
   rowRefs: React.MutableRefObject<Map<string, HTMLDivElement>>,
   previousRowTops: React.MutableRefObject<Map<string, number>>,
+  timerIdsRef: React.MutableRefObject<number[]>,
 ) {
   const nextRowIds = new Set(sorted.map(e => e.id));
 
@@ -181,7 +187,8 @@ function animateRowTransitions(
       requestAnimationFrame(() => {
         rowNode.style.transition = 'transform 380ms cubic-bezier(0.22, 1, 0.36, 1)';
         rowNode.style.transform = 'translateY(0)';
-        window.setTimeout(() => { rowNode.style.willChange = ''; }, 400);
+        const timerId = window.setTimeout(() => { rowNode.style.willChange = ''; }, 400);
+        timerIdsRef.current.push(timerId);
       });
     }
   }
