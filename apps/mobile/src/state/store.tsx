@@ -4889,19 +4889,24 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       };
 
       // 1. Apply rewards locally — visible immediately in Home/profile.
-      // Capture the resulting profile so we can persist it to Supabase below.
-      let capturedProfile: PlayerProfile | null = null;
+      // Use a ref object to capture the committed profile value from inside the
+      // setState updater. A plain `let` variable is unreliable under React 18
+      // concurrent rendering because the updater may run more than once
+      // (StrictMode, concurrent re-renders), and the value from a discarded run
+      // could be passed to persistProfile — same safe pattern used by
+      // completeOnboarding and updateProfile (closes #1259).
+      const capturedProfileRef: { current: PlayerProfile | null } = { current: null };
       setState((prev: GameState) => {
         const nextProfile = applyRewards(prev.profile, rewards, 'activity');
-        capturedProfile = nextProfile;
+        capturedProfileRef.current = nextProfile;
         return { ...prev, profile: nextProfile };
       });
 
       // 1b. Persist updated profile to server so XP/cachet/reputation survive
-      // a page reload (closes #1200). Same pattern used by startCourse /
-      // completeCourse: capturedProfile is non-null when the updater ran.
-      if (capturedProfile !== null) {
-        persistProfile(capturedProfile);
+      // a page reload (closes #1200). capturedProfileRef.current is non-null
+      // when the committed updater run assigned it.
+      if (capturedProfileRef.current !== null) {
+        persistProfile(capturedProfileRef.current);
       }
 
       // 2. Persist to narrative_history (append-only, RLS-scoped to user).
