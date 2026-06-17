@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Award, BarChart3, Camera, ChevronRight, Info, LogOut, Settings, Share2, Theater, User } from 'lucide-react';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Screen } from '../ui/Screen';
@@ -113,8 +113,14 @@ function ProfileAvatar({
   onUploadProfileImage: (file: File) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMountedRef = useRef(true);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -132,8 +138,8 @@ function ProfileAvatar({
     setUploadError(null);
     setIsUploading(true);
     try { await onUploadProfileImage(file); }
-    catch { setUploadError('Errore durante il caricamento dell\'immagine.'); }
-    finally { setIsUploading(false); event.target.value = ''; }
+    catch { if (isMountedRef.current) setUploadError('Errore durante il caricamento dell\'immagine.'); }
+    finally { if (isMountedRef.current) { setIsUploading(false); event.target.value = ''; } }
   };
 
   return (
