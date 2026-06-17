@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { ListChecks, Ticket } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Screen } from '../ui/Screen';
@@ -24,11 +24,14 @@ export function ActivitiesHub({
     return null;
   }, [activeSection, showActivities, showTurns]);
 
+  const onSectionChangeRef = useRef(onSectionChange);
+  useEffect(() => { onSectionChangeRef.current = onSectionChange; });
+
   useEffect(() => {
     if (resolvedSection && resolvedSection !== activeSection) {
-      onSectionChange(resolvedSection);
+      onSectionChangeRef.current(resolvedSection);
     }
-  }, [activeSection, onSectionChange, resolvedSection]);
+  }, [activeSection, resolvedSection]);
 
   const showSwitcher = showTurns && showActivities;
 
