@@ -606,11 +606,13 @@ function usePermissions() {
       } else {
         navigator.geolocation.getCurrentPosition(
           () => {
+            if (!isMountedRef.current) return;
             setPermissionStatuses(p => ({ ...p, geolocation: 'granted' }));
             setPermissionMessages(p => ({ ...p, geolocation: 'Permesso geolocalizzazione concesso.' }));
             void refreshAll();
           },
           () => {
+            if (!isMountedRef.current) return;
             setPermissionStatuses(p => ({ ...p, geolocation: 'denied' }));
             setPermissionMessages(p => ({ ...p, geolocation: 'Permesso geolocalizzazione negato.' }));
             void refreshAll();
