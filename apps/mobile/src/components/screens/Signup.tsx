@@ -20,6 +20,7 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
   const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,9 +32,12 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
     if (password !== confirmPassword) newErrors.confirmPassword = 'Le password non corrispondono';
     if (!acceptTerms) newErrors.terms = 'Devi accettare i termini e la privacy';
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
+    setSubmitError(null);
     setIsSubmitting(true);
     try {
       await onSignup(name, email.trim().toLowerCase(), password);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Errore durante la registrazione. Riprova.');
     } finally {
       setIsSubmitting(false);
     }
@@ -88,8 +92,8 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
             onViewPrivacy={onViewPrivacy}
           />
 
-          {errorMessage && (
-            <p className="text-sm text-[#ff4d4f] text-center">{errorMessage}</p>
+          {(errorMessage || submitError) && (
+            <p className="text-sm text-[#ff4d4f] text-center">{submitError ?? errorMessage}</p>
           )}
 
           <Button type="submit" fullWidth disabled={isSubmitting} className={isSubmitting ? 'opacity-50 pointer-events-none' : ''}>
