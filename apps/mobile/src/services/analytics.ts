@@ -219,6 +219,15 @@ async function fetchUserHash(userId: string): Promise<string | undefined> {
 
     if (_authToken) {
       headers['Authorization'] = `Bearer ${_authToken}`;
+    } else {
+      // No auth token available — the Edge Function will return 401 and the
+      // call would silently yield `userHash: undefined`. Skip the network
+      // request entirely and let the caller degrade gracefully (issue #1284).
+      const env = (import.meta as { env?: Record<string, string | undefined> }).env;
+      if (env?.DEV) {
+        console.warn('[analytics] setAnalyticsAuthToken has not been called — skipping pseudonymize-user-id request.');
+      }
+      return undefined;
     }
 
     const controller = new AbortController();
