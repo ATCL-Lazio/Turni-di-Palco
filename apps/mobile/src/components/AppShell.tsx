@@ -12,7 +12,7 @@ import { hasStoredAuthState, PUBLIC_SCREENS } from '../lib/auth-storage';
 import { openInMaps, openEventsMap } from '../lib/navigation-utils';
 import { uploadProfileImage } from '../services/storage';
 import { initErrorHandler, subscribeToCriticalErrors, getLastCriticalError, clearLastCriticalError } from '../services/error-handler';
-import { getUserHash, trackShareClicked } from '../services/analytics';
+import { getUserHash, setAnalyticsAuthToken, trackShareClicked } from '../services/analytics';
 import { buildShareUrl, sharePayload } from '../lib/share';
 import { PENDING_EVENT_KEY, readPendingEventFromUrl, stripEventLinkParams } from '../lib/event-linking';
 import type { ActivatedEventPayload } from '../services/ticket-activation';
@@ -332,6 +332,27 @@ export function AppShell() {
     const pending = getLastCriticalError();
     if (pending) setCriticalError(pending);
     return subscribeToCriticalErrors(payload => setCriticalError(prev => prev ?? payload));
+  }, []);
+
+  // Sync Supabase JWT into the analytics module so pseudonymize-user-id calls
+  // include the Authorization header (issue #1284). We subscribe to every auth
+  // state change so token refreshes are picked up automatically.
+  useEffect(() => {
+    if (!supabase) return;
+
+    // Seed with the current session immediately (handles page reloads where the
+    // user is already signed in before this effect runs).
+    supabase.auth.getSession().then(({ data }) => {
+      setAnalyticsAuthToken(data.session?.access_token ?? null);
+    }).catch(() => undefined);
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAnalyticsAuthToken(session?.access_token ?? null);
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
   }, []);
 
   // Lock body scroll on critical error
