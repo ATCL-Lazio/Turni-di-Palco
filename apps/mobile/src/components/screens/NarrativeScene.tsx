@@ -218,9 +218,19 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
   }
 
   if (local.phase === 'outcome') {
-    const handleContinue = () => {
+    const handleContinue = async () => {
       if (local.finished) { onClose(); return; }
       const nextSceneId = local.run.currentSceneId;
+      // Theater scenes live in a lazy chunk and require the registry to be
+      // populated before `loadScene` can find them (issue #1283).
+      if (nextSceneId.startsWith(THEATER_ID_PREFIX)) {
+        try {
+          await ensureTheaterScenesLoaded();
+        } catch {
+          setLocal({ phase: 'error', message: `Scenario "${nextSceneId}" non disponibile al momento.` });
+          return;
+        }
+      }
       const nextScene = loadScene(nextSceneId);
       if (!nextScene) {
         setLocal({ phase: 'error', message: `Scenario "${nextSceneId}" non trovato.` });
