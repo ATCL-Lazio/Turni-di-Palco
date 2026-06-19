@@ -73,7 +73,12 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
     const currentDisplayName = displayNameRef.current;
     const currentUserId = userIdRef.current;
     const currentHistoryId = currentUserId || currentDisplayName;
-    const stored = loadChatHistory(currentHistoryId);
+    let stored = loadChatHistory(currentHistoryId);
+    // Migrate history from the displayName fallback key when userId becomes available
+    if (!stored.length && currentUserId && currentDisplayName !== currentUserId) {
+      stored = loadChatHistory(currentDisplayName);
+      if (stored.length) saveChatHistory(currentUserId, stored);
+    }
     if (stored.length) {
       setChatSessions(stored);
       setActiveSessionId(stored[0].id);
