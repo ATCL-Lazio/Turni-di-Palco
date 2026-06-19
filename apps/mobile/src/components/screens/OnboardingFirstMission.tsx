@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Screen } from '../ui/Screen';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -22,11 +22,14 @@ export function OnboardingFirstMission({ roleId, onComplete, onSkip }: Onboardin
   const mission = FIRST_MISSIONS[roleId];
   const [phase, setPhase] = useState<Phase>({ kind: 'choosing' });
 
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
+
   useEffect(() => {
     if (phase.kind !== 'outcome') return;
-    const timer = setTimeout(() => onComplete(phase.xpEarned), AUTO_ADVANCE_MS);
+    const timer = setTimeout(() => onCompleteRef.current(phase.xpEarned), AUTO_ADVANCE_MS);
     return () => clearTimeout(timer);
-  }, [phase, onComplete]);
+  }, [phase]);
 
   if (!mission) {
     return (
