@@ -7,7 +7,7 @@ const allowedOrigin = Deno.env.get('SITE_URL') ?? 'https://turnidipalco.it';
 const corsHeaders = {
   'Access-Control-Allow-Origin': allowedOrigin,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 
@@ -39,6 +39,10 @@ serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+
+  if (req.method !== 'POST') {
+    return jsonResponse({ error: 'Metodo non consentito' }, 405);
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
