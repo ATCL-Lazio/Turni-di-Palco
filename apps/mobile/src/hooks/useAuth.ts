@@ -104,8 +104,9 @@ export function useAuth(
         });
         const shouldSetName = shouldUpdateName(profile.name, email, displayName);
         updateProfile(shouldSetName ? { name: displayName, email } : { email });
-        onAuthChange('home');
-    }, [onAuthChange, profile.name, updateProfile]);
+        // Navigation to 'home' is handled by the onAuthStateChange SIGNED_IN listener;
+        // calling onAuthChange here as well would fire it twice on every successful login.
+    }, [profile.name, updateProfile]);
 
     const handleSignup = useCallback(async (name: string, email: string, password: string) => {
         setAuthError(null);
