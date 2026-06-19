@@ -90,11 +90,15 @@ serve(async (req) => {
 
   const url = `https://api.github.com/repos/${repo}/commits?per_page=${limit}`;
   let response: Response;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
   try {
-    response = await fetch(url, { headers });
+    response = await fetch(url, { headers, signal: controller.signal });
   } catch (err) {
     console.error('[app-version] GitHub fetch failed', err);
     return errorResponse('Impossibile caricare il changelog', 502);
+  } finally {
+    clearTimeout(timeoutId);
   }
   if (!response.ok) {
     console.error('[app-version] GitHub API error', response.status, response.statusText);
