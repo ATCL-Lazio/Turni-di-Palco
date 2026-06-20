@@ -673,6 +673,12 @@ const DEFAULT_SHOP_CATALOG: ShopCatalogItem[] = [
 
 const STORAGE_KEY = 'tdp-mobile-ui-state';
 const TUTORIAL_COMPLETED_KEY_PREFIX = 'tdp-tutorial-completed:';
+// Stable anonymous "userId" suffix used to persist tutorial completion in
+// demo/guest mode (i.e. when authUserId is null). The real localStorage key
+// becomes `${TUTORIAL_COMPLETED_KEY_PREFIX}${TUTORIAL_ANON_ID}`. It is
+// migrated to the real user key on first login so that completing the tutorial
+// before signing in is not lost (closes #1316).
+const TUTORIAL_ANON_ID = 'anon';
 
 function tutorialCompletedKey(userId: string): string {
   return `${TUTORIAL_COMPLETED_KEY_PREFIX}${userId}`;
@@ -4261,17 +4267,37 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    if (!authUserId) return;
-    const completed = readTutorialCompleted(authUserId);
-    setState((prev: GameState) =>
-      prev.profile.tutorialCompleted === completed
-        ? prev
-        : { ...prev, profile: { ...prev.profile, tutorialCompleted: completed } }
-    );
+    if (authUserId) {
+      // On login: migrate any anonymous tutorial completion to the real user key
+      // so progress from demo/guest mode survives authentication (closes #1316).
+      const anonCompleted = readTutorialCompleted(TUTORIAL_ANON_ID);
+      if (anonCompleted) {
+        writeTutorialCompleted(authUserId, true);
+        writeTutorialCompleted(TUTORIAL_ANON_ID, false);
+      }
+      const completed = readTutorialCompleted(authUserId) || anonCompleted;
+      setState((prev: GameState) =>
+        prev.profile.tutorialCompleted === completed
+          ? prev
+          : { ...prev, profile: { ...prev.profile, tutorialCompleted: completed } }
+      );
+    } else {
+      // Not authenticated: read from the anonymous key so demo/guest users
+      // don't restart the tutorial on every page reload (closes #1316).
+      const completed = readTutorialCompleted(TUTORIAL_ANON_ID);
+      setState((prev: GameState) =>
+        prev.profile.tutorialCompleted === completed
+          ? prev
+          : { ...prev, profile: { ...prev.profile, tutorialCompleted: completed } }
+      );
+    }
   }, [authUserId]);
 
   const completeTutorial = useCallback(() => {
-    if (authUserId) writeTutorialCompleted(authUserId, true);
+    // Write to the real user key when authenticated, otherwise use the stable
+    // anonymous key so completion survives page reloads in demo/guest mode
+    // (closes #1316).
+    writeTutorialCompleted(authUserId ?? TUTORIAL_ANON_ID, true);
     setState((prev: GameState) => ({
       ...prev,
       profile: { ...prev.profile, tutorialCompleted: true },
@@ -4279,7 +4305,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   }, [authUserId]);
 
   const resetTutorial = useCallback(() => {
-    if (authUserId) writeTutorialCompleted(authUserId, false);
+    writeTutorialCompleted(authUserId ?? TUTORIAL_ANON_ID, false);
     setState((prev: GameState) => ({
       ...prev,
       profile: { ...prev.profile, tutorialCompleted: false },
