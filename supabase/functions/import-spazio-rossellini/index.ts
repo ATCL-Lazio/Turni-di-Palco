@@ -127,36 +127,45 @@ const fetchCategorySlugs = async (): Promise<Set<string>> => {
 
 const MAX_PAGINATION_PAGES = 50;
 
-const fetchAllEvents = async () => {
+const fetchAllEvents = async (): Promise<SpazioEvent[]> => {
   const events: SpazioEvent[] = [];
   let nextUrl: string | null = EVENTS_API_URL;
   const visited = new Set<string>();
-  while (nextUrl && !visited.has(nextUrl) && visited.size < MAX_PAGINATION_PAGES) {
-    visited.add(nextUrl);
-    const page = visited.size;
-    let res: Response;
-    try {
-      res = await fetchWithTimeout(nextUrl);
-    } catch (err) {
-      throw new Error(
-        `Events API network error on page ${page} (url: ${nextUrl}): ${err instanceof Error ? err.message : String(err)}`,
-      );
+  try {
+    while (nextUrl && !visited.has(nextUrl) && visited.size < MAX_PAGINATION_PAGES) {
+      visited.add(nextUrl);
+      const page = visited.size;
+      let res: Response;
+      try {
+        res = await fetchWithTimeout(nextUrl);
+      } catch (err) {
+        console.warn(
+          `[import-spazio-rossellini] fetchAllEvents network error on page ${page} (url: ${nextUrl}):`,
+          err,
+        );
+        break;
+      }
+      if (!res.ok) {
+        console.warn(`[import-spazio-rossellini] fetchAllEvents HTTP error: ${res.status} (page ${page}, url: ${nextUrl})`);
+        break;
+      }
+      let payload: { events?: SpazioEvent[]; next_rest_url?: string };
+      try {
+        payload = await res.json();
+      } catch (err) {
+        console.warn(
+          `[import-spazio-rossellini] fetchAllEvents invalid JSON (url: ${nextUrl}):`,
+          err,
+        );
+        break;
+      }
+      if (Array.isArray(payload.events)) {
+        events.push(...payload.events);
+      }
+      nextUrl = payload.next_rest_url || null;
     }
-    if (!res.ok) throw new Error(`Events API fetch failed: ${res.status} (page ${page}, url: ${nextUrl})`);
-    let payload: { events?: SpazioEvent[]; next_rest_url?: string };
-    try {
-      payload = await res.json();
-    } catch (err) {
-      console.warn(
-        `[import-spazio-rossellini] fetchAllEvents invalid JSON (url: ${nextUrl}):`,
-        err,
-      );
-      break;
-    }
-    if (Array.isArray(payload.events)) {
-      events.push(...payload.events);
-    }
-    nextUrl = payload.next_rest_url || null;
+  } catch (err) {
+    console.warn('[import-spazio-rossellini] fetchAllEvents unexpected error:', err);
   }
   return events;
 };
