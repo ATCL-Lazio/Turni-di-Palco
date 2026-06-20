@@ -1731,7 +1731,13 @@ function shouldRetrySyncError(error: unknown) {
   if (isNavigatorOffline()) return true;
   const status = getSyncErrorStatus(error);
   if (status != null) {
-    if (status === 0 || status === 401 || status === 403 || status === 408 || status === 429) {
+    // 401 and 403 are permanent authentication/authorization failures — the
+    // same token will still be invalid on every retry, so re-sending the
+    // request wastes the entire backoff budget and may trigger server-side rate
+    // limiting. These should be surfaced as dead-letter failures immediately
+    // rather than retried (closes #1314).
+    if (status === 401 || status === 403) return false;
+    if (status === 0 || status === 408 || status === 429) {
       return true;
     }
     if (status >= 500) return true;
