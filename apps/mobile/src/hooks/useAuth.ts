@@ -220,14 +220,22 @@ export function useAuth(
     const onLogoutRef = useRef(onLogout);
     useEffect(() => { onLogoutRef.current = onLogout; }, [onLogout]);
 
+    // Guard: only navigate to 'home' on the very first successful getUser()
+    // resolution (the auth-unknown → authenticated transition). Subsequent
+    // calls (hot-reload, StrictMode double-mount, component remount) must NOT
+    // redirect the user away from their current screen (closes #1315).
+    const hasNavigatedRef = useRef(false);
+
     useEffect(() => {
         if (!supabase) return;
         let mounted = true;
 
         supabase.auth.getUser().then(({ data, error }) => {
             if (!mounted || error || !data.user) return;
+            const navigateTo = hasNavigatedRef.current ? undefined : 'home';
+            hasNavigatedRef.current = true;
             applyUserProfileRef.current(data.user, {
-                navigateTo: 'home',
+                navigateTo,
             });
         }).catch(() => undefined);
 
