@@ -160,9 +160,9 @@ serve(async (req: Request) => {
     const duplicatePolicy = typeof body.duplicatePolicy === 'string' && body.duplicatePolicy.trim()
       ? body.duplicatePolicy.trim().slice(0, 80)
       : 'include';
-    const clientUserId = typeof body.clientUserId === 'string' && body.clientUserId.trim()
-      ? body.clientUserId.trim().slice(0, 200)
-      : null;
+    // Always use the verified JWT identity; ignore any caller-supplied value to
+    // prevent false log attribution (IDOR — closes #1301).
+    const clientUserId = requesterUserIdFromAuth;
 
     const rawLogs = Array.isArray(body.logs) ? body.logs.slice(0, 100) : [];
     const normalizedLogs = rawLogs
