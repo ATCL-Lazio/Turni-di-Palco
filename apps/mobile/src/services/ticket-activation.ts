@@ -550,6 +550,13 @@ export async function activateTicketHash(
   }
 
   if (isTicketHashActivatedInSession(normalizedHash)) {
+    // The ticket was already activated in this session — allow idempotent
+    // re-entry so that a failed registerTurn can be retried without the user
+    // losing their ticket (closes #1300).
+    const existing = localActivationStore.get(normalizedHash);
+    if (existing?.activatedBy === normalizedUserId && existing.eventId) {
+      return { ok: true, eventId: existing.eventId };
+    }
     return { ok: false, error: 'Ticket già attivato in questa sessione.' };
   }
 
@@ -649,6 +656,13 @@ export async function activateTicketByDetails(
   }
   const manualTicketKey = buildManualTicketKey(normalizedEventId, normalizedTicket);
   if (localManualActivationStore.has(manualTicketKey)) {
+    // The ticket was already activated in this session — allow idempotent
+    // re-entry so that a failed registerTurn can be retried without the user
+    // losing their ticket (closes #1300).
+    const existing = localManualActivationStore.get(manualTicketKey);
+    if (existing?.activatedBy === normalizedUserId) {
+      return { ok: true, eventId: existing.eventId };
+    }
     return { ok: false, error: 'Ticket già attivato in questa sessione.' };
   }
 
