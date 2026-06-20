@@ -219,6 +219,21 @@ serve(async (req: Request) => {
       }
 
       // 1. Resolve hash if using details or ticket number
+      //
+      // TOCTOU note: activate_by_details and activate_by_ticket_number perform a
+      // two-step read-then-write: a SELECT resolves the hash, followed by an atomic
+      // UPDATE … WHERE activated_by IS NULL. Between those two steps, a concurrent
+      // request for the same ticket could also read the hash and attempt to activate it.
+      //
+      // The risk is mitigated at the DB level: the UPDATE is conditional on
+      // `activated_by IS NULL`, so only one concurrent caller can win. The losing
+      // caller receives an empty result set and falls through to the re-check below,
+      // which correctly returns alreadyActivated: true. No double-activation of data
+      // is possible; the worst-case outcome is that two callers briefly believe they
+      // initiated the activation until the re-check resolves the conflict.
+      //
+      // A fully atomic solution would use a single PostgreSQL RPC that combines
+      // SELECT + UPDATE … RETURNING in one statement (see issue #1304).
       let targetHash = hash;
 
       if (action === 'activate_by_details') {
