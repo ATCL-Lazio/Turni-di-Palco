@@ -713,3 +713,14 @@ export async function activateTicketByDetails(
 export function listLocalTicketRecords(): TicketActivationRecord[] {
   return Array.from(localActivationStore.values()).sort((a, b) => a.hash.localeCompare(b.hash));
 }
+
+/**
+ * Clear all in-memory ticket activation records.
+ * Must be called on user logout to prevent cross-user data bleed: if User A
+ * activates tickets and then logs out, User B must not see those activations
+ * as already-used in their session (closes #1313).
+ */
+export function clearLocalActivationStores(): void {
+  localActivationStore.clear();
+  localManualActivationStore.clear();
+}

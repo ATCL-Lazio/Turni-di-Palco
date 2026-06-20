@@ -10,6 +10,7 @@ import {
 import { resolveDisplayName } from '../lib/profile-utils';
 import { COOKIE_CONSENT_KEY, GEO_CONSENT_KEY } from '../constants/privacy';
 import { formatErrorDetails, reportCriticalError } from '../services/error-handler';
+import { clearLocalActivationStores } from '../services/ticket-activation';
 import {
   getXpToNextLevel,
   getStatMultiplier,
@@ -5306,6 +5307,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     // Clear the narrative idempotency guard so that replaying scenes after a
     // progress reset in the same session yields rewards correctly (closes #1130).
     appliedNarrativeChoicesRef.current = new Set();
+    // Clear in-memory ticket activation caches so that a new user logging in on
+    // the same browser tab does not inherit the previous user's activated-ticket
+    // records (closes #1313).
+    clearLocalActivationStores();
     // Reset hydration flag so persistProfile's guard re-arms and does not sync
     // blank default state to the DB if called before the next remote hydration
     // completes (closes #1132).
