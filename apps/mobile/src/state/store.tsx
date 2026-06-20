@@ -10,6 +10,7 @@ import {
 import { resolveDisplayName } from '../lib/profile-utils';
 import { COOKIE_CONSENT_KEY, GEO_CONSENT_KEY } from '../constants/privacy';
 import { formatErrorDetails, reportCriticalError } from '../services/error-handler';
+import { clearLocalActivationStores } from '../services/ticket-activation';
 import {
   getXpToNextLevel,
   getStatMultiplier,
@@ -1737,7 +1738,13 @@ function shouldRetrySyncError(error: unknown) {
   if (isNavigatorOffline()) return true;
   const status = getSyncErrorStatus(error);
   if (status != null) {
-    if (status === 0 || status === 401 || status === 403 || status === 408 || status === 429) {
+    // 401 and 403 are permanent authentication/authorization failures — the
+    // same token will still be invalid on every retry, so re-sending the
+    // request wastes the entire backoff budget and may trigger server-side rate
+    // limiting. These should be surfaced as dead-letter failures immediately
+    // rather than retried (closes #1314).
+    if (status === 401 || status === 403) return false;
+    if (status === 0 || status === 408 || status === 429) {
       return true;
     }
     if (status >= 500) return true;
@@ -4315,53 +4322,41 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const completeOnboarding = useCallback(
     (variant: 'full' | 'skipped_qr' | 'skipped_manual', xpReward?: number) => {
       const completedAt = new Date().toISOString();
-      // Use a ref to capture the committed profile value from inside the updater.
-      // A plain `let` variable is unreliable under React 18 concurrent rendering
-      // because the updater may run more than once (StrictMode, concurrent re-renders),
-      // and the value from a discarded run would be passed to persistProfile.
-      const capturedProfileRef: { current: PlayerProfile | null } = { current: null };
-      setState((prev: GameState) => {
-        let profile: PlayerProfile = {
-          ...prev.profile,
-          onboardingCompletedAt: completedAt,
-          onboardingVariant: variant,
-        };
-        if (xpReward && xpReward > 0) {
-          profile = applyRewards(profile, { xp: xpReward, cachet: 0, reputation: 0 }, 'activity');
-        }
-        capturedProfileRef.current = profile;
-        return { ...prev, profile };
-      });
-      if (capturedProfileRef.current !== null) {
-        persistProfile(capturedProfileRef.current);
+      // Compute the next profile value before calling setState so we can pass it
+      // directly to persistProfile. The capturedProfileRef pattern is unreliable
+      // under React 18 concurrent rendering because the setState updater is not
+      // guaranteed to run synchronously — capturedProfileRef.current is always null
+      // at the check site (closes #1312).
+      let nextProfile: PlayerProfile = {
+        ...state.profile,
+        onboardingCompletedAt: completedAt,
+        onboardingVariant: variant,
+      };
+      if (xpReward && xpReward > 0) {
+        nextProfile = applyRewards(nextProfile, { xp: xpReward, cachet: 0, reputation: 0 }, 'activity');
       }
+      setState((prev: GameState) => ({ ...prev, profile: nextProfile }));
+      persistProfile(nextProfile);
     },
-    [persistProfile],
+    [persistProfile, state.profile],
   );
 
   const updateProfile = useCallback(
     (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {
-      // Use a ref object to capture the committed profile value from inside the
-      // setState updater. A plain `let` variable is unreliable under React 18
-      // concurrent rendering because the updater may run more than once
-      // (StrictMode, concurrent re-renders), and the value from a discarded run
-      // could be passed to persistProfile — same safe pattern used by
-      // completeOnboarding/startCourse/completeCourse (closes #1237).
-      const capturedProfileRef: { current: PlayerProfile | null } = { current: null };
-      setState((prev: GameState) => {
-        const nextRole =
-          updates.roleId && catalog.roles.some((role: Role) => role.id === updates.roleId)
-            ? updates.roleId
-            : prev.profile.roleId;
-        const profile: PlayerProfile = { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId };
-        capturedProfileRef.current = profile;
-        return { ...prev, profile };
-      });
-      if (capturedProfileRef.current !== null) {
-        persistProfile(capturedProfileRef.current);
-      }
+      // Compute the next profile value before calling setState so we can pass it
+      // directly to persistProfile. The capturedProfileRef pattern is unreliable
+      // under React 18 concurrent rendering because the setState updater is not
+      // guaranteed to run synchronously — capturedProfileRef.current is always null
+      // at the check site (closes #1312).
+      const nextRole =
+        updates.roleId && catalog.roles.some((role: Role) => role.id === updates.roleId)
+          ? updates.roleId
+          : state.profile.roleId;
+      const nextProfile: PlayerProfile = { ...state.profile, ...updates, roleId: nextRole ?? state.profile.roleId };
+      setState((prev: GameState) => ({ ...prev, profile: nextProfile }));
+      persistProfile(nextProfile);
     },
-    [catalog.roles, persistProfile]
+    [catalog.roles, persistProfile, state.profile]
   );
 
   const registerTurn = useCallback(
@@ -4915,25 +4910,17 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       };
 
       // 1. Apply rewards locally — visible immediately in Home/profile.
-      // Use a ref object to capture the committed profile value from inside the
-      // setState updater. A plain `let` variable is unreliable under React 18
-      // concurrent rendering because the updater may run more than once
-      // (StrictMode, concurrent re-renders), and the value from a discarded run
-      // could be passed to persistProfile — same safe pattern used by
-      // completeOnboarding and updateProfile (closes #1259).
-      const capturedProfileRef: { current: PlayerProfile | null } = { current: null };
-      setState((prev: GameState) => {
-        const nextProfile = applyRewards(prev.profile, rewards, 'activity');
-        capturedProfileRef.current = nextProfile;
-        return { ...prev, profile: nextProfile };
-      });
+      // Compute the next profile value before calling setState so we can pass it
+      // directly to persistProfile. The capturedProfileRef pattern is unreliable
+      // under React 18 concurrent rendering because the setState updater is not
+      // guaranteed to run synchronously — capturedProfileRef.current is always null
+      // at the check site (closes #1312).
+      const nextProfile = applyRewards(state.profile, rewards, 'activity');
+      setState((prev: GameState) => ({ ...prev, profile: nextProfile }));
 
       // 1b. Persist updated profile to server so XP/cachet/reputation survive
-      // a page reload (closes #1200). capturedProfileRef.current is non-null
-      // when the committed updater run assigned it.
-      if (capturedProfileRef.current !== null) {
-        persistProfile(capturedProfileRef.current);
-      }
+      // a page reload (closes #1200).
+      persistProfile(nextProfile);
 
       // 2. Persist to narrative_history (append-only, RLS-scoped to user).
       // Best-effort: a failed insert does not roll back local rewards. Without
@@ -4958,7 +4945,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       return { ok: true, rewards };
     },
-    [authUserId, persistProfile]
+    [authUserId, persistProfile, state.profile]
   );
 
   const resetProgress = useCallback(async () => {
@@ -5352,6 +5339,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     // Clear the narrative idempotency guard so that replaying scenes after a
     // progress reset in the same session yields rewards correctly (closes #1130).
     appliedNarrativeChoicesRef.current = new Set();
+    // Clear in-memory ticket activation caches so that a new user logging in on
+    // the same browser tab does not inherit the previous user's activated-ticket
+    // records (closes #1313).
+    clearLocalActivationStores();
     // Reset hydration flag so persistProfile's guard re-arms and does not sync
     // blank default state to the DB if called before the next remote hydration
     // completes (closes #1132).
