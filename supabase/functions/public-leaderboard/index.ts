@@ -11,30 +11,13 @@ const corsHeaders = {
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 60;
-const RATE_LIMIT_SWEEP_EVERY = 128;
-// NOTE: rateBuckets is module-level state within a single Deno isolate instance.
-// Supabase Edge Functions may spin up multiple isolate instances concurrently (one per
-// request or per region), each with their own memory. This Map is NOT shared across
-// isolates, so rate limiting is only effective within a single isolate — concurrent
-// requests routed to different isolates bypass this check entirely.
-// For production-grade rate limiting, use a shared persistent store (e.g. Supabase KV,
-// a Redis-compatible store, or Supabase dashboard rate-limit rules applied before the
-// function is invoked). See issue #1028.
-const rateBuckets = new Map<string, number[]>();
-let rateLimitCallsSinceSweep = 0;
-
-function sweepRateBuckets(windowStart: number) {
-  for (const [key, timestamps] of rateBuckets) {
-    const alive = timestamps.filter((t) => t > windowStart);
-    if (alive.length === 0) {
-      rateBuckets.delete(key);
-    } else if (alive.length !== timestamps.length) {
-      rateBuckets.set(key, alive);
-    }
-  }
-}
+// Rate limiting for this endpoint must be enforced at the API gateway level
+// (e.g. Supabase dashboard rate-limit rules, a reverse proxy, or a shared
+// persistent store such as Upstash Redis). An in-memory Map inside a single
+// Deno isolate is NOT effective in production because Supabase Edge Functions
+// run multiple concurrent isolates — each with their own memory — so per-isolate
+// counters never see the full traffic and the limit is trivially bypassed.
+// See issue #1307.
 
 type LeaderboardRow = {
   rank: number;
@@ -57,30 +40,6 @@ function json(body: Record<string, unknown>, status = 200, extraHeaders: Record<
   });
 }
 
-function clientIp(req: Request): string {
-  const fwd = req.headers.get('x-forwarded-for');
-  if (fwd) return fwd.split(',')[0].trim();
-  return req.headers.get('cf-connecting-ip') ?? 'unknown';
-}
-
-function rateLimit(ip: string): { ok: boolean; retryAfter: number } {
-  const now = Date.now();
-  const windowStart = now - RATE_LIMIT_WINDOW_MS;
-  rateLimitCallsSinceSweep += 1;
-  if (rateLimitCallsSinceSweep >= RATE_LIMIT_SWEEP_EVERY) {
-    rateLimitCallsSinceSweep = 0;
-    sweepRateBuckets(windowStart);
-  }
-  const hits = (rateBuckets.get(ip) ?? []).filter((t) => t > windowStart);
-  if (hits.length >= RATE_LIMIT_MAX) {
-    const retryAfter = Math.ceil((hits[0] + RATE_LIMIT_WINDOW_MS - now) / 1000);
-    return { ok: false, retryAfter: Math.max(1, retryAfter) };
-  }
-  hits.push(now);
-  rateBuckets.set(ip, hits);
-  return { ok: true, retryAfter: 0 };
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -88,16 +47,6 @@ serve(async (req) => {
 
   if (req.method !== 'GET') {
     return json({ error: 'Metodo non consentito' }, 405);
-  }
-
-  const ip = clientIp(req);
-  const gate = rateLimit(ip);
-  if (!gate.ok) {
-    return json(
-      { error: 'Troppe richieste', retry_after: gate.retryAfter },
-      429,
-      { 'Retry-After': String(gate.retryAfter) },
-    );
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
