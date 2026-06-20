@@ -74,21 +74,24 @@ serve(async (req) => {
     { table: 'profiles', key: 'id' },
   ] as const;
 
-  const failedTables: string[] = [];
+  let failedTable: string | null = null;
 
   for (const { table, key } of tablesToDelete) {
     const { error } = await adminClient.from(table).delete().eq(key, userId);
     if (error) {
       console.error(`delete-my-account: error deleting from ${table}`, error.message);
-      failedTables.push(table);
+      failedTable = table;
+      break;
     }
   }
 
-  // Abort before deleting auth user if critical data remains
-  if (failedTables.length > 0) {
-    console.error(`delete-my-account: aborting for user ${userId}, orphaned tables: ${failedTables.join(', ')}`);
+  // Abort before deleting auth user if any table deletion failed.
+  // Stopping at the first failure preserves subsequent tables so the user
+  // can retry without ending up in a worse partial-deletion state.
+  if (failedTable !== null) {
+    console.error(`delete-my-account: aborting for user ${userId}, failed on table: ${failedTable}`);
     return errorResponse(
-      `Cancellazione parziale: dati rimasti in ${failedTables.join(', ')}. L'account non è stato eliminato. Riprova o contatta il supporto.`,
+      `Cancellazione non completata: errore su ${failedTable}. L'account non è stato eliminato. Riprova o contatta il supporto.`,
       500,
     );
   }
