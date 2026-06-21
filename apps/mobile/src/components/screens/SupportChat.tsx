@@ -77,7 +77,10 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
     // Migrate history from the displayName fallback key when userId becomes available
     if (!stored.length && currentUserId && currentDisplayName !== currentUserId) {
       stored = loadChatHistory(currentDisplayName);
-      if (stored.length) saveChatHistory(currentUserId, stored);
+      if (stored.length) {
+        saveChatHistory(currentUserId, stored);
+        localStorage.removeItem(getHistoryKey(currentDisplayName));
+      }
     }
     if (stored.length) {
       setChatSessions(stored);
