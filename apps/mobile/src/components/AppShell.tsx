@@ -342,9 +342,17 @@ export function AppShell() {
 
     // Seed with the current session immediately (handles page reloads where the
     // user is already signed in before this effect runs).
-    supabase.auth.getSession().then(({ data }) => {
-      setAnalyticsAuthToken(data.session?.access_token ?? null);
-    }).catch(() => undefined);
+    // Use getUser() first to verify the token with the server before reading
+    // the locally cached session, so revoked or expired tokens are rejected.
+    supabase.auth.getUser()
+      .then(({ data: { user }, error }) => {
+        if (error || !user) return undefined;
+        return supabase!.auth.getSession();
+      })
+      .then((result) => {
+        setAnalyticsAuthToken(result?.data?.session?.access_token ?? null);
+      })
+      .catch(() => undefined);
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setAnalyticsAuthToken(session?.access_token ?? null);
