@@ -115,12 +115,19 @@ serve(async (req) => {
 
     const eventIds = eventsToDelete.map(e => e.id)
 
-    // Delete events first. The planned_participations FK is defined with
-    // ON DELETE CASCADE, so the DB automatically removes child rows when
-    // the parent event is deleted. This order is safer than deleting
-    // participations first: if the events delete fails nothing is lost,
-    // whereas the previous order could leave parent rows without their
-    // child participation records on a partial failure (fixes #1254).
+    // Delete ticket_activations first: this table references events.id via FK
+    // without ON DELETE CASCADE, so it must be removed before the parent rows
+    // are deleted to avoid a FK violation that would silently fail the whole batch.
+    const { error: activationsError } = await supabaseClient
+      .from('ticket_activations')
+      .delete()
+      .in('event_id', eventIds)
+
+    if (activationsError) throw activationsError
+
+    // Delete events. The planned_participations FK is defined with
+    // ON DELETE CASCADE, so the DB automatically removes those child rows when
+    // the parent event is deleted.
     const { error: deleteError } = await supabaseClient
       .from('events')
       .delete()
