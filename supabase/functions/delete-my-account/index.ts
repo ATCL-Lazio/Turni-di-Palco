@@ -96,13 +96,24 @@ serve(async (req) => {
     );
   }
 
-  // 2. Delete profile image from storage (non-fatal)
-  const { data: files } = await adminClient.storage
-    .from('profile-images')
-    .list(userId);
-  if (files && files.length > 0) {
-    const paths = files.map((f: { name: string }) => `${userId}/${f.name}`);
-    await adminClient.storage.from('profile-images').remove(paths);
+  // 2. Delete profile image from storage (non-fatal, with timeout guard)
+  const storageTimeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('storage timeout')), 10_000),
+  );
+  try {
+    const { data: files } = await Promise.race([
+      adminClient.storage.from('profile-images').list(userId),
+      storageTimeout,
+    ]);
+    if (files && files.length > 0) {
+      const paths = files.map((f: { name: string }) => `${userId}/${f.name}`);
+      await Promise.race([
+        adminClient.storage.from('profile-images').remove(paths),
+        storageTimeout,
+      ]);
+    }
+  } catch (storageError) {
+    console.error('delete-my-account: storage cleanup timed out or failed (non-fatal)', storageError);
   }
 
   // 3. Delete the auth user (must be last — only reached if all data was cleaned)
