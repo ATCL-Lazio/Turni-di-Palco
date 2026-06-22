@@ -227,5 +227,5 @@ serve(async (req) => {
     return json({ resolved: true, eventId, roleId, event: data });
   }
 
-  return json({ error: `Azione non supportata: ${action}` }, 400);
+  return json({ error: `Azione non supportata: ${action.slice(0, 100)}` }, 400);
 });
