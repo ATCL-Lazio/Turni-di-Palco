@@ -79,7 +79,7 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
       stored = loadChatHistory(currentDisplayName);
       if (stored.length) {
         saveChatHistory(currentUserId, stored);
-        localStorage.removeItem(getHistoryKey(currentDisplayName));
+        try { localStorage.removeItem(getHistoryKey(currentDisplayName)); } catch { /* SecurityError in private browsing */ }
       }
     }
     if (stored.length) {
