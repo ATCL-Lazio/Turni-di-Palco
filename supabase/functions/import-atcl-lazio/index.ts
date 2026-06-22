@@ -55,11 +55,29 @@ function parseTime(text: string): string | null {
   return `${m[1].padStart(2, '0')}:${m[2]}`;
 }
 
+const HTML_ENTITIES: Record<string, string> = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
+  agrave: 'à', aacute: 'á', acutee: 'é', egrave: 'è', eacute: 'é',
+  igrave: 'ì', iacute: 'í', ograve: 'ò', oacute: 'ó', ugrave: 'ù', uacute: 'ú',
+  Agrave: 'À', Aacute: 'Á', Egrave: 'È', Eacute: 'É',
+  Igrave: 'Ì', Iacute: 'Í', Ograve: 'Ò', Oacute: 'Ó', Ugrave: 'Ù', Uacute: 'Ú',
+  ntilde: 'ñ', Ntilde: 'Ñ', ccedil: 'ç', Ccedil: 'Ç',
+  laquo: '«', raquo: '»', ldquo: '“', rdquo: '”',
+  lsquo: '‘', rsquo: '’', mdash: '—', ndash: '–', hellip: '…',
+  euro: '€', copy: '©', reg: '®', trade: '™',
+};
+
+function decodeHtmlEntities(text: string): string {
+  // Decode numeric entities (decimal and hex)
+  return text
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&([a-zA-Z]+);/g, (match, name) => HTML_ENTITIES[name] ?? HTML_ENTITIES[name.toLowerCase()] ?? match);
+}
+
 function stripTags(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&#\d+;/g, ' ')
-    .replace(/&[a-zA-Z]+;/gi, ' ')  // replaces named entities (any case) like &nbsp; &Agrave; &ETH;
+  const stripped = html.replace(/<[^>]+>/g, ' ');
+  return decodeHtmlEntities(stripped)
     .replace(/\s+/g, ' ')
     .trim();
 }
