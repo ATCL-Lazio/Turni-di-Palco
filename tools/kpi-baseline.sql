@@ -10,6 +10,10 @@
 --   psql "$SUPABASE_DB_URL" -f tools/kpi-baseline.sql
 -- oppure via Supabase SQL editor / MCP execute_sql.
 --
+-- Permessi: tutti e tre i blocchi leggono direttamente da auth.users ->
+-- richiedono ruolo postgres/service_role (bypassano RLS per design). Eseguiti
+-- con un ruolo privo di accesso, restituiscono vuoto o un errore di permessi.
+--
 -- Le definizioni univoche dei KPI sono in TECHNICAL_NOTES.md
 -- ("Audience development — KPI & baseline").
 
@@ -37,8 +41,7 @@ select
   count(*) filter (where onboarding_completed_at is not null)                       as onboarding_completato,
   count(*) filter (where activities > 0)                                            as almeno_una_attivita,
   count(*) filter (where turns > 0)                                                 as almeno_un_turno,
-  count(*) filter (where last_sign_in_at is not null
-                     and last_sign_in_at::date > created_at::date)                  as ritornati_giorno_diverso, -- proxy retention D1+
+  count(*) filter (where last_sign_in_at::date > created_at::date)                  as ritornati_giorno_diverso, -- proxy retention D1+ (NULL last_sign_in_at -> escluso dal FILTER)
   count(*) filter (where last_activity_at > now() - interval '30 days')             as attivi_ultimi_30g,
   count(*) filter (where created_at > now() - interval '30 days')                   as iscritti_ultimi_30g,
   round(avg(activities), 1)                                                         as media_attivita_per_utente,
@@ -57,8 +60,6 @@ select
   (select count(distinct theatre) from public.turns)                                as teatri_con_almeno_un_turno;
 
 -- 3) Acquisizione per mese -----------------------------------------------------
--- NB: legge direttamente da auth.users -> richiede ruolo postgres/service_role
--- (bypassa RLS per design, come le query 1-2).
 select
   to_char(date_trunc('month', created_at), 'YYYY-MM') as mese,
   count(*)                                            as iscritti

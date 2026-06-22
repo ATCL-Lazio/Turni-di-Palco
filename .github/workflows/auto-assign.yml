@@ -19,4 +19,6 @@ jobs:
       uses: pozil/auto-assign-issue@v1
       with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+          # 'numOfAssignee' rimosso: input non valido per l'action (veniva
+          # ignorato con un warning); con un solo assignee assegna Heartran.
           assignees: Heartran
