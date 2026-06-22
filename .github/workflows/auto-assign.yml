@@ -7,6 +7,10 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+    # pozil/auto-assign-issue opera solo sul contesto di una issue: su un evento
+    # pull_request fallisce con "Couldn't find issue info in current context".
+    # Limitiamo il job alle issue; sui PR viene saltato (check verde).
+    if: github.event_name == 'issues'
     permissions:
       issues: write
       pull-requests: write
@@ -15,5 +19,6 @@ jobs:
       uses: pozil/auto-assign-issue@v1
       with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+          # 'numOfAssignee' rimosso: input non valido per l'action (veniva
+          # ignorato con un warning); con un solo assignee assegna Heartran.
           assignees: Heartran
-          numOfAssignee: 1

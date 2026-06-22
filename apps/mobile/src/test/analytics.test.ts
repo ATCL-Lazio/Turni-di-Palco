@@ -67,6 +67,8 @@ describe('getUserHash — Edge Function fetch', () => {
 
     // Provide VITE_SUPABASE_URL via import.meta.env simulation
     setAnalyticsSupabaseUrl('https://test.supabase.co');
+    // Un JWT è necessario: senza, il client salta del tutto la richiesta (#1284).
+    setAnalyticsAuthToken('test-token');
 
     const result = await getUserHash('user-uuid-1');
     expect(result).toBe('abc123');
@@ -89,18 +91,21 @@ describe('getUserHash — Edge Function fetch', () => {
     expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer my-jwt-token');
   });
 
-  it('omits Authorization header when no auth token is set', async () => {
-    const mockFetch = vi.fn().mockResolvedValueOnce(makeSuccessResponse('cafebabe'));
+  it('skips the request and returns undefined when no auth token is set', async () => {
+    // Issue #1284: senza JWT la Edge Function risponderebbe 401, quindi il
+    // client salta del tutto la richiesta e degrada a userHash undefined.
+    const mockFetch = vi.fn();
     vi.stubGlobal('fetch', mockFetch);
     setAnalyticsSupabaseUrl('https://test.supabase.co');
 
-    await getUserHash('user-uuid-3');
+    const result = await getUserHash('user-uuid-3');
 
-    const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
-    expect((init.headers as Record<string, string>)['Authorization']).toBeUndefined();
+    expect(result).toBeUndefined();
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it('returns undefined when fetch throws (network error)', async () => {
+    setAnalyticsAuthToken('test-token');
     vi.stubGlobal('fetch', vi.fn().mockRejectedValueOnce(new Error('Network error')));
     setAnalyticsSupabaseUrl('https://test.supabase.co');
 
@@ -109,6 +114,7 @@ describe('getUserHash — Edge Function fetch', () => {
   });
 
   it('returns undefined when the Edge Function returns a non-200 status', async () => {
+    setAnalyticsAuthToken('test-token');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(makeErrorResponse(401)));
     setAnalyticsSupabaseUrl('https://test.supabase.co');
 
@@ -117,6 +123,7 @@ describe('getUserHash — Edge Function fetch', () => {
   });
 
   it('returns undefined when the response body has no hash field', async () => {
+    setAnalyticsAuthToken('test-token');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(
       new Response(JSON.stringify({ error: 'missing salt' }), { status: 200 }),
     ));
@@ -136,6 +143,7 @@ describe('getUserHash — caching', () => {
     const mockFetch = vi.fn().mockResolvedValue(makeSuccessResponse('cached-hash'));
     vi.stubGlobal('fetch', mockFetch);
     setAnalyticsSupabaseUrl('https://test.supabase.co');
+    setAnalyticsAuthToken('test-token');
 
     const [r1, r2] = await Promise.all([
       getUserHash('user-uuid-cache'),
@@ -155,6 +163,7 @@ describe('getUserHash — caching', () => {
       .mockResolvedValueOnce(makeSuccessResponse('second-hash'));
     vi.stubGlobal('fetch', mockFetch);
     setAnalyticsSupabaseUrl('https://test.supabase.co');
+    setAnalyticsAuthToken('test-token');
 
     const first = await getUserHash('user-uuid-clear');
     expect(first).toBe('first-hash');
@@ -194,17 +203,17 @@ describe('setAnalyticsAuthToken', () => {
     expect(call2Headers['Authorization']).toBe('Bearer token-v2');
   });
 
-  it('removes the Authorization header when set to null', async () => {
+  it('skips the request and returns undefined when the token is set to null', async () => {
     setAnalyticsAuthToken('token-before');
 
-    const mockFetch = vi.fn().mockResolvedValue(makeSuccessResponse('any-hash'));
+    const mockFetch = vi.fn();
     vi.stubGlobal('fetch', mockFetch);
     setAnalyticsSupabaseUrl('https://test.supabase.co');
 
     setAnalyticsAuthToken(null);
-    await getUserHash('user-b');
+    const result = await getUserHash('user-b');
 
-    const callHeaders = mockFetch.mock.calls[0][1].headers as Record<string, string>;
-    expect(callHeaders['Authorization']).toBeUndefined();
+    expect(result).toBeUndefined();
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });
