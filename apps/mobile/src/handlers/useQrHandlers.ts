@@ -108,10 +108,10 @@ export function useQrHandlers(deps: QrHandlerDeps) {
         return { ok: false as const, error: 'Biglietto già registrato in questa sessione.' };
       }
 
+      // Do not reject if the event is absent from the local cache: the server-side
+      // activation call in handleEventConfirm will perform its own lookup and return
+      // a proper error if the event truly does not exist (closes #1342).
       const matchedEvent = events.find(event => event.id === normalizedEventId);
-      if (!matchedEvent) {
-        return { ok: false as const, error: 'Evento non presente nel calendario.' };
-      }
 
       setPendingTicketActivation({ mode: 'manual', eventId: normalizedEventId, ticketNumber: normalizedTicketNumber });
       setConfirmationEventOverride(mapActivatedEvent(normalizedEventId, events) ?? null);
