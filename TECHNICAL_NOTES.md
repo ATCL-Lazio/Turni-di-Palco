@@ -248,3 +248,87 @@ Obiettivo: introdurre un nuovo ruolo di gioco con esperienza dedicata senza fram
   - **Mitigazione:** playlist per ruolo con gating progressivo e test qualitativi rapidi.
 - **Rischio:** regressioni su utenti attuali.
   - **Mitigazione:** feature flags + fallback default + rollout progressivo.
+
+## Audience development — KPI & baseline (#321 / parent #164)
+
+Obiettivo: rendere l'audience development *misurabile*. Questa sezione definisce
+i KPI in modo univoco e fissa la **prima baseline** raccolta dallo stato reale
+del database. Script ripetibile: `tools/kpi-baseline.sql`.
+
+### Definizioni KPI (univoche)
+
+| KPI | Definizione operativa | Fonte |
+|---|---|---|
+| **Iscritti** | Righe in `auth.users`. | `auth.users` |
+| **Email confermate** | Iscritti con `email_confirmed_at` non nullo. | `auth.users` |
+| **Activation — ruolo** | % iscritti con `profiles.role_id` non nullo. | `profiles` |
+| **Activation — onboarding** | % iscritti con `profiles.onboarding_completed_at` non nullo. | `profiles` |
+| **Activation — prima attività** | % iscritti con ≥1 riga in `activity_completions`. | `activity_completions` |
+| **Activation — primo turno** | % iscritti con ≥1 riga in `turns`. | `turns` |
+| **Retention D1+ (proxy)** | % iscritti con `last_sign_in_at::date > created_at::date` (accesso in un giorno successivo all'iscrizione). | `auth.users` |
+| **Attivi 30g** | Iscritti con `profiles.last_activity_at` negli ultimi 30 giorni. | `profiles` |
+| **Engagement** | Media attività completate per utente; turni totali. | `activity_completions`, `turns` |
+| **Copertura eventi** | Ticket QR attivati; teatri con ≥1 turno; eventi a calendario. | `ticket_activations`, `turns`, `events` |
+| **Referral** | *Non misurabile dallo stato attuale*: richiede l'evento `share_clicked` persistito (vedi "Passo operativo" sotto). | — |
+
+> Nota: la **retention D1+** qui è un proxy basato sull'ultimo accesso, non una
+> coorte D1/D7 completa. La coorte richiede lo storico degli accessi, ottenibile
+> solo con l'event-stream (`session_start`) una volta persistito in produzione.
+
+### Baseline — 2026-06-22
+
+Estratta con `tools/kpi-baseline.sql` sul progetto di produzione.
+
+| KPI | Valore |
+|---|---|
+| Iscritti totali | 5 |
+| Email confermate | 4 |
+| Almeno un accesso | 4 |
+| Activation — ruolo scelto | 5 / 5 |
+| Activation — onboarding completato | **0 / 5** |
+| Activation — ≥1 attività | 3 / 5 |
+| Activation — ≥1 turno | 1 / 5 |
+| Retention D1+ (proxy) | 2 / 5 |
+| Attivi ultimi 30g | **0 / 5** |
+| Iscritti ultimi 30g | 0 |
+| Media attività / utente | 8.8 |
+| Turni certificati totali | 4 |
+| Ticket QR attivati (con utente reale) | 1 (0) |
+| Ruoli distinti in uso | 2 / 7 (`attore`, `fonico`) |
+| Teatri con ≥1 turno | 2 |
+| Eventi a calendario | 31 |
+
+### Lettura della baseline
+
+- **Acquisizione organica ≈ 0.** I 5 iscritti sono tutti interni (team/ATCL/servizio
+  civile) o di test; nessuna acquisizione organica esterna in ~6 mesi. La
+  promozione al Festival dei Giovani (Latina) non ha prodotto iscrizioni.
+- **Collo di bottiglia n.1 — onboarding: 0/5 completato.** Nessun utente — nemmeno
+  interno — ha terminato il primo avvio. È il primo punto da strumentare e
+  sistemare prima di qualsiasi spinta sull'acquisizione: portare traffico su un
+  funnel che perde tutti all'onboarding amplifica solo lo spreco.
+- **Retention 30g = 0.** Nessun ritorno recente: il loop non dà ancora un motivo
+  per tornare il giorno dopo.
+- **Contenuti sottoutilizzati:** 5 ruoli su 7 mai provati, 2 teatri su 25+ con un
+  turno. La quantità di contenuto costruito eccede di gran lunga l'uso reale.
+
+Implicazione per la v1.0: il valore della telemetria *non* è raccogliere più
+dati, ma **chiudere prima il funnel di onboarding** — l'unica metrica che, a
+questa baseline, può cambiare di segno con poco lavoro.
+
+### Passo operativo rimanente (fuori dal repo)
+
+I KPI di acquisizione/attivazione/retention sopra sono già misurabili (baseline
+fatta). Per i KPI a eventi (referral `share_clicked`, coorti D1/D7 reali,
+conversione step-by-step dell'onboarding) serve persistere l'event-stream:
+
+1. deploy della tabella `analytics_events` + Edge Function `ingest-analytics`
+   (infrastruttura già progettata; client `apps/mobile/src/services/analytics.ts`
+   pronto, sink di default su `console.debug` finché non si registra quello di
+   produzione con `setAnalyticsSink`);
+2. secret `ANALYTICS_SALT` su Supabase (pseudonimizzazione, già usata da
+   `pseudonymize-user-id`);
+3. ~2–4 settimane di raccolta per la prima coorte D1/D7 reale.
+
+Finché (1)–(3) non sono completati, la baseline valida resta quella derivata
+dallo stato del DB e rigenerabile con `tools/kpi-baseline.sql`.
