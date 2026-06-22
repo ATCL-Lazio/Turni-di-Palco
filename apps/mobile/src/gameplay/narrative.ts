@@ -292,18 +292,39 @@ const SCENE_GENERATION_SYSTEM_PROMPT =
   'Genera scenari narrativi realistici e coinvolgenti per professionisti del teatro. ' +
   'Rispondi SEMPRE e SOLO con un singolo JSON valido, nessun testo aggiuntivo.';
 
+/** Strip newlines and leading/trailing whitespace to prevent prompt injection. */
+function sanitizePromptValue(value: string): string {
+  return value.replace(/[\r\n]+/g, ' ').trim();
+}
+
+/** Known-safe role IDs accepted by the narrative engine. */
+const SAFE_ROLE_IDS = new Set<string>([
+  'actor', 'director', 'stage_manager', 'technician', 'costume_designer',
+  'set_designer', 'lighting_designer', 'sound_designer', 'producer', 'playwright',
+]);
+
+/** Known-safe flag names (snake_case identifiers only). */
+const SAFE_FLAG_PATTERN = /^[a-z][a-z0-9_]{0,59}$/;
+
 function buildSceneGenerationPrompt(ctx: NarrativeContext): string {
-  const role = ctx.roleId ?? 'sconosciuto';
+  const role = sanitizePromptValue(
+    (ctx.roleId && SAFE_ROLE_IDS.has(ctx.roleId)) ? ctx.roleId : (ctx.roleId ?? 'sconosciuto'),
+  );
   const stats = ctx.stats
     ? `presenza=${ctx.stats.presence}, precisione=${ctx.stats.precision}, leadership=${ctx.stats.leadership}, creatività=${ctx.stats.creativity}`
     : 'statistiche non disponibili';
-  const flags = ctx.flags.size ? Array.from(ctx.flags).join(', ') : 'nessuno';
+  const safeFlags = ctx.flags.size
+    ? Array.from(ctx.flags)
+        .filter(f => SAFE_FLAG_PATTERN.test(f))
+        .map(f => sanitizePromptValue(f))
+        .join(', ') || 'nessuno'
+    : 'nessuno';
 
   return (
     `Genera UNO scenario narrativo in italiano per un giocatore con queste caratteristiche:\n` +
     `- Ruolo: ${role}\n` +
     `- Statistiche: ${stats}\n` +
-    `- Flag attivi: ${flags}\n\n` +
+    `- Flag attivi: ${safeFlags}\n\n` +
     `Lo scenario deve:\n` +
     `1. Essere ambientato in un teatro durante una serata di spettacolo\n` +
     `2. Presentare una situazione concreta e specifica per il ruolo "${role}"\n` +
@@ -333,7 +354,7 @@ function buildSceneGenerationPrompt(ctx: NarrativeContext): string {
     `- Statistiche valide: "presence", "precision", "leadership", "creativity"\n` +
     `- Rewards: scelte con stat alta → xp più alto; xp in [${REWARD_XP_MIN}-${REWARD_XP_MAX}], cachet in [${REWARD_CACHET_MIN}-${REWARD_CACHET_MAX}]\n` +
     `- "setFlags" opzionale per scelte con impatto narrativo duraturo (snake_case)\n` +
-    `- Non usare flag già attivi: ${flags}\n` +
+    `- Non usare flag già attivi: ${safeFlags}\n` +
     `- id e flag in snake_case`
   );
 }
