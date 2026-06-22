@@ -57,6 +57,8 @@ select
   (select count(distinct theatre) from public.turns)                                as teatri_con_almeno_un_turno;
 
 -- 3) Acquisizione per mese -----------------------------------------------------
+-- NB: legge direttamente da auth.users -> richiede ruolo postgres/service_role
+-- (bypassa RLS per design, come le query 1-2).
 select
   to_char(date_trunc('month', created_at), 'YYYY-MM') as mese,
   count(*)                                            as iscritti
