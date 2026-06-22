@@ -177,41 +177,65 @@ export async function requestAiSupport({
   endpoint,
   signal,
 }: AiSupportRequest) {
-  return withMobileWatchdog(async () => {
-    const target = resolveEndpoint(endpoint);
-    const response = await fetch(target, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      signal,
-      body: JSON.stringify({
-        prompt: SUPPORT_PROMPT,
-        messages,
-        context: {
-          userName,
-          memory,
+  // Use a single AbortController driven by withMobileWatchdog's timeout so that
+  // the inner fetch() is aborted when the 25-second watchdog fires, preventing
+  // the request from dangling in the background (mirrors requestAiIssue pattern).
+  const controller = new AbortController();
+
+  // Combine the watchdog controller signal with any externally supplied signal.
+  const combinedSignal = (() => {
+    if (!signal) return controller.signal;
+    const merged = new AbortController();
+    if (controller.signal.aborted || signal.aborted) {
+      merged.abort();
+    } else {
+      const abort = () => merged.abort();
+      controller.signal.addEventListener('abort', abort, { once: true });
+      signal.addEventListener('abort', abort, { once: true });
+    }
+    return merged.signal;
+  })();
+
+  try {
+    return await withMobileWatchdog(async () => {
+      const target = resolveEndpoint(endpoint);
+      const response = await fetch(target, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      }),
+        signal: combinedSignal,
+        body: JSON.stringify({
+          prompt: SUPPORT_PROMPT,
+          messages,
+          context: {
+            userName,
+            memory,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(errorBody || 'AI request failed');
+      }
+
+      const data = (await response.json()) as AiSupportResponse;
+      const reply = extractReply(data);
+      if (!reply) {
+        throw new Error('Missing AI reply');
+      }
+      return reply;
+    }, {
+      operation: 'requestAiSupport',
+      timeoutMs: AI_SUPPORT_REQUEST_WATCHDOG_MS,
+      title: 'Supporto rallentato',
+      message: 'Il servizio di supporto sta impiegando troppo tempo a rispondere.',
     });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(errorBody || 'AI request failed');
-    }
-
-    const data = (await response.json()) as AiSupportResponse;
-    const reply = extractReply(data);
-    if (!reply) {
-      throw new Error('Missing AI reply');
-    }
-    return reply;
-  }, {
-    operation: 'requestAiSupport',
-    timeoutMs: AI_SUPPORT_REQUEST_WATCHDOG_MS,
-    title: 'Supporto rallentato',
-    message: 'Il servizio di supporto sta impiegando troppo tempo a rispondere.',
-  });
+  } catch (error) {
+    controller.abort();
+    throw error;
+  }
 }
 
 export async function checkAiSupportAvailability({
