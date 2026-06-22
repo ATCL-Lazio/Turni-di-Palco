@@ -183,7 +183,7 @@ export function useQrHandlers(deps: QrHandlerDeps) {
         boostRequested,
       });
       if (!turnResult.ok) {
-        return { ok: false, error: turnResult.error || 'Ticket attivato, ma non e stato possibile registrare il turno.' };
+        return { ok: false, error: turnResult.error || 'Ticket attivato, ma non è stato possibile registrare il turno.' };
       }
 
       setPendingTicketActivation(null);
@@ -209,7 +209,7 @@ export function useQrHandlers(deps: QrHandlerDeps) {
         boostRequested,
       });
       if (!turnResult.ok) {
-        return { ok: false, error: turnResult.error || 'Ticket attivato, ma non e stato possibile registrare il turno.' };
+        return { ok: false, error: turnResult.error || 'Ticket attivato, ma non è stato possibile registrare il turno.' };
       }
 
       setPendingTicketActivation(null);
