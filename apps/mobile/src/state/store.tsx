@@ -3123,6 +3123,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             }
           }
 
+          // Guard again after the async getUser/signOut calls — the component
+          // may have unmounted (e.g. StrictMode double-mount) while they were in
+          // flight (closes #1354).
+          if (!isMounted) return;
+
           persistStoredSession(stableSession);
           setAuthUserId(stableSession?.user.id ?? null);
           setAuthReady(true);
