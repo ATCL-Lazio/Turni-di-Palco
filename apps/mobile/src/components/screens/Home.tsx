@@ -229,6 +229,9 @@ function HomeHeader({
 
   React.useEffect(() => {
     if (!hasNewBadges) { setAnimateBadges(false); return; }
+    // Reset showBadge so a newly-arrived badge is always surfaced to the user,
+    // even if they had previously dismissed an earlier badge notification.
+    setShowBadge(true);
     setAnimateBadges(false);
     const raf = requestAnimationFrame(() => setAnimateBadges(true));
     const timer = setTimeout(() => setAnimateBadges(false), 600);
