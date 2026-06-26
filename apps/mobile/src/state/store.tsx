@@ -5165,73 +5165,64 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       const course = COURSES_CATALOG.find((c) => c.id === courseId);
       if (!course) return { ok: false, error: 'Corso non trovato.' };
 
-      let result: { ok: true } | { ok: false; error: string } = { ok: true };
-      // Captured outside the updater so we can call persistProfile below —
-      // same pattern used by updateProfile above.
-      let capturedProfile: PlayerProfile | null = null;
+      // Perform guard checks synchronously against the current state snapshot
+      // BEFORE calling setState, so that the updater only contains the happy-path
+      // state transition. This avoids mutating external variables inside the
+      // setState updater — which React StrictMode double-invokes and could produce
+      // incorrect results under future React versions (closes #1361).
+      const profile = state.profile;
+      const skills = profile.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
+      const completedCourses = profile.completedCourses ?? {};
+      const activeCourses = profile.activeCourses ?? {};
 
-      setState((prev) => {
-        const profile = prev.profile;
-        const skills = profile.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
-        const completedCourses = profile.completedCourses ?? {};
-        const activeCourses = profile.activeCourses ?? {};
-
-        // Controlla se il corso è già attivo
-        if (activeCourses[courseId]) {
-          result = { ok: false, error: 'Corso già in corso.' };
-          return prev;
-        }
-
-        // Controlla cooldown
-        const lastCompleted = completedCourses[courseId];
-        if (lastCompleted) {
-          const elapsed = Date.now() - new Date(lastCompleted).getTime();
-          if (elapsed < COURSE_COOLDOWN_MS) {
-            const remainingMs = COURSE_COOLDOWN_MS - elapsed;
-            const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
-            result = {
-              ok: false,
-              error: `Corso in cooldown. Disponibile tra ${remainingHours} ore.`,
-            };
-            return prev;
-          }
-        }
-
-        // Controlla cachet sufficiente
-        if (profile.cachet < course.costCachet) {
-          result = {
-            ok: false,
-            error: `Cachet insufficiente. Necessari: ${course.costCachet}, disponibili: ${profile.cachet}.`,
-          };
-          return prev;
-        }
-
-        const nextProfile: PlayerProfile = {
-          ...profile,
-          cachet: profile.cachet - course.costCachet,
-          skills,
-          completedCourses,
-          activeCourses: {
-            ...activeCourses,
-            [courseId]: new Date().toISOString(),
-          },
-        };
-        capturedProfile = nextProfile;
-        // saveState is handled by the useEffect(() => { saveState(state); }, [state])
-        // above — calling it here would be a side effect inside a setState updater,
-        // which React StrictMode executes twice, causing double-writes.
-        return { ...prev, profile: nextProfile };
-      });
-
-      // Sync course state to Supabase so a page refresh doesn't reset progress.
-      // capturedProfile is non-null only when the setState updater produced a new state.
-      if (capturedProfile !== null) {
-        persistProfile(capturedProfile);
+      // Controlla se il corso è già attivo
+      if (activeCourses[courseId]) {
+        return { ok: false, error: 'Corso già in corso.' };
       }
 
-      return result;
+      // Controlla cooldown
+      const lastCompleted = completedCourses[courseId];
+      if (lastCompleted) {
+        const elapsed = Date.now() - new Date(lastCompleted).getTime();
+        if (elapsed < COURSE_COOLDOWN_MS) {
+          const remainingMs = COURSE_COOLDOWN_MS - elapsed;
+          const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
+          return {
+            ok: false,
+            error: `Corso in cooldown. Disponibile tra ${remainingHours} ore.`,
+          };
+        }
+      }
+
+      // Controlla cachet sufficiente
+      if (profile.cachet < course.costCachet) {
+        return {
+          ok: false,
+          error: `Cachet insufficiente. Necessari: ${course.costCachet}, disponibili: ${profile.cachet}.`,
+        };
+      }
+
+      const nextProfile: PlayerProfile = {
+        ...profile,
+        cachet: profile.cachet - course.costCachet,
+        skills,
+        completedCourses,
+        activeCourses: {
+          ...activeCourses,
+          [courseId]: new Date().toISOString(),
+        },
+      };
+
+      // The updater is now a pure state transition with no external side effects —
+      // safe under React StrictMode double-invocation.
+      setState((prev) => ({ ...prev, profile: nextProfile }));
+
+      // Sync course state to Supabase so a page refresh doesn't reset progress.
+      persistProfile(nextProfile);
+
+      return { ok: true };
     },
-    [persistProfile],
+    [persistProfile, state.profile],
   );
 
   // Issue #327 — Completa un corso attivo.
@@ -5244,82 +5235,67 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       const course = COURSES_CATALOG.find((c) => c.id === courseId);
       if (!course) return { ok: false, error: 'Corso non trovato.' };
 
-      let result:
-        | { ok: true; xpGained: number; skillGained: CourseSkill; pointsGained: number }
-        | { ok: false; error: string } = {
-        ok: false,
-        error: 'Errore interno.',
-      };
-      let capturedProfile: PlayerProfile | null = null;
+      // Perform guard checks synchronously against the current state snapshot
+      // BEFORE calling setState — same rationale as startCourse (closes #1361).
+      const profile = state.profile;
+      const skills = profile.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
+      const completedCourses = profile.completedCourses ?? {};
+      const activeCourses = profile.activeCourses ?? {};
 
-      setState((prev) => {
-        const profile = prev.profile;
-        const skills = profile.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
-        const completedCourses = profile.completedCourses ?? {};
-        const activeCourses = profile.activeCourses ?? {};
-
-        const startedAt = activeCourses[courseId];
-        if (!startedAt) {
-          result = { ok: false, error: 'Corso non avviato.' };
-          return prev;
-        }
-
-        // In DEV il tempo minimo è 10 secondi, in produzione durationMinutes completi.
-        const requiredMs = import.meta.env.DEV
-          ? 10 * 1000
-          : course.durationMinutes * 60 * 1000;
-
-        const elapsed = Date.now() - new Date(startedAt).getTime();
-        if (elapsed < requiredMs) {
-          const remainingSec = Math.ceil((requiredMs - elapsed) / 1000);
-          result = {
-            ok: false,
-            error: `Corso non ancora completato. Tempo rimanente: ${remainingSec} secondi.`,
-          };
-          return prev;
-        }
-
-        const xpGained = COURSE_COMPLETION_XP;
-        const skillGained: CourseSkill = course.skill;
-        const pointsGained = course.skillPoints;
-
-        // Applica XP tramite lo stesso helper usato dalle attività.
-        const rewards: Rewards = { xp: xpGained, cachet: 0, reputation: 0 };
-        const profileWithXp = applyRewards(profile, rewards, 'activity');
-
-        const updatedSkills = {
-          ...skills,
-          [skillGained]: (skills[skillGained] ?? 0) + pointsGained,
-        };
-
-        // Rimuovi dai corsi attivi e aggiungi ai completati.
-        const { [courseId]: _removed, ...remainingActive } = activeCourses;
-
-        const nextProfile: PlayerProfile = {
-          ...profileWithXp,
-          skills: updatedSkills,
-          completedCourses: {
-            ...completedCourses,
-            [courseId]: new Date().toISOString(),
-          },
-          activeCourses: remainingActive,
-        };
-
-        result = { ok: true, xpGained, skillGained, pointsGained };
-        capturedProfile = nextProfile;
-        // saveState is handled by the useEffect(() => { saveState(state); }, [state])
-        // above — see comment in startCourse for the StrictMode rationale.
-        return { ...prev, profile: nextProfile };
-      });
-
-      // Sync completed skills and cooldown timestamps to Supabase.
-      if (capturedProfile !== null) {
-        persistProfile(capturedProfile);
+      const startedAt = activeCourses[courseId];
+      if (!startedAt) {
+        return { ok: false, error: 'Corso non avviato.' };
       }
 
-      return result;
+      // In DEV il tempo minimo è 10 secondi, in produzione durationMinutes completi.
+      const requiredMs = import.meta.env.DEV
+        ? 10 * 1000
+        : course.durationMinutes * 60 * 1000;
+
+      const elapsed = Date.now() - new Date(startedAt).getTime();
+      if (elapsed < requiredMs) {
+        const remainingSec = Math.ceil((requiredMs - elapsed) / 1000);
+        return {
+          ok: false,
+          error: `Corso non ancora completato. Tempo rimanente: ${remainingSec} secondi.`,
+        };
+      }
+
+      const xpGained = COURSE_COMPLETION_XP;
+      const skillGained: CourseSkill = course.skill;
+      const pointsGained = course.skillPoints;
+
+      // Applica XP tramite lo stesso helper usato dalle attività.
+      const rewards: Rewards = { xp: xpGained, cachet: 0, reputation: 0 };
+      const profileWithXp = applyRewards(profile, rewards, 'activity');
+
+      const updatedSkills = {
+        ...skills,
+        [skillGained]: (skills[skillGained] ?? 0) + pointsGained,
+      };
+
+      // Rimuovi dai corsi attivi e aggiungi ai completati.
+      const { [courseId]: _removed, ...remainingActive } = activeCourses;
+
+      const nextProfile: PlayerProfile = {
+        ...profileWithXp,
+        skills: updatedSkills,
+        completedCourses: {
+          ...completedCourses,
+          [courseId]: new Date().toISOString(),
+        },
+        activeCourses: remainingActive,
+      };
+
+      // The updater is now a pure state transition — safe under StrictMode double-invocation.
+      setState((prev) => ({ ...prev, profile: nextProfile }));
+
+      // Sync completed skills and cooldown timestamps to Supabase.
+      persistProfile(nextProfile);
+
+      return { ok: true, xpGained, skillGained, pointsGained };
     },
-    [persistProfile],
+    [persistProfile, state.profile],
   );
 
   const resetState = useCallback(() => {
