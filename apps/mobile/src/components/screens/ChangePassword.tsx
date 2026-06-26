@@ -30,9 +30,12 @@ export function ChangePassword({
   const [resetEmailStatus, setResetEmailStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [resetEmailError, setResetEmailError] = useState<string | null>(null);
   const backTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (backTimerRef.current !== null) {
         clearTimeout(backTimerRef.current);
         backTimerRef.current = null;
@@ -45,8 +48,10 @@ export function ChangePassword({
     setResetEmailStatus('sending');
     try {
       await onSendResetEmail();
+      if (!isMountedRef.current) return;
       setResetEmailStatus('sent');
     } catch {
+      if (!isMountedRef.current) return;
       setResetEmailError('Impossibile inviare l\'email di reset. Riprova più tardi.');
       setResetEmailStatus('idle');
     }
@@ -71,6 +76,7 @@ export function ChangePassword({
     setIsSubmitting(true);
     try {
       await onChangePassword(!isRecovery ? currentPassword : undefined, password);
+      if (!isMountedRef.current) return;
       setCurrentPassword('');
       setPassword('');
       setConfirmPassword('');
@@ -82,11 +88,11 @@ export function ChangePassword({
         backTimerRef.current = null;
         onBack();
       }, 1500);
-      return;
+      // Keep isSubmitting=true for the full 1500ms navigation delay so the
+      // button stays disabled and a second submission cannot be triggered.
     } catch {
-      setErrorMessage('Impossibile aggiornare la password. Riprova più tardi.');
-    } finally {
       setIsSubmitting(false);
+      setErrorMessage('Impossibile aggiornare la password. Riprova più tardi.');
     }
   };
 
