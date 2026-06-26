@@ -41,15 +41,29 @@ function normalizeLogMessage(value: unknown): string {
   return value.trim().slice(0, 2000);
 }
 
+// Maximum byte budget for sanitized log details — prevents memory exhaustion
+// from unbounded string payloads (closes #1358).
+const MAX_DETAILS_STRING_LENGTH = 2000;
+const MAX_DETAILS_JSON_LENGTH = 5000;
+
 function sanitizeLogDetails(value: unknown): unknown {
   if (value === undefined || value === null) return undefined;
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+  if (typeof value === 'string') {
+    // Cap string length to prevent memory exhaustion via large details payloads.
+    return value.slice(0, MAX_DETAILS_STRING_LENGTH);
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
     return value;
   }
   try {
-    return JSON.parse(JSON.stringify(value));
+    const serialized = JSON.stringify(value);
+    // Cap serialized object size before re-parsing to avoid large object graphs.
+    if (serialized.length > MAX_DETAILS_JSON_LENGTH) {
+      return JSON.parse(serialized.slice(0, MAX_DETAILS_JSON_LENGTH) + '"[truncated]"}');
+    }
+    return JSON.parse(serialized);
   } catch {
-    return String(value);
+    return String(value).slice(0, MAX_DETAILS_STRING_LENGTH);
   }
 }
 
