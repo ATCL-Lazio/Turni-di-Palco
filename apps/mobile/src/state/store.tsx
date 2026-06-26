@@ -4722,6 +4722,16 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         );
 
         if (!rpcResponse.purchase_applied) {
+          // Distinguish server-side errors (transient, retryable) from business-rule
+          // rejections (role mismatch, insufficient balance, etc.) so the UI can
+          // present the correct message and allow retry when appropriate (closes #1355).
+          if (rpcResponse.status === 'error') {
+            return {
+              ok: false,
+              status: 'error',
+              error: rpcResponse.rejection_reason ?? 'Errore server durante l\'acquisto.',
+            };
+          }
           return {
             ok: false,
             status: 'rejected',
