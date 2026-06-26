@@ -186,22 +186,44 @@ serve(async (req: Request) => {
     const requesterUserId = requesterUserIdFromAuth;
     const duplicateCount = countDuplicateLogIds(normalizedLogs);
 
+    // Enforce duplicatePolicy — closes #1360.
+    // Previously duplicatePolicy was parsed but never acted upon, making the
+    // API contract a no-op. Now it controls whether duplicate IDs are filtered
+    // out or rejected.
+    if (duplicatePolicy === 'error' && duplicateCount > 0) {
+      return jsonResponse({
+        error: `Duplicate log IDs detected (${duplicateCount}). Set duplicatePolicy to "include" or "skip" to proceed.`,
+        duplicateCount,
+      }, 400);
+    }
+
+    const dedupedLogs = duplicatePolicy === 'skip'
+      ? (() => {
+          const seen = new Set<string>();
+          return normalizedLogs.filter((entry) => {
+            if (seen.has(entry.id)) return false;
+            seen.add(entry.id);
+            return true;
+          });
+        })()
+      : normalizedLogs;
+
     console.info('[mobile-logs] ingest request', {
       source,
       duplicatePolicy,
       rawCount: rawLogs.length,
-      acceptedCount: normalizedLogs.length,
+      acceptedCount: dedupedLogs.length,
       duplicateCount,
       requesterUserId,
       clientUserId,
     });
 
-    normalizedLogs.forEach((entry, index) => {
+    dedupedLogs.forEach((entry, index) => {
       const payload = {
         source,
         duplicatePolicy,
         index,
-        total: normalizedLogs.length,
+        total: dedupedLogs.length,
         duplicateCount,
         requesterUserId,
         clientUserId,
@@ -220,9 +242,9 @@ serve(async (req: Request) => {
 
     return jsonResponse({
       ok: true,
-      received: normalizedLogs.length,
+      received: dedupedLogs.length,
       duplicateCount,
-      acceptedLogIds: normalizedLogs.map((entry) => entry.id),
+      acceptedLogIds: dedupedLogs.map((entry) => entry.id),
     });
   } catch (error) {
     console.error('[mobile-logs] unexpected error', error);
