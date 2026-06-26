@@ -1,9 +1,23 @@
 import { useEffect, useRef } from 'react';
 import { getPermission, notify } from '../lib/notifications';
 
+// Module-level constants for localStorage keys used to persist the last-notified
+// IDs across component remounts (e.g. login/logout auth transitions) — closes #1356.
+const LAST_BADGE_KEY = 'tdp-last-notified-badge-id';
+const LAST_EVENT_KEY = 'tdp-last-notified-event-id';
+
+function readStoredId(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function writeStoredId(key: string, value: string): void {
+  try { localStorage.setItem(key, value); } catch { /* SecurityError in private browsing */ }
+}
+
 export function useNotifications(upcomingEvent?: { id: string, name: string, date: string, time: string }, newestNewBadge?: { id: string, title: string }) {
-    const lastNotifiedBadgeId = useRef<string | null>(null);
-    const lastNotifiedEventId = useRef<string | null>(null);
+    // Initialize from localStorage so the deduplication guard survives remounts
+    // caused by auth state transitions (login/logout/token refresh).
+    const lastNotifiedBadgeId = useRef<string | null>(readStoredId(LAST_BADGE_KEY));
+    const lastNotifiedEventId = useRef<string | null>(readStoredId(LAST_EVENT_KEY));
 
     const newestNewBadgeId = newestNewBadge?.id;
     const newestNewBadgeTitle = newestNewBadge?.title;
@@ -17,6 +31,7 @@ export function useNotifications(upcomingEvent?: { id: string, name: string, dat
             tag: `badge-${newestNewBadgeId}`,
         });
         lastNotifiedBadgeId.current = newestNewBadgeId;
+        writeStoredId(LAST_BADGE_KEY, newestNewBadgeId);
     }, [newestNewBadgeId, newestNewBadgeTitle]);
 
     const upcomingEventId = upcomingEvent?.id;
@@ -33,5 +48,6 @@ export function useNotifications(upcomingEvent?: { id: string, name: string, dat
             tag: `event-${upcomingEventId}`,
         });
         lastNotifiedEventId.current = upcomingEventId;
+        writeStoredId(LAST_EVENT_KEY, upcomingEventId);
     }, [upcomingEventId, upcomingEventName, upcomingEventDate, upcomingEventTime]);
 }
