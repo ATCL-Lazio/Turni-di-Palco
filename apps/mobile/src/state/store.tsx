@@ -5205,7 +5205,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       return { ok: true };
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [persistProfile, state.profile],
   );
 
@@ -5279,7 +5278,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       return { ok: true, xpGained, skillGained, pointsGained };
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [persistProfile, state.profile],
   );
 
