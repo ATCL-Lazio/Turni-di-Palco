@@ -401,6 +401,9 @@ function AudioMinigame({ config, activityTitle, statBenefits, onComplete, onCanc
     triggerHaptic(result.label === 'Perfetto' ? [20, 30, 20] : 12);
 
     feedbackTimeoutRef.current = window.setTimeout(() => {
+      // Guard against calling setState / onComplete after unmount — the component
+      // may have been cancelled mid-feedback (closes #1359).
+      if (!isMountedRef.current) return;
       if (roundIndex + 1 < rounds.length) {
         setRoundIndex((value) => value + 1);
         setPhase('adjust');
