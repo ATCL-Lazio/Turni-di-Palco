@@ -55,11 +55,12 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
   const issueTrackerRef = useRef(new Set<string>());
   const requestIdRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Keep a ref to the active session ID so the in-flight AI response guard
+  // (activeSessionIdRef.current !== requestSessionId) is always current.
+  // Updated synchronously in handleSelectSession / handleNewSession rather than
+  // via useEffect, because effects fire after paint and would leave a stale ref
+  // during the transition window (closes #1350).
   const activeSessionIdRef = useRef(activeSessionId);
-
-  useEffect(() => {
-    activeSessionIdRef.current = activeSessionId;
-  }, [activeSessionId]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -175,6 +176,9 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
     if (isLoading) return;
     const session = chatSessions.find(s => s.id === sessionId);
     if (!session) return;
+    // Update the ref synchronously before setActiveSessionId so the in-flight
+    // AI response guard in handleSend sees the new session immediately.
+    activeSessionIdRef.current = session.id;
     setActiveSessionId(session.id);
     setMessages(session.messages);
     setIsHistoryOpen(false);
@@ -186,6 +190,8 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
     const session: ChatSession = { id: sessionId, createdAt: Date.now(), updatedAt: Date.now(), messages: [greetingMessage] };
     const next = [session, ...chatSessions].slice(0, MAX_SESSIONS);
     setChatSessions(next);
+    // Update the ref synchronously before setActiveSessionId (see handleSelectSession comment).
+    activeSessionIdRef.current = sessionId;
     setActiveSessionId(sessionId);
     setMessages(session.messages);
     setIsHistoryOpen(false);
