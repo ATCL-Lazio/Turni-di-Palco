@@ -97,19 +97,22 @@ serve(async (req) => {
   }
 
   // 2. Delete profile image from storage (non-fatal, with timeout guard)
-  const storageTimeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('storage timeout')), 10_000),
-  );
+  // Each operation gets its own independent timeout promise so that a slow
+  // list() call does not shrink the effective timeout for remove() (closes #1351).
+  const makeStorageTimeout = () =>
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('storage timeout')), 10_000),
+    );
   try {
     const { data: files } = await Promise.race([
       adminClient.storage.from('profile-images').list(userId),
-      storageTimeout,
+      makeStorageTimeout(),
     ]);
     if (files && files.length > 0) {
       const paths = files.map((f: { name: string }) => `${userId}/${f.name}`);
       await Promise.race([
         adminClient.storage.from('profile-images').remove(paths),
-        storageTimeout,
+        makeStorageTimeout(),
       ]);
     }
   } catch (storageError) {
