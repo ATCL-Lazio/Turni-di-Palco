@@ -264,7 +264,10 @@ serve(async (req: Request) => {
           if (typeof payload.circuit !== 'string') {
             return jsonResponse({ error: 'Parametro circuit non valido.' }, 400);
           }
-          query = query.ilike('circuit', payload.circuit.trim());
+          // Use case-insensitive exact match (.eq on lowercased value) instead of
+          // .ilike() to prevent SQL LIKE wildcard injection via the circuit field
+          // (closes #1357). ilike() treats % and _ as pattern metacharacters.
+          query = query.eq('circuit', payload.circuit.trim().toLowerCase());
         }
         if (payload.eventID !== undefined && payload.eventID !== null && payload.eventID !== '') {
           if (typeof payload.eventID !== 'string') {
