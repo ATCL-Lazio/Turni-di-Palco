@@ -4910,17 +4910,19 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       };
 
       // 1. Apply rewards locally — visible immediately in Home/profile.
-      // Compute the next profile value before calling setState so we can pass it
-      // directly to persistProfile. The capturedProfileRef pattern is unreliable
-      // under React 18 concurrent rendering because the setState updater is not
-      // guaranteed to run synchronously — capturedProfileRef.current is always null
-      // at the check site (closes #1312).
-      const nextProfile = applyRewards(state.profile, rewards, 'activity');
-      setState((prev: GameState) => ({ ...prev, profile: nextProfile }));
+      // Compute nextProfile inside the setState updater using prev.profile so
+      // concurrent profile updates (e.g. from a parallel turn registration) are
+      // not silently discarded (closes #1353). A stable ref is used to capture
+      // the computed value for persistProfile without relying on the stale closure.
+      let nextProfile: ReturnType<typeof applyRewards> | null = null;
+      setState((prev: GameState) => {
+        nextProfile = applyRewards(prev.profile, rewards, 'activity');
+        return { ...prev, profile: nextProfile };
+      });
 
       // 1b. Persist updated profile to server so XP/cachet/reputation survive
       // a page reload (closes #1200).
-      persistProfile(nextProfile);
+      if (nextProfile) persistProfile(nextProfile);
 
       // 2. Persist to narrative_history (append-only, RLS-scoped to user).
       // Best-effort: a failed insert does not roll back local rewards. Without
