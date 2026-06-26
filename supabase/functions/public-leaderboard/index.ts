@@ -56,7 +56,9 @@ serve(async (req) => {
   }
 
   const url = new URL(req.url);
-  const rawLimit = url.searchParams.get('limit');
+  // Treat an empty string the same as absent: `?limit=` should use the default,
+  // not clamp Number('') === 0 to 1 (closes #1352).
+  const rawLimit = url.searchParams.get('limit') || null;
   const parsed = Number(rawLimit ?? DEFAULT_LIMIT);
   const limit = Number.isFinite(parsed)
     ? Math.min(Math.max(Math.trunc(parsed), 1), MAX_LIMIT)
