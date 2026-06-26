@@ -132,6 +132,7 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
   const hasStoppedRef = useRef(false);
   const attemptCountRef = useRef(0);
   const startedAtRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
   const speed = accessibleMode ? 0.022 : 0.045;
   const feedbackHoldMs = accessibleMode ? 1800 : 900;
 
@@ -181,7 +182,9 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
   }, [phase, roundIndex, stopAnimation]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       stopAnimation();
       if (feedbackTimeoutRef.current != null) {
         window.clearTimeout(feedbackTimeoutRef.current);
@@ -217,6 +220,9 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
     triggerHaptic(result.label === 'Perfetto' ? [20, 30, 20] : 12);
 
     feedbackTimeoutRef.current = window.setTimeout(() => {
+      // Guard against calling setState / onComplete after unmount — the component
+      // may have been cancelled mid-feedback (closes #1359).
+      if (!isMountedRef.current) return;
       if (roundIndex + 1 < rounds.length) {
         setRoundIndex((value) => value + 1);
         setPhase('playing');
@@ -353,13 +359,16 @@ function AudioMinigame({ config, activityTitle, statBenefits, onComplete, onCanc
   const feedbackTimeoutRef = useRef<number | null>(null);
   const attemptCountRef = useRef(0);
   const startedAtRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
   const step = 5;
 
   const round = rounds[roundIndex];
   const roundLabel = `Round ${roundIndex + 1}/${rounds.length}`;
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (feedbackTimeoutRef.current != null) {
         window.clearTimeout(feedbackTimeoutRef.current);
       }
@@ -392,6 +401,9 @@ function AudioMinigame({ config, activityTitle, statBenefits, onComplete, onCanc
     triggerHaptic(result.label === 'Perfetto' ? [20, 30, 20] : 12);
 
     feedbackTimeoutRef.current = window.setTimeout(() => {
+      // Guard against calling setState / onComplete after unmount — the component
+      // may have been cancelled mid-feedback (closes #1359).
+      if (!isMountedRef.current) return;
       if (roundIndex + 1 < rounds.length) {
         setRoundIndex((value) => value + 1);
         setPhase('adjust');
