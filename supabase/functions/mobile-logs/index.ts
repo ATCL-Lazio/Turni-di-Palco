@@ -57,9 +57,12 @@ function sanitizeLogDetails(value: unknown): unknown {
   }
   try {
     const serialized = JSON.stringify(value);
-    // Cap serialized object size before re-parsing to avoid large object graphs.
+    // Slicing JSON at an arbitrary byte offset produces malformed JSON that
+    // JSON.parse() always rejects — the catch block then returns "[object Object]",
+    // silently discarding all structure (closes #1381). Return a structured
+    // wrapper object instead so the details field remains inspectable.
     if (serialized.length > MAX_DETAILS_JSON_LENGTH) {
-      return JSON.parse(serialized.slice(0, MAX_DETAILS_JSON_LENGTH) + '"[truncated]"}');
+      return { _truncated: true, _originalBytes: serialized.length, preview: serialized.slice(0, MAX_DETAILS_JSON_LENGTH) };
     }
     return JSON.parse(serialized);
   } catch {
