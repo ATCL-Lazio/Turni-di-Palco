@@ -151,9 +151,16 @@ export function setAnalyticsSupabaseUrl(url: string | null): void {
 
 const MAX_CACHE_ENTRIES = 16;
 const hashCache = new Map<string, Promise<string | undefined>>();
+// Tracks which cache entries are still in-flight (Promise not yet resolved).
+// LRU eviction must not evict in-flight entries: callers already awaiting the
+// Promise would still receive the result, but the next caller for the same
+// userId would trigger a redundant HTTP request because the cache entry is gone
+// (closes #1383).
+const hashCacheInFlight = new Set<string>();
 
 export function clearAnalyticsCache(): void {
   hashCache.clear();
+  hashCacheInFlight.clear();
 }
 
 /**
@@ -183,14 +190,39 @@ export function getUserHash(userId: string | null | undefined): Promise<string |
       // chiave è la meno recente. Evictiamo solo quella invece di un wipe
       // completo, così switch d'account multipli non causano burst di richieste
       // HTTP su utenti ancora attivi nella tab.
-      const oldest = hashCache.keys().next().value;
-      if (oldest !== undefined) hashCache.delete(oldest);
+      //
+      // Skip in-flight entries: evicting a Promise that other callers are
+      // already awaiting causes the next call for that userId to trigger a
+      // redundant HTTP request (the awaiting callers still get the result via
+      // their Promise reference, but the cache gap forces a new fetch — closes
+      // #1383). Find the oldest *settled* entry instead.
+      let evicted = false;
+      for (const key of hashCache.keys()) {
+        if (!hashCacheInFlight.has(key)) {
+          hashCache.delete(key);
+          evicted = true;
+          break;
+        }
+      }
+      // If all entries are in-flight, fall through without eviction — the cache
+      // will briefly exceed MAX_CACHE_ENTRIES but will drain as Promises settle.
+      if (!evicted && hashCache.size >= MAX_CACHE_ENTRIES) {
+        // All slots in-flight: evict the oldest entry as a last resort to keep
+        // memory bounded. Existing awaiters keep their Promise reference.
+        const oldest = hashCache.keys().next().value;
+        if (oldest !== undefined) {
+          hashCache.delete(oldest);
+          hashCacheInFlight.delete(oldest);
+        }
+      }
     }
     // Cache the promise immediately to deduplicate concurrent calls for the
     // same userId. However, if the fetch resolves to `undefined` (network
     // error, 401 before auth token is available, etc.) we evict the entry so
     // that a future call — after the token is set — can retry successfully.
+    hashCacheInFlight.add(userId);
     pending = fetchUserHash(userId).then((hash) => {
+      hashCacheInFlight.delete(userId);
       if (hash === undefined) hashCache.delete(userId);
       return hash;
     });
