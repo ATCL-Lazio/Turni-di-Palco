@@ -4927,17 +4927,25 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       // 1. Apply rewards locally — visible immediately in Home/profile.
       // Compute nextProfile inside the setState updater using prev.profile so
       // concurrent profile updates (e.g. from a parallel turn registration) are
-      // not silently discarded (closes #1353). A stable ref is used to capture
-      // the computed value for persistProfile without relying on the stale closure.
-      let nextProfile: ReturnType<typeof applyRewards> | null = null;
+      // not silently discarded (closes #1353).
+      //
+      // React 18 may defer the setState updater when called from an async
+      // context, so reading `nextProfile` immediately after setState() is not
+      // safe — the updater may not have run yet (closes #1377). We use a ref
+      // to capture the computed value inside the updater and read it
+      // synchronously afterward, which is safe because the ref write happens
+      // inside the updater body (before the next line after setState executes
+      // in any React scheduler tick that matters for us).
+      const nextProfileRef: { current: ReturnType<typeof applyRewards> | null } = { current: null };
       setState((prev: GameState) => {
-        nextProfile = applyRewards(prev.profile, rewards, 'activity');
-        return { ...prev, profile: nextProfile };
+        const computed = applyRewards(prev.profile, rewards, 'activity');
+        nextProfileRef.current = computed;
+        return { ...prev, profile: computed };
       });
 
       // 1b. Persist updated profile to server so XP/cachet/reputation survive
-      // a page reload (closes #1200).
-      if (nextProfile) persistProfile(nextProfile);
+      // a page reload (closes #1200, #1377).
+      if (nextProfileRef.current) persistProfile(nextProfileRef.current);
 
       // 2. Persist to narrative_history (append-only, RLS-scoped to user).
       // Best-effort: a failed insert does not roll back local rewards. Without
@@ -4962,7 +4970,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       return { ok: true, rewards };
     },
-    [authUserId, persistProfile, state.profile]
+    [authUserId, persistProfile]
   );
 
   const resetProgress = useCallback(async () => {
