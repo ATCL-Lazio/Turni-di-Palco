@@ -115,13 +115,47 @@ serve(async (req) => {
 
     const eventIds = eventsToDelete.map(e => e.id)
 
+    // Re-verify that the events still exist immediately before deleting child rows
+    // to narrow the TOCTOU window between the initial SELECT and the DELETE pair
+    // (closes #1382). A concurrent cleanup run or manual deletion between the two
+    // steps could otherwise cause ticket_activations to be deleted for events that
+    // a concurrent process already removed — or leave ticket_activations orphaned
+    // if the events DELETE later fails.
+    //
+    // Note: true atomicity requires a PostgreSQL RPC that wraps both DELETEs in a
+    // single transaction. This guard reduces — but does not eliminate — the race
+    // window without requiring a schema change.
+    const { data: stillExistingEvents, error: reVerifyError } = await supabaseClient
+      .from('events')
+      .select('id')
+      .in('id', eventIds)
+
+    if (reVerifyError) throw reVerifyError
+
+    const confirmedEventIds = (stillExistingEvents ?? []).map((e: { id: string }) => e.id)
+
+    if (confirmedEventIds.length === 0) {
+      return new Response(
+        JSON.stringify({
+          message: 'Nessun evento da cancellare (già rimossi da un processo concorrente)',
+          deleted: 0
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      )
+    }
+
     // Delete ticket_activations first: this table references events.id via FK
     // without ON DELETE CASCADE, so it must be removed before the parent rows
-    // are deleted to avoid a FK violation that would silently fail the whole batch.
+    // are deleted to avoid a FK violation that would fail the whole batch.
+    // We operate only on the confirmed subset to minimise the blast radius if
+    // the events DELETE subsequently fails.
     const { error: activationsError } = await supabaseClient
       .from('ticket_activations')
       .delete()
-      .in('event_id', eventIds)
+      .in('event_id', confirmedEventIds)
 
     if (activationsError) throw activationsError
 
@@ -131,16 +165,17 @@ serve(async (req) => {
     const { error: deleteError } = await supabaseClient
       .from('events')
       .delete()
-      .in('id', eventIds)
+      .in('id', confirmedEventIds)
 
     if (deleteError) throw deleteError
 
+    const confirmedDeleted = eventsToDelete.filter(e => confirmedEventIds.includes(e.id))
     return new Response(
       JSON.stringify({
-        message: `Cancellati ${eventsToDelete.length} eventi con successo`,
-        deleted: eventsToDelete.length,
+        message: `Cancellati ${confirmedDeleted.length} eventi con successo`,
+        deleted: confirmedDeleted.length,
         hasMore: eventsToDelete.length === MAX_BATCH,
-        events: eventsToDelete.map(e => ({ id: e.id, name: e.name, date: e.event_date }))
+        events: confirmedDeleted.map(e => ({ id: e.id, name: e.name, date: e.event_date }))
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
