@@ -137,7 +137,10 @@ serve(async (req: Request) => {
         return jsonResponse({ error: 'Missing hash or payload' }, 400);
       }
 
-      // Insert new ticket activation record (unassigned)
+      // Insert new ticket activation record (unassigned).
+      // reserved_by records the generating admin's user ID so that
+      // delete-my-account can clean up unactivated tickets when the admin
+      // deletes their account (GDPR Art. 17, closes #1385).
       const { error: insertError } = await supabase.from('ticket_activations').insert({
         hash: normalizedHash,
         circuit,
@@ -145,6 +148,7 @@ serve(async (req: Request) => {
         event_id: eventId,
         ticket_number: ticketNumber,
         date,
+        reserved_by: authenticatedUser?.id ?? null,
       });
 
       if (insertError) {
