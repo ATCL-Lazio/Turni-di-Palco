@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Shield, MapPin, Trash2, Eye, Lock, FileText, WifiOff } from 'lucide-react';
+import { ArrowLeft, Shield, MapPin, Trash2, Eye, Lock, FileText, WifiOff, Sparkles } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { CopyrightNotice } from '../ui/CopyrightNotice';
 
@@ -29,6 +29,11 @@ const highlights = [
     icon: Trash2,
     title: 'Diritto alla cancellazione',
     desc: 'Puoi richiedere la rimozione del tuo account in qualsiasi momento.',
+  },
+  {
+    icon: Sparkles,
+    title: 'Assistente AI',
+    desc: 'Il supporto "Maxwell" è un sistema di IA: ti avvisiamo sempre quando lo usi.',
   },
 ];
 
@@ -99,6 +104,52 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Intelligenza Artificiale — EU AI Act (Reg. UE 2024/1689) Art. 50 */}
+        <div className="flex flex-col gap-3">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-[#b8b2b3]/60 px-1">
+            Intelligenza artificiale
+          </p>
+          <div className="bg-[#1a1617] rounded-[16px] p-4 flex flex-col gap-3">
+            <div className="flex items-start gap-3">
+              <div className="flex items-center justify-center size-[36px] rounded-[10px] bg-[#f4bf4f]/10 shrink-0">
+                <Sparkles size={18} className="text-[#f4bf4f]" />
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <p className="text-[14px] font-semibold text-[#f5f5f5] leading-[19px]">
+                  Assistente "Maxwell"
+                </p>
+                <p className="text-[12px] leading-[17px] text-[#b8b2b3]">
+                  In conformità al Regolamento UE 2024/1689 (AI Act)
+                </p>
+              </div>
+            </div>
+            <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+              Il supporto è gestito da <span className="text-[#f5f5f5] font-medium">Maxwell</span>,
+              un assistente conversazionale basato su intelligenza artificiale. Ti
+              informiamo sempre quando stai interagendo con l'IA e le sue risposte
+              sono chiaramente indicate come generate automaticamente.
+            </p>
+            <ul className="flex flex-col gap-2 text-[13px] leading-[19px] text-[#b8b2b3]">
+              <li className="flex gap-2">
+                <span className="text-[#f4bf4f]">•</span>
+                Le risposte possono contenere imprecisioni: verifica sempre le informazioni importanti.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-[#f4bf4f]">•</span>
+                Non vengono prese decisioni automatizzate con effetti giuridici o significativi sul tuo account.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-[#f4bf4f]">•</span>
+                I messaggi che invii vengono usati solo per generare la risposta ed eventuali segnalazioni di supporto.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-[#f4bf4f]">•</span>
+                Puoi sempre richiedere assistenza a un operatore umano.
+              </li>
+            </ul>
           </div>
         </div>
 

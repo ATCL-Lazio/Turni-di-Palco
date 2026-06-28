@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowLeft, Bot, Clock3, History, Loader2, Plus, Send, User,
+  ArrowLeft, Bot, Clock3, History, Info, Loader2, Plus, Send, Sparkles, User, X,
 } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { Textarea } from '../ui/textarea';
@@ -14,6 +14,7 @@ import {
 import { Skeleton } from '../ui/skeleton';
 import { useIsMobile } from '../ui/use-mobile';
 import { requestAiIssue, requestAiSupport, type AiChatMessage } from '../../services/ai';
+import { AI_DISCLOSURE_KEY } from '../../constants/privacy';
 
 type SupportMessage = { id: string; role: 'assistant' | 'user'; content: string; createdAt: number };
 type IssueDraft = { title: string; body: string; labels?: string[] };
@@ -49,6 +50,10 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCreatingIssue, setIsCreatingIssue] = useState(false);
+  // EU AI Act Art. 50: la prima interazione con un sistema di IA deve essere
+  // accompagnata da un'informativa chiara. La mostriamo finche' l'utente non
+  // l'ha presa visione (persistita in localStorage).
+  const [showAiDisclosure, setShowAiDisclosure] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasLoadedRef = useRef(false);
@@ -100,6 +105,31 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
   }, [historyId]);
 
   useEffect(() => () => { abortControllerRef.current?.abort(); }, []);
+
+  // EU AI Act Art. 50(1): informa l'utente che sta interagendo con un sistema
+  // di IA "al piu' tardi al momento della prima interazione". Se non risulta
+  // gia' presa visione, mostriamo l'informativa.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (!window.localStorage.getItem(AI_DISCLOSURE_KEY)) {
+        setShowAiDisclosure(true);
+      }
+    } catch {
+      // localStorage non disponibile (es. navigazione privata): mostra comunque
+      // l'informativa per garantire la trasparenza richiesta.
+      setShowAiDisclosure(true);
+    }
+  }, []);
+
+  const handleDismissAiDisclosure = () => {
+    setShowAiDisclosure(false);
+    try {
+      window.localStorage.setItem(AI_DISCLOSURE_KEY, new Date().toISOString());
+    } catch {
+      /* SecurityError in navigazione privata: l'informativa e' comunque stata mostrata */
+    }
+  };
 
   useEffect(() => {
     if (!hasLoadedRef.current || !activeSessionId) return;
@@ -213,6 +243,8 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
             onOpenHistory={() => setIsHistoryOpen(true)}
           />
 
+          {showAiDisclosure && <AiDisclosureBanner onDismiss={handleDismissAiDisclosure} />}
+
           <ChatMessageArea
             messages={messages}
             isLoading={isLoading}
@@ -259,7 +291,9 @@ function ChatHeader({ onBack, sessionCount, isLoading, isCreatingIssue, onOpenHi
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[12px] font-medium uppercase tracking-[0.08em] text-[#b8b2b3]">Supporto intelligente</p>
+              <p className="inline-flex items-center gap-1 text-[12px] font-medium uppercase tracking-[0.08em] text-[#b8b2b3]">
+                <Sparkles size={12} className="text-[#f4bf4f]" /> Assistente AI
+              </p>
               <h1 className="text-[25px] font-bold leading-[30px] text-[#f5f5f5]">Maxwell</h1>
             </div>
             <Button type="button" variant="ghost" size="sm" onClick={onOpenHistory}
@@ -274,10 +308,56 @@ function ChatHeader({ onBack, sessionCount, isLoading, isCreatingIssue, onOpenHi
             {isCreatingIssue && <Badge variant="outline" size="sm"><Clock3 size={12} /> Segnalazione in preparazione</Badge>}
           </div>
           <p className="text-[13px] leading-[19px] text-[#9a9697]">
-            Descrivi il problema con parole semplici. Maxwell ti risponde e, se serve, prepara automaticamente una segnalazione.
+            Maxwell è un assistente basato su intelligenza artificiale: descrivi il problema con parole semplici e, se serve, prepara automaticamente una segnalazione.
           </p>
         </div>
       </div>
+    </Card>
+  );
+}
+
+function AiDisclosureBanner({ onDismiss }: { onDismiss: () => void }) {
+  // EU AI Act (Reg. UE 2024/1689) Art. 50(1): l'utente deve essere informato
+  // in modo chiaro e distinguibile di interagire con un sistema di IA.
+  return (
+    <Card
+      role="note"
+      aria-label="Informativa sull'uso dell'intelligenza artificiale"
+      className="border border-[#3b3436] bg-[#1a1617] p-4"
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex size-[36px] shrink-0 items-center justify-center rounded-xl bg-[#f4bf4f]/10 text-[#f4bf4f]">
+          <Info size={18} />
+        </div>
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <p className="text-[13px] font-semibold leading-[18px] text-[#f5f5f5]">
+            Stai parlando con un'intelligenza artificiale
+          </p>
+          <p className="text-[12px] leading-[18px] text-[#b8b2b3]">
+            Maxwell è un assistente automatico: le risposte sono generate da
+            un'IA e possono contenere imprecisioni. Non vengono prese decisioni
+            automatizzate sul tuo account e puoi sempre rivolgerti a un operatore
+            umano. Maggiori dettagli nella Privacy Policy.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Ho capito, chiudi l'informativa"
+          className="flex size-[32px] shrink-0 items-center justify-center rounded-lg border border-[#3b3436] bg-[#0f0d0e] text-[#b8b2b3] transition-colors hover:text-[#f4bf4f]"
+        >
+          <X size={16} />
+        </button>
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={onDismiss}
+        className="mt-3 h-[36px] w-full rounded-xl border border-[#3b3436] text-[#f4bf4f]"
+      >
+        Ho capito
+      </Button>
     </Card>
   );
 }
@@ -383,6 +463,12 @@ function ChatInputBar({ input, onInputChange, hasInput, isLoading, isCreatingIss
           <span>Invio: Enter - Nuova riga: Shift + Enter</span>
           {isCreatingIssue && <span className="text-[#f4bf4f]">Segnalazione automatica in corso</span>}
         </div>
+        {/* EU AI Act Art. 50: i contenuti generati dall'IA restano sempre
+            riconoscibili come tali anche dopo aver chiuso l'informativa. */}
+        <p className="mt-1.5 flex items-center gap-1.5 text-[10px] leading-[14px] text-[#8a8485]">
+          <Sparkles size={11} className="shrink-0 text-[#8a8485]" />
+          Risposte generate da intelligenza artificiale: possono contenere errori, verifica le informazioni importanti.
+        </p>
       </Card>
     </div>
   );
