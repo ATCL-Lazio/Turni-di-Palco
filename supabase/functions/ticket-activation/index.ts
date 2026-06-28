@@ -127,7 +127,12 @@ serve(async (req: Request) => {
         date?: unknown;
       };
 
-      const circuit = String(normalizedPayload.circuit ?? '').trim();
+      // Lowercase circuit on write so it matches the lowercase comparison used by
+      // activate_by_ticket_number (.eq('circuit', payload.circuit.toLowerCase())).
+      // Storing the original case caused case-sensitive PostgreSQL `=` queries to
+      // return zero rows whenever the circuit name contained uppercase characters
+      // (closes #1384).
+      const circuit = String(normalizedPayload.circuit ?? '').trim().toLowerCase();
       const eventName = String(normalizedPayload.eventName ?? '').trim();
       const eventId = String(normalizedPayload.eventID ?? '').trim();
       const ticketNumber = String(normalizedPayload.ticketNumber ?? '').trim();
