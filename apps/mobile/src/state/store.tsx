@@ -2897,6 +2897,19 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
     try {
       for (const queuedMutation of [...queue]) {
+        // Re-check connectivity at the start of each iteration so that a
+        // mid-flush connectivity drop does not increment the attempts counter
+        // for all remaining mutations — spurious attempt increments can push
+        // near-max-retry entries over the discard threshold, permanently
+        // losing valid queued mutations on a transient network blip (closes #1379).
+        if (isNavigatorOffline()) {
+          logOfflineSync('Flush aborted mid-loop: browser went offline', {
+            authUserId,
+            remainingForUser: queue.filter((entry) => entry.userId === authUserId).length,
+          }, 'warn');
+          break;
+        }
+
         if (queuedMutation.userId !== authUserId) continue;
         if (!queue.some((entry) => entry.id === queuedMutation.id)) continue;
         logOfflineSync('Processing queued mutation', summarizeQueuedMutation(queuedMutation));
