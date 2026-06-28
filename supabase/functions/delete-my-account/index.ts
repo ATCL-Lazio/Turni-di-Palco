@@ -63,8 +63,15 @@ serve(async (req) => {
   });
 
   // 1. Delete game data (cascade-safe: ordered by FK dependencies)
+  //
+  // ticket_activations is deleted twice — once by activated_by (tickets the
+  // user activated) and once by reserved_by (tickets the user generated as an
+  // admin but that were never activated). Without the reserved_by delete,
+  // unactivated tickets from a deleted admin remain in the DB and can still be
+  // scanned and activated by anyone, violating GDPR Art. 17 (closes #1385).
   const tablesToDelete = [
     { table: 'ticket_activations', key: 'activated_by' },
+    { table: 'ticket_activations', key: 'reserved_by' },
     { table: 'activity_completions', key: 'user_id' },
     { table: 'user_badges', key: 'user_id' },
     { table: 'planned_participations', key: 'user_id' },
@@ -79,8 +86,8 @@ serve(async (req) => {
   for (const { table, key } of tablesToDelete) {
     const { error } = await adminClient.from(table).delete().eq(key, userId);
     if (error) {
-      console.error(`delete-my-account: error deleting from ${table}`, error.message);
-      failedTable = table;
+      console.error(`delete-my-account: error deleting from ${table} (key: ${key})`, error.message);
+      failedTable = `${table}.${key}`;
       break;
     }
   }
