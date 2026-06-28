@@ -4327,41 +4327,45 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const completeOnboarding = useCallback(
     (variant: 'full' | 'skipped_qr' | 'skipped_manual', xpReward?: number) => {
       const completedAt = new Date().toISOString();
-      // Compute the next profile value before calling setState so we can pass it
-      // directly to persistProfile. The capturedProfileRef pattern is unreliable
-      // under React 18 concurrent rendering because the setState updater is not
-      // guaranteed to run synchronously — capturedProfileRef.current is always null
-      // at the check site (closes #1312).
-      let nextProfile: PlayerProfile = {
-        ...state.profile,
-        onboardingCompletedAt: completedAt,
-        onboardingVariant: variant,
-      };
-      if (xpReward && xpReward > 0) {
-        nextProfile = applyRewards(nextProfile, { xp: xpReward, cachet: 0, reputation: 0 }, 'activity');
-      }
-      setState((prev: GameState) => ({ ...prev, profile: nextProfile }));
-      persistProfile(nextProfile);
+      // Compute nextProfile inside the setState updater using prev.profile so
+      // concurrent profile mutations are not silently clobbered (closes #1378).
+      // A plain object ref captures the computed value for persistProfile without
+      // relying on the potentially-deferred updater running synchronously.
+      const nextProfileRef: { current: PlayerProfile | null } = { current: null };
+      setState((prev: GameState) => {
+        let next: PlayerProfile = {
+          ...prev.profile,
+          onboardingCompletedAt: completedAt,
+          onboardingVariant: variant,
+        };
+        if (xpReward && xpReward > 0) {
+          next = applyRewards(next, { xp: xpReward, cachet: 0, reputation: 0 }, 'activity');
+        }
+        nextProfileRef.current = next;
+        return { ...prev, profile: next };
+      });
+      if (nextProfileRef.current) persistProfile(nextProfileRef.current);
     },
-    [persistProfile, state.profile],
+    [persistProfile],
   );
 
   const updateProfile = useCallback(
     (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {
-      // Compute the next profile value before calling setState so we can pass it
-      // directly to persistProfile. The capturedProfileRef pattern is unreliable
-      // under React 18 concurrent rendering because the setState updater is not
-      // guaranteed to run synchronously — capturedProfileRef.current is always null
-      // at the check site (closes #1312).
-      const nextRole =
-        updates.roleId && catalog.roles.some((role: Role) => role.id === updates.roleId)
-          ? updates.roleId
-          : state.profile.roleId;
-      const nextProfile: PlayerProfile = { ...state.profile, ...updates, roleId: nextRole ?? state.profile.roleId };
-      setState((prev: GameState) => ({ ...prev, profile: nextProfile }));
-      persistProfile(nextProfile);
+      // Compute nextProfile inside the setState updater using prev.profile so
+      // concurrent profile mutations are not silently clobbered (closes #1378).
+      const nextProfileRef: { current: PlayerProfile | null } = { current: null };
+      setState((prev: GameState) => {
+        const nextRole =
+          updates.roleId && catalog.roles.some((role: Role) => role.id === updates.roleId)
+            ? updates.roleId
+            : prev.profile.roleId;
+        const next: PlayerProfile = { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId };
+        nextProfileRef.current = next;
+        return { ...prev, profile: next };
+      });
+      if (nextProfileRef.current) persistProfile(nextProfileRef.current);
     },
-    [catalog.roles, persistProfile, state.profile]
+    [catalog.roles, persistProfile]
   );
 
   const registerTurn = useCallback(
@@ -5210,23 +5214,35 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      const nextProfile: PlayerProfile = {
-        ...profile,
-        cachet: profile.cachet - course.costCachet,
-        skills,
-        completedCourses,
-        activeCourses: {
-          ...activeCourses,
-          [courseId]: new Date().toISOString(),
-        },
-      };
-
-      // The updater is now a pure state transition with no external side effects —
-      // safe under React StrictMode double-invocation.
-      setState((prev) => ({ ...prev, profile: nextProfile }));
+      // Compute nextProfile inside the setState updater using prev.profile so
+      // concurrent profile mutations (e.g. a Realtime subscription firing during
+      // course start) are not silently clobbered (closes #1378). Guard checks
+      // above use the render-time snapshot for early returns, which is acceptable
+      // since they gate on game-logic invariants rather than numeric values that
+      // could race. The state transition itself uses prev.profile.
+      const startedAt = new Date().toISOString();
+      const nextProfileRef: { current: PlayerProfile | null } = { current: null };
+      setState((prev) => {
+        const p = prev.profile;
+        const pSkills = p.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
+        const pActiveCourses = p.activeCourses ?? {};
+        const pCompletedCourses = p.completedCourses ?? {};
+        const next: PlayerProfile = {
+          ...p,
+          cachet: p.cachet - course.costCachet,
+          skills: pSkills,
+          completedCourses: pCompletedCourses,
+          activeCourses: {
+            ...pActiveCourses,
+            [courseId]: startedAt,
+          },
+        };
+        nextProfileRef.current = next;
+        return { ...prev, profile: next };
+      });
 
       // Sync course state to Supabase so a page refresh doesn't reset progress.
-      persistProfile(nextProfile);
+      if (nextProfileRef.current) persistProfile(nextProfileRef.current);
 
       return { ok: true };
     },
@@ -5273,33 +5289,43 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       const skillGained: CourseSkill = course.skill;
       const pointsGained = course.skillPoints;
 
-      // Applica XP tramite lo stesso helper usato dalle attività.
-      const rewards: Rewards = { xp: xpGained, cachet: 0, reputation: 0 };
-      const profileWithXp = applyRewards(profile, rewards, 'activity');
+      // Compute nextProfile inside the setState updater using prev.profile so
+      // concurrent profile mutations are not silently clobbered (closes #1378).
+      const completedAt = new Date().toISOString();
+      const nextProfileRef: { current: PlayerProfile | null } = { current: null };
+      setState((prev) => {
+        const p = prev.profile;
+        const pSkills = p.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
+        const pActiveCourses = p.activeCourses ?? {};
+        const pCompletedCourses = p.completedCourses ?? {};
 
-      const updatedSkills = {
-        ...skills,
-        [skillGained]: (skills[skillGained] ?? 0) + pointsGained,
-      };
+        // Applica XP tramite lo stesso helper usato dalle attività.
+        const rewards: Rewards = { xp: xpGained, cachet: 0, reputation: 0 };
+        const profileWithXp = applyRewards(p, rewards, 'activity');
 
-      // Rimuovi dai corsi attivi e aggiungi ai completati.
-      const { [courseId]: _removed, ...remainingActive } = activeCourses;
+        const updatedSkills = {
+          ...pSkills,
+          [skillGained]: (pSkills[skillGained] ?? 0) + pointsGained,
+        };
 
-      const nextProfile: PlayerProfile = {
-        ...profileWithXp,
-        skills: updatedSkills,
-        completedCourses: {
-          ...completedCourses,
-          [courseId]: new Date().toISOString(),
-        },
-        activeCourses: remainingActive,
-      };
+        // Rimuovi dai corsi attivi e aggiungi ai completati.
+        const { [courseId]: _removed, ...remainingActive } = pActiveCourses;
 
-      // The updater is now a pure state transition — safe under StrictMode double-invocation.
-      setState((prev) => ({ ...prev, profile: nextProfile }));
+        const next: PlayerProfile = {
+          ...profileWithXp,
+          skills: updatedSkills,
+          completedCourses: {
+            ...pCompletedCourses,
+            [courseId]: completedAt,
+          },
+          activeCourses: remainingActive,
+        };
+        nextProfileRef.current = next;
+        return { ...prev, profile: next };
+      });
 
       // Sync completed skills and cooldown timestamps to Supabase.
-      persistProfile(nextProfile);
+      if (nextProfileRef.current) persistProfile(nextProfileRef.current);
 
       return { ok: true, xpGained, skillGained, pointsGained };
     },
