@@ -342,14 +342,21 @@ export function AppShell() {
 
     // Seed with the current session immediately (handles page reloads where the
     // user is already signed in before this effect runs).
-    // Use getUser() first to verify the token with the server before reading
-    // the locally cached session, so revoked or expired tokens are rejected.
+    //
+    // We call getUser() — which validates the token server-side — and then
+    // refreshSession() to obtain a guaranteed-fresh access token. Using a
+    // separate getSession() call after getUser() was unsafe: getSession()
+    // returns the locally-cached value from localStorage, which could be stale
+    // or already revoked even if getUser() just succeeded (closes #1380, same
+    // anti-pattern fixed in useAuth.ts via #1326).
     supabase.auth.getUser()
       .then(({ data: { user }, error }) => {
-        if (error || !user) return undefined;
-        return supabase!.auth.getSession();
+        if (error || !user) return null;
+        return supabase!.auth.refreshSession();
       })
       .then((result) => {
+        // refreshSession() returns null when called with no active session;
+        // the access_token from the refreshed session is always server-issued.
         setAnalyticsAuthToken(result?.data?.session?.access_token ?? null);
       })
       .catch(() => undefined);
