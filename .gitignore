@@ -67,3 +67,6 @@ maxwell-ai-credentials.json
 tools/ticket_qr_generator/out/
 tools/ticket_qr_generator/__pycache__/
 .vercel
+
+# Agent/tool local configs — may contain personal access tokens; never commit.
+.codex/

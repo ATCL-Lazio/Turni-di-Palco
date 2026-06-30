@@ -1,0 +1,37 @@
+# Gitleaks configuration — secret scanning in CI (.github/workflows/security.yml).
+#
+# Estende il ruleset di default di gitleaks e aggiunge regole/allowlist
+# specifiche del repo. Lo scan in CI gira in modalità filesystem (`--no-git`):
+# analizza i file presenti nel working tree, così blocca QUALSIASI segreto
+# committato in un file (es. un token reale incollato in un `.env.example`),
+# senza fallire in perpetuo sui segreti già presenti nella history (che vanno
+# comunque ruotati, non solo rimossi).
+title = "Turni di Palco — gitleaks"
+
+[extend]
+# Parte dal ruleset ufficiale (AWS, GCP, GitHub, Stripe, generic-api-key, ecc.).
+useDefault = true
+
+[[rules]]
+id = "render-token"
+description = "Render API / MCP token (prefisso rnd_)"
+regex = '''rnd_[A-Za-z0-9]{20,}'''
+keywords = ["rnd_"]
+
+[[rules]]
+id = "uptimerobot-token"
+description = "UptimeRobot API token (prefisso u-)"
+regex = '''\bu[0-9]{5,}-[a-f0-9]{32}\b'''
+keywords = ["uptimerobot"]
+
+[allowlist]
+description = "Percorsi con falsi positivi noti"
+paths = [
+  # I lockfile npm contengono hash di integrità ad alta entropia: non sono segreti.
+  '''package-lock\.json$''',
+  # Output di build / dipendenze: artefatti generati, non sorgenti da scansionare.
+  # (In CI il checkout è pulito e non esistono; allowlist difensiva per run locali.)
+  '''(^|/)node_modules/''',
+  '''(^|/)build/''',
+  '''(^|/)dist/''',
+]
