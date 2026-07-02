@@ -213,10 +213,27 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
         {/* Conservazione — GDPR Art. 5.1.e */}
         <LegalSection icon={Clock} title="Per quanto tempo li conserviamo">
           <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
-            Conserviamo i dati per il tempo necessario alle finalità indicate e agli obblighi di legge.
-            I dati del tuo account e quelli associati vengono cancellati quando ne richiedi l'eliminazione
-            o dopo un periodo prolungato di inattività dell'account.
+            Conserviamo i dati personali solo per il tempo necessario alle finalità indicate e agli
+            obblighi di legge:
           </p>
+          <ul className="flex flex-col gap-2 text-[13px] leading-[19px] text-[#b8b2b3]">
+            <Bullet>
+              <b className="text-[#f5f5f5] font-medium">Dati account e di gioco</b>: per tutta la durata
+              dell'account; vengono eliminati quando richiedi la cancellazione dell'account.
+            </Bullet>
+            <Bullet>
+              <b className="text-[#f5f5f5] font-medium">Geolocalizzazione</b>: <span className="text-[#f5f5f5]">non viene conservata</span>.
+              È usata solo in tempo reale per verificare la presenza al turno e non viene salvata nei nostri archivi.
+            </Bullet>
+            <Bullet>
+              <b className="text-[#f5f5f5] font-medium">Statistiche d'uso</b>: raccolte in forma
+              pseudonimizzata e conservate per un periodo limitato.
+            </Bullet>
+            <Bullet>
+              <b className="text-[#f5f5f5] font-medium">Log tecnici</b>: gestiti a fini di sicurezza e
+              diagnostica dai nostri fornitori per un periodo limitato.
+            </Bullet>
+          </ul>
         </LegalSection>
 
         {/* Minori — GDPR Art. 8 */}
