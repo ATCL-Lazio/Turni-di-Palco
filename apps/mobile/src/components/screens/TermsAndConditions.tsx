@@ -7,6 +7,131 @@ interface TermsAndConditionsProps {
   onBack: () => void;
 }
 
+const LAST_UPDATED = '2 luglio 2026';
+const CONTROLLER_NAME = 'A.T.C.L. – Associazione Teatrale fra i Comuni del Lazio';
+const PRIVACY_EMAIL = 'privacy@atcllazio.it';
+
+type Section = { title: string; body: React.ReactNode };
+
+const SECTIONS: Section[] = [
+  {
+    title: '1. Titolare e oggetto',
+    body: (
+      <>
+        Turni di Palco è un servizio digitale di {CONTROLLER_NAME} (di seguito “ATCL”),
+        con sede in Via della Vasca Navale 56/58, 00146 Roma. I presenti Termini regolano
+        l’uso dell’applicazione.
+      </>
+    ),
+  },
+  {
+    title: '2. Requisiti di età',
+    body: (
+      <>
+        Per registrarti devi avere almeno <b className="text-white">14 anni</b> (età del
+        consenso digitale in Italia, D.Lgs. 101/2018). Al momento della registrazione ti
+        viene chiesto di indicare la data di nascita per verificare tale requisito.
+      </>
+    ),
+  },
+  {
+    title: '3. Account',
+    body: (
+      <>
+        L’accesso richiede registrazione e autenticazione. Sei responsabile della
+        riservatezza delle tue credenziali e delle attività svolte tramite il tuo account.
+        Fornisci informazioni veritiere e aggiornate.
+      </>
+    ),
+  },
+  {
+    title: '4. Uso del servizio',
+    body: (
+      <>
+        È vietato utilizzare il servizio per attività illecite, per tentativi di abuso o per
+        manipolare il sistema di ricompense (XP, badge, classifica). ATCL può adottare misure
+        proporzionate in caso di uso anomalo.
+      </>
+    ),
+  },
+  {
+    title: '5. Codici e QR',
+    body: (
+      <>
+        I codici (es. biglietti) possono essere verificati e attivati una sola volta. In caso
+        di uso anomalo o duplicazioni potremmo sospendere l’abilitazione dei codici.
+      </>
+    ),
+  },
+  {
+    title: '6. Assistente AI “Maxwell”',
+    body: (
+      <>
+        Il supporto è fornito da un assistente basato su intelligenza artificiale, segnalato
+        come tale. Le risposte possono contenere imprecisioni e non costituiscono decisioni
+        automatizzate con effetti giuridici sul tuo account. Puoi sempre rivolgerti a un
+        operatore umano.
+      </>
+    ),
+  },
+  {
+    title: '7. Proprietà intellettuale',
+    body: (
+      <>
+        Il software, i contenuti, i marchi e la grafica di Turni di Palco sono di proprietà di
+        ATCL o dei rispettivi titolari e sono protetti dalla legge. Ti è concessa una licenza
+        d’uso personale, non esclusiva e non trasferibile, limitata alla fruizione del servizio.
+      </>
+    ),
+  },
+  {
+    title: '8. Limitazione di responsabilità',
+    body: (
+      <>
+        Il servizio è fornito “così com’è”. Nei limiti consentiti dalla legge, ATCL non risponde
+        per interruzioni, indisponibilità temporanee o dati inseriti dagli utenti. Nulla in questi
+        Termini esclude responsabilità non derogabili per legge, inclusi i diritti dei consumatori.
+      </>
+    ),
+  },
+  {
+    title: '9. Modifiche',
+    body: (
+      <>
+        Possiamo aggiornare funzionalità, contenuti e questi Termini. Le modifiche sostanziali
+        verranno comunicate tramite l’app quando possibile.
+      </>
+    ),
+  },
+  {
+    title: '10. Recesso e cancellazione',
+    body: (
+      <>
+        Puoi smettere di usare il servizio ed eliminare il tuo account in qualsiasi momento dalle
+        impostazioni dell’account. Il trattamento dei dati è descritto nella Privacy Policy.
+      </>
+    ),
+  },
+  {
+    title: '11. Legge applicabile e foro',
+    body: (
+      <>
+        I presenti Termini sono regolati dalla legge italiana. Per le controversie con i consumatori
+        è competente il foro del luogo di residenza o domicilio dell’utente, se situato in Italia;
+        negli altri casi è competente il foro di Roma.
+      </>
+    ),
+  },
+  {
+    title: '12. Contatti',
+    body: (
+      <>
+        Per richieste o segnalazioni puoi scrivere a {PRIVACY_EMAIL}.
+      </>
+    ),
+  },
+];
+
 export function TermsAndConditions({ onBack }: TermsAndConditionsProps) {
   return (
     <Screen
@@ -33,54 +158,16 @@ export function TermsAndConditions({ onBack }: TermsAndConditionsProps) {
 
         <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 flex flex-col gap-4">
           <p className="text-[14px] leading-[20px] text-[#b8b2b3] !m-0">
-            Ultimo aggiornamento: 31 Dic 2025
+            Ultimo aggiornamento: {LAST_UPDATED}
           </p>
 
           <div className="flex flex-col gap-3 text-[14px] leading-[20px] text-[#b8b2b3]">
-            <p className="!m-0">
-              Questo documento descrive le regole di utilizzo di Turni di Palco. Il testo è una base
-              iniziale e potrà essere aggiornato.
-            </p>
-
-            <div>
-              <p className="text-white font-semibold !m-0">1. Account</p>
-              <p className="!m-0">
-                L’accesso può richiedere registrazione e autenticazione. Sei responsabile della
-                riservatezza delle credenziali.
-              </p>
-            </div>
-
-            <div>
-              <p className="text-white font-semibold !m-0">2. Uso del servizio</p>
-              <p className="!m-0">
-                È vietato utilizzare il servizio per attività illecite, tentativi di abuso o
-                manipolazione del sistema di ricompense.
-              </p>
-            </div>
-
-            <div>
-              <p className="text-white font-semibold !m-0">3. Codici e QR</p>
-              <p className="!m-0">
-                I codici (es. biglietti) possono essere verificati e attivati una sola volta. In caso di
-                uso anomalo o duplicazioni, potremmo sospendere l’abilitazione dei codici.
-              </p>
-            </div>
-
-            <div>
-              <p className="text-white font-semibold !m-0">4. Modifiche</p>
-              <p className="!m-0">
-                Possiamo aggiornare funzionalità e contenuti. Le modifiche sostanziali verranno
-                comunicate tramite l’app quando possibile.
-              </p>
-            </div>
-
-            <div>
-              <p className="text-white font-semibold !m-0">5. Contatti</p>
-              <p className="!m-0">
-                Per richieste o segnalazioni, contatta il team tramite i canali indicati nelle
-                informazioni del progetto.
-              </p>
-            </div>
+            {SECTIONS.map((section) => (
+              <div key={section.title}>
+                <p className="text-white font-semibold !m-0">{section.title}</p>
+                <p className="!m-0">{section.body}</p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -89,4 +176,3 @@ export function TermsAndConditions({ onBack }: TermsAndConditionsProps) {
     </Screen>
   );
 }
-
