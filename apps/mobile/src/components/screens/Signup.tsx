@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { FormField, FormInput, AuthFormLayout } from '../ui/FormField';
 import { Button } from '../ui/Button';
+import { MIN_SIGNUP_AGE, computeAge } from '../../lib/age';
 
 interface SignupProps {
   onBack: () => void;
@@ -16,6 +17,7 @@ interface SignupProps {
 export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, errorMessage }: SignupProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -28,6 +30,14 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
     const newErrors: Record<string, string> = {};
     if (!name) newErrors.name = 'Nome richiesto';
     if (!email) newErrors.email = 'Email richiesta';
+    // GDPR Art. 8: verifica dell'età. In Italia il consenso digitale è a 14 anni.
+    if (!birthDate) {
+      newErrors.birthDate = 'Data di nascita richiesta';
+    } else {
+      const age = computeAge(birthDate);
+      if (age === null) newErrors.birthDate = 'Inserisci una data di nascita valida';
+      else if (age < MIN_SIGNUP_AGE) newErrors.birthDate = `Devi avere almeno ${MIN_SIGNUP_AGE} anni per registrarti`;
+    }
     if (!password) newErrors.password = 'Password richiesta'; else if (password.length < 8) newErrors.password = 'La password deve avere almeno 8 caratteri';
     if (password !== confirmPassword) newErrors.confirmPassword = 'Le password non corrispondono';
     if (!acceptTerms) newErrors.terms = 'Devi accettare i termini e la privacy';
@@ -69,6 +79,15 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
           <FormField label="Email" error={errors.email}>
             <FormInput type="email" value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               autoComplete="email" hasError={!!errors.email} placeholder="tuo@email.com" />
+          </FormField>
+
+          <FormField label="Data di nascita" error={errors.birthDate}>
+            <FormInput type="date" value={birthDate} max={new Date().toISOString().slice(0, 10)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBirthDate(e.target.value)}
+              autoComplete="bday" hasError={!!errors.birthDate} aria-label="Data di nascita" />
+            <p className="mt-2 !mb-0 text-base text-[#9a9697]">
+              Serve solo per verificare che tu abbia almeno {MIN_SIGNUP_AGE} anni. Non viene salvata.
+            </p>
           </FormField>
 
           <div className="flex flex-col gap-4 w-full">
