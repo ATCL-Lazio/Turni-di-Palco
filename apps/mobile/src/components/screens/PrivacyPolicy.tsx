@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Shield, MapPin, Trash2, Eye, Lock, FileText, WifiOff, Sparkles } from 'lucide-react';
+import {
+  ArrowLeft, Shield, MapPin, Trash2, Eye, Lock, FileText, WifiOff, Sparkles,
+  Building2, Database, Users, Clock, Baby, Scale, Cookie, Accessibility,
+} from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { CopyrightNotice } from '../ui/CopyrightNotice';
 
@@ -8,6 +11,17 @@ interface PrivacyPolicyProps {
 }
 
 const IUBENDA_PRIVACY_POLICY_URL = 'https://www.iubenda.com/privacy-policy/15042123';
+
+// Dati del titolare — fonte: privacy policy ATCL su Iubenda + comunicazioni ATCL.
+const CONTROLLER = {
+  name: 'A.T.C.L. – Associazione Teatrale fra i Comuni del Lazio',
+  address: 'Via della Vasca Navale 56/58, 00146 Roma (Italia)',
+  pec: 'atcl@pec.atcllazio.it',
+  privacyEmail: 'privacy@atcllazio.it',
+  dpo: 'Alessandra Caruso',
+} as const;
+
+const LAST_UPDATED = '2 luglio 2026';
 
 const highlights = [
   {
@@ -81,6 +95,9 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
             <p className="text-[14px] leading-[20px] text-[#b8b2b3]">
               Come trattiamo i tuoi dati
             </p>
+            <p className="text-[12px] leading-[16px] text-[#b8b2b3]/60">
+              Ultimo aggiornamento: {LAST_UPDATED}
+            </p>
           </div>
         </div>
 
@@ -153,6 +170,107 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
           </div>
         </div>
 
+        {/* Titolare del trattamento e DPO — GDPR Art. 13 */}
+        <LegalSection icon={Building2} title="Titolare del trattamento">
+          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+            Il titolare del trattamento è <span className="text-[#f5f5f5] font-medium">{CONTROLLER.name}</span>,
+            {' '}{CONTROLLER.address}.
+          </p>
+          <ul className="flex flex-col gap-1.5 text-[13px] leading-[19px] text-[#b8b2b3]">
+            <li>PEC: <span className="text-[#f5f5f5]">{CONTROLLER.pec}</span></li>
+            <li>Email privacy: <span className="text-[#f5f5f5]">{CONTROLLER.privacyEmail}</span></li>
+            <li>Responsabile della protezione dei dati (DPO/RPD): <span className="text-[#f5f5f5]">{CONTROLLER.dpo}</span> — {CONTROLLER.privacyEmail}</li>
+          </ul>
+        </LegalSection>
+
+        {/* Dati raccolti, finalità e base giuridica — GDPR Art. 13 */}
+        <LegalSection icon={Database} title="Dati che trattiamo e perché">
+          <ul className="flex flex-col gap-2 text-[13px] leading-[19px] text-[#b8b2b3]">
+            <Bullet>
+              <b className="text-[#f5f5f5] font-medium">Dati account</b> (nome visualizzato, email, password, ruolo, foto profilo) — per creare e gestire il tuo account. Base giuridica: esecuzione del contratto (Art. 6.1.b).
+            </Bullet>
+            <Bullet>
+              <b className="text-[#f5f5f5] font-medium">Data di nascita</b> — usata solo al momento della registrazione per verificare l'età minima (14 anni) e non conservata.
+            </Bullet>
+            <Bullet>
+              <b className="text-[#f5f5f5] font-medium">Geolocalizzazione</b> — raccolta solo durante la registrazione dei turni, previo consenso esplicito (Art. 6.1.a). Puoi revocarlo in ogni momento.
+            </Bullet>
+            <Bullet>
+              <b className="text-[#f5f5f5] font-medium">Dati di gioco</b> (progressi, turni, badge, classifica) — per il funzionamento del servizio. Base giuridica: contratto.
+            </Bullet>
+            <Bullet>
+              <b className="text-[#f5f5f5] font-medium">Statistiche d'uso</b> — pseudonimizzate e raccolte solo con il tuo consenso analytics (Art. 6.1.a).
+            </Bullet>
+          </ul>
+        </LegalSection>
+
+        {/* Destinatari, sub-responsabili e trasferimenti — GDPR Artt. 28, 44-49 */}
+        <LegalSection icon={Users} title="Destinatari e trasferimenti">
+          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+            Non vendiamo i tuoi dati. Ci avvaliamo di fornitori che trattano i dati per nostro conto (responsabili del trattamento):
+          </p>
+          <ul className="flex flex-col gap-2 text-[13px] leading-[19px] text-[#b8b2b3]">
+            <Bullet><b className="text-[#f5f5f5] font-medium">Supabase</b> — database, autenticazione e archiviazione.</Bullet>
+            <Bullet><b className="text-[#f5f5f5] font-medium">Vercel</b> — hosting dell'applicazione e delle API.</Bullet>
+            <Bullet><b className="text-[#f5f5f5] font-medium">Render</b> — servizio dell'assistente AI "Maxwell".</Bullet>
+            <Bullet><b className="text-[#f5f5f5] font-medium">GitHub</b> — gestione delle segnalazioni di supporto.</Bullet>
+            <Bullet><b className="text-[#f5f5f5] font-medium">Iubenda</b> — pubblicazione della documentazione privacy.</Bullet>
+          </ul>
+          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+            Alcuni fornitori possono trattare i dati al di fuori dell'UE/SEE: in tal caso il trasferimento è
+            regolato da garanzie adeguate ai sensi degli Artt. 44-49 GDPR (es. Clausole Contrattuali Standard).
+          </p>
+        </LegalSection>
+
+        {/* Conservazione — GDPR Art. 5.1.e */}
+        <LegalSection icon={Clock} title="Per quanto tempo li conserviamo">
+          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+            Conserviamo i dati per il tempo necessario alle finalità indicate e agli obblighi di legge.
+            I dati del tuo account e quelli associati vengono cancellati quando ne richiedi l'eliminazione
+            o dopo un periodo prolungato di inattività dell'account.
+          </p>
+        </LegalSection>
+
+        {/* Minori — GDPR Art. 8 */}
+        <LegalSection icon={Baby} title="Minori">
+          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+            Il servizio è rivolto a persone di almeno <span className="text-[#f5f5f5] font-medium">14 anni</span>,
+            età del consenso digitale in Italia (D.Lgs. 101/2018). Alla registrazione verifichiamo l'età e
+            non consentiamo l'iscrizione agli under-14. Se ritieni che un minore di 14 anni si sia registrato,
+            scrivici a {CONTROLLER.privacyEmail} e provvederemo.
+          </p>
+        </LegalSection>
+
+        {/* Diritti dell'interessato — GDPR Artt. 15-22 */}
+        <LegalSection icon={Scale} title="I tuoi diritti">
+          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+            Puoi esercitare in ogni momento i diritti di accesso, rettifica, cancellazione, limitazione,
+            opposizione e portabilità, e revocare i consensi prestati. Dall'app puoi scaricare i tuoi dati
+            ed eliminare l'account. Per richieste: {CONTROLLER.privacyEmail}.
+          </p>
+          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+            Hai inoltre il diritto di proporre reclamo al <span className="text-[#f5f5f5] font-medium">Garante per la protezione dei dati personali</span> (garanteprivacy.it).
+          </p>
+        </LegalSection>
+
+        {/* Cookie e archiviazione locale — ePrivacy */}
+        <LegalSection icon={Cookie} title="Cookie e archiviazione locale">
+          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+            Usiamo solo cookie/archiviazione tecnica necessari al funzionamento (sessione, preferenze,
+            consensi). Le statistiche d'uso sono attivate solo con un consenso separato e revocabile,
+            gestibile da "Gestisci account → Privacy". Non usiamo cookie di profilazione pubblicitaria.
+          </p>
+        </LegalSection>
+
+        {/* Dichiarazione di accessibilità */}
+        <LegalSection icon={Accessibility} title="Accessibilità">
+          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+            Ci impegniamo a rendere l'applicazione accessibile e a migliorarla continuamente, ispirandoci
+            alle Linee guida WCAG 2.1 livello AA. Se incontri barriere o difficoltà d'uso, segnalacelo a
+            {' '}{CONTROLLER.privacyEmail}: interverremo per trovare una soluzione.
+          </p>
+        </LegalSection>
+
         {/* Full document */}
         <div className="flex flex-col gap-3">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-[#b8b2b3]/60 px-1">
@@ -200,5 +318,40 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
         <CopyrightNotice />
       </div>
     </Screen>
+  );
+}
+
+// === Helpers ===
+
+function LegalSection({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-[#b8b2b3]/60 px-1">
+        {title}
+      </p>
+      <div className="bg-[#1a1617] rounded-[16px] p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-center size-[36px] rounded-[10px] bg-[#f4bf4f]/10">
+          <Icon size={18} className="text-[#f4bf4f]" />
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Bullet({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex gap-2">
+      <span className="text-[#f4bf4f]">•</span>
+      <span>{children}</span>
+    </li>
   );
 }
