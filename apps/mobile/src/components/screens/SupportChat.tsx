@@ -13,7 +13,7 @@ import {
 } from '../ui/drawer';
 import { Skeleton } from '../ui/skeleton';
 import { useIsMobile } from '../ui/use-mobile';
-import { requestAiIssue, requestAiSupport, type AiChatMessage } from '../../services/ai';
+import { redactPII, requestAiIssue, requestAiSupport, type AiChatMessage } from '../../services/ai';
 import { AI_DISCLOSURE_KEY } from '../../constants/privacy';
 
 type SupportMessage = { id: string; role: 'assistant' | 'user'; content: string; createdAt: number };
@@ -153,12 +153,20 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
 
   const handleIssueDraft = async (draft: IssueDraft) => {
     if (isCreatingIssue) return;
-    const signature = `${draft.title}::${draft.body}`;
+    // La segnalazione diventa una issue GitHub pubblica: redige email, telefoni,
+    // codice fiscale e il nome dell'utente (potenzialmente un minore) dal draft
+    // generato dall'IA prima di inviarlo (tutela minori + GDPR Art. 32).
+    const safeDraft: IssueDraft = {
+      ...draft,
+      title: redactPII(draft.title, [displayName]),
+      body: redactPII(draft.body, [displayName]),
+    };
+    const signature = `${safeDraft.title}::${safeDraft.body}`;
     if (issueTrackerRef.current.has(signature)) return;
     issueTrackerRef.current.add(signature);
     setIsCreatingIssue(true);
     try {
-      await requestAiIssue({ payload: draft });
+      await requestAiIssue({ payload: safeDraft });
     } catch (error) {
       // Log the error to aid debugging and optionally surface a non-blocking message to the user.
       console.error('Failed to create support issue from AI draft:', error);
