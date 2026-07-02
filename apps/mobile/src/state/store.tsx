@@ -539,38 +539,11 @@ export const roles: Role[] = [
   },
 ];
 
-export const events: GameEvent[] = [
-  {
-    id: 'ATCL-001',
-    name: 'Prova aperta - Teatro di Latina',
-    theatre: 'Teatro di Latina',
-    date: '15 Dic 2025',
-    time: '20:30',
-    genre: 'Drama',
-    baseRewards: { xp: 150, reputation: 25, cachet: 100 },
-    focusRole: 'attrezzista',
-  },
-  {
-    id: 'ATCL-002',
-    name: 'Festival Giovani Voci',
-    theatre: "Teatro dell'Unione",
-    date: '10 Gen 2026',
-    time: '21:00',
-    genre: 'Musical',
-    baseRewards: { xp: 160, reputation: 30, cachet: 120 },
-    focusRole: 'fonico',
-  },
-  {
-    id: 'ATCL-003',
-    name: 'Prima nazionale - Circuito ATCL',
-    theatre: 'Teatro Palladium',
-    date: '02 Feb 2026',
-    time: '20:45',
-    genre: 'Opera',
-    baseRewards: { xp: 180, reputation: 35, cachet: 140 },
-    focusRole: 'luci',
-  },
-];
+// Catalogo eventi locale di fallback (solo DEV, quando Supabase non è
+// configurato). Gli eventi reali del circuito ATCL vengono importati dal vivo
+// (`tools/import-events.js`) nella tabella Supabase `events`. Intenzionalmente
+// vuoto: nessun evento mock/fittizio viene distribuito nel client.
+export const events: GameEvent[] = [];
 
 export const activities: Activity[] = [
   {
@@ -2017,27 +1990,34 @@ function createDemoState(): GameState {
       completedCourses: {},
       activeCourses: {},
     },
-    turns: [
-      {
-        id: 'turn-001',
-        eventId: events[0].id,
-        eventName: events[0].name,
-        theatre: events[0].theatre,
-        date: events[0].date,
-        time: events[0].time,
-        roleId: 'attore',
-        rewards: events[0].baseRewards,
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 7,
-      },
-    ],
-    eventPlans: [
-      {
-        eventId: events[0].id,
-        roleId: 'attore',
-        status: 'planned',
-        updatedAt: Date.now() - 1000 * 60 * 60 * 24,
-      },
-    ],
+    // Turni/piani demo solo se il fallback locale espone un evento. Con il
+    // catalogo mock rimosso (eventi reali dal solo importer) questi restano
+    // vuoti, equivalenti a un account nuovo.
+    turns: events[0]
+      ? [
+          {
+            id: 'turn-001',
+            eventId: events[0].id,
+            eventName: events[0].name,
+            theatre: events[0].theatre,
+            date: events[0].date,
+            time: events[0].time,
+            roleId: 'attore',
+            rewards: events[0].baseRewards,
+            createdAt: Date.now() - 1000 * 60 * 60 * 24 * 7,
+          },
+        ]
+      : [],
+    eventPlans: events[0]
+      ? [
+          {
+            eventId: events[0].id,
+            roleId: 'attore',
+            status: 'planned',
+            updatedAt: Date.now() - 1000 * 60 * 60 * 24,
+          },
+        ]
+      : [],
   };
 }
 
