@@ -271,6 +271,51 @@ export async function checkAiSupportAvailability({
   });
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Rimuove i dati personali più comuni da un testo prima che finisca in un
+ * canale potenzialmente pubblico (le segnalazioni di Maxwell diventano issue
+ * GitHub sul repo pubblico). Copre email, numeri di telefono e codice fiscale
+ * italiano; `extraTerms` consente di rimuovere termini noti aggiuntivi come il
+ * nome dell'utente. Tutela dei minori + GDPR Art. 32: una segnalazione non deve
+ * esporre PII. La funzione è deterministica e non lancia mai.
+ */
+export function redactPII(text: string, extraTerms: string[] = []): string {
+  if (!text) return text;
+  let out = text;
+  // Email.
+  out = out.replace(
+    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    '[email rimossa]',
+  );
+  // Codice fiscale italiano (16 caratteri) — prima dei numeri di telefono.
+  out = out.replace(
+    /\b[A-Za-z]{6}\d{2}[A-Za-z]\d{2}[A-Za-z]\d{3}[A-Za-z]\b/g,
+    '[dato rimosso]',
+  );
+  // Numeri di telefono: prefisso internazionale opzionale e cifre (8–15) con
+  // eventuali separatori. Il filtro sul conteggio cifre evita di rovinare
+  // numeri innocui (es. "livello 100", "score 1500").
+  out = out.replace(
+    /(?:\+|00)?\d[\d\s().-]{6,}\d/g,
+    (match) => {
+      const digits = match.replace(/\D/g, '');
+      return digits.length >= 8 && digits.length <= 15 ? '[telefono rimosso]' : match;
+    },
+  );
+  // Termini noti aggiuntivi (es. il nome utente). Ignora stringhe cortissime
+  // per non redigere in modo troppo aggressivo.
+  for (const term of extraTerms) {
+    const trimmed = term?.trim();
+    if (!trimmed || trimmed.length < 3) continue;
+    out = out.replace(new RegExp(escapeRegExp(trimmed), 'gi'), '[nome rimosso]');
+  }
+  return out;
+}
+
 export async function requestAiIssue({
   payload,
   endpoint,
@@ -278,6 +323,13 @@ export async function requestAiIssue({
   payload: AiSupportIssuePayload;
   endpoint?: string;
 }) {
+  // Rete di sicurezza: redige PII dal draft indipendentemente dal chiamante,
+  // prima che diventi una issue pubblica.
+  const safePayload: AiSupportIssuePayload = {
+    ...payload,
+    title: redactPII(payload.title),
+    body: redactPII(payload.body),
+  };
   // Use a single AbortController driven by withMobileWatchdog's timeout.
   // A redundant window.setTimeout at the same interval would create a race
   // where the outer abort fires after withMobileWatchdog already resolved,
@@ -291,7 +343,7 @@ export async function requestAiIssue({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(safePayload),
         signal: controller.signal,
       });
 
