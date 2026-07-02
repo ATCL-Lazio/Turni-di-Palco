@@ -738,6 +738,7 @@ function GdprPrivacyCard({
           <div className="flex-1">
             <p className="text-[16px] leading-[25.6px] text-white !m-0">Visibile in classifica</p>
             <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Il tuo profilo appare nella classifica pubblica</p>
+            <p className="text-[12px] leading-[18px] text-[#9a9697] !m-0 mt-1">Se sei minorenne è nascosto per impostazione predefinita: puoi renderti visibile da qui.</p>
           </div>
           <Switch checked={leaderboardVisible} onCheckedChange={onToggleLeaderboard} />
         </div>

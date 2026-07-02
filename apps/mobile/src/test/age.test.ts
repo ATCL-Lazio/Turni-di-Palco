@@ -1,7 +1,7 @@
 // Tests per l'age gate del signup (GDPR Art. 8, età consenso digitale IT = 14).
 
 import { describe, expect, it } from 'vitest';
-import { MIN_SIGNUP_AGE, computeAge, meetsMinAge } from '../lib/age';
+import { MIN_SIGNUP_AGE, computeAge, meetsMinAge, isMinor } from '../lib/age';
 
 const NOW = new Date(2026, 6, 2); // 2 luglio 2026 (mese 0-based → 6 = luglio)
 
@@ -38,5 +38,22 @@ describe('meetsMinAge', () => {
   it('rifiuta input non validi', () => {
     expect(meetsMinAge('', NOW)).toBe(false);
     expect(meetsMinAge('2030-01-01', NOW)).toBe(false);
+  });
+});
+
+describe('isMinor', () => {
+  it('è true per gli under-18', () => {
+    expect(isMinor('2010-01-01', NOW)).toBe(true); // 16 anni
+    expect(isMinor('2008-07-03', NOW)).toBe(true); // 18 domani → oggi 17
+  });
+
+  it('è false per i maggiorenni', () => {
+    expect(isMinor('2008-07-02', NOW)).toBe(false); // esattamente 18 oggi
+    expect(isMinor('1990-01-01', NOW)).toBe(false);
+  });
+
+  it('tratta prudenzialmente le date non valide come minorenne', () => {
+    expect(isMinor('', NOW)).toBe(true);
+    expect(isMinor('non-valida', NOW)).toBe(true);
   });
 });
