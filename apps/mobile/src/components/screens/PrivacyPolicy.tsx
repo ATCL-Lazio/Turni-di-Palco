@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
-  ArrowLeft, Shield, MapPin, Trash2, Eye, Lock, FileText, WifiOff, Sparkles,
+  ArrowLeft, Shield, MapPin, Trash2, Eye, Lock, FileText, Sparkles,
   Building2, Database, Users, Clock, Baby, Scale, Cookie, Accessibility,
 } from 'lucide-react';
 import { Screen } from '../ui/Screen';
@@ -52,18 +52,6 @@ const highlights = [
 ];
 
 export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
   return (
     <Screen
       withBottomNavPadding={false}
@@ -271,49 +259,24 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
           </p>
         </LegalSection>
 
-        {/* Full document */}
-        <div className="flex flex-col gap-3">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-[#b8b2b3]/60 px-1">
-            Documento completo
+        {/* Documento completo — self-hosted, sempre disponibile anche offline.
+            Sostituisce l'embed Iubenda: nessuna dipendenza da terzi per il
+            documento legale, che resta consultabile senza connessione. */}
+        <LegalSection icon={FileText} title="Documento completo">
+          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+            Le sezioni qui sopra costituiscono la Privacy Policy vigente di Turni di Palco:
+            è un documento completo e sempre consultabile, <span className="text-[#f5f5f5] font-medium">anche offline</span>.
+            Per richieste scrivi a <span className="text-[#f5f5f5]">{CONTROLLER.privacyEmail}</span>.
           </p>
-          <div className="bg-[#1a1617] rounded-[16px] overflow-hidden">
-            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.06]">
-              <FileText size={15} className="text-[#f4bf4f]" />
-              <p className="text-[13px] text-[#b8b2b3]">
-                Pubblicata e mantenuta tramite{' '}
-                <span className="text-[#f5f5f5] font-medium">Iubenda</span>
-              </p>
-            </div>
-            {isOnline ? (
-              <>
-                <div className="p-2">
-                  {/* iframe embed — no script dependency, no remount issues,
-                      works on iubenda free plan. White bg matches iubenda's
-                      default light-theme document. */}
-                  <iframe
-                    src={IUBENDA_PRIVACY_POLICY_URL}
-                    className="w-full rounded-[10px] bg-white"
-                    style={{ height: '55vh', border: 'none' }}
-                    title="Privacy Policy"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="px-4 pb-3">
-                  <p className="text-[11px] leading-[16px] text-[#b8b2b3]/50">
-                    Richiesta connessione internet per caricare il documento.
-                  </p>
-                </div>
-              </>
-            ) : (
-              <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
-                <WifiOff size={32} className="text-[#b8b2b3]/50" />
-                <p className="text-sm text-[#b8b2b3]">
-                  La privacy policy completa non è disponibile offline. Connettiti a internet per visualizzarla.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+          <a
+            href={IUBENDA_PRIVACY_POLICY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[13px] leading-[19px] text-[#f4bf4f] underline underline-offset-2"
+          >
+            Consulta anche la versione archiviata su Iubenda
+          </a>
+        </LegalSection>
 
         <CopyrightNotice />
       </div>
