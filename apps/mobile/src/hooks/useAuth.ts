@@ -108,7 +108,7 @@ export function useAuth(
         // calling onAuthChange here as well would fire it twice on every successful login.
     }, [profile.name, updateProfile]);
 
-    const handleSignup = useCallback(async (name: string, email: string, password: string) => {
+    const handleSignup = useCallback(async (name: string, email: string, password: string, isMinor = false) => {
         setAuthError(null);
         if (!isSupabaseConfigured || !supabase) {
             setIsDemoMode(true);
@@ -122,7 +122,9 @@ export function useAuth(
             email,
             password,
             options: {
-                data: { name },
+                // is_minor viene letto dal trigger handle_new_user che, per i
+                // minorenni, imposta leaderboard_visible=false (classifica opt-in).
+                data: { name, is_minor: isMinor },
                 ...(redirectTo ? { emailRedirectTo: redirectTo } : {}),
             },
         });

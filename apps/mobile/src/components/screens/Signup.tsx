@@ -3,11 +3,11 @@ import { ArrowLeft } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { FormField, FormInput, AuthFormLayout } from '../ui/FormField';
 import { Button } from '../ui/Button';
-import { MIN_SIGNUP_AGE, computeAge } from '../../lib/age';
+import { MIN_SIGNUP_AGE, computeAge, isMinor } from '../../lib/age';
 
 interface SignupProps {
   onBack: () => void;
-  onSignup: (name: string, email: string, password: string) => void | Promise<void>;
+  onSignup: (name: string, email: string, password: string, isMinor: boolean) => void | Promise<void>;
   onLogin: () => void;
   onViewTerms: () => void;
   onViewPrivacy: () => void;
@@ -45,7 +45,9 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
     setSubmitError(null);
     setIsSubmitting(true);
     try {
-      await onSignup(name, email.trim().toLowerCase(), password);
+      // Passa il flag "minorenne" (età < 18) per applicare le tutele aggiuntive
+      // lato server (es. classifica pubblica opt-in). La data non viene inviata.
+      await onSignup(name, email.trim().toLowerCase(), password, isMinor(birthDate));
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Errore durante la registrazione. Riprova.');
     } finally {

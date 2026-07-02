@@ -9,6 +9,7 @@
 // l'età al momento della registrazione e NON viene persistita.
 
 export const MIN_SIGNUP_AGE = 14;
+export const ADULT_AGE = 18;
 
 /**
  * Calcola l'età in anni compiuti a partire da una data di nascita `YYYY-MM-DD`.
@@ -46,4 +47,14 @@ export function computeAge(birthDate: string, now: Date = new Date()): number | 
 export function meetsMinAge(birthDate: string, now: Date = new Date()): boolean {
   const age = computeAge(birthDate, now);
   return age !== null && age >= MIN_SIGNUP_AGE;
+}
+
+/**
+ * True se l'utente è minorenne (età < 18) in base alla data di nascita.
+ * Usato per applicare tutele aggiuntive (es. classifica pubblica opt-in).
+ * Una data non valida è prudenzialmente trattata come minorenne (true).
+ */
+export function isMinor(birthDate: string, now: Date = new Date()): boolean {
+  const age = computeAge(birthDate, now);
+  return age === null || age < ADULT_AGE;
 }
