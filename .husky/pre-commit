@@ -1,0 +1,43 @@
+#!/usr/bin/env sh
+# Pre-commit secret scan (gitleaks).
+# Anticipa in locale il controllo che gira in CI (.github/workflows/security.yml):
+# scansiona SOLO le modifiche staged e blocca il commit se trova un segreto.
+# Il gate obbligatorio resta la CI; questo hook evita che un segreto entri
+# nella history già dal commit locale (le fughe passate venivano da automazioni).
+
+set -e
+
+run_gitleaks() {
+  if command -v gitleaks >/dev/null 2>&1; then
+    gitleaks git --staged --redact --no-banner --config=.gitleaks.toml
+    return $?
+  fi
+  if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+    docker run --rm -v "$(pwd):/repo" ghcr.io/gitleaks/gitleaks:v8.21.2 \
+      git --staged --redact --no-banner --source=/repo --config=/repo/.gitleaks.toml
+    return $?
+  fi
+  return 127
+}
+
+set +e
+run_gitleaks
+status=$?
+set -e
+
+if [ "$status" -eq 127 ]; then
+  echo "⚠️  gitleaks non trovato: secret-scan locale saltato."
+  echo "    Installa gitleaks (https://github.com/gitleaks/gitleaks#installing) per il controllo pre-commit."
+  echo "    Il controllo obbligatorio resta comunque attivo in CI."
+  exit 0
+fi
+
+if [ "$status" -ne 0 ]; then
+  echo ""
+  echo "🛑 Commit bloccato: gitleaks ha rilevato un possibile segreto nei file staged."
+  echo "   • Rimuovi il valore e usa una variabile d'ambiente / un file gitignored."
+  echo "   • Falso positivo? Aggiorna l'allowlist in .gitleaks.toml."
+  exit 1
+fi
+
+exit 0
