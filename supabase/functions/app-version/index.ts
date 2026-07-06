@@ -1,5 +1,6 @@
 /// <reference path="../@types/deno.d.ts" />
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.0';
 
 const allowedOrigin = Deno.env.get('SITE_URL') ?? 'https://turnidipalco.it';
 
@@ -53,7 +54,6 @@ serve(async (req) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return errorResponse('Autenticazione richiesta', 401);
   }
-  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.48.0');
   const userClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
     auth: { autoRefreshToken: false, persistSession: false },
