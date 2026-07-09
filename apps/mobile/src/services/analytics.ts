@@ -349,6 +349,11 @@ export async function track(
   if (!readConsent()) return;
 
   const userHash = await getUserHash(options?.userId ?? null);
+
+  // Re-check consent after the async pseudonymization call (up to 8 s) — the
+  // user may have revoked consent while it was in-flight (closes #1413).
+  if (!readConsent()) return;
+
   const payload: AnalyticsEventPayload = {
     event,
     userHash,
