@@ -191,6 +191,14 @@ async function fetchShowPosts(categoryId: number, modifiedAfter: string): Promis
     if (!Array.isArray(batch) || batch.length === 0) break;
     posts.push(...batch);
     if (batch.length < POSTS_PER_PAGE) break;
+    if (page === MAX_PAGES) {
+      // The last page was full — there may be additional posts beyond the cap.
+      // Log so operators know results were truncated (closes #1416).
+      console.warn(
+        `[import-atcl-lazio] fetchShowPosts reached MAX_PAGES=${MAX_PAGES} with a full batch; ` +
+        `posts beyond page ${MAX_PAGES} × ${POSTS_PER_PAGE} = ${MAX_PAGES * POSTS_PER_PAGE} were silently dropped.`,
+      );
+    }
   }
   return posts;
 }
