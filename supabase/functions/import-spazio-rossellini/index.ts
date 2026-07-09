@@ -162,7 +162,25 @@ const fetchAllEvents = async (): Promise<SpazioEvent[]> => {
       if (Array.isArray(payload.events)) {
         events.push(...payload.events);
       }
-      nextUrl = payload.next_rest_url || null;
+      // Validate next_rest_url origin before using it to prevent SSRF via a
+      // crafted API response redirecting requests to an internal host (closes #1409).
+      const rawNext = typeof payload.next_rest_url === 'string' ? payload.next_rest_url.trim() : null;
+      if (rawNext) {
+        try {
+          const parsedNext = new URL(rawNext);
+          const allowedOrigin = new URL(EVENTS_API_URL).origin;
+          nextUrl = parsedNext.origin === allowedOrigin ? rawNext : null;
+          if (!nextUrl) {
+            console.warn(
+              `[import-spazio-rossellini] fetchAllEvents rejected next_rest_url with unexpected origin: ${parsedNext.origin}`,
+            );
+          }
+        } catch {
+          nextUrl = null;
+        }
+      } else {
+        nextUrl = null;
+      }
     }
   } catch (err) {
     console.warn('[import-spazio-rossellini] fetchAllEvents unexpected error:', err);
