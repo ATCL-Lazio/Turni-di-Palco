@@ -5440,17 +5440,24 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     // Fix #1231: also fetch activity_completions, narrative_history, and
     // shop_purchases in parallel — all tables deleted by delete-my-account must
     // be present in the Art. 15/20 export.
+    // Fix #1407: include ticket_activations — deleted by delete-my-account under
+    // both activated_by and reserved_by, so it qualifies as personal data and
+    // must be exportable under Art. 15/20 symmetrically with deletion (Art. 17).
     // Fall back to state.turns only when Supabase is unavailable (e.g. offline).
     let allTurns: TurnRecord[] = state.turns;
     let activityCompletions: unknown[] = [];
     let narrativeHistory: unknown[] = [];
     let shopPurchases: unknown[] = [];
+    let ticketActivationsActivated: unknown[] = [];
+    let ticketActivationsReserved: unknown[] = [];
     if (isSupabaseConfigured && supabase && authUserId) {
       const [
         { data: turnsData, error: turnsError },
         { data: activityData, error: activityError },
         { data: narrativeData, error: narrativeError },
         { data: shopData, error: shopError },
+        { data: ticketActivatedData, error: ticketActivatedError },
+        { data: ticketReservedData, error: ticketReservedError },
       ] = await Promise.all([
         supabase
           .from('turns')
@@ -5476,6 +5483,22 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           .eq('user_id', authUserId)
           .order('created_at', { ascending: false })
           .limit(10000),
+        // Tickets this user activated by scanning a QR code.
+        supabase
+          .from('ticket_activations')
+          .select('*')
+          .eq('activated_by', authUserId)
+          .order('activated_at', { ascending: false })
+          .limit(10000),
+        // Tickets this user generated as an admin (reserved_by), including
+        // unactivated ones (activated_by IS NULL). Mirrors the reserved_by
+        // deletion in delete-my-account (GDPR Art. 17 ↔ Art. 15/20 symmetry).
+        supabase
+          .from('ticket_activations')
+          .select('*')
+          .eq('reserved_by', authUserId)
+          .order('created_at', { ascending: false })
+          .limit(10000),
       ]);
       // Fail loudly if any query errors so the user is not shown a silently
       // incomplete GDPR export (fixes #1253).
@@ -5484,6 +5507,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       if (activityError) queryErrors.push({ table: 'activity_completions', error: activityError });
       if (narrativeError) queryErrors.push({ table: 'narrative_history', error: narrativeError });
       if (shopError) queryErrors.push({ table: 'shop_purchases', error: shopError });
+      if (ticketActivatedError) queryErrors.push({ table: 'ticket_activations(activated_by)', error: ticketActivatedError });
+      if (ticketReservedError) queryErrors.push({ table: 'ticket_activations(reserved_by)', error: ticketReservedError });
       if (queryErrors.length > 0) {
         const tables = queryErrors.map((e) => e.table).join(', ');
         notifyCriticalError(
@@ -5518,6 +5543,12 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       if (Array.isArray(shopData)) {
         shopPurchases = shopData;
       }
+      if (Array.isArray(ticketActivatedData)) {
+        ticketActivationsActivated = ticketActivatedData;
+      }
+      if (Array.isArray(ticketReservedData)) {
+        ticketActivationsReserved = ticketReservedData;
+      }
     }
 
     const data = {
@@ -5548,6 +5579,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       activityCompletions,
       narrativeHistory,
       shopPurchases,
+      ticketActivationsActivated,
+      ticketActivationsReserved,
       badges,
       theatreReputation,
       plannedEvents: eventPlans,
