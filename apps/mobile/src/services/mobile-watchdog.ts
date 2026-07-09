@@ -42,9 +42,14 @@ export async function withMobileWatchdog<T>(
   { operation, timeoutMs, title, message }: MobileWatchdogOptions
 ): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | number | undefined;
+  // Prevents reportCriticalError from firing after the task already completed
+  // in the narrow race window between the timer callback executing and
+  // clearWatchdogTimeout running in the finally block (closes #1411).
+  let cancelled = false;
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = scheduleWatchdogTimeout(() => {
+      if (cancelled) return;
       reportCriticalError({
         title: title ?? DEFAULT_ERROR_TITLE,
         message: message ?? DEFAULT_ERROR_MESSAGE,
@@ -57,6 +62,7 @@ export async function withMobileWatchdog<T>(
   try {
     return await Promise.race([task(), timeoutPromise]);
   } finally {
+    cancelled = true;
     if (timeoutId !== undefined) clearWatchdogTimeout(timeoutId);
   }
 }
