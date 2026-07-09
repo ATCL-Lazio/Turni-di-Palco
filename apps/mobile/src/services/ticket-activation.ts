@@ -280,7 +280,10 @@ async function getAccessTokenForFunctions(): Promise<string> {
 
 async function invokeTicketActivation(body: Record<string, unknown>) {
   if (!supabase || !isSupabaseConfigured) {
-    return { data: null, error: null };
+    // Return a descriptive error rather than { data: null, error: null }, which
+    // callers would misinterpret as a successful call with no reservation and
+    // could surface a misleading "ticket già presente" error (closes #1415).
+    return { data: null, error: new Error('Supabase non configurato') };
   }
 
   const token = await getAccessTokenForFunctions();
