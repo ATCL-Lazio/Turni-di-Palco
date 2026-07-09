@@ -4496,9 +4496,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           };
         });
         const localSyncStatus: TurnSyncStatus = boostRequested && !localBoostApplied ? 'failed_boost_fallback' : 'synced';
-        if (!localTurnRecord) {
-          return { ok: false, error: 'Impossibile registrare il turno in locale.' };
-        }
         setTurnSyncFeedback({
           syncStatus: localSyncStatus,
           boostRequested,
