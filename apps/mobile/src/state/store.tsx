@@ -5391,6 +5391,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         STORAGE_KEY,
         OFFLINE_SYNC_QUEUE_KEY,
         GEO_CONSENT_KEY,
+        // Explicit: prevents a subsequent user on the same device from inheriting
+        // this account's cookie consent decision (GDPR — closes #1414).
+        COOKIE_CONSENT_KEY,
       ].forEach((k) => { try { window.localStorage.removeItem(k); } catch { /* ignore */ } });
       // Also clear any remaining tdp-* and sb-*-auth-token keys
       for (let i = window.localStorage.length - 1; i >= 0; i--) {
