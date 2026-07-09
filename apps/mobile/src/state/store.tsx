@@ -5222,7 +5222,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         const pCompletedCourses = p.completedCourses ?? {};
         const next: PlayerProfile = {
           ...p,
-          cachet: p.cachet - course.costCachet,
+          // Clamp to 0: the guard above uses the render-time snapshot, so a
+          // concurrent mutation could reduce prev.cachet below costCachet before
+          // this updater runs, causing a negative balance (closes #1410).
+          cachet: Math.max(0, p.cachet - course.costCachet),
           skills: pSkills,
           completedCourses: pCompletedCourses,
           activeCourses: {
