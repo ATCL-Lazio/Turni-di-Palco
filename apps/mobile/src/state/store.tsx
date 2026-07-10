@@ -2386,10 +2386,12 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   // without being recreated on every shop purchase.
   const extraActivitySlotsRef = useRef(state.profile.extraActivitySlots);
   const catalogEventsRef = useRef(catalog.events);
+  const catalogRolesRef = useRef(catalog.roles);
   const profileRoleIdRef = useRef(state.profile.roleId);
   useEffect(() => { eventPlansRef.current = state.eventPlans; }, [state.eventPlans]);
   useEffect(() => { extraActivitySlotsRef.current = state.profile.extraActivitySlots; }, [state.profile.extraActivitySlots]);
   useEffect(() => { catalogEventsRef.current = catalog.events; }, [catalog.events]);
+  useEffect(() => { catalogRolesRef.current = catalog.roles; }, [catalog.roles]);
   useEffect(() => { profileRoleIdRef.current = state.profile.roleId; }, [state.profile.roleId]);
 
   const syncLocalEventPlanning = useCallback(
@@ -4349,7 +4351,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       const nextProfileRef: { current: PlayerProfile | null } = { current: null };
       setState((prev: GameState) => {
         const nextRole =
-          updates.roleId && catalog.roles.some((role: Role) => role.id === updates.roleId)
+          updates.roleId && catalogRolesRef.current.some((role: Role) => role.id === updates.roleId)
             ? updates.roleId
             : prev.profile.roleId;
         const next: PlayerProfile = { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId };
@@ -4358,7 +4360,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       });
       if (nextProfileRef.current) persistProfile(nextProfileRef.current);
     },
-    [catalog.roles, persistProfile]
+    [persistProfile]
   );
 
   const registerTurn = useCallback(
