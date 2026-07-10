@@ -115,11 +115,18 @@ export async function requireDevAccess(): Promise<boolean> {
     return false;
   }
 
-  const { data } = await supabase.auth.getUser();
+  const { data, error: getUserError } = await supabase.auth.getUser();
+  if (getUserError) {
+    console.error("[dev-gate] getUser() failed:", getUserError);
+  }
   if (isUserAllowed(data.user)) return true;
 
   const gate = renderGate(root);
-  if (data.user) setMessage(gate.message, "Account non autorizzato per la dev dashboard.", "error");
+  if (getUserError) {
+    setMessage(gate.message, "Errore di rete: impossibile verificare la sessione. Riprova.", "error");
+  } else if (data.user) {
+    setMessage(gate.message, "Account non autorizzato per la dev dashboard.", "error");
+  }
 
   return new Promise<boolean>((resolve) => {
     const onSubmit = async (e: Event) => {
