@@ -3986,7 +3986,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
                 completedCourses: profileRow.completed_courses ?? prev.profile.completedCourses,
               },
               eventPlans: prev.eventPlans,
-              turns: remoteTurns,
+              turns: remoteTurns.slice(0, MAX_TURNS),
             }));
           }
 
