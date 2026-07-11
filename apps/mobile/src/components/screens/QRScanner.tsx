@@ -30,9 +30,15 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
   const resumeScanRef = useRef<(() => void) | null>(null);
   const onScanRef = useRef(onScan);
   const isScanningRef = useRef(isScanning);
+  // Tracks whether the component is still mounted. Checked before scheduling
+  // the resume timeout in handleScanAttempt's finally block so that a timeout
+  // created while an async scan was in-flight cannot call setState after the
+  // component has unmounted (closes #1436).
+  const isMountedRef = useRef(true);
 
   useEffect(() => { onScanRef.current = onScan; }, [onScan]);
   useEffect(() => { isScanningRef.current = isScanning; }, [isScanning]);
+  useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
 
   const stopCamera = () => {
     if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current); scanTimeoutRef.current = null;
@@ -60,8 +66,13 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
     } finally {
       if (!shouldResume) { setIsHandlingScan(false); }
       else {
+        // Guard: if the component unmounted while handleScanAttempt was in
+        // flight, do not schedule a new timeout — it would never be cleared
+        // and would call setState on an unmounted component (closes #1436).
+        if (!isMountedRef.current) return;
         if (resumeTimeoutRef.current != null) { window.clearTimeout(resumeTimeoutRef.current); resumeTimeoutRef.current = null; }
         resumeTimeoutRef.current = window.setTimeout(() => {
+          if (!isMountedRef.current) return;
           setIsHandlingScan(false);
           if (isScanningRef.current) { setScanError(null); hasHandledScanRef.current = false; resumeScanRef.current?.(); }
         }, 1200);
