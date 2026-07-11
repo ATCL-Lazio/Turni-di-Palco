@@ -65,11 +65,11 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
       if (isAuthErrorMessage(message)) { stopCamera(); shouldResume = false; }
     } finally {
       if (!shouldResume) { setIsHandlingScan(false); }
-      else {
-        // Guard: if the component unmounted while handleScanAttempt was in
-        // flight, do not schedule a new timeout — it would never be cleared
-        // and would call setState on an unmounted component (closes #1436).
-        if (!isMountedRef.current) return;
+      else if (isMountedRef.current) {
+        // Only schedule the resume timeout when the component is still mounted.
+        // If it has already unmounted, skipping this prevents a leaked timeout
+        // that would never be cleared and would call setState on an unmounted
+        // component (closes #1436).
         if (resumeTimeoutRef.current != null) { window.clearTimeout(resumeTimeoutRef.current); resumeTimeoutRef.current = null; }
         resumeTimeoutRef.current = window.setTimeout(() => {
           if (!isMountedRef.current) return;
