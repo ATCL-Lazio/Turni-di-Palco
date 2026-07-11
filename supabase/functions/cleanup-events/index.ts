@@ -122,16 +122,11 @@ serve(async (req) => {
 
     const eventIds = eventsToDelete.map(e => e.id)
 
-    // Re-verify that the events still exist immediately before deleting child rows
-    // to narrow the TOCTOU window between the initial SELECT and the DELETE pair
-    // (closes #1382). A concurrent cleanup run or manual deletion between the two
-    // steps could otherwise cause ticket_activations to be deleted for events that
-    // a concurrent process already removed — or leave ticket_activations orphaned
-    // if the events DELETE later fails.
-    //
-    // Note: true atomicity requires a PostgreSQL RPC that wraps both DELETEs in a
-    // single transaction. This guard reduces — but does not eliminate — the race
-    // window without requiring a schema change.
+    // Re-verify that the events still exist immediately before deletion to narrow
+    // the TOCTOU window between the initial SELECT and the RPC call (closes #1382).
+    // A concurrent cleanup run could remove some events between the two steps;
+    // operating on the confirmed subset avoids deleting ticket_activations for
+    // events already gone.
     const { data: stillExistingEvents, error: reVerifyError } = await supabaseClient
       .from('events')
       .select('id')
@@ -154,27 +149,15 @@ serve(async (req) => {
       )
     }
 
-    // Delete ticket_activations first: this table references events.id via FK
-    // without ON DELETE CASCADE, so it must be removed before the parent rows
-    // are deleted to avoid a FK violation that would fail the whole batch.
-    // We operate only on the confirmed subset to minimise the blast radius if
-    // the events DELETE subsequently fails.
-    const { error: activationsError } = await supabaseClient
-      .from('ticket_activations')
-      .delete()
-      .in('event_id', confirmedEventIds)
+    // Delete ticket_activations and events atomically via a single PostgreSQL RPC.
+    // The cleanup_expired_events function executes both DELETEs inside one
+    // implicit PL/pgSQL transaction, so a failure in either statement rolls back
+    // the entire operation and avoids leaving the DB in a corrupt state
+    // (closes #1434).
+    const { error: cleanupError } = await supabaseClient
+      .rpc('cleanup_expired_events', { event_ids: confirmedEventIds })
 
-    if (activationsError) throw activationsError
-
-    // Delete events. The planned_participations FK is defined with
-    // ON DELETE CASCADE, so the DB automatically removes those child rows when
-    // the parent event is deleted.
-    const { error: deleteError } = await supabaseClient
-      .from('events')
-      .delete()
-      .in('id', confirmedEventIds)
-
-    if (deleteError) throw deleteError
+    if (cleanupError) throw cleanupError
 
     const confirmedDeleted = eventsToDelete.filter(e => confirmedEventIds.includes(e.id))
     return new Response(
