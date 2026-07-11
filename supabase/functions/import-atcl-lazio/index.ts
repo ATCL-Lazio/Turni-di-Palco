@@ -57,7 +57,7 @@ function parseTime(text: string): string | null {
 
 const HTML_ENTITIES: Record<string, string> = {
   amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
-  agrave: 'à', aacute: 'á', acutee: 'é', egrave: 'è', eacute: 'é',
+  agrave: 'à', aacute: 'á', egrave: 'è', eacute: 'é',
   igrave: 'ì', iacute: 'í', ograve: 'ò', oacute: 'ó', ugrave: 'ù', uacute: 'ú',
   Agrave: 'À', Aacute: 'Á', Egrave: 'È', Eacute: 'É',
   Igrave: 'Ì', Iacute: 'Í', Ograve: 'Ò', Oacute: 'Ó', Ugrave: 'Ù', Uacute: 'Ú',
