@@ -73,6 +73,7 @@ export function useAuth(
     onLogout: () => void
 ) {
     const [authError, setAuthError] = useState<string | null>(null);
+    const [authInfo, setAuthInfo] = useState<string | null>(null);
     const [isDemoMode, setIsDemoMode] = useState(false);
 
     const handleLogin = useCallback(async (email: string, password: string) => {
@@ -110,6 +111,7 @@ export function useAuth(
 
     const handleSignup = useCallback(async (name: string, email: string, password: string, isMinor = false) => {
         setAuthError(null);
+        setAuthInfo(null);
         if (!isSupabaseConfigured || !supabase) {
             setIsDemoMode(true);
             updateProfile({ name, email });
@@ -134,9 +136,11 @@ export function useAuth(
         }
 
         // When email confirmation is required, data.session is null — the user
-        // has not signed in yet. Show a "check your email" message and stop.
+        // has not signed in yet. Show an informational (non-error) message and
+        // stop. Using setAuthInfo instead of setAuthError prevents this success
+        // message from being rendered with error styling (fixes #1446).
         if (!data.session) {
-            setAuthError('Registrazione quasi completata! Controlla la tua email per confermare l\'account.');
+            setAuthInfo('Registrazione quasi completata! Controlla la tua email per confermare l\'account.');
             return;
         }
 
@@ -302,6 +306,8 @@ export function useAuth(
     return {
         authError,
         setAuthError,
+        authInfo,
+        setAuthInfo,
         isDemoMode,
         handleLogin,
         handleSignup,

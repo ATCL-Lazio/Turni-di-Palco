@@ -12,9 +12,11 @@ interface SignupProps {
   onViewTerms: () => void;
   onViewPrivacy: () => void;
   errorMessage?: string | null;
+  /** Non-error informational message (e.g. "check your email" after signup). */
+  infoMessage?: string | null;
 }
 
-export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, errorMessage }: SignupProps) {
+export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, errorMessage, infoMessage }: SignupProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [birthDate, setBirthDate] = useState('');
@@ -115,6 +117,9 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
 
           {(errorMessage || submitError) && (
             <p className="text-sm text-[#ff4d4f] text-center">{submitError ?? errorMessage}</p>
+          )}
+          {infoMessage && !errorMessage && !submitError && (
+            <p className="text-sm text-[#52c41a] text-center">{infoMessage}</p>
           )}
 
           <Button type="submit" fullWidth disabled={isSubmitting} className={isSubmitting ? 'opacity-50 pointer-events-none' : ''}>
