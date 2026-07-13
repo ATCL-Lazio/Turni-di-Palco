@@ -115,9 +115,19 @@ export async function requireDevAccess(): Promise<boolean> {
     return false;
   }
 
-  const { data, error: getUserError } = await supabase.auth.getUser();
-  if (getUserError) {
-    console.error("[dev-gate] getUser() failed:", getUserError);
+  // Avoid calling getUser() when no session exists — this can throw AuthSessionMissingError.
+  const sessionRes = await supabase.auth.getSession();
+  const session = sessionRes.data?.session ?? null;
+  let getUserError: any = null;
+  let data: { user: User | null } = { user: null };
+  if (session) {
+    const getUserRes = await supabase.auth.getUser();
+    getUserError = getUserRes.error;
+    data = getUserRes.data ?? { user: null };
+    if (getUserError) {
+      // Only log unexpected errors; missing session is expected and not an application error.
+      console.error("[dev-gate] getUser() failed:", getUserError);
+    }
   }
   if (isUserAllowed(data.user)) return true;
 
