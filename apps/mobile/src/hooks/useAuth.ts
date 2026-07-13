@@ -118,6 +118,7 @@ export function useAuth(
         }
 
         const redirectTo = resolveAuthRedirectTo();
+        signupInProgressRef.current = true;
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -129,6 +130,7 @@ export function useAuth(
             },
         });
         if (error) {
+            signupInProgressRef.current = false;
             setAuthError(translateAuthError(error));
             return;
         }
@@ -136,6 +138,7 @@ export function useAuth(
         // When email confirmation is required, data.session is null — the user
         // has not signed in yet. Show a "check your email" message and stop.
         if (!data.session) {
+            signupInProgressRef.current = false;
             setAuthError('Registrazione quasi completata! Controlla la tua email per confermare l\'account.');
             return;
         }
@@ -143,6 +146,7 @@ export function useAuth(
         // Supabase returns identities: [] when the email is already registered
         // (deliberate enumeration protection). Treat as a generic credentials error.
         if (!data.user?.identities?.length) {
+            signupInProgressRef.current = false;
             setAuthError(GENERIC_CREDENTIALS_ERROR);
             return;
         }
@@ -155,11 +159,17 @@ export function useAuth(
         });
         updateProfile({ name: displayName, email });
         onAuthChange('welcome'); // Flow will continue to role-selection
+        // signupInProgressRef is cleared by the SIGNED_IN listener below.
     }, [onAuthChange, updateProfile]);
 
     // Set to true immediately before a voluntary signOut so the SIGNED_OUT
     // listener can skip the misleading "session expired" error message.
     const isVoluntaryLogoutRef = useRef(false);
+
+    // Set to true immediately before supabase.auth.signUp() so the SIGNED_IN
+    // listener does not overwrite the 'welcome' navigation with 'home' when
+    // Supabase returns an immediate session (fixes #1445).
+    const signupInProgressRef = useRef(false);
 
     const handleLogoutAction = useCallback(async () => {
         setAuthError(null);
@@ -269,8 +279,13 @@ export function useAuth(
                 // Skip navigation when the SIGNED_IN event comes from a
                 // credential-verification sign-in inside changePassword (flag
                 // set in store.tsx) to prevent spurious redirect to 'home'.
+                // Also skip when signup is in progress: handleSignup already
+                // navigated to 'welcome' for role-selection onboarding; the
+                // SIGNED_IN event must not overwrite that with 'home' (#1445).
+                const isSignupEvent = signupInProgressRef.current;
+                if (isSignupEvent) signupInProgressRef.current = false;
                 const navigateTo =
-                    event === 'SIGNED_IN' && !suppressSignedInNavigation
+                    event === 'SIGNED_IN' && !suppressSignedInNavigation && !isSignupEvent
                         ? 'home'
                         : undefined;
                 applyUserProfileRef.current(session.user, {
