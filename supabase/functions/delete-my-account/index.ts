@@ -84,7 +84,14 @@ serve(async (req) => {
   let failedTable: string | null = null;
 
   for (const { table, key } of tablesToDelete) {
-    const { error } = await adminClient.from(table).delete().eq(key, userId);
+    // For the reserved_by pass, skip rows already activated by another user so
+    // their attendance record is preserved (fixes #1444).
+    const baseQuery = adminClient.from(table).delete().eq(key, userId);
+    const deleteQuery =
+      table === 'ticket_activations' && key === 'reserved_by'
+        ? baseQuery.is('activated_by', null)
+        : baseQuery;
+    const { error } = await deleteQuery;
     if (error) {
       console.error(`delete-my-account: error deleting from ${table} (key: ${key})`, error.message);
       failedTable = `${table}.${key}`;
