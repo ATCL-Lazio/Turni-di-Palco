@@ -164,7 +164,7 @@ export function AppShell() {
   );
 
   // Auth hook
-  const { authError, setAuthError, isDemoMode, handleLogin, handleSignup, handleLogout, markVoluntaryLogout, unmarkVoluntaryLogout } = useAuth(
+  const { authError, setAuthError, authInfo, isDemoMode, handleLogin, handleSignup, handleLogout, markVoluntaryLogout, unmarkVoluntaryLogout } = useAuth(
     state.profile,
     updateProfile,
     (screen, isRecovery) => {
@@ -501,7 +501,7 @@ export function AppShell() {
         return <Login onBack={() => nav.navigate('welcome')} onLogin={handleLogin} onSignup={() => nav.navigate('signup')} onForgotPassword={() => nav.navigate('change-password')} errorMessage={authError} />;
 
       case 'signup':
-        return <Signup onBack={() => nav.navigate('welcome')} onSignup={handleSignup} onLogin={() => nav.navigate('login')} onViewTerms={() => nav.openLegal('terms', 'signup')} onViewPrivacy={() => nav.openLegal('privacy', 'signup')} errorMessage={authError} />;
+        return <Signup onBack={() => nav.navigate('welcome')} onSignup={handleSignup} onLogin={() => nav.navigate('login')} onViewTerms={() => nav.openLegal('terms', 'signup')} onViewPrivacy={() => nav.openLegal('privacy', 'signup')} errorMessage={authError} infoMessage={authInfo} />;
 
       case 'install':
         return <InstallApp onContinue={() => nav.navigate(state.profile.roleId ? 'home' : 'welcome')} onDismiss={() => nav.navigate(state.profile.roleId ? 'home' : 'welcome')} />;
