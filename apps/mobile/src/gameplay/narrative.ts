@@ -308,7 +308,7 @@ const SAFE_FLAG_PATTERN = /^[a-z][a-z0-9_]{0,59}$/;
 
 function buildSceneGenerationPrompt(ctx: NarrativeContext): string {
   const role = sanitizePromptValue(
-    (ctx.roleId && SAFE_ROLE_IDS.has(ctx.roleId)) ? ctx.roleId : (ctx.roleId ?? 'sconosciuto'),
+    (ctx.roleId && SAFE_ROLE_IDS.has(ctx.roleId)) ? ctx.roleId : 'sconosciuto',
   );
   const stats = ctx.stats
     ? `presenza=${ctx.stats.presence}, precisione=${ctx.stats.precision}, leadership=${ctx.stats.leadership}, creatività=${ctx.stats.creativity}`
