@@ -68,6 +68,11 @@ export type ChoiceAvailability =
 
 const SCENE_REGISTRY = new Map<string, NarrativeScene>();
 
+// Deduplicates concurrent Maxwell calls for the same role+day so that React
+// StrictMode double-effects and rapid remounts don't generate two different
+// scenes, overwrite each other in the cache, and break narrative continuity.
+const inflightSceneFetch = new Map<string, Promise<NarrativeScene | null>>();
+
 export function registerScenes(scenes: NarrativeScene[]): void {
   for (const scene of scenes) {
     SCENE_REGISTRY.set(scene.id, scene);
@@ -495,7 +500,11 @@ export async function fetchScene(
     return cached;
   }
 
-  // 4. Call Maxwell with a hard timeout
+  // 4. Call Maxwell with a hard timeout, deduplicated per role+day.
+  const inflightKey = dailyCacheKey(ctx);
+  const existing = inflightSceneFetch.get(inflightKey);
+  if (existing) return existing;
+
   const controller = new AbortController();
   const timeoutId = typeof window !== 'undefined'
     ? window.setTimeout(() => controller.abort(), MAXWELL_FETCH_TIMEOUT_MS)
@@ -515,15 +524,20 @@ export async function fetchScene(
       })()
     : controller.signal;
 
-  try {
-    const scene = await callMaxwellForScene(ctx, combinedSignal);
-    if (timeoutId !== null) window.clearTimeout(timeoutId);
-    if (!scene) return null;
-    writeDailyCache(scene, ctx);
-    registerScenes([scene]);
-    return scene;
-  } catch {
-    if (timeoutId !== null) window.clearTimeout(timeoutId);
-    return null;
-  }
+  const p = (async () => {
+    try {
+      const scene = await callMaxwellForScene(ctx, combinedSignal);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      if (!scene) return null;
+      writeDailyCache(scene, ctx);
+      registerScenes([scene]);
+      return scene;
+    } catch {
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      return null;
+    }
+  })().finally(() => inflightSceneFetch.delete(inflightKey));
+
+  inflightSceneFetch.set(inflightKey, p);
+  return p;
 }
