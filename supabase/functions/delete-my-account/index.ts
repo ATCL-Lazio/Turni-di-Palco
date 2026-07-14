@@ -99,6 +99,24 @@ serve(async (req) => {
     }
   }
 
+  // Nullify reserved_by in ticket_activations rows that were preserved because
+  // another user activated the ticket. The delete pass above only removes rows
+  // where activated_by IS NULL; rows with activated_by set are kept so the
+  // activating user's attendance record survives, but they still contain the
+  // deleted user's UUID in reserved_by — a GDPR Art. 17 compliance gap.
+  if (failedTable === null) {
+    const { error: nullifyError } = await adminClient
+      .from('ticket_activations')
+      .update({ reserved_by: null })
+      .eq('reserved_by', userId)
+      .not('activated_by', 'is', null);
+    if (nullifyError) {
+      console.error('delete-my-account: failed to nullify reserved_by on activated tickets', nullifyError.message);
+      // Non-fatal: the attendance records for other users must be preserved.
+      // Log and continue so that the auth user is still deleted.
+    }
+  }
+
   // Abort before deleting auth user if any table deletion failed.
   // Stopping at the first failure preserves subsequent tables so the user
   // can retry without ending up in a worse partial-deletion state.
