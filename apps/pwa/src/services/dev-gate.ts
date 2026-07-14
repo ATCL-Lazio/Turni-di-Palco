@@ -141,30 +141,58 @@ export async function requireDevAccess(): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
     const onSubmit = async (e: Event) => {
       e.preventDefault();
-      setBusy(gate, true);
+
+      // Only disable the submit/input fields; keep cancel active so the user
+      // can abort a hung auth call instead of being locked out indefinitely.
+      gate.submitButton.disabled = true;
+      gate.submitButton.textContent = "Verifico...";
+      gate.emailInput.disabled = true;
+      gate.passwordInput.disabled = true;
       setMessage(gate.message, "Verifico le credenziali...", "info");
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(new Error("timeout")), 15_000);
+      const abortPromise = new Promise<never>((_, reject) => {
+        controller.signal.addEventListener("abort", () => reject(controller.signal.reason), { once: true });
+      });
+
+      const resetBusy = () => {
+        clearTimeout(timeoutId);
+        gate.submitButton.disabled = false;
+        gate.submitButton.textContent = "Accedi";
+        gate.emailInput.disabled = false;
+        gate.passwordInput.disabled = false;
+      };
+
       try {
-        const { error } = await supabase!.auth.signInWithPassword({
-          email: gate.emailInput.value.trim(),
-          password: gate.passwordInput.value,
-        });
+        const { error } = await Promise.race([
+          supabase!.auth.signInWithPassword({
+            email: gate.emailInput.value.trim(),
+            password: gate.passwordInput.value,
+          }),
+          abortPromise,
+        ]);
 
         if (error) {
-          setBusy(gate, false);
+          resetBusy();
           setMessage(gate.message, "Credenziali non valide.", "error");
           return;
         }
 
-        const { data: fresh, error: freshError } = await supabase!.auth.getUser();
+        const { data: fresh, error: freshError } = await Promise.race([
+          supabase!.auth.getUser(),
+          abortPromise,
+        ]);
+        clearTimeout(timeoutId);
+
         if (freshError) {
-          setBusy(gate, false);
+          resetBusy();
           setMessage(gate.message, "Errore di rete. Riprova.", "error");
           return;
         }
         if (!isUserAllowed(fresh.user)) {
           await supabase!.auth.signOut();
-          setBusy(gate, false);
+          resetBusy();
           setMessage(gate.message, "Utente non autorizzato.", "error");
           return;
         }
@@ -174,9 +202,17 @@ export async function requireDevAccess(): Promise<boolean> {
         setMessage(gate.message, "Accesso autorizzato.", "success");
         root.innerHTML = "";
         resolve(true);
-      } catch {
-        setBusy(gate, false);
-        setMessage(gate.message, "Errore imprevisto. Riprova.", "error");
+      } catch (err) {
+        resetBusy();
+        const isTimeout = err instanceof Error && err.message === "timeout";
+        const isCancelled = err instanceof Error && err.message === "cancelled";
+        if (isTimeout) {
+          setMessage(gate.message, "Timeout: il server non risponde. Riprova.", "error");
+        } else if (isCancelled) {
+          setMessage(gate.message, "", "info");
+        } else {
+          setMessage(gate.message, "Errore imprevisto. Riprova.", "error");
+        }
       }
     };
 
