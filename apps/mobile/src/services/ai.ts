@@ -249,7 +249,7 @@ export async function checkAiSupportAvailability({
   return withMobileWatchdog(async () => {
     const target = resolveHealthEndpoint(resolveEndpoint(endpoint));
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const response = await fetch(target, {
@@ -261,7 +261,7 @@ export async function checkAiSupportAvailability({
     } catch {
       return 'unknown';
     } finally {
-      window.clearTimeout(timeout);
+      clearTimeout(timeout);
     }
   }, {
     operation: 'checkAiSupportAvailability',
