@@ -139,6 +139,10 @@ export async function requireDevAccess(): Promise<boolean> {
   }
 
   return new Promise<boolean>((resolve) => {
+    // Shared ref so onCancel can abort an in-flight auth request. Without this,
+    // a successful sign-in after cancel clears root.innerHTML leaving a blank page.
+    let activeController: AbortController | null = null;
+
     const onSubmit = async (e: Event) => {
       e.preventDefault();
 
@@ -151,6 +155,7 @@ export async function requireDevAccess(): Promise<boolean> {
       setMessage(gate.message, "Verifico le credenziali...", "info");
 
       const controller = new AbortController();
+      activeController = controller;
       const timeoutId = setTimeout(() => controller.abort(new Error("timeout")), 15_000);
       const abortPromise = new Promise<never>((_, reject) => {
         controller.signal.addEventListener("abort", () => reject(controller.signal.reason), { once: true });
@@ -217,6 +222,7 @@ export async function requireDevAccess(): Promise<boolean> {
     };
 
     const onCancel = () => {
+      activeController?.abort(new Error("cancelled"));
       gate.form.removeEventListener("submit", onSubmit);
       gate.cancelButton.removeEventListener("click", onCancel);
       resolve(false);
