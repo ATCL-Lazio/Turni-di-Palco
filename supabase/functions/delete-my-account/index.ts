@@ -112,8 +112,10 @@ serve(async (req) => {
       .not('activated_by', 'is', null);
     if (nullifyError) {
       console.error('delete-my-account: failed to nullify reserved_by on activated tickets', nullifyError.message);
-      // Non-fatal: the attendance records for other users must be preserved.
-      // Log and continue so that the auth user is still deleted.
+      return errorResponse(
+        'Account deletion aborted: could not nullify reserved ticket references. Please retry.',
+        500,
+      );
     }
   }
 
