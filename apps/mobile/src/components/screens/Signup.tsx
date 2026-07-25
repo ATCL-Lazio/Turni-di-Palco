@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Screen } from '../ui/Screen';
 import { FormField, FormInput, AuthFormLayout } from '../ui/FormField';
@@ -26,9 +26,12 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     const newErrors: Record<string, string> = {};
     if (!name) newErrors.name = 'Nome richiesto';
     if (!email) newErrors.email = 'Email richiesta';
@@ -43,7 +46,7 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
     if (!password) newErrors.password = 'Password richiesta'; else if (password.length < 8) newErrors.password = 'La password deve avere almeno 8 caratteri';
     if (password !== confirmPassword) newErrors.confirmPassword = 'Le password non corrispondono';
     if (!acceptTerms) newErrors.terms = 'Devi accettare i termini e la privacy';
-    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); isSubmittingRef.current = false; return; }
     setSubmitError(null);
     setIsSubmitting(true);
     try {
@@ -53,6 +56,7 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Errore durante la registrazione. Riprova.');
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
