@@ -183,6 +183,9 @@ export async function requestAiSupport({
   const controller = new AbortController();
 
   // Combine the watchdog controller signal with any externally supplied signal.
+  // cleanupExternalAbort removes the listener we register on the caller-supplied signal
+  // so it is not retained after the request completes (success or failure).
+  let cleanupExternalAbort: (() => void) | null = null;
   const combinedSignal = (() => {
     if (!signal) return controller.signal;
     const merged = new AbortController();
@@ -192,6 +195,7 @@ export async function requestAiSupport({
       const abort = () => merged.abort();
       controller.signal.addEventListener('abort', abort, { once: true });
       signal.addEventListener('abort', abort, { once: true });
+      cleanupExternalAbort = () => signal.removeEventListener('abort', abort);
     }
     return merged.signal;
   })();
@@ -235,6 +239,8 @@ export async function requestAiSupport({
   } catch (error) {
     controller.abort();
     throw error;
+  } finally {
+    cleanupExternalAbort?.();
   }
 }
 
