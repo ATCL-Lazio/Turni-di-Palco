@@ -131,6 +131,7 @@ serve(async (req) => {
       .from('events')
       .select('id')
       .in('id', eventIds)
+      .lt('event_date', cutoffDateStr)
 
     if (reVerifyError) throw reVerifyError
 
