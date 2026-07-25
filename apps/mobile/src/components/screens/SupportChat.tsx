@@ -66,6 +66,7 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
   // via useEffect, because effects fire after paint and would leave a stale ref
   // during the transition window (closes #1350).
   const activeSessionIdRef = useRef(activeSessionId);
+  const loadedForHistoryIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -101,6 +102,7 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
       setActiveSessionId(sessionId);
       setMessages(session.messages);
     }
+    loadedForHistoryIdRef.current = currentHistoryId;
     hasLoadedRef.current = true;
   }, [historyId]);
 
@@ -142,6 +144,7 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
 
   useEffect(() => {
     if (!hasLoadedRef.current || !chatSessions.length) return;
+    if (loadedForHistoryIdRef.current !== historyId) return;
     saveChatHistory(historyId, chatSessions);
   }, [chatSessions, historyId]);
 
