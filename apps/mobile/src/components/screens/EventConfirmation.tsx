@@ -31,6 +31,7 @@ export function EventConfirmation({
   const [confirmResult, setConfirmResult] = useState<Extract<ConfirmTurnResult, { ok: true }> | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const successTimeoutRef = useRef<number | null>(null);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -53,7 +54,8 @@ export function EventConfirmation({
   const { feedbackTitle, feedbackMessage } = useMemo(() => buildFeedback(confirmResult), [confirmResult]);
 
   const handleConfirm = async () => {
-    if (isSubmitting || isSuccess) return;
+    if (isSubmittingRef.current || isSuccess) return;
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     setConfirmError(null);
     try {
@@ -65,6 +67,7 @@ export function EventConfirmation({
     } catch (error) {
       setConfirmError(error instanceof Error ? error.message : 'Errore durante la registrazione turno.');
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
