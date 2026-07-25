@@ -2898,7 +2898,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
         const result = await executeQueuedSupabaseMutation(queuedMutation);
         if (result.status === 'applied' || result.status === 'discard') {
-          queue = queue.filter((entry) => entry.id !== queuedMutation.id);
+          const latestQueue = readQueuedSupabaseMutations();
+          queue = latestQueue.filter((entry) => entry.id !== queuedMutation.id);
           writeQueuedSupabaseMutations(queue);
           refreshPendingBoostRequests(queue);
           logOfflineSync(
@@ -2936,7 +2937,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           continue;
         }
 
-        queue = queue.map((entry) =>
+        const latestQueueForRetry = readQueuedSupabaseMutations();
+        queue = latestQueueForRetry.map((entry) =>
           entry.id === queuedMutation.id
             ? {
               ...entry,
@@ -2957,7 +2959,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           updatedMutation &&
           updatedMutation.attempts >= OFFLINE_SYNC_MAX_ATTEMPTS
         ) {
-          queue = queue.filter((entry) => entry.id !== queuedMutation.id);
+          const latestQueueForDrop = readQueuedSupabaseMutations();
+          queue = latestQueueForDrop.filter((entry) => entry.id !== queuedMutation.id);
           writeQueuedSupabaseMutations(queue);
           refreshPendingBoostRequests(queue);
           logOfflineSync('Mutation dropped after max retry attempts', {
