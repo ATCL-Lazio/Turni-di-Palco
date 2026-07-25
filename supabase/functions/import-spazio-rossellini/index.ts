@@ -81,12 +81,12 @@ const resolveGenre = (categories: SpazioEvent['categories'] = [], allowedSlugs: 
   return (preferred?.name ?? categories[0]?.name ?? 'Teatro').toString();
 };
 
-const fetchSitemapUrls = async (): Promise<Set<string>> => {
+const fetchSitemapUrls = async (): Promise<Set<string> | null> => {
   try {
     const res = await fetchWithTimeout(SITEMAP_URL);
     if (!res.ok) {
       console.warn('[import-spazio-rossellini] sitemap fetch failed:', res.status);
-      return new Set<string>();
+      return null;
     }
     const xml = await res.text();
     const urls = new Set<string>();
@@ -101,7 +101,7 @@ const fetchSitemapUrls = async (): Promise<Set<string>> => {
     return urls;
   } catch (err) {
     console.warn('[import-spazio-rossellini] fetchSitemapUrls error:', err);
-    return new Set<string>();
+    return null;
   }
 };
 
@@ -268,9 +268,11 @@ serve(async (req) => {
       fetchCategorySlugs(),
       fetchAllEvents(),
     ]);
-    const matched = apiEvents.filter((event) =>
-      sitemapUrls.has(normalizeUrl(event.url ?? ''))
-    );
+    // When sitemapUrls is null the sitemap was unavailable; import all API events
+    // rather than filtering them out, which would produce a silent no-op import.
+    const matched = sitemapUrls === null
+      ? apiEvents
+      : apiEvents.filter((event) => sitemapUrls.has(normalizeUrl(event.url ?? '')));
     const mappedEvents = matched.map((event) => mapEvent(event, categorySlugs));
     const rows = mappedEvents.filter((row): row is NonNullable<typeof row> => row !== null);
     const skippedCount = mappedEvents.length - rows.length;
@@ -282,7 +284,7 @@ serve(async (req) => {
     }
 
     return jsonResponse({
-      sitemapCount: sitemapUrls.size,
+      sitemapCount: sitemapUrls?.size ?? null,
       apiCount: apiEvents.length,
       matchedCount: matched.length,
       upserted: rows.length,
