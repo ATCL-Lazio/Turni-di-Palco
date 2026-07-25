@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Screen } from '../ui/Screen';
 import {
   applyChoice,
@@ -89,6 +89,7 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
   const prevSceneIdRef = React.useRef(sceneId);
   const prevRoleIdRef = React.useRef(roleId);
   const prevRoleStatsRef = React.useRef(roleStats);
+  const isSubmittingChoiceRef = useRef(false);
   useEffect(() => {
     const prevStats = prevRoleStatsRef.current;
     const statsChanged = roleStats !== prevStats && (
@@ -269,54 +270,59 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
   const ctx = makeCtx(roleId, roleStats, run.flags);
 
   const handleChoose = async (choice: NarrativeChoice) => {
-    if (submitting) return;
-    if (!evaluateChoice(choice, ctx).available) return;
-
-    setLocal({ phase: 'submitting', run, scene: activeScene, choiceId: choice.id });
-
-    let nextRun: NarrativeRunState;
-    let outcome: NarrativeOutcome;
-    let finished: boolean;
+    if (isSubmittingChoiceRef.current || local.phase === 'submitting') return;
+    isSubmittingChoiceRef.current = true;
     try {
-      const result = applyChoice(run, activeScene, choice.id, ctx);
-      nextRun = result.state;
-      outcome = result.outcome;
-      finished = result.finished;
-    } catch (error) {
-      setLocal({ phase: 'error', message: error instanceof Error ? error.message : 'Errore sconosciuto' });
-      return;
-    }
+      if (!evaluateChoice(choice, ctx).available) return;
 
-    let submitResult: { ok: boolean; rewards?: Rewards; error?: string };
-    try {
-      submitResult = await onSubmit({
-        sceneId: activeScene.id,
-        choiceId: choice.id,
-        rewards: outcome.rewards,
-        setFlags: outcome.setFlags,
+      setLocal({ phase: 'submitting', run, scene: activeScene, choiceId: choice.id });
+
+      let nextRun: NarrativeRunState;
+      let outcome: NarrativeOutcome;
+      let finished: boolean;
+      try {
+        const result = applyChoice(run, activeScene, choice.id, ctx);
+        nextRun = result.state;
+        outcome = result.outcome;
+        finished = result.finished;
+      } catch (error) {
+        setLocal({ phase: 'error', message: error instanceof Error ? error.message : 'Errore sconosciuto' });
+        return;
+      }
+
+      let submitResult: { ok: boolean; rewards?: Rewards; error?: string };
+      try {
+        submitResult = await onSubmit({
+          sceneId: activeScene.id,
+          choiceId: choice.id,
+          rewards: outcome.rewards,
+          setFlags: outcome.setFlags,
+        });
+      } catch (error) {
+        setLocal({ phase: 'error', message: error instanceof Error ? error.message : 'Errore nel salvataggio della scelta' });
+        return;
+      }
+
+      if (!submitResult.ok) {
+        setLocal({ phase: 'error', message: submitResult.error ?? 'Errore nel salvataggio della scelta' });
+        return;
+      }
+
+      if (finished && sceneId.startsWith(MAXWELL_ID_PREFIX)) {
+        markDailySceneCompleted(makeCtx(roleId, roleStats, new Set()));
+      }
+
+      setLocal({
+        phase: 'outcome',
+        run: nextRun,
+        scene: activeScene,
+        outcome,
+        rewards: submitResult.rewards ?? { xp: 0, cachet: 0, reputation: 0 },
+        finished,
       });
-    } catch (error) {
-      setLocal({ phase: 'error', message: error instanceof Error ? error.message : 'Errore nel salvataggio della scelta' });
-      return;
+    } finally {
+      isSubmittingChoiceRef.current = false;
     }
-
-    if (!submitResult.ok) {
-      setLocal({ phase: 'error', message: submitResult.error ?? 'Errore nel salvataggio della scelta' });
-      return;
-    }
-
-    if (finished && sceneId.startsWith(MAXWELL_ID_PREFIX)) {
-      markDailySceneCompleted(makeCtx(roleId, roleStats, new Set()));
-    }
-
-    setLocal({
-      phase: 'outcome',
-      run: nextRun,
-      scene: activeScene,
-      outcome,
-      rewards: submitResult.rewards ?? { xp: 0, cachet: 0, reputation: 0 },
-      finished,
-    });
   };
 
   return (
