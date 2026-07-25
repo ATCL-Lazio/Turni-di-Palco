@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle, Coins, ShoppingBag, Sparkles } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -27,6 +27,7 @@ export function Shop({
 }: ShopProps) {
   const [selectedTheatre, setSelectedTheatre] = useState<string>(theatreOptions[0]?.theatre ?? '');
   const [busyItemCode, setBusyItemCode] = useState<string | null>(null);
+  const busyItemRef = useRef<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'ok' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
@@ -37,6 +38,8 @@ export function Shop({
   }, [selectedTheatre, theatreOptions]);
 
   const handlePurchase = async (item: ShopCatalogItem) => {
+    if (busyItemRef.current !== null) return;
+    busyItemRef.current = item.code;
     setBusyItemCode(item.code);
     setFeedback(null);
     try {
@@ -49,6 +52,7 @@ export function Shop({
     } catch (err) {
       setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Errore durante l\'acquisto. Riprova.' });
     } finally {
+      busyItemRef.current = null;
       setBusyItemCode(null);
     }
   };
