@@ -89,6 +89,11 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
   const prevSceneIdRef = React.useRef(sceneId);
   const prevRoleIdRef = React.useRef(roleId);
   const prevRoleStatsRef = React.useRef(roleStats);
+  const isMountedRef = React.useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
   useEffect(() => {
     const prevStats = prevRoleStatsRef.current;
     const statsChanged = roleStats !== prevStats && (
@@ -227,10 +232,12 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
         try {
           await ensureTheaterScenesLoaded();
         } catch {
+          if (!isMountedRef.current) return;
           setLocal({ phase: 'error', message: `Scenario "${nextSceneId}" non disponibile al momento.` });
           return;
         }
       }
+      if (!isMountedRef.current) return;
       const nextScene = loadScene(nextSceneId);
       if (!nextScene) {
         setLocal({ phase: 'error', message: `Scenario "${nextSceneId}" non trovato.` });
@@ -296,10 +303,12 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
         setFlags: outcome.setFlags,
       });
     } catch (error) {
+      if (!isMountedRef.current) return;
       setLocal({ phase: 'error', message: error instanceof Error ? error.message : 'Errore nel salvataggio della scelta' });
       return;
     }
 
+    if (!isMountedRef.current) return;
     if (!submitResult.ok) {
       setLocal({ phase: 'error', message: submitResult.error ?? 'Errore nel salvataggio della scelta' });
       return;
@@ -309,6 +318,7 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
       markDailySceneCompleted(makeCtx(roleId, roleStats, new Set()));
     }
 
+    if (!isMountedRef.current) return;
     setLocal({
       phase: 'outcome',
       run: nextRun,
