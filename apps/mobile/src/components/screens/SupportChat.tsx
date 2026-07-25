@@ -602,8 +602,23 @@ function loadChatHistory(historyId: string): ChatSession[] {
 
 function saveChatHistory(historyId: string, sessions: ChatSession[]) {
   if (typeof window === 'undefined') return;
-  const trimmed = [...sessions].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, MAX_SESSIONS);
-  try { window.localStorage.setItem(getHistoryKey(historyId), JSON.stringify(trimmed)); } catch { /* noop */ }
+  const key = getHistoryKey(historyId);
+  const trimmed = sessions.slice(0, MAX_SESSIONS).map(s => ({
+    ...s,
+    messages: s.messages.slice(-MAX_MESSAGES_PER_SESSION),
+  }));
+  try {
+    window.localStorage.setItem(key, JSON.stringify(trimmed));
+    return;
+  } catch {
+    // First write failed (likely QuotaExceededError). Try with minimal data.
+  }
+  try {
+    const minimal = trimmed.slice(0, 1).map(s => ({ ...s, messages: s.messages.slice(-10) }));
+    window.localStorage.setItem(key, JSON.stringify(minimal));
+  } catch {
+    console.warn('[SupportChat] localStorage write failed after retry — chat history not persisted');
+  }
 }
 
 function trimMessages(messages: SupportMessage[]) {
