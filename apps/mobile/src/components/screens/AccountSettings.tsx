@@ -577,6 +577,7 @@ function usePermissions() {
 
     if (key === 'notifications') {
       const result = await requestPermission();
+      if (!isMountedRef.current) return;
       if (result === 'unsupported') {
         setPermissionStatuses(p => ({ ...p, notifications: 'unsupported' }));
         setPermissionMessages(p => ({ ...p, notifications: 'Le notifiche non sono supportate.' }));
@@ -592,9 +593,11 @@ function usePermissions() {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ video: true });
           stream.getTracks().forEach(t => t.stop());
+          if (!isMountedRef.current) return;
           setPermissionStatuses(p => ({ ...p, camera: 'granted' }));
           setPermissionMessages(p => ({ ...p, camera: 'Permesso fotocamera concesso.' }));
         } catch {
+          if (!isMountedRef.current) return;
           setPermissionStatuses(p => ({ ...p, camera: 'denied' }));
           setPermissionMessages(p => ({ ...p, camera: 'Permesso fotocamera negato.' }));
         }
@@ -631,6 +634,12 @@ function useNotificationToggle() {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermissionState>(() => getPermission());
   const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
 
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
   const notificationStatusLabel = (() => {
     switch (notificationPermission) {
       case 'granted': return 'Attive';
@@ -652,6 +661,7 @@ function useNotificationToggle() {
     }
     setNotificationMessage(null);
     const next = await requestPermission();
+    if (!isMountedRef.current) return;
     setNotificationPermission(next);
     if (next !== 'granted') setNotificationMessage('Permesso notifiche non concesso.');
   }, [notificationPermission]);
