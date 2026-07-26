@@ -1,3 +1,4 @@
+import { ROLE_IDS } from '../state/store';
 import type { RoleId } from '../state/store';
 import type { RoleStats } from './minigames';
 import { resolveAiChatEndpoint } from '../services/ai';
@@ -302,11 +303,8 @@ function sanitizePromptValue(value: string): string {
   return value.replace(/[\r\n]+/g, ' ').trim();
 }
 
-/** Known-safe role IDs accepted by the narrative engine. */
-const SAFE_ROLE_IDS = new Set<string>([
-  'actor', 'director', 'stage_manager', 'technician', 'costume_designer',
-  'set_designer', 'lighting_designer', 'sound_designer', 'producer', 'playwright',
-]);
+/** Known-safe role IDs accepted by the narrative engine — single source of truth from store. */
+const SAFE_ROLE_IDS = new Set<string>(ROLE_IDS);
 
 /** Known-safe flag names (snake_case identifiers only). */
 const SAFE_FLAG_PATTERN = /^[a-z][a-z0-9_]{0,59}$/;
