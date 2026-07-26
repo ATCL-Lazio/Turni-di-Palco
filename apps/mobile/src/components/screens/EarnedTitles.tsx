@@ -52,9 +52,9 @@ function getBadgeProgressMeta(badge: Badge, turnStats: TurnStats) {
 }
 
 export function EarnedTitles({ badges, turnStats, onBack, onViewed }: EarnedTitlesProps) {
-  React.useEffect(() => {
-    onViewed?.();
-  }, [onViewed]);
+  const onViewedRef = React.useRef(onViewed);
+  React.useEffect(() => { onViewedRef.current = onViewed; });
+  React.useEffect(() => { onViewedRef.current?.(); }, []);
 
   const visibleBadges = React.useMemo(
     () =>
