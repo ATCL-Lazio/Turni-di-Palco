@@ -12,6 +12,8 @@ const corsHeaders = {
 
 const EVENT_ID_PATTERN = /\b([A-Za-z]{2,10}-\d{1,6})\b/;
 
+const VALID_ROLE_IDS = new Set(['attore', 'luci', 'fonico', 'attrezzista', 'palco', 'rspp', 'dramaturg']);
+
 type EventRow = {
   id: string;
   name: string;
@@ -161,12 +163,17 @@ serve(async (req) => {
 
   if (action === 'create_deep_link') {
     const eventId = normalizeEventId(String(body.eventId ?? ''));
-    const roleId = String(body.roleId ?? '').trim() || null;
+    const rawRoleId = String(body.roleId ?? '').trim() || null;
     const baseUrl = sanitizeBaseUrl(String(body.baseUrl ?? DEFAULT_BASE_URL));
 
     if (!eventId) {
       return json({ error: 'eventId obbligatorio' }, 400);
     }
+
+    if (rawRoleId !== null && !VALID_ROLE_IDS.has(rawRoleId)) {
+      return json({ error: 'roleId non valido' }, 400);
+    }
+    const roleId = rawRoleId;
 
     // @ts-ignore
     const { data, error } = await supabase
