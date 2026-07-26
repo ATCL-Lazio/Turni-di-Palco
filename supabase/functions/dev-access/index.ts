@@ -126,25 +126,21 @@ serve(async (req) => {
     return jsonResponse({ allowed: true });
   }
 
-  if (serviceRoleKey) {
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-    const userRoles = getUserRoles(user as Record<string, unknown>);
-    const auditEntry: DevAccessAudit = {
-      user_id: user.id,
-      user_email: user.email ?? null,
-      user_roles: userRoles,
-      path: payload.path ?? null,
-      reason: 'not_allowed',
-    };
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const userRoles = getUserRoles(user as Record<string, unknown>);
+  const auditEntry: DevAccessAudit = {
+    user_id: user.id,
+    user_email: user.email ?? null,
+    user_roles: userRoles,
+    path: payload.path ?? null,
+    reason: 'not_allowed',
+  };
 
-    const { error: insertError } = await adminClient.from('dev_access_audit').insert(auditEntry);
-    if (insertError) {
-      console.error('Dev access audit insert failed', insertError.message);
-    }
-  } else {
-    console.warn('Missing SUPABASE_SERVICE_ROLE_KEY for dev access audit logging.');
+  const { error: insertError } = await adminClient.from('dev_access_audit').insert(auditEntry);
+  if (insertError) {
+    console.error('Dev access audit insert failed', insertError.message);
   }
 
   return jsonResponse({ allowed: false, reason: 'Accesso non autorizzato.' }, 403);
