@@ -22,9 +22,20 @@ export async function uploadProfileImage(userId: string, file: File): Promise<st
       throw new Error('Immagine troppo grande (max 5MB)');
     }
 
-    // Always use a fixed path so upsert truly overwrites the previous image
-    // regardless of the source file extension, preventing orphan objects.
-    const fileName = `${userId}/profile.jpg`;
+    const mimeToExt: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+    };
+    const ext = mimeToExt[file.type] ?? 'jpg';
+    const fileName = `${userId}/profile.${ext}`;
+
+    // Remove any pre-existing profile images with a different extension to
+    // prevent orphan objects when the user switches upload format.
+    const profileBucket = supabase.storage.from('profile-images');
+    const otherExts = Object.values(mimeToExt).filter(e => e !== ext);
+    await Promise.all(otherExts.map(e => profileBucket.remove([`${userId}/profile.${e}`])));
 
     const { error } = await supabase.storage
       .from('profile-images')
