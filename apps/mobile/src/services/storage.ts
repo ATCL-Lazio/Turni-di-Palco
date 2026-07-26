@@ -33,12 +33,9 @@ export async function uploadProfileImage(userId: string, file: File): Promise<st
 
     // Remove any pre-existing profile images with a different extension to
     // prevent orphan objects when the user switches upload format.
+    const profileBucket = supabase.storage.from('profile-images');
     const otherExts = Object.values(mimeToExt).filter(e => e !== ext);
-    await Promise.all(
-      otherExts.map(e =>
-        supabase.storage.from('profile-images').remove([`${userId}/profile.${e}`])
-      )
-    );
+    await Promise.all(otherExts.map(e => profileBucket.remove([`${userId}/profile.${e}`])));
 
     const { error } = await supabase.storage
       .from('profile-images')
