@@ -210,7 +210,10 @@ serve(async (req) => {
     const eventId = normalizeEventId(url.searchParams.get('event_id') ?? url.searchParams.get('eid'));
     // URLSearchParams.get() returns null when absent, which is correct.
     // Normalise with || null so an empty string also becomes null, not "".
-    const roleId = url.searchParams.get('role_id') || null;
+    // Validate against VALID_ROLE_IDS: reject unknown role IDs rather than
+    // reflecting attacker-controlled strings back to the caller (closes #1503).
+    const rawRoleId = url.searchParams.get('role_id') || null;
+    const roleId = (rawRoleId !== null && VALID_ROLE_IDS.has(rawRoleId)) ? rawRoleId : null;
     if (!eventId) {
       return json({ error: 'event_id mancante' }, 400);
     }
