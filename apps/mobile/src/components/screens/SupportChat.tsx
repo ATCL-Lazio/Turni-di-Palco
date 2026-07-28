@@ -197,7 +197,7 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
 
     try {
       const memory = buildMemorySnippet(chatSessions, requestSessionId);
-      const payload = buildChatPayload(nextMessages);
+      const payload = buildChatPayload(trimMessages(nextMessages));
       const reply = await requestAiSupport({ userName: displayName, memory, messages: payload, signal: controller.signal });
       if (controller.signal.aborted || requestIdRef.current !== requestId || activeSessionIdRef.current !== requestSessionId) return;
       const { text, draft } = extractIssueDraft(reply);
