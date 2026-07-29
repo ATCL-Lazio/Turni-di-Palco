@@ -510,6 +510,8 @@ export async function fetchScene(
     ? window.setTimeout(() => controller.abort(), MAXWELL_FETCH_TIMEOUT_MS)
     : null;
 
+  let cleanupExternalAbort: (() => void) | null = null;
+
   const combinedSignal = options?.signal
     ? (() => {
         const merged = new AbortController();
@@ -519,6 +521,7 @@ export async function fetchScene(
           const abort = () => merged.abort();
           controller.signal.addEventListener('abort', abort, { once: true });
           options.signal!.addEventListener('abort', abort, { once: true });
+          cleanupExternalAbort = () => options.signal!.removeEventListener('abort', abort);
         }
         return merged.signal;
       })()
@@ -536,7 +539,10 @@ export async function fetchScene(
       if (timeoutId !== null) window.clearTimeout(timeoutId);
       return null;
     }
-  })().finally(() => inflightSceneFetch.delete(inflightKey));
+  })().finally(() => {
+    cleanupExternalAbort?.();
+    inflightSceneFetch.delete(inflightKey);
+  });
 
   inflightSceneFetch.set(inflightKey, p);
   return p;
