@@ -68,10 +68,12 @@ const HTML_ENTITIES: Record<string, string> = {
 };
 
 function decodeHtmlEntities(text: string): string {
-  // Decode numeric entities (decimal and hex)
+  // Decode numeric entities (decimal and hex).
+  // Guard String.fromCodePoint with try-catch: the hex pattern is unbounded and
+  // values above 0x10FFFF throw a RangeError that would crash the Edge Function.
   return text
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => { try { return String.fromCodePoint(parseInt(hex, 16)); } catch { return match; } })
+    .replace(/&#(\d+);/g, (match, dec) => { try { return String.fromCodePoint(parseInt(dec, 10)); } catch { return match; } })
     .replace(/&([a-zA-Z]+);/g, (match, name) => HTML_ENTITIES[name] ?? HTML_ENTITIES[name.toLowerCase()] ?? match);
 }
 
