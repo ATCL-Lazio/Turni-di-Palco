@@ -157,8 +157,20 @@ serve(async (req: Request) => {
       });
 
       if (insertError) {
-        // Primary key collision -> hash already reserved by another process.
         if ((insertError as { code?: string }).code === '23505') {
+          // Primary key collision: hash already exists. Check if this admin
+          // reserved it themselves — a common case when the HTTP response was
+          // lost mid-flight and the client retries. Return success so the
+          // client can continue instead of showing a misleading "duplicate"
+          // error (closes #1511).
+          const { data: existing } = await supabase
+            .from('ticket_activations')
+            .select('reserved_by')
+            .eq('hash', normalizedHash)
+            .maybeSingle();
+          if (existing?.reserved_by === authenticatedUser?.id) {
+            return jsonResponse({ reserved: true }, 200);
+          }
           return jsonResponse({ reserved: false, error: 'Hash already exists' }, 200);
         }
         throw insertError;
