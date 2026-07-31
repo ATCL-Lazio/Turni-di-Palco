@@ -2583,7 +2583,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           setLeaderboard(nextLeaderboard);
         } catch (error) {
           console.warn('Supabase leaderboard fetch failed', error);
-          setLeaderboard([]);
         } finally {
           setLeaderboardLoading(false);
         }
