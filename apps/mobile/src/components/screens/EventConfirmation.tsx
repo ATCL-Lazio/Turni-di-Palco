@@ -30,6 +30,7 @@ export function EventConfirmation({
   const [boostRequested, setBoostRequested] = useState(false);
   const [confirmResult, setConfirmResult] = useState<Extract<ConfirmTurnResult, { ok: true }> | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && navigator.onLine === false);
   const successTimeoutRef = useRef<number | null>(null);
   const isSubmittingRef = useRef(false);
 
@@ -39,8 +40,18 @@ export function EventConfirmation({
     };
   }, []);
 
+  useEffect(() => {
+    const onOnline = () => setIsOffline(false);
+    const onOffline = () => setIsOffline(true);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
+
   const roleId = (role?.id ?? 'attore') as RoleId;
-  const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
 
   const resolvedRewards = useMemo(() => event ? computeTurnRewards(event, roleId) : { xp: 0, reputation: 0, cachet: 0 }, [event, roleId]);
   const boostedPreviewRewards = useMemo(() => ({
