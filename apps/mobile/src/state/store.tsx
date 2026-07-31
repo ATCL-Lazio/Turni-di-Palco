@@ -2599,6 +2599,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   const flushMirroredClientLogsToServer = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase || !shouldMirrorOfflineSyncLogsToServer()) return;
+    if (!authUserId) return;
     if (offlineServerLogSyncInFlightRef.current) return;
     if (isNavigatorOffline()) return;
 
