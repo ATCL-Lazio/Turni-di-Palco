@@ -14,6 +14,7 @@ export function Leaderboard({ onSelectEntry }: LeaderboardProps) {
   const rowRefs = useRef(new Map<string, HTMLDivElement>());
   const previousRowTops = useRef(new Map<string, number>());
   const timerIdsRef = useRef<number[]>([]);
+  const rafIdsRef = useRef<number[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,8 +33,10 @@ export function Leaderboard({ onSelectEntry }: LeaderboardProps) {
   );
 
   useLayoutEffect(() => {
-    animateRowTransitions(sorted, rowRefs, previousRowTops, timerIdsRef);
+    animateRowTransitions(sorted, rowRefs, previousRowTops, timerIdsRef, rafIdsRef);
     return () => {
+      rafIdsRef.current.forEach(id => cancelAnimationFrame(id));
+      rafIdsRef.current = [];
       timerIdsRef.current.forEach(id => clearTimeout(id));
       timerIdsRef.current = [];
     };
@@ -172,6 +175,7 @@ function animateRowTransitions(
   rowRefs: React.MutableRefObject<Map<string, HTMLDivElement>>,
   previousRowTops: React.MutableRefObject<Map<string, number>>,
   timerIdsRef: React.MutableRefObject<number[]>,
+  rafIdsRef: React.MutableRefObject<number[]>,
 ) {
   const nextRowIds = new Set(sorted.map(e => e.id));
 
@@ -184,12 +188,14 @@ function animateRowTransitions(
       rowNode.style.transition = 'none';
       rowNode.style.transform = `translateY(${deltaY}px)`;
       rowNode.style.willChange = 'transform';
-      requestAnimationFrame(() => {
+      const rafId = requestAnimationFrame(() => {
+        rafIdsRef.current = rafIdsRef.current.filter(id => id !== rafId);
         rowNode.style.transition = 'transform 380ms cubic-bezier(0.22, 1, 0.36, 1)';
         rowNode.style.transform = 'translateY(0)';
         const timerId = window.setTimeout(() => { rowNode.style.willChange = ''; }, 400);
         timerIdsRef.current.push(timerId);
       });
+      rafIdsRef.current.push(rafId);
     }
   }
 
