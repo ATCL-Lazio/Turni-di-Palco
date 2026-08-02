@@ -4444,20 +4444,19 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       );
 
       if (!isSupabaseConfigured || !supabase || !authUserId) {
-        // Capture results of the setState updater for use in feedback after commit.
-        // All token/boost logic runs inside the updater so it always operates on
-        // the latest prev state, eliminating the stale-read race condition.
-        let localBoostApplied = false;
-        let localBoostRejectionReason: string | null = null;
-        let localRewards = computeTurnRewards(event, roleId);
-        let localTokenAtcl = 0;
-        let localTurnRecord: TurnRecord = buildTurnRecordFromPayload(
-          turnRegisterPayload,
-          localRewards,
-          'synced',
-          false,
-          null
-        );
+        // Use a ref to capture results computed inside the setState updater so
+        // that reads after setState() see the correct values regardless of when
+        // React schedules the updater — same pattern as startCourse/completeCourse
+        // (closes #1523).
+        type LocalDemoResult = {
+          boostApplied: boolean;
+          boostRejectionReason: string | null;
+          rewards: Rewards;
+          tokenAtcl: number;
+          turnRecord: TurnRecord;
+        };
+        const localResultRef: { current: LocalDemoResult | null } = { current: null };
+
         setState((prev: GameState) => {
           let boostApplied = false;
           let boostRejectionReason: string | null = null;
@@ -4484,12 +4483,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             boostApplied,
             boostRejectionReason
           );
-          // Capture results for feedback (last updater call wins, which is correct)
-          localBoostApplied = boostApplied;
-          localBoostRejectionReason = boostRejectionReason;
-          localRewards = rewards;
-          localTokenAtcl = nextTokenAtcl;
-          localTurnRecord = turnRecord;
+          // Capture results via ref — last updater invocation wins, which is
+          // correct because the final call determines the committed state.
+          localResultRef.current = { boostApplied, boostRejectionReason, rewards, tokenAtcl: nextTokenAtcl, turnRecord };
           const rewardedProfile = applyRewards(prev.profile, rewards, 'turn');
           return {
             profile: {
@@ -4500,12 +4496,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             turns: [turnRecord, ...prev.turns].slice(0, MAX_TURNS),
           };
         });
-        const localSyncStatus: TurnSyncStatus = boostRequested && !localBoostApplied ? 'failed_boost_fallback' : 'synced';
+
+        const local = localResultRef.current!;
+        const localSyncStatus: TurnSyncStatus = boostRequested && !local.boostApplied ? 'failed_boost_fallback' : 'synced';
         setTurnSyncFeedback({
           syncStatus: localSyncStatus,
           boostRequested,
-          boostApplied: localBoostApplied,
-          boostRejectionReason: localBoostRejectionReason,
+          boostApplied: local.boostApplied,
+          boostRejectionReason: local.boostRejectionReason,
           eventName: event.name,
           createdAt: Date.now(),
           geolocationAvailable: Boolean(geolocationSnapshot),
@@ -4514,11 +4512,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           ok: true,
           syncStatus: localSyncStatus,
           boostRequested,
-          boostApplied: localBoostApplied,
-          boostRejectionReason: localBoostRejectionReason,
-          rewards: localRewards,
-          tokenBalanceAfter: localTokenAtcl,
-          turn: localTurnRecord,
+          boostApplied: local.boostApplied,
+          boostRejectionReason: local.boostRejectionReason,
+          rewards: local.rewards,
+          tokenBalanceAfter: local.tokenAtcl,
+          turn: local.turnRecord,
         };
       }
 
