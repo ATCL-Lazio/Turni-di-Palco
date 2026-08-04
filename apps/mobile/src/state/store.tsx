@@ -4539,11 +4539,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         // offline, before the queue flushes (closes #1528).
         setState((prev: GameState) => {
           const alreadyPresent = prev.turns.some((t) => t.id === pendingTurnRecord.id);
-          return {
-            turns: alreadyPresent
-              ? prev.turns.map((t) => (t.id === pendingTurnRecord.id ? { ...t, ...pendingTurnRecord } : t))
-              : [pendingTurnRecord, ...prev.turns].slice(0, MAX_TURNS),
-          };
+          const nextTurns = (alreadyPresent
+            ? prev.turns.map((t) => (t.id === pendingTurnRecord.id ? { ...t, ...pendingTurnRecord } : t))
+            : [pendingTurnRecord, ...prev.turns]
+          ).slice(0, MAX_TURNS);
+          return { ...prev, turns: nextTurns };
         });
         setTurnSyncFeedback({
           syncStatus: 'pending',
