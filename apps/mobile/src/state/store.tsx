@@ -22,7 +22,7 @@ import {
   COURSE_COOLDOWN_MS,
   type CourseSkill,
 } from '../gameplay/courses';
-import { withMobileWatchdog } from '../services/mobile-watchdog';
+import { withMobileWatchdog, WatchdogTimeoutError } from '../services/mobile-watchdog';
 import {
   applyMobileFeatureFlagOverrides,
   MOBILE_FEATURE_FLAGS_DEFAULTS,
@@ -3141,7 +3141,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
     restoreSession().catch((err) => {
       console.error('[restoreSession] unexpected error', err);
-      if (isMounted) setAuthReady(true);
+      // For WatchdogTimeoutError: withMobileWatchdog already showed the error
+      // overlay; the in-flight Supabase call continues and will trigger
+      // onAuthStateChange (below) which sets both authUserId and authReady
+      // correctly — setting authReady=true here without authUserId would
+      // produce a phantom logged-out state window (closes #1527).
+      if (isMounted && !(err instanceof WatchdogTimeoutError)) {
+        setAuthReady(true);
+      }
     });
 
     const { data: authListener } = supabase!.auth.onAuthStateChange((_event, session) => {
