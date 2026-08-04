@@ -62,7 +62,30 @@ serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // 1. Delete game data (cascade-safe: ordered by FK dependencies)
+  // 1. Nullify reserved_by BEFORE any destructive deletes (closes #1529).
+  //
+  // ticket_activations rows where activated_by is set belong to another user's
+  // attendance record and are NOT deleted; instead their reserved_by column is
+  // cleared so the deleted user's UUID no longer appears (GDPR Art. 17).
+  //
+  // Running this step first means that if it fails, no game data has been
+  // destroyed yet and an "aborted" error is genuinely accurate. Doing it after
+  // the delete loop (original order) caused data loss when the UPDATE failed —
+  // all game data was already gone but the error said "aborted".
+  const { error: nullifyError } = await adminClient
+    .from('ticket_activations')
+    .update({ reserved_by: null })
+    .eq('reserved_by', userId)
+    .not('activated_by', 'is', null);
+  if (nullifyError) {
+    console.error('delete-my-account: failed to nullify reserved_by on activated tickets', nullifyError.message);
+    return errorResponse(
+      'Account deletion aborted: could not nullify reserved ticket references. Please retry.',
+      500,
+    );
+  }
+
+  // 2. Delete game data (cascade-safe: ordered by FK dependencies)
   //
   // ticket_activations is deleted twice — once by activated_by (tickets the
   // user activated) and once by reserved_by (tickets the user generated as an
@@ -96,26 +119,6 @@ serve(async (req) => {
       console.error(`delete-my-account: error deleting from ${table} (key: ${key})`, error.message);
       failedTable = `${table}.${key}`;
       break;
-    }
-  }
-
-  // Nullify reserved_by in ticket_activations rows that were preserved because
-  // another user activated the ticket. The delete pass above only removes rows
-  // where activated_by IS NULL; rows with activated_by set are kept so the
-  // activating user's attendance record survives, but they still contain the
-  // deleted user's UUID in reserved_by — a GDPR Art. 17 compliance gap.
-  if (failedTable === null) {
-    const { error: nullifyError } = await adminClient
-      .from('ticket_activations')
-      .update({ reserved_by: null })
-      .eq('reserved_by', userId)
-      .not('activated_by', 'is', null);
-    if (nullifyError) {
-      console.error('delete-my-account: failed to nullify reserved_by on activated tickets', nullifyError.message);
-      return errorResponse(
-        'Account deletion aborted: could not nullify reserved ticket references. Please retry.',
-        500,
-      );
     }
   }
 
