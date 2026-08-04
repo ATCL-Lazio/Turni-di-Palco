@@ -5372,6 +5372,12 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     // blank default state to the DB if called before the next remote hydration
     // completes (closes #1132).
     setHasHydratedRemote(false);
+    // Clear the offline server-log queue so that a new user logging in on the
+    // same device does not have the previous user's queued logs flushed under
+    // their identity (closes #1524).
+    if (typeof window !== 'undefined') {
+      try { window.localStorage.removeItem(OFFLINE_SYNC_SERVER_LOG_QUEUE_KEY); } catch { /* ignore */ }
+    }
   }, []);
 
   // GDPR Art. 17 – Diritto alla cancellazione: elimina account e tutti i dati utente.
