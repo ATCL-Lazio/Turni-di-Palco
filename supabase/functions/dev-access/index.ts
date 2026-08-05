@@ -141,6 +141,7 @@ serve(async (req) => {
   const { error: insertError } = await adminClient.from('dev_access_audit').insert(auditEntry);
   if (insertError) {
     console.error('Dev access audit insert failed', insertError.message);
+    return jsonResponse({ error: 'Audit logging unavailable. Access denied.' }, 503);
   }
 
   return jsonResponse({ allowed: false, reason: 'Accesso non autorizzato.' }, 403);
