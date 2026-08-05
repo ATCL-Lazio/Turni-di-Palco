@@ -90,7 +90,9 @@ export function ChangePassword({
       }, 1500);
       // Keep isSubmitting=true for the full 1500ms navigation delay so the
       // button stays disabled and a second submission cannot be triggered.
-    } catch {
+    } catch (err) {
+      if (!isMountedRef.current) return;
+      console.error('[ChangePassword] password update failed', err);
       setIsSubmitting(false);
       setErrorMessage('Impossibile aggiornare la password. Riprova più tardi.');
     }
