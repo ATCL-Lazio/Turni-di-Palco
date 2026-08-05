@@ -4541,6 +4541,17 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           boostRequested,
         });
         enqueueSupabaseMutation(queuedMutation);
+        // Mirror the online-RPC-failure path: add the pending turn to local
+        // state immediately so it appears in history while the device is
+        // offline, before the queue flushes (closes #1528).
+        setState((prev: GameState) => {
+          const alreadyPresent = prev.turns.some((t) => t.id === pendingTurnRecord.id);
+          const nextTurns = (alreadyPresent
+            ? prev.turns.map((t) => (t.id === pendingTurnRecord.id ? { ...t, ...pendingTurnRecord } : t))
+            : [pendingTurnRecord, ...prev.turns]
+          ).slice(0, MAX_TURNS);
+          return { ...prev, turns: nextTurns };
+        });
         setTurnSyncFeedback({
           syncStatus: 'pending',
           boostRequested,
