@@ -2507,7 +2507,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       async () => {
         setBadgesLoading(true);
         try {
-          await supabase!.rpc('evaluate_my_badges');
+          const { error: rpcError } = await supabase!.rpc('evaluate_my_badges');
+          if (rpcError) {
+            console.error('[refreshBadges] evaluate_my_badges RPC failed', rpcError.message);
+            return;
+          }
           const { data, error } = await supabase!
             .from('my_badges')
             .select('id,title,description,icon,metric,threshold,is_hidden,unlocked_at,seen_at,unlocked')
