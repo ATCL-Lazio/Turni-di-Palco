@@ -4332,45 +4332,57 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const completeOnboarding = useCallback(
     (variant: 'full' | 'skipped_qr' | 'skipped_manual', xpReward?: number) => {
       const completedAt = new Date().toISOString();
-      // Compute nextProfile inside the setState updater using prev.profile so
-      // concurrent profile mutations are not silently clobbered (closes #1378).
-      // A plain object ref captures the computed value for persistProfile without
-      // relying on the potentially-deferred updater running synchronously.
-      const nextProfileRef: { current: PlayerProfile | null } = { current: null };
+      // Compute next profile from the render-time snapshot so persistProfile can
+      // be called synchronously. The ref-inside-updater pattern was broken: React
+      // 18 (createRoot) defers useState updaters to the commit phase, so
+      // nextProfileRef.current was always null when checked after setState()
+      // (closes #1535, regression of #1312).
+      let next: PlayerProfile = {
+        ...state.profile,
+        onboardingCompletedAt: completedAt,
+        onboardingVariant: variant,
+      };
+      if (xpReward && xpReward > 0) {
+        next = applyRewards(next, { xp: xpReward, cachet: 0, reputation: 0 }, 'activity');
+      }
+      persistProfile(next);
+      // The updater re-derives from prev.profile so that any concurrent profile
+      // mutation between this render and the next commit is not clobbered
+      // (same trade-off as startCourse, closes #1378).
       setState((prev: GameState) => {
-        let next: PlayerProfile = {
+        let nextFromPrev: PlayerProfile = {
           ...prev.profile,
           onboardingCompletedAt: completedAt,
           onboardingVariant: variant,
         };
         if (xpReward && xpReward > 0) {
-          next = applyRewards(next, { xp: xpReward, cachet: 0, reputation: 0 }, 'activity');
+          nextFromPrev = applyRewards(nextFromPrev, { xp: xpReward, cachet: 0, reputation: 0 }, 'activity');
         }
-        nextProfileRef.current = next;
-        return { ...prev, profile: next };
+        return { ...prev, profile: nextFromPrev };
       });
-      if (nextProfileRef.current) persistProfile(nextProfileRef.current);
     },
-    [persistProfile],
+    [persistProfile, state.profile],
   );
 
   const updateProfile = useCallback(
     (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => {
-      // Compute nextProfile inside the setState updater using prev.profile so
-      // concurrent profile mutations are not silently clobbered (closes #1378).
-      const nextProfileRef: { current: PlayerProfile | null } = { current: null };
+      // Compute from render-time snapshot for persistProfile (closes #1535).
+      const nextRole =
+        updates.roleId && catalogRolesRef.current.some((role: Role) => role.id === updates.roleId)
+          ? updates.roleId
+          : state.profile.roleId;
+      const next: PlayerProfile = { ...state.profile, ...updates, roleId: nextRole ?? state.profile.roleId };
+      persistProfile(next);
+      // Updater re-derives from prev.profile to preserve concurrent mutations.
       setState((prev: GameState) => {
-        const nextRole =
+        const prevRole =
           updates.roleId && catalogRolesRef.current.some((role: Role) => role.id === updates.roleId)
             ? updates.roleId
             : prev.profile.roleId;
-        const next: PlayerProfile = { ...prev.profile, ...updates, roleId: nextRole ?? prev.profile.roleId };
-        nextProfileRef.current = next;
-        return { ...prev, profile: next };
+        return { ...prev, profile: { ...prev.profile, ...updates, roleId: prevRole ?? prev.profile.roleId } };
       });
-      if (nextProfileRef.current) persistProfile(nextProfileRef.current);
     },
-    [persistProfile]
+    [persistProfile, state.profile],
   );
 
   const registerTurn = useCallback(
