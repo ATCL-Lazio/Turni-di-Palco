@@ -163,7 +163,10 @@ export function useAuth(
         });
         updateProfile({ name: displayName, email });
         onAuthChange('welcome'); // Flow will continue to role-selection
-        // signupInProgressRef is cleared by the SIGNED_IN listener below.
+        // Safety net: if SIGNED_IN never fires (WebSocket failure, token not
+        // issued), clear the ref so future logins navigate to 'home' (closes #1546).
+        setTimeout(() => { signupInProgressRef.current = false; }, 10_000);
+        // signupInProgressRef is also cleared by the SIGNED_IN listener below.
     }, [onAuthChange, updateProfile]);
 
     // Set to true immediately before a voluntary signOut so the SIGNED_OUT
