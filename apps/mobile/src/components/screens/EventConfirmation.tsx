@@ -33,9 +33,11 @@ export function EventConfirmation({
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && navigator.onLine === false);
   const successTimeoutRef = useRef<number | null>(null);
   const isSubmittingRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     return () => {
+      isMountedRef.current = false;
       if (successTimeoutRef.current !== null) window.clearTimeout(successTimeoutRef.current);
     };
   }, []);
@@ -74,7 +76,10 @@ export function EventConfirmation({
       if (!result.ok) { setConfirmError(result.error); return; }
       setConfirmResult(result);
       setIsSuccess(true);
-      successTimeoutRef.current = window.setTimeout(() => onSuccess(), 1500);
+      // Guard against the component unmounting during the await above (closes #1545).
+      if (isMountedRef.current) {
+        successTimeoutRef.current = window.setTimeout(() => onSuccess(), 1500);
+      }
     } catch (error) {
       setConfirmError(error instanceof Error ? error.message : 'Errore durante la registrazione turno.');
     } finally {
