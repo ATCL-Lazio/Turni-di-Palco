@@ -4451,48 +4451,43 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       );
 
       if (!isSupabaseConfigured || !supabase || !authUserId) {
-        // Use a ref to capture results computed inside the setState updater so
-        // that reads after setState() see the correct values regardless of when
-        // React schedules the updater — same pattern as startCourse/completeCourse
-        // (closes #1523).
-        type LocalDemoResult = {
-          boostApplied: boolean;
-          boostRejectionReason: string | null;
-          rewards: Rewards;
-          tokenAtcl: number;
-          turnRecord: TurnRecord;
-        };
-        const localResultRef: { current: LocalDemoResult | null } = { current: null };
+        // Compute boost/rewards BEFORE calling setState so the results are
+        // available immediately. The ref-inside-updater pattern used previously
+        // was broken: React 18 (createRoot) defers useState updaters to the
+        // commit phase, so localResultRef.current was always null when read
+        // after setState(), causing a TypeError crash via the ! assertion
+        // (closes #1533, regression of #1523 fix).
+        //
+        // state.profile is safe to read here: in demo/local mode there is no
+        // server sync, so tokenAtcl cannot change concurrently. state.profile
+        // is added to the useCallback deps so the closure is always fresh.
+        let boostApplied = false;
+        let boostRejectionReason: string | null = null;
+        let rewards = computeTurnRewards(event, roleId);
+        let nextTokenAtcl = state.profile.tokenAtcl;
+        if (boostRequested) {
+          if (nextTokenAtcl > 0) {
+            boostApplied = true;
+            nextTokenAtcl -= 1;
+            rewards = {
+              ...rewards,
+              xp: Math.ceil(rewards.xp * 1.1),
+              cachet: Math.ceil(rewards.cachet * 1.1),
+            };
+          } else {
+            boostRejectionReason = 'insufficient_token_balance';
+          }
+        }
+        const localSyncStatus: TurnSyncStatus = boostRequested && !boostApplied ? 'failed_boost_fallback' : 'synced';
+        const localTurnRecord: TurnRecord = buildTurnRecordFromPayload(
+          turnRegisterPayload,
+          rewards,
+          localSyncStatus,
+          boostApplied,
+          boostRejectionReason
+        );
 
         setState((prev: GameState) => {
-          let boostApplied = false;
-          let boostRejectionReason: string | null = null;
-          let rewards = computeTurnRewards(event, roleId);
-          let nextTokenAtcl = prev.profile.tokenAtcl;
-          if (boostRequested) {
-            if (nextTokenAtcl > 0) {
-              boostApplied = true;
-              nextTokenAtcl -= 1;
-              rewards = {
-                ...rewards,
-                xp: Math.ceil(rewards.xp * 1.1),
-                cachet: Math.ceil(rewards.cachet * 1.1),
-              };
-            } else {
-              boostRejectionReason = 'insufficient_token_balance';
-            }
-          }
-          const syncStatus: TurnSyncStatus = boostRequested && !boostApplied ? 'failed_boost_fallback' : 'synced';
-          const turnRecord: TurnRecord = buildTurnRecordFromPayload(
-            turnRegisterPayload,
-            rewards,
-            syncStatus,
-            boostApplied,
-            boostRejectionReason
-          );
-          // Capture results via ref — last updater invocation wins, which is
-          // correct because the final call determines the committed state.
-          localResultRef.current = { boostApplied, boostRejectionReason, rewards, tokenAtcl: nextTokenAtcl, turnRecord };
           const rewardedProfile = applyRewards(prev.profile, rewards, 'turn');
           return {
             profile: {
@@ -4500,17 +4495,15 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
               tokenAtcl: nextTokenAtcl,
             },
             eventPlans: prev.eventPlans,
-            turns: [turnRecord, ...prev.turns].slice(0, MAX_TURNS),
+            turns: [localTurnRecord, ...prev.turns].slice(0, MAX_TURNS),
           };
         });
 
-        const local = localResultRef.current!;
-        const localSyncStatus: TurnSyncStatus = boostRequested && !local.boostApplied ? 'failed_boost_fallback' : 'synced';
         setTurnSyncFeedback({
           syncStatus: localSyncStatus,
           boostRequested,
-          boostApplied: local.boostApplied,
-          boostRejectionReason: local.boostRejectionReason,
+          boostApplied,
+          boostRejectionReason,
           eventName: event.name,
           createdAt: Date.now(),
           geolocationAvailable: Boolean(geolocationSnapshot),
@@ -4519,11 +4512,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           ok: true,
           syncStatus: localSyncStatus,
           boostRequested,
-          boostApplied: local.boostApplied,
-          boostRejectionReason: local.boostRejectionReason,
-          rewards: local.rewards,
-          tokenBalanceAfter: local.tokenAtcl,
-          turn: local.turnRecord,
+          boostApplied,
+          boostRejectionReason,
+          rewards,
+          tokenBalanceAfter: nextTokenAtcl,
+          turn: localTurnRecord,
         };
       }
 
@@ -4684,6 +4677,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       enqueueSupabaseMutation,
       featureFlags,
       applyTurnRegistrationResult,
+      state.profile,
     ]
   );
 
