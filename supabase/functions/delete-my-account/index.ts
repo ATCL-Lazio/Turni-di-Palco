@@ -156,6 +156,19 @@ serve(async (req) => {
     console.error('delete-my-account: storage cleanup timed out or failed (non-fatal)', storageError);
   }
 
+  // Final sweep: nullify any reserved_by references that survived the delete loop.
+  // Closes the TOCTOU window where a ticket was activated between step 1 (nullify
+  // activated tickets) and step 2 (delete unactivated tickets): such a ticket would
+  // have been skipped by both steps, leaving the deleted user's UUID in reserved_by.
+  // Non-fatal — log and continue so the auth user is still removed (closes #1543).
+  const { error: finalNullifyError } = await adminClient
+    .from('ticket_activations')
+    .update({ reserved_by: null })
+    .eq('reserved_by', userId);
+  if (finalNullifyError) {
+    console.error('delete-my-account: failed to nullify surviving reserved_by references', finalNullifyError.message);
+  }
+
   // 3. Delete the auth user (must be last — only reached if all data was cleaned)
   const { error: deleteUserError } = await adminClient.auth.admin.deleteUser(userId);
   if (deleteUserError) {
