@@ -257,6 +257,18 @@ serve(async (req: Request) => {
       // SELECT + UPDATE … RETURNING in one statement (see issue #1304).
       let targetHash = hash;
 
+      // Validate hash format for activate_hash (closes #1544).
+      // reserve_hash and resolve_hash already enforce /^[0-9a-f]{64}$/ but
+      // activate_hash only checked !hash (truthy), allowing malformed input to
+      // reach the UPDATE query and potentially trigger unexpected DB behaviour.
+      if (action === 'activate_hash') {
+        const normalizedHash = typeof hash === 'string' ? hash.trim().toLowerCase() : '';
+        if (!/^[0-9a-f]{64}$/.test(normalizedHash)) {
+          return jsonResponse({ ok: false, error: 'Hash non valido.' }, 200);
+        }
+        targetHash = normalizedHash;
+      }
+
       if (action === 'activate_by_details') {
         const { data: ticket, error: lookupError } = await supabase
           .from('ticket_activations')
