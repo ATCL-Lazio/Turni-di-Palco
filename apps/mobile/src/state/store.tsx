@@ -4961,16 +4961,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       // synchronously afterward, which is safe because the ref write happens
       // inside the updater body (before the next line after setState executes
       // in any React scheduler tick that matters for us).
-      const nextProfileRef: { current: ReturnType<typeof applyRewards> | null } = { current: null };
-      setState((prev: GameState) => {
-        const computed = applyRewards(prev.profile, rewards, 'activity');
-        nextProfileRef.current = computed;
-        return { ...prev, profile: computed };
-      });
-
       // 1b. Persist updated profile to server so XP/cachet/reputation survive
-      // a page reload (closes #1200, #1377).
-      if (nextProfileRef.current) persistProfile(nextProfileRef.current);
+      // a page reload. Compute from render-time snapshot first so persistProfile
+      // is called synchronously — React 18 defers the setState updater, making
+      // nextProfileRef.current still null when read immediately after setState()
+      // (closes #1200, #1377, #1547; same pattern as completeOnboarding / #1535).
+      persistProfile(applyRewards(state.profile, rewards, 'activity'));
+      setState((prev: GameState) => ({ ...prev, profile: applyRewards(prev.profile, rewards, 'activity') }));
 
       // 2. Persist to narrative_history (append-only, RLS-scoped to user).
       // Best-effort: a failed insert does not roll back local rewards. Without
@@ -4995,7 +4992,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       return { ok: true, rewards };
     },
-    [authUserId, persistProfile]
+    [authUserId, persistProfile, state.profile]
   );
 
   const resetProgress = useCallback(async () => {
@@ -5242,13 +5239,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       // since they gate on game-logic invariants rather than numeric values that
       // could race. The state transition itself uses prev.profile.
       const startedAt = new Date().toISOString();
-      const nextProfileRef: { current: PlayerProfile | null } = { current: null };
-      setState((prev) => {
-        const p = prev.profile;
+      const computeStartedProfile = (p: PlayerProfile): PlayerProfile => {
         const pSkills = p.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
         const pActiveCourses = p.activeCourses ?? {};
         const pCompletedCourses = p.completedCourses ?? {};
-        const next: PlayerProfile = {
+        return {
           ...p,
           // Clamp to 0: the guard above uses the render-time snapshot, so a
           // concurrent mutation could reduce prev.cachet below costCachet before
@@ -5256,17 +5251,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           cachet: Math.max(0, p.cachet - course.costCachet),
           skills: pSkills,
           completedCourses: pCompletedCourses,
-          activeCourses: {
-            ...pActiveCourses,
-            [courseId]: startedAt,
-          },
+          activeCourses: { ...pActiveCourses, [courseId]: startedAt },
         };
-        nextProfileRef.current = next;
-        return { ...prev, profile: next };
-      });
-
-      // Sync course state to Supabase so a page refresh doesn't reset progress.
-      if (nextProfileRef.current) persistProfile(nextProfileRef.current);
+      };
+      // Persist synchronously from render-time snapshot; re-derive from prev
+      // inside setState so concurrent mutations are not clobbered (closes #1547).
+      persistProfile(computeStartedProfile(state.profile));
+      setState((prev) => ({ ...prev, profile: computeStartedProfile(prev.profile) }));
 
       return { ok: true };
     },
@@ -5316,16 +5307,14 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       // Compute nextProfile inside the setState updater using prev.profile so
       // concurrent profile mutations are not silently clobbered (closes #1378).
       const completedAt = new Date().toISOString();
-      const nextProfileRef: { current: PlayerProfile | null } = { current: null };
-      setState((prev) => {
-        const p = prev.profile;
+      const courseRewards: Rewards = { xp: xpGained, cachet: 0, reputation: 0 };
+      const computeCompletedProfile = (p: PlayerProfile): PlayerProfile => {
         const pSkills = p.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
         const pActiveCourses = p.activeCourses ?? {};
         const pCompletedCourses = p.completedCourses ?? {};
 
         // Applica XP tramite lo stesso helper usato dalle attività.
-        const rewards: Rewards = { xp: xpGained, cachet: 0, reputation: 0 };
-        const profileWithXp = applyRewards(p, rewards, 'activity');
+        const profileWithXp = applyRewards(p, courseRewards, 'activity');
 
         const updatedSkills = {
           ...pSkills,
@@ -5335,21 +5324,17 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         // Rimuovi dai corsi attivi e aggiungi ai completati.
         const { [courseId]: _removed, ...remainingActive } = pActiveCourses;
 
-        const next: PlayerProfile = {
+        return {
           ...profileWithXp,
           skills: updatedSkills,
-          completedCourses: {
-            ...pCompletedCourses,
-            [courseId]: completedAt,
-          },
+          completedCourses: { ...pCompletedCourses, [courseId]: completedAt },
           activeCourses: remainingActive,
         };
-        nextProfileRef.current = next;
-        return { ...prev, profile: next };
-      });
-
-      // Sync completed skills and cooldown timestamps to Supabase.
-      if (nextProfileRef.current) persistProfile(nextProfileRef.current);
+      };
+      // Persist synchronously from render-time snapshot; re-derive from prev
+      // inside setState so concurrent mutations are not clobbered (closes #1547).
+      persistProfile(computeCompletedProfile(state.profile));
+      setState((prev) => ({ ...prev, profile: computeCompletedProfile(prev.profile) }));
 
       return { ok: true, xpGained, skillGained, pointsGained };
     },
