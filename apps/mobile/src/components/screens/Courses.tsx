@@ -5,7 +5,7 @@
  * le skill attuali del giocatore e i pulsanti di avvio/completamento.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BookOpen,
   CheckCircle,
@@ -118,6 +118,8 @@ export function Courses({ embedded = false }: CoursesProps) {
   const profile = state.profile;
   const [now, setNow] = useState(() => Date.now());
   const [feedback, setFeedback] = useState<string | null>(null);
+  const isSubmittingRef = useRef(false);
+  const [isBusy, setIsBusy] = useState(false);
 
   // Aggiorna l'orologio ogni secondo per mostrare i progressi in tempo reale.
   useEffect(() => {
@@ -135,11 +137,19 @@ export function Courses({ embedded = false }: CoursesProps) {
 
   const handleStart = useCallback(
     (courseId: string) => {
-      const result = startCourse(courseId);
-      if (result.ok) {
-        setFeedback('Corso avviato con successo!');
-      } else {
-        setFeedback(result.error);
+      if (isSubmittingRef.current) return;
+      isSubmittingRef.current = true;
+      setIsBusy(true);
+      try {
+        const result = startCourse(courseId);
+        if (result.ok) {
+          setFeedback('Corso avviato con successo!');
+        } else {
+          setFeedback(result.error);
+        }
+      } finally {
+        isSubmittingRef.current = false;
+        setIsBusy(false);
       }
     },
     [startCourse],
@@ -147,13 +157,21 @@ export function Courses({ embedded = false }: CoursesProps) {
 
   const handleComplete = useCallback(
     (courseId: string) => {
-      const result = completeCourse(courseId);
-      if (result.ok) {
-        setFeedback(
-          `Corso completato! +${result.xpGained} XP, +${result.pointsGained} ${SKILL_LABELS[result.skillGained]}`,
-        );
-      } else {
-        setFeedback(result.error);
+      if (isSubmittingRef.current) return;
+      isSubmittingRef.current = true;
+      setIsBusy(true);
+      try {
+        const result = completeCourse(courseId);
+        if (result.ok) {
+          setFeedback(
+            `Corso completato! +${result.xpGained} XP, +${result.pointsGained} ${SKILL_LABELS[result.skillGained]}`,
+          );
+        } else {
+          setFeedback(result.error);
+        }
+      } finally {
+        isSubmittingRef.current = false;
+        setIsBusy(false);
       }
     },
     [completeCourse],
@@ -200,6 +218,7 @@ export function Courses({ embedded = false }: CoursesProps) {
                 key={course.id}
                 course={course}
                 status={status}
+                isBusy={isBusy}
                 onStart={() => handleStart(course.id)}
                 onComplete={() => handleComplete(course.id)}
               />
@@ -262,11 +281,13 @@ function SkillsCard({
 function CourseCard({
   course,
   status,
+  isBusy,
   onStart,
   onComplete,
 }: {
   course: Course;
   status: CourseStatus;
+  isBusy: boolean;
   onStart: () => void;
   onComplete: () => void;
 }) {
@@ -322,6 +343,7 @@ function CourseCard({
           {/* Pulsanti azione */}
           <CourseActions
             status={status}
+            isBusy={isBusy}
             onStart={onStart}
             onComplete={onComplete}
           />
@@ -374,10 +396,12 @@ function ActiveProgress({
 
 function CourseActions({
   status,
+  isBusy,
   onStart,
   onComplete,
 }: {
   status: CourseStatus;
+  isBusy: boolean;
   onStart: () => void;
   onComplete: () => void;
 }) {
@@ -386,11 +410,11 @@ function CourseActions({
     return (
       <button
         type="button"
-        onClick={canComplete ? onComplete : undefined}
-        disabled={!canComplete}
+        onClick={canComplete && !isBusy ? onComplete : undefined}
+        disabled={!canComplete || isBusy}
         className={[
           'w-full rounded-xl px-4 py-2 text-sm font-medium text-white transition-opacity',
-          canComplete
+          canComplete && !isBusy
             ? 'bg-[#4fc87a] hover:opacity-90'
             : 'bg-[#2d2728] opacity-50 cursor-not-allowed',
         ].join(' ')}
@@ -421,8 +445,12 @@ function CourseActions({
   return (
     <button
       type="button"
-      onClick={onStart}
-      className="w-full rounded-xl bg-[#a82847] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+      onClick={isBusy ? undefined : onStart}
+      disabled={isBusy}
+      className={[
+        'w-full rounded-xl px-4 py-2 text-sm font-medium text-white transition-opacity',
+        isBusy ? 'bg-[#2d2728] opacity-50 cursor-not-allowed' : 'bg-[#a82847] hover:opacity-90',
+      ].join(' ')}
     >
       <span className="inline-flex items-center gap-2 justify-center">
         <BookOpen size={15} />
