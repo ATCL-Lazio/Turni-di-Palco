@@ -65,6 +65,11 @@ serve(async (req) => {
 
   const appVersion = Deno.env.get('APP_VERSION') ?? '0.0.5';
   const repo = Deno.env.get('APP_REPO') ?? 'ATCL-Lazio/Turni-di-Palco';
+  // Validate repo format to prevent path-traversal of the GITHUB_TOKEN (fixes #1560).
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) {
+    console.error('[app-version] Invalid APP_REPO value:', repo);
+    return errorResponse('Service misconfigured', 500);
+  }
   const githubToken = Deno.env.get('GITHUB_TOKEN');
 
   let payload: { limit?: number } = {};
