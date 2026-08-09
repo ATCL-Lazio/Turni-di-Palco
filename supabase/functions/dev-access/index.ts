@@ -140,8 +140,9 @@ serve(async (req) => {
 
   const { error: insertError } = await adminClient.from('dev_access_audit').insert(auditEntry);
   if (insertError) {
+    // Audit insert failed but the access decision (denied) is final regardless.
+    // Return 403, not 503 — 5xx signals clients to retry, which is wrong here (fixes #1559).
     console.error('Dev access audit insert failed', insertError.message);
-    return jsonResponse({ allowed: false, reason: 'Audit logging unavailable. Access denied.' }, 503);
   }
 
   return jsonResponse({ allowed: false, reason: 'Accesso non autorizzato.' }, 403);
