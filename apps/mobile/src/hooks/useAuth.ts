@@ -165,7 +165,9 @@ export function useAuth(
         onAuthChange('welcome'); // Flow will continue to role-selection
         // Safety net: if SIGNED_IN never fires (WebSocket failure, token not
         // issued), clear the ref so future logins navigate to 'home' (closes #1546).
-        setTimeout(() => { signupInProgressRef.current = false; }, 10_000);
+        // Timer ID stored in signupTimerRef so it can be cancelled on unmount (fixes #1558).
+        if (signupTimerRef.current !== null) clearTimeout(signupTimerRef.current);
+        signupTimerRef.current = setTimeout(() => { signupInProgressRef.current = false; }, 10_000);
         // signupInProgressRef is also cleared by the SIGNED_IN listener below.
     }, [onAuthChange, updateProfile]);
 
@@ -177,6 +179,9 @@ export function useAuth(
     // listener does not overwrite the 'welcome' navigation with 'home' when
     // Supabase returns an immediate session (fixes #1445).
     const signupInProgressRef = useRef(false);
+    // Stores the ID of the 10-second safety-net timer so it can be cancelled
+    // when the component unmounts (fixes #1558).
+    const signupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleLogoutAction = useCallback(async () => {
         setAuthError(null);
@@ -304,6 +309,7 @@ export function useAuth(
         return () => {
             mounted = false;
             authListener?.subscription.unsubscribe();
+            if (signupTimerRef.current !== null) clearTimeout(signupTimerRef.current);
         };
     }, []);
 
