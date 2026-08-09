@@ -3938,7 +3938,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             // Fix #1127 (Bug 2): set hasHydratedRemote=true before returning so
             // the guard doesn't stay false permanently after the error is dismissed,
             // which would block sync operations and certain effects indefinitely.
-            setHasHydratedRemote(true);
+            // Guard added for #1557: isMounted check must precede the call so the
+            // setter is not invoked on an unmounted instance (provider race window).
+            if (isMounted) setHasHydratedRemote(true);
             return;
           }
 
