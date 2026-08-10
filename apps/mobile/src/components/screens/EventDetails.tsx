@@ -82,15 +82,19 @@ export function EventDetails({
     setCalendarError(null);
     const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
     const pad = (n: number) => String(n).padStart(2, '0');
+    // Use UTC methods and append Z so the timestamp is unambiguous for calendar
+    // clients in any timezone (closes #1567).
     const formatDate = (value: Date) =>
-      `${value.getFullYear()}${pad(value.getMonth() + 1)}${pad(value.getDate())}T${pad(value.getHours())}${pad(value.getMinutes())}${pad(value.getSeconds())}`;
+      `${value.getUTCFullYear()}${pad(value.getUTCMonth() + 1)}${pad(value.getUTCDate())}T${pad(value.getUTCHours())}${pad(value.getUTCMinutes())}${pad(value.getUTCSeconds())}Z`;
     const icsLines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//Turni di Palco//Event//IT',
       'CALSCALE:GREGORIAN',
       'BEGIN:VEVENT',
-      `UID:${event.id}@turni-di-palco`,
+      // Sanitize event.id in the UID field for consistency with event.name and
+      // event.theatre (closes #1568).
+      `UID:${sanitizeIcsText(event.id)}@turni-di-palco`,
       `SUMMARY:${sanitizeIcsText(event.name)}`,
       `LOCATION:${sanitizeIcsText(event.theatre)}`,
       `DTSTART:${formatDate(startDate)}`,
