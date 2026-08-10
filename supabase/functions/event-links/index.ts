@@ -170,6 +170,12 @@ serve(async (req) => {
       return json({ error: 'eventId obbligatorio' }, 400);
     }
 
+    // Apply the same format validation used by all other actions so malformed
+    // or unbounded eventId values are rejected before reaching the DB (closes #1566).
+    if (!EVENT_ID_PATTERN.test(eventId)) {
+      return json({ error: 'eventId non valido' }, 400);
+    }
+
     if (rawRoleId !== null && !VALID_ROLE_IDS.has(rawRoleId)) {
       return json({ error: 'roleId non valido' }, 400);
     }
