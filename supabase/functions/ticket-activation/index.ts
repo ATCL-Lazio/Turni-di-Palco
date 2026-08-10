@@ -290,7 +290,7 @@ serve(async (req: Request) => {
       } else if (action === 'activate_by_ticket_number') {
         let query = supabase
           .from('ticket_activations')
-          .select('hash, event_id, ticket_number')
+          .select('hash, event_id, ticket_number, user_id')
           .eq('ticket_number', payload.ticketNumber);
 
         if (payload.circuit !== undefined && payload.circuit !== null && payload.circuit !== '') {
@@ -319,6 +319,11 @@ serve(async (req: Request) => {
 
         if (tickets.length > 1) {
           return jsonResponse({ ok: false, error: 'Ticket number non univoco. Specifica Circuito o Evento.' }, 200);
+        }
+
+        // IDOR check: verify the ticket belongs to the authenticated user (closes #1565).
+        if (tickets[0].user_id !== resolvedUserId) {
+          return jsonResponse({ error: 'Accesso negato: questo ticket non appartiene all\'utente corrente.' }, 403);
         }
 
         targetHash = tickets[0].hash;
