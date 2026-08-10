@@ -79,10 +79,9 @@ function normalizeLogEntry(rawEntry: unknown, index: number): NormalizedLogEntry
     typeof rawEntry.id === 'string' && rawEntry.id.trim()
       ? rawEntry.id.trim()
       : `client-log-${Date.now()}-${index}`;
-  const createdAt =
-    typeof rawEntry.createdAt === 'number' && Number.isFinite(rawEntry.createdAt)
-      ? rawEntry.createdAt
-      : Date.now();
+  // Always use the server-side timestamp; ignore any client-supplied createdAt
+  // to preserve audit trail integrity (closes #1569).
+  const createdAt = Date.now();
   const sequence =
     typeof rawEntry.sequence === 'number' && Number.isFinite(rawEntry.sequence)
       ? rawEntry.sequence
