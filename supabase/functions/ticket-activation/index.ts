@@ -290,7 +290,7 @@ serve(async (req: Request) => {
       } else if (action === 'activate_by_ticket_number') {
         let query = supabase
           .from('ticket_activations')
-          .select('hash, event_id, ticket_number, user_id')
+          .select('hash, event_id, ticket_number, reserved_by')
           .eq('ticket_number', payload.ticketNumber);
 
         if (payload.circuit !== undefined && payload.circuit !== null && payload.circuit !== '') {
@@ -321,8 +321,11 @@ serve(async (req: Request) => {
           return jsonResponse({ ok: false, error: 'Ticket number non univoco. Specifica Circuito o Evento.' }, 200);
         }
 
-        // IDOR check: verify the ticket belongs to the authenticated user (closes #1565).
-        if (tickets[0].user_id !== resolvedUserId) {
+        // IDOR check: verify the ticket was reserved by the authenticated user (closes #1565).
+        // reserve_hash stores the reserving admin's id in `reserved_by`; `user_id` is
+        // never written and is therefore always null, causing the old check to fire for
+        // every caller (closes #1574).
+        if (tickets[0].reserved_by !== resolvedUserId) {
           return jsonResponse({ error: 'Accesso negato: questo ticket non appartiene all\'utente corrente.' }, 403);
         }
 
