@@ -82,10 +82,14 @@ export function EventDetails({
     setCalendarError(null);
     const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
     const pad = (n: number) => String(n).padStart(2, '0');
-    // Use UTC methods and append Z so the timestamp is unambiguous for calendar
-    // clients in any timezone (closes #1567).
+    // Use local (non-UTC) getters without a Z suffix so the timestamp is
+    // treated as a floating time anchored to Europe/Rome via the TZID parameter
+    // on DTSTART/DTEND.  getUTC* + Z was wrong for non-Italian devices because
+    // parseEventDateTime builds the Date from local-clock components, so UTC
+    // values differed from the intended Italian time by the device's UTC offset
+    // (closes #1575).
     const formatDate = (value: Date) =>
-      `${value.getUTCFullYear()}${pad(value.getUTCMonth() + 1)}${pad(value.getUTCDate())}T${pad(value.getUTCHours())}${pad(value.getUTCMinutes())}${pad(value.getUTCSeconds())}Z`;
+      `${value.getFullYear()}${pad(value.getMonth() + 1)}${pad(value.getDate())}T${pad(value.getHours())}${pad(value.getMinutes())}${pad(value.getSeconds())}`;
     const icsLines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
@@ -97,8 +101,8 @@ export function EventDetails({
       `UID:${sanitizeIcsText(event.id)}@turni-di-palco`,
       `SUMMARY:${sanitizeIcsText(event.name)}`,
       `LOCATION:${sanitizeIcsText(event.theatre)}`,
-      `DTSTART:${formatDate(startDate)}`,
-      `DTEND:${formatDate(endDate)}`,
+      `DTSTART;TZID=Europe/Rome:${formatDate(startDate)}`,
+      `DTEND;TZID=Europe/Rome:${formatDate(endDate)}`,
       'END:VEVENT',
       'END:VCALENDAR',
     ];
