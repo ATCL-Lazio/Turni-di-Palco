@@ -272,7 +272,7 @@ serve(async (req: Request) => {
       if (action === 'activate_by_details') {
         const { data: ticket, error: lookupError } = await supabase
           .from('ticket_activations')
-          .select('hash')
+          .select('hash, reserved_by')
           .eq('event_id', payload.eventID)
           .eq('ticket_number', payload.ticketNumber)
           .maybeSingle();
@@ -282,6 +282,15 @@ serve(async (req: Request) => {
         if (!ticket) {
           return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
         }
+
+        // IDOR check: verify the ticket was reserved by the authenticated user (closes #1578).
+        // activate_by_ticket_number already enforces this check (#1565/#1574); apply the
+        // same guard here so that knowing another user's event+ticket-number pair does not
+        // allow stealing and consuming their pre-reserved ticket.
+        if (ticket.reserved_by !== resolvedUserId) {
+          return jsonResponse({ error: 'Accesso negato: questo ticket non appartiene all\'utente corrente.' }, 403);
+        }
+
         targetHash = ticket.hash;
 
         if (targetHash == null) {
