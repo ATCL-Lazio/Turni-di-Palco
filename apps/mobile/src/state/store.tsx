@@ -335,7 +335,7 @@ type DbEventRow = {
   name: string;
   theatre: string;
   event_date: string;
-  event_time: string;
+  event_time: string | null;
   genre: string;
   base_rewards?: { xp?: number; reputation?: number; cachet?: number } | null;
   focus_role?: string | null;

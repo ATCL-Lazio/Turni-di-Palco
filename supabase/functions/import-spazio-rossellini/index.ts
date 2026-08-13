@@ -58,7 +58,7 @@ const formatDate = (details?: SpazioEvent['start_date_details'], fallback?: stri
   return null;
 };
 
-const formatTime = (details?: SpazioEvent['start_date_details'], fallback?: string) => {
+const formatTime = (details?: SpazioEvent['start_date_details'], fallback?: string): string | null => {
   if (details?.hour != null && details?.minutes != null) {
     return `${String(details.hour).padStart(2, '0')}:${String(details.minutes).padStart(2, '0')}`;
   }
@@ -66,19 +66,23 @@ const formatTime = (details?: SpazioEvent['start_date_details'], fallback?: stri
     const [, timePart] = fallback.split(' ');
     if (timePart) return timePart.slice(0, 5);
   }
-  return '20:30';
+  return null;
 };
 
 const resolveGenre = (categories: SpazioEvent['categories'] = [], allowedSlugs: Set<string>) => {
+  const isInEvidenza = (c: { name?: string; slug?: string }) =>
+    (c?.name ?? '').toString().toUpperCase() === 'IN EVIDENZA' || (c?.slug ?? '').toString() === 'in-evidenza';
   const preferred = categories.find((category) => {
     const name = (category?.name ?? '').toString();
     const slug = (category?.slug ?? '').toString();
     if (!name) return false;
-    if (name.toUpperCase() === 'IN EVIDENZA' || slug === 'in-evidenza') return false;
+    if (isInEvidenza(category)) return false;
     if (allowedSlugs.size > 0 && !allowedSlugs.has(slug)) return false;
     return true;
   });
-  return (preferred?.name ?? categories[0]?.name ?? 'Teatro').toString();
+  if (preferred) return preferred.name!.toString();
+  const fallback = categories.find((c) => !isInEvidenza(c) && !!(c?.name ?? '').toString());
+  return (fallback?.name ?? 'Teatro').toString();
 };
 
 const fetchSitemapUrls = async (): Promise<Set<string> | null> => {
