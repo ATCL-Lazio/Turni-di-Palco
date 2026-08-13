@@ -3143,7 +3143,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       );
     };
 
-    let authReadyFallbackId: ReturnType<typeof window.setTimeout> | null = null;
+    let authReadyFallbackId: number | null = null;
 
     restoreSession().catch((err) => {
       console.error('[restoreSession] unexpected error', err);
