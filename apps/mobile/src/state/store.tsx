@@ -3143,6 +3143,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       );
     };
 
+    let authReadyFallbackId: number | null = null;
+
     restoreSession().catch((err) => {
       console.error('[restoreSession] unexpected error', err);
       // For WatchdogTimeoutError: withMobileWatchdog already showed the error
@@ -3153,9 +3155,22 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       if (isMounted && !(err instanceof WatchdogTimeoutError)) {
         setAuthReady(true);
       }
+      // Safety net: on total network failure the in-flight Supabase call never
+      // completes, so onAuthStateChange never fires and authReady stays false
+      // forever. Fall back to ready after an additional wait so the app
+      // eventually becomes usable even without connectivity (closes #1587).
+      if (err instanceof WatchdogTimeoutError) {
+        authReadyFallbackId = window.setTimeout(() => {
+          if (isMounted) setAuthReady(true);
+        }, 30_000);
+      }
     });
 
     const { data: authListener } = supabase!.auth.onAuthStateChange((_event, session) => {
+      if (authReadyFallbackId !== null) {
+        window.clearTimeout(authReadyFallbackId);
+        authReadyFallbackId = null;
+      }
       persistStoredSession(session ?? null);
       if (!isMounted) return;
       setAuthUserId(session?.user.id ?? null);
@@ -3164,6 +3179,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       isMounted = false;
+      if (authReadyFallbackId !== null) window.clearTimeout(authReadyFallbackId);
       authListener?.subscription.unsubscribe();
     };
   }, []);
