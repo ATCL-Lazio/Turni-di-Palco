@@ -10,7 +10,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const EVENT_ID_PATTERN = /\b([A-Za-z]{2,10}-\d{1,6})\b/;
+const EVENT_ID_PATTERN = /\b([A-Za-z]{2,10}-(?:\d{1,6}|[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*))\b/;
 
 const VALID_ROLE_IDS = new Set(['attore', 'luci', 'fonico', 'attrezzista', 'palco', 'rspp', 'dramaturg']);
 
@@ -33,7 +33,7 @@ function json(body: Record<string, unknown>, status = 200) {
 }
 
 function normalizeEventId(value: string | null | undefined) {
-  return (value ?? '').trim().toUpperCase();
+  return (value ?? '').trim();
 }
 
 function extractEventId(payload: string | null | undefined) {
