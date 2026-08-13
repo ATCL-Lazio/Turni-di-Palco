@@ -47,7 +47,7 @@ function mapActivatedEvent(
   const theatre = String(eventPayload.theatre ?? '').trim();
   const date = String(eventPayload.event_date ?? '').trim();
   const time = String(eventPayload.event_time ?? '').trim();
-  if (!theatre || !date || !time) return undefined;
+  if (!theatre || !date) return undefined;
 
   const toNumber = (value: unknown) => {
     const parsed = Number(value);
