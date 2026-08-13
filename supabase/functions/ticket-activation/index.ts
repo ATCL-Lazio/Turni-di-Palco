@@ -125,6 +125,7 @@ serve(async (req: Request) => {
         eventID?: unknown;
         ticketNumber?: unknown;
         date?: unknown;
+        attendeeId?: unknown;
       };
 
       // Lowercase circuit on write so it matches the lowercase comparison used by
@@ -142,10 +143,24 @@ serve(async (req: Request) => {
         return jsonResponse({ error: 'Missing hash or payload' }, 400);
       }
 
+      // Optional: UUID of the attendee this ticket was issued to. When provided,
+      // activate_by_details enforces that the caller matches this ID, preventing
+      // IDOR ticket theft while still allowing legitimate attendee self-activation
+      // (closes #1582). Must be a valid UUID; invalid values are silently ignored.
+      const rawAttendeeId = typeof normalizedPayload.attendeeId === 'string'
+        ? normalizedPayload.attendeeId.trim()
+        : null;
+      const attendeeId = rawAttendeeId &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawAttendeeId)
+        ? rawAttendeeId
+        : null;
+
       // Insert new ticket activation record (unassigned).
       // reserved_by records the generating admin's user ID so that
       // delete-my-account can clean up unactivated tickets when the admin
       // deletes their account (GDPR Art. 17, closes #1385).
+      // attendee_id records the intended recipient so activate_by_details can
+      // enforce attendee-bound ownership (closes #1582).
       const { error: insertError } = await supabase.from('ticket_activations').insert({
         hash: normalizedHash,
         circuit,
@@ -154,6 +169,7 @@ serve(async (req: Request) => {
         ticket_number: ticketNumber,
         date,
         reserved_by: authenticatedUser?.id ?? null,
+        attendee_id: attendeeId,
       });
 
       if (insertError) {
@@ -272,7 +288,7 @@ serve(async (req: Request) => {
       if (action === 'activate_by_details') {
         const { data: ticket, error: lookupError } = await supabase
           .from('ticket_activations')
-          .select('hash, reserved_by')
+          .select('hash, attendee_id')
           .eq('event_id', payload.eventID)
           .eq('ticket_number', payload.ticketNumber)
           .maybeSingle();
@@ -283,11 +299,11 @@ serve(async (req: Request) => {
           return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
         }
 
-        // IDOR check: verify the ticket was reserved by the authenticated user (closes #1578).
-        // activate_by_ticket_number already enforces this check (#1565/#1574); apply the
-        // same guard here so that knowing another user's event+ticket-number pair does not
-        // allow stealing and consuming their pre-reserved ticket.
-        if (ticket.reserved_by !== resolvedUserId) {
+        // IDOR guard: enforce ownership only when attendee_id was recorded at
+        // reservation time (new tickets). When attendee_id IS NULL (pre-migration
+        // rows or reservations without a known recipient), the check is skipped
+        // for backward compatibility. Closes #1580 and #1582.
+        if (ticket.attendee_id !== null && ticket.attendee_id !== resolvedUserId) {
           return jsonResponse({ error: 'Accesso negato: questo ticket non appartiene all\'utente corrente.' }, 403);
         }
 
