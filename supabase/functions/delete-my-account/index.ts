@@ -62,11 +62,11 @@ serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // 1. Nullify reserved_by BEFORE any destructive deletes (closes #1529).
+  // 1. Nullify reserved_by and attendee_id BEFORE any destructive deletes (closes #1529).
   //
   // ticket_activations rows where activated_by is set belong to another user's
-  // attendance record and are NOT deleted; instead their reserved_by column is
-  // cleared so the deleted user's UUID no longer appears (GDPR Art. 17).
+  // attendance record and are NOT deleted; instead their reserved_by and attendee_id
+  // columns are cleared so the deleted user's UUID no longer appears (GDPR Art. 17).
   //
   // Running this step first means that if it fails, no game data has been
   // destroyed yet and an "aborted" error is genuinely accurate. Doing it after
@@ -85,16 +85,35 @@ serve(async (req) => {
     );
   }
 
+  // Nullify attendee_id on tickets already activated (preserve attendance record,
+  // remove personal identifier). Non-fatal sibling of the reserved_by nullify above.
+  const { error: nullifyAttendeeError } = await adminClient
+    .from('ticket_activations')
+    .update({ attendee_id: null })
+    .eq('attendee_id', userId)
+    .not('activated_by', 'is', null);
+  if (nullifyAttendeeError) {
+    console.error('delete-my-account: failed to nullify attendee_id on activated tickets', nullifyAttendeeError.message);
+    return errorResponse(
+      'Account deletion aborted: could not nullify attendee ticket references. Please retry.',
+      500,
+    );
+  }
+
   // 2. Delete game data (cascade-safe: ordered by FK dependencies)
   //
-  // ticket_activations is deleted twice — once by activated_by (tickets the
-  // user activated) and once by reserved_by (tickets the user generated as an
-  // admin but that were never activated). Without the reserved_by delete,
-  // unactivated tickets from a deleted admin remain in the DB and can still be
-  // scanned and activated by anyone, violating GDPR Art. 17 (closes #1385).
+  // ticket_activations is deleted by multiple keys:
+  //   activated_by — tickets the user activated (their attendance records)
+  //   reserved_by  — tickets the user generated as an admin but were never activated
+  //   attendee_id  — unactivated tickets assigned to this attendee (GDPR Art. 17)
+  //
+  // Without the reserved_by and attendee_id deletes, unactivated tickets from a
+  // deleted user remain in the DB and can still be scanned/activated by anyone
+  // (closes #1385, extends GDPR cleanup to attendee_id).
   const tablesToDelete = [
     { table: 'ticket_activations', key: 'activated_by' },
     { table: 'ticket_activations', key: 'reserved_by' },
+    { table: 'ticket_activations', key: 'attendee_id' },
     { table: 'activity_completions', key: 'user_id' },
     { table: 'user_badges', key: 'user_id' },
     { table: 'planned_participations', key: 'user_id' },
@@ -107,11 +126,11 @@ serve(async (req) => {
   let failedTable: string | null = null;
 
   for (const { table, key } of tablesToDelete) {
-    // For the reserved_by pass, skip rows already activated by another user so
-    // their attendance record is preserved (fixes #1444).
+    // For the reserved_by and attendee_id passes, skip rows already activated by
+    // another user so their attendance record is preserved (fixes #1444).
     const baseQuery = adminClient.from(table).delete().eq(key, userId);
     const deleteQuery =
-      table === 'ticket_activations' && key === 'reserved_by'
+      table === 'ticket_activations' && (key === 'reserved_by' || key === 'attendee_id')
         ? baseQuery.is('activated_by', null)
         : baseQuery;
     const { error } = await deleteQuery;
@@ -156,10 +175,11 @@ serve(async (req) => {
     console.error('delete-my-account: storage cleanup timed out or failed (non-fatal)', storageError);
   }
 
-  // Final sweep: nullify any reserved_by references that survived the delete loop.
-  // Closes the TOCTOU window where a ticket was activated between step 1 (nullify
-  // activated tickets) and step 2 (delete unactivated tickets): such a ticket would
-  // have been skipped by both steps, leaving the deleted user's UUID in reserved_by.
+  // Final sweep: nullify any reserved_by or attendee_id references that survived
+  // the delete loop. Closes the TOCTOU window where a ticket was activated between
+  // step 1 (nullify activated tickets) and step 2 (delete unactivated tickets):
+  // such a ticket would have been skipped by both steps, leaving the deleted
+  // user's UUID in reserved_by or attendee_id.
   // Non-fatal — log and continue so the auth user is still removed (closes #1543).
   const { error: finalNullifyError } = await adminClient
     .from('ticket_activations')
@@ -167,6 +187,14 @@ serve(async (req) => {
     .eq('reserved_by', userId);
   if (finalNullifyError) {
     console.error('delete-my-account: failed to nullify surviving reserved_by references', finalNullifyError.message);
+  }
+
+  const { error: finalNullifyAttendeeError } = await adminClient
+    .from('ticket_activations')
+    .update({ attendee_id: null })
+    .eq('attendee_id', userId);
+  if (finalNullifyAttendeeError) {
+    console.error('delete-my-account: failed to nullify surviving attendee_id references', finalNullifyAttendeeError.message);
   }
 
   // 3. Delete the auth user (must be last — only reached if all data was cleaned)
