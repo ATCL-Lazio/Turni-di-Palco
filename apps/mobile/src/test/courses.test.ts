@@ -35,6 +35,13 @@ const SKILLS_BASELINE = { precision: 50, presence: 50, creativity: 50, leadershi
 const SKILLS_HIGH = { precision: 100, presence: 100, creativity: 100, leadership: 100 };
 const SKILLS_ZERO = { precision: 0, presence: 0, creativity: 0, leadership: 0 };
 
+// Activity-type-specific fixtures for gated-multiplier tests.
+// STAT_EFFECTS gates each skill bonus on activity.id; use IDs from the canonical
+// affectedActivities lists so the multiplier actually fires.
+const MOCK_PRESENCE_ACTIVITY: Activity = { ...MOCK_ACTIVITY, id: 'recitazione' };
+const MOCK_CREATIVITY_ACTIVITY: Activity = { ...MOCK_ACTIVITY, id: 'palco' };
+const MOCK_PRECISION_ACTIVITY: Activity = { ...MOCK_ACTIVITY, id: 'luci' };
+
 // ─── Test catalogo ─────────────────────────────────────────────────────────────
 
 describe('courses — catalogo', () => {
@@ -102,8 +109,8 @@ describe('computeActivityRewards — bonus skill (Issue #327)', () => {
   });
 
   it('skill alte (100) danno XP maggiore del baseline', () => {
-    const baseline = computeActivityRewards(MOCK_ACTIVITY, null, SKILLS_BASELINE);
-    const high = computeActivityRewards(MOCK_ACTIVITY, null, SKILLS_HIGH);
+    const baseline = computeActivityRewards(MOCK_PRESENCE_ACTIVITY, null, SKILLS_BASELINE);
+    const high = computeActivityRewards(MOCK_PRESENCE_ACTIVITY, null, SKILLS_HIGH);
     expect(high.xp).toBeGreaterThan(baseline.xp);
   });
 
@@ -114,28 +121,30 @@ describe('computeActivityRewards — bonus skill (Issue #327)', () => {
   });
 
   it('il bonus XP è calcolato da presence e creativity', () => {
-    // Solo presence alta, creativity baseline.
-    const onlyPresence = computeActivityRewards(MOCK_ACTIVITY, null, {
+    // Solo presence alta, creativity baseline — su un'attività di tipo presence.
+    const onlyPresence = computeActivityRewards(MOCK_PRESENCE_ACTIVITY, null, {
       ...SKILLS_BASELINE,
       presence: 100,
     });
-    expect(onlyPresence.xp).toBeGreaterThan(MOCK_ACTIVITY.xpReward);
+    expect(onlyPresence.xp).toBeGreaterThan(MOCK_PRESENCE_ACTIVITY.xpReward);
 
-    // Solo creativity alta, presence baseline.
-    const onlyCreativity = computeActivityRewards(MOCK_ACTIVITY, null, {
+    // Solo creativity alta, presence baseline — su un'attività di tipo creativity.
+    const onlyCreativity = computeActivityRewards(MOCK_CREATIVITY_ACTIVITY, null, {
       ...SKILLS_BASELINE,
       creativity: 100,
     });
-    expect(onlyCreativity.xp).toBeGreaterThan(MOCK_ACTIVITY.xpReward);
+    expect(onlyCreativity.xp).toBeGreaterThan(MOCK_CREATIVITY_ACTIVITY.xpReward);
   });
 
   it('il bonus cachet è calcolato da precision e leadership', () => {
-    const onlyPrecision = computeActivityRewards(MOCK_ACTIVITY, null, {
+    // Precision è type-gated: serve un'attività in precision.affectedActivities.
+    const onlyPrecision = computeActivityRewards(MOCK_PRECISION_ACTIVITY, null, {
       ...SKILLS_BASELINE,
       precision: 100,
     });
-    expect(onlyPrecision.cachet).toBeGreaterThan(MOCK_ACTIVITY.cachetReward);
+    expect(onlyPrecision.cachet).toBeGreaterThan(MOCK_PRECISION_ACTIVITY.cachetReward);
 
+    // Leadership è globale (nessun gate sull'activity type).
     const onlyLeadership = computeActivityRewards(MOCK_ACTIVITY, null, {
       ...SKILLS_BASELINE,
       leadership: 100,
