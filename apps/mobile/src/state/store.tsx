@@ -15,6 +15,7 @@ import {
   getXpToNextLevel,
   getStatMultiplier,
   getLeadershipCachetMultiplier,
+  STAT_EFFECTS,
 } from '../../../../shared/config/balancing';
 import {
   COURSES_CATALOG,
@@ -1280,15 +1281,25 @@ export function computeActivityRewards(
   const reputationBonus = override?.reputationBonus ?? 0;
 
   // Applica bonus skill derivati dai corsi completati (Issue #327).
+  // Gate each multiplier on the activity type, mirroring computeRewardBreakdown
+  // in role-effects.ts (closes #1594). Leadership is global (always applied).
   let skillXpMult = 1;
   let skillCachetMult = 1;
   if (skills) {
-    skillXpMult =
-      getStatMultiplier('presence', 'xp', skills.presence) *
-      getStatMultiplier('creativity', 'xp', skills.creativity);
-    skillCachetMult =
-      getStatMultiplier('precision', 'cachet', skills.precision) *
-      getLeadershipCachetMultiplier(skills.leadership);
+    const presenceActivities = STAT_EFFECTS.presence.affectedActivities as readonly string[];
+    const creativityActivities = STAT_EFFECTS.creativity.affectedActivities as readonly string[];
+    const precisionActivities = STAT_EFFECTS.precision.affectedActivities as readonly string[];
+    const presenceMult = presenceActivities.includes(activity.id)
+      ? getStatMultiplier('presence', 'xp', skills.presence)
+      : 1;
+    const creativityMult = creativityActivities.includes(activity.id)
+      ? getStatMultiplier('creativity', 'xp', skills.creativity)
+      : 1;
+    skillXpMult = presenceMult * creativityMult;
+    const precisionMult = precisionActivities.includes(activity.id)
+      ? getStatMultiplier('precision', 'cachet', skills.precision)
+      : 1;
+    skillCachetMult = precisionMult * getLeadershipCachetMultiplier(skills.leadership);
   }
 
   return {
