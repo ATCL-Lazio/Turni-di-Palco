@@ -5504,6 +5504,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     let shopPurchases: unknown[] = [];
     let ticketActivationsActivated: unknown[] = [];
     let ticketActivationsReserved: unknown[] = [];
+    let ticketActivationsAttendee: unknown[] = [];
     if (isSupabaseConfigured && supabase && authUserId) {
       const [
         { data: turnsData, error: turnsError },
@@ -5512,6 +5513,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         { data: shopData, error: shopError },
         { data: ticketActivatedData, error: ticketActivatedError },
         { data: ticketReservedData, error: ticketReservedError },
+        { data: ticketAttendeeData, error: ticketAttendeeError },
       ] = await Promise.all([
         supabase
           .from('turns')
@@ -5553,6 +5555,15 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           .eq('reserved_by', authUserId)
           .order('created_at', { ascending: false })
           .limit(10000),
+        // Tickets assigned to this user as a named attendee (attendee_id).
+        // Deleted by delete-my-account under attendee_id but previously missing
+        // from the Art. 15/20 export — restores GDPR symmetry (closes #1595).
+        supabase
+          .from('ticket_activations')
+          .select('*')
+          .eq('attendee_id', authUserId)
+          .order('created_at', { ascending: false })
+          .limit(10000),
       ]);
       // Fail loudly if any query errors so the user is not shown a silently
       // incomplete GDPR export (fixes #1253).
@@ -5563,6 +5574,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       if (shopError) queryErrors.push({ table: 'shop_purchases', error: shopError });
       if (ticketActivatedError) queryErrors.push({ table: 'ticket_activations(activated_by)', error: ticketActivatedError });
       if (ticketReservedError) queryErrors.push({ table: 'ticket_activations(reserved_by)', error: ticketReservedError });
+      if (ticketAttendeeError) queryErrors.push({ table: 'ticket_activations(attendee_id)', error: ticketAttendeeError });
       if (queryErrors.length > 0) {
         const tables = queryErrors.map((e) => e.table).join(', ');
         notifyCriticalError(
@@ -5603,6 +5615,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       if (Array.isArray(ticketReservedData)) {
         ticketActivationsReserved = ticketReservedData;
       }
+      if (Array.isArray(ticketAttendeeData)) {
+        ticketActivationsAttendee = ticketAttendeeData;
+      }
     }
 
     const data = {
@@ -5635,6 +5650,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       shopPurchases,
       ticketActivationsActivated,
       ticketActivationsReserved,
+      ticketActivationsAttendee,
       badges,
       theatreReputation,
       plannedEvents: eventPlans,
