@@ -237,9 +237,9 @@ export async function requestAiSupport({
       message: 'Il servizio di supporto sta impiegando troppo tempo a rispondere.',
     });
   } catch (error) {
-    controller.abort();
     throw error;
   } finally {
+    controller.abort();
     cleanupExternalAbort?.();
   }
 }
@@ -366,7 +366,8 @@ export async function requestAiIssue({
       message: 'L invio della segnalazione sta impiegando troppo tempo.',
     });
   } catch (error) {
-    controller.abort();
     throw error;
+  } finally {
+    controller.abort();
   }
 }
