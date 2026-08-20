@@ -192,11 +192,9 @@ export function getMinigameConfig(activityId: string, roleId?: RoleId | null, ro
 export function computeRoundScore(target: number, hit: number, tolerance: number) {
   const delta = Math.abs(target - hit);
   const score = Math.round(Math.max(0, 100 - delta * 2));
-  let label = 'Da migliorare';
-
-  if (delta <= tolerance) label = 'Perfetto';
-  else if (delta <= tolerance * 2) label = 'Ottimo';
-  else if (delta <= tolerance * 3) label = 'Buono';
+  // Derive the per-round label from the same score thresholds used by
+  // ratingFromScore so mid-round feedback matches the final rating (closes #1608).
+  const label = score >= 90 ? 'Perfetto' : score >= 75 ? 'Ottimo' : score >= 60 ? 'Buono' : 'Da migliorare';
 
   return { score, delta, label };
 }
