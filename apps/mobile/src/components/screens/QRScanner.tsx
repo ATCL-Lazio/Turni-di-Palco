@@ -152,7 +152,11 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualTicket.trim() || !manualEventId.trim()) { setScanError('Inserisci sia ID Evento che Numero Ticket.'); return; }
-    await handleScanAttempt(`manual-ticket:${manualEventId}:${manualTicket}`);
+    // Strip characters that would break the colon-delimited composite or inject
+    // unexpected segments into the protocol string (closes #1616).
+    const safeTicket = manualTicket.trim().replace(/[^A-Za-z0-9\- ]/g, '');
+    if (!safeTicket) { setScanError('Formato biglietto non valido.'); return; }
+    await handleScanAttempt(`manual-ticket:${manualEventId}:${safeTicket}`);
   };
 
   return (
