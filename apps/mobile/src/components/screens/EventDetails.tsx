@@ -252,7 +252,7 @@ export function EventDetails({
               variant="primary"
               size="md"
               onClick={() => handleSavePlanning()}
-              disabled={isSavingPlanning}
+              disabled={isSavingPlanning || isClearingPlanning}
             >
               {planning ? 'Aggiorna pianificazione' : 'Salva pianificazione'}
             </Button>
@@ -261,7 +261,7 @@ export function EventDetails({
                 variant="ghost"
                 size="md"
                 onClick={() => handleClearPlanning()}
-                disabled={isClearingPlanning}
+                disabled={isSavingPlanning || isClearingPlanning}
               >
                 Cancella pianificazione
               </Button>
