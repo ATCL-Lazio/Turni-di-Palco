@@ -211,6 +211,20 @@ const jsonResponse = (body: Record<string, unknown>, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
+// Constant-time comparison to prevent timing-based inference of the
+// service-role key length or content (closes #1614).
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const encoder = new TextEncoder();
+  const aBytes = encoder.encode(a);
+  const bBytes = encoder.encode(b);
+  if (aBytes.length !== bBytes.length) return false;
+  let result = 0;
+  for (let i = 0; i < aBytes.length; i++) {
+    result |= aBytes[i] ^ bBytes[i];
+  }
+  return result === 0;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -237,7 +251,8 @@ serve(async (req) => {
   // Service-role key allows the control-plane to call this function without a user session.
   // The non-empty check prevents an empty-string SUPABASE_SERVICE_ROLE_KEY from
   // accidentally matching an empty Bearer token and bypassing auth (closes #1131).
-  if (!serviceKey || callerToken !== serviceKey) {
+  // timingSafeStringEqual is used to prevent timing-based inference of the key (closes #1614).
+  if (!serviceKey || !timingSafeStringEqual(callerToken, serviceKey)) {
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
       auth: { autoRefreshToken: false, persistSession: false },
