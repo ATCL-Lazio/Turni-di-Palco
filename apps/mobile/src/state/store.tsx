@@ -2081,7 +2081,12 @@ function loadState(): GameState {
 function saveState(state: GameState) {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    // In demo mode (no Supabase) the user has not authenticated; do not
+    // persist their email address to localStorage (GDPR / PII hygiene, closes #1601).
+    const persisted = isSupabaseConfigured
+      ? state
+      : { ...state, profile: { ...state.profile, email: '' } };
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
   } catch {
     // ignore storage errors
   }
