@@ -11,6 +11,11 @@ const corsHeaders = {
 };
 
 const EVENT_ID_PATTERN = /\b([A-Za-z]{2,10}-(?:\d{1,6}|[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*))\b/;
+// Anchored variant used for full-string validation (e.g. create_deep_link).
+// EVENT_ID_PATTERN uses \b word-boundaries for substring extraction from URLs
+// and QR payloads, but \b alone allows values like "AB-123/extra" to pass;
+// the anchored pattern rejects anything that is not exactly a valid event ID.
+const EVENT_ID_FULL_PATTERN = /^[A-Za-z]{2,10}-(?:\d{1,6}|[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*)$/;
 
 const VALID_ROLE_IDS = new Set(['attore', 'luci', 'fonico', 'attrezzista', 'palco', 'rspp', 'dramaturg']);
 
@@ -170,9 +175,9 @@ serve(async (req) => {
       return json({ error: 'eventId obbligatorio' }, 400);
     }
 
-    // Apply the same format validation used by all other actions so malformed
-    // or unbounded eventId values are rejected before reaching the DB (closes #1566).
-    if (!EVENT_ID_PATTERN.test(eventId)) {
+    // Use the anchored pattern so that a value containing a valid-looking
+    // substring (e.g. "AB-123/../../etc") is rejected in full (closes #1612).
+    if (!EVENT_ID_FULL_PATTERN.test(eventId)) {
       return json({ error: 'eventId non valido' }, 400);
     }
 
