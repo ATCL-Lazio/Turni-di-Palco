@@ -326,7 +326,11 @@ function parseEventDateTime(dateValue: string, timeValue: string) {
 
   const isoCandidate = timeValue ? `${dateValue}T${timeValue}` : dateValue;
   let attemptedDate = new Date(isoCandidate);
-  if (!Number.isNaN(attemptedDate.getTime())) return attemptedDate;
+  // Skip the fast path for date-only strings (no timeValue): "YYYY-MM-DD" is
+  // parsed as UTC midnight per spec, shifting the calendar entry by 1-2 h on
+  // non-UTC devices. Only use the result when a time component is present, so
+  // the datetime is parsed as local time (closes #1609).
+  if (timeValue && !Number.isNaN(attemptedDate.getTime())) return attemptedDate;
 
   const normalized = dateValue
     .toLowerCase()
