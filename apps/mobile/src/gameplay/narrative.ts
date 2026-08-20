@@ -376,6 +376,17 @@ function safeInt(value: unknown, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+const FLAG_RE = /^[a-z][a-z0-9_]{0,59}$/;
+const MAX_FLAGS = 4;
+
+function sanitizeFlags(flags: unknown): string[] | undefined {
+  if (!Array.isArray(flags)) return undefined;
+  const valid = (flags as unknown[])
+    .filter((f): f is string => typeof f === 'string' && FLAG_RE.test(f))
+    .slice(0, MAX_FLAGS);
+  return valid.length > 0 ? valid : undefined;
+}
+
 function clampRewards(scene: NarrativeScene): NarrativeScene {
   return {
     ...scene,
@@ -390,6 +401,7 @@ function clampRewards(scene: NarrativeScene): NarrativeScene {
             ? { reputation: Math.min(3, Math.max(0, safeInt(choice.outcome.rewards.reputation, 0))) }
             : {}),
         },
+        setFlags: sanitizeFlags(choice.outcome.setFlags),
       },
     })),
   };
