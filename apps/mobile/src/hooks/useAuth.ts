@@ -121,16 +121,25 @@ export function useAuth(
 
         const redirectTo = resolveAuthRedirectTo();
         signupInProgressRef.current = true;
-        const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                // is_minor viene letto dal trigger handle_new_user che, per i
-                // minorenni, imposta leaderboard_visible=false (classifica opt-in).
-                data: { name, is_minor: isMinor },
-                ...(redirectTo ? { emailRedirectTo: redirectTo } : {}),
-            },
-        });
+        let signupResult: Awaited<ReturnType<typeof supabase.auth.signUp>>;
+        try {
+            signupResult = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    // is_minor viene letto dal trigger handle_new_user che, per i
+                    // minorenni, imposta leaderboard_visible=false (classifica opt-in).
+                    data: { name, is_minor: isMinor },
+                    ...(redirectTo ? { emailRedirectTo: redirectTo } : {}),
+                },
+            });
+        } catch (err) {
+            // Reset the flag so future SIGNED_IN events are not misidentified
+            // as a signup transition (closes #1599).
+            signupInProgressRef.current = false;
+            throw err;
+        }
+        const { data, error } = signupResult;
         if (error) {
             signupInProgressRef.current = false;
             setAuthError(translateAuthError(error));
