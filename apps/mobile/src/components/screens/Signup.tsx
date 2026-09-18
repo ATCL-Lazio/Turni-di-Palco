@@ -43,8 +43,12 @@ export function Signup({ onBack, onSignup, onLogin, onViewTerms, onViewPrivacy, 
       if (age === null) newErrors.birthDate = 'Inserisci una data di nascita valida';
       else if (age < MIN_SIGNUP_AGE) newErrors.birthDate = `Devi avere almeno ${MIN_SIGNUP_AGE} anni per registrarti`;
     }
-    if (!password) newErrors.password = 'Password richiesta'; else if (password.length < 8) newErrors.password = 'La password deve avere almeno 8 caratteri';
-    if (password !== confirmPassword) newErrors.confirmPassword = 'Le password non corrispondono';
+    if (!password) {
+      newErrors.password = 'Password richiesta';
+    } else {
+      if (password.length < 8) newErrors.password = 'La password deve avere almeno 8 caratteri';
+      if (password !== confirmPassword) newErrors.confirmPassword = 'Le password non corrispondono';
+    }
     if (!acceptTerms) newErrors.terms = 'Devi accettare i termini e la privacy';
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); isSubmittingRef.current = false; return; }
     setSubmitError(null);
