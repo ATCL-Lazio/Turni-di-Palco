@@ -82,6 +82,16 @@ function cleanupOldRecords() {
         localManualActivationStore.delete(key);
       }
     }
+    // If still oversized after time-based prune (all entries within last 8 h),
+    // evict the oldest entries until the store is within MAX_STORE_SIZE (closes #1600).
+    if (localManualActivationStore.size > MAX_STORE_SIZE) {
+      const sorted = Array.from(localManualActivationStore.entries()).sort(
+        (a, b) =>
+          new Date(a[1].activatedAtIso).getTime() - new Date(b[1].activatedAtIso).getTime(),
+      );
+      const toDelete = sorted.slice(0, sorted.length - MAX_STORE_SIZE);
+      for (const [key] of toDelete) localManualActivationStore.delete(key);
+    }
     if (import.meta.env.DEV) {
       console.info(
         '[ticket-activation] localManualActivationStore pruned; size now:',
