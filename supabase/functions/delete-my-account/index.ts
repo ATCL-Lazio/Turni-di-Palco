@@ -180,13 +180,16 @@ serve(async (req) => {
   // step 1 (nullify activated tickets) and step 2 (delete unactivated tickets):
   // such a ticket would have been skipped by both steps, leaving the deleted
   // user's UUID in reserved_by or attendee_id.
-  // Non-fatal — log and continue so the auth user is still removed (closes #1543).
+  //
+  // Fatal — if either sweep fails, the auth user must NOT be deleted, because the
+  // stranded UUID would have no recovery path (violates GDPR Art. 17).
   const { error: finalNullifyError } = await adminClient
     .from('ticket_activations')
     .update({ reserved_by: null })
     .eq('reserved_by', userId);
   if (finalNullifyError) {
-    console.error('delete-my-account: failed to nullify surviving reserved_by references', finalNullifyError.message);
+    console.error('delete-my-account: failed to nullify surviving reserved_by references — aborting auth user deletion', finalNullifyError.message);
+    return errorResponse('Impossibile rimuovere tutti i riferimenti ai biglietti. Riprova più tardi.', 500);
   }
 
   const { error: finalNullifyAttendeeError } = await adminClient
@@ -194,7 +197,8 @@ serve(async (req) => {
     .update({ attendee_id: null })
     .eq('attendee_id', userId);
   if (finalNullifyAttendeeError) {
-    console.error('delete-my-account: failed to nullify surviving attendee_id references', finalNullifyAttendeeError.message);
+    console.error('delete-my-account: failed to nullify surviving attendee_id references — aborting auth user deletion', finalNullifyAttendeeError.message);
+    return errorResponse('Impossibile rimuovere tutti i riferimenti ai biglietti. Riprova più tardi.', 500);
   }
 
   // 3. Delete the auth user (must be last — only reached if all data was cleaned)
