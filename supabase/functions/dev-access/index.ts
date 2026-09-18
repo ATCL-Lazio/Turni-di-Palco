@@ -101,7 +101,10 @@ serve(async (req) => {
 
   let payload: { path?: string } = {};
   try {
-    payload = await req.json();
+    const parsed = await req.json();
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      payload = parsed as { path?: string };
+    }
   } catch {
     payload = {};
   }
