@@ -197,7 +197,6 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
       window.clearTimeout(feedbackTimeoutRef.current);
       feedbackTimeoutRef.current = null;
     }
-    attemptCountRef.current += 1;
     if (startedAtRef.current == null) startedAtRef.current = Date.now();
     setFeedback(null);
     setProgress(0);
@@ -210,6 +209,7 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
   const handleStop = () => {
     if (phase !== 'playing' || hasStoppedRef.current) return;
     hasStoppedRef.current = true;
+    attemptCountRef.current += 1;
 
     const result = computeRoundScore(round.target, progress, round.tolerance);
     const nextScores = [...roundScores, result.score];
@@ -376,7 +376,6 @@ function AudioMinigame({ config, activityTitle, statBenefits, onComplete, onCanc
   }, []);
 
   const handleStart = () => {
-    attemptCountRef.current += 1;
     if (startedAtRef.current == null) startedAtRef.current = Date.now();
     setFeedback(null);
     setLevel([50]);
@@ -391,6 +390,7 @@ function AudioMinigame({ config, activityTitle, statBenefits, onComplete, onCanc
 
   const handleConfirm = () => {
     if (phase !== 'adjust') return;
+    attemptCountRef.current += 1;
     const hit = level[0] ?? 0;
     const result = computeRoundScore(round.target, hit, round.tolerance);
     const nextScores = [...roundScores, result.score];
