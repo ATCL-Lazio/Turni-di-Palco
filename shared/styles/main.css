@@ -179,9 +179,13 @@ html[data-theme="light"] .app-gradient {
 }
 
 /* Recolor the welcome-logo glow for the light theme so it stays visible
-   on a near-white background (the burgundy glow blends in otherwise). */
-html[data-theme="light"] .welcome-logo-pulse {
-  animation: glow-burgundy-light 3.2s ease-in-out infinite;
+   on a near-white background (the burgundy glow blends in otherwise).
+   Scoped to no-preference: this selector out-specifies the plain
+   `.welcome-logo-pulse { animation: none }` reduced-motion override. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme="light"] .welcome-logo-pulse {
+    animation: glow-burgundy-light 3.2s ease-in-out infinite;
+  }
 }
 
 @keyframes glow-burgundy-light {
