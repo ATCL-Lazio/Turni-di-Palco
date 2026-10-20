@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Home, ListChecks, ShoppingBag, Trophy, User } from 'lucide-react';
 import { Tab } from '../types/navigation';
+import { LiquidGlass } from './ui/LiquidGlass';
 
 interface BottomNavProps {
   activeTab: Tab;
@@ -29,16 +30,15 @@ export function BottomNav({ activeTab, onTabChange, enabledTabs }: BottomNavProp
   const indicatorStyle = activeIndex >= 0 ? {
     width: `calc(100% / ${numTabs} - 20px)`,
     left: `calc(${activeIndex} * (100% / ${numTabs}) + 10px)`,
-    transition: 'left 280ms cubic-bezier(0.34, 1.56, 0.64, 1)',
   } : undefined;
 
   return (
-    <nav data-tutorial="bottom-nav" role="tablist" aria-label="Navigazione principale" className="fixed bottom-0 left-0 right-0 w-full z-50 bg-[#0f0d0e]/90 backdrop-blur-2xl border-t border-white/[0.05]">
+    <LiquidGlass as="nav" data-tutorial="bottom-nav" role="tablist" aria-label="Navigazione principale" className="fixed bottom-0 left-0 right-0 w-full z-50 border-t border-white/[0.05]">
       <div className="relative app-content flex items-stretch justify-around px-2 pt-1 min-h-[54px]" style={{ paddingBottom: 'calc(4px + env(safe-area-inset-bottom, 0px))' }}>
 
           {indicatorStyle && (
             <div
-              className="absolute top-0 h-[2px] bg-[#f4bf4f] rounded-full"
+              className="absolute top-0 h-[2px] bg-[#f4bf4f] rounded-full transition-[left] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
               style={indicatorStyle}
             />
           )}
@@ -54,7 +54,7 @@ export function BottomNav({ activeTab, onTabChange, enabledTabs }: BottomNavProp
             />
           ))}
       </div>
-    </nav>
+    </LiquidGlass>
   );
 }
 
