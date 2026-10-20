@@ -33,7 +33,7 @@ export function OnboardingFirstMission({ roleId, onComplete, onSkip }: Onboardin
 
   if (!mission) {
     return (
-      <Screen withBottomNavPadding={false}>
+      <Screen withBottomNavPadding={false} center>
         <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
           <p className="text-[#b8b2b3]">Missione non trovata per questo ruolo.</p>
           <Button variant="primary" onClick={onSkip}>Continua</Button>
@@ -44,7 +44,7 @@ export function OnboardingFirstMission({ roleId, onComplete, onSkip }: Onboardin
 
   if (phase.kind === 'outcome') {
     return (
-      <Screen withBottomNavPadding={false}>
+      <Screen withBottomNavPadding={false} center>
         <div className="flex flex-col items-center justify-center h-full gap-6 px-6 text-center">
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#a82847] to-[#6b1529] flex items-center justify-center shadow-lg">
             <Star className="text-[#f4bf4f]" size={40} />
