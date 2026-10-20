@@ -168,7 +168,7 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
 
   if (local.phase === 'loading') {
     return (
-      <Screen withBottomNavPadding={false}>
+      <Screen withBottomNavPadding={false} center>
         <div className="flex flex-1 flex-col items-center justify-center gap-4">
           <div className="size-8 animate-spin rounded-full border-2 border-burgundy-600 border-t-transparent" aria-hidden="true" />
           <p className="text-sm text-fg-tertiary">Maxwell sta preparando uno scenario…</p>
@@ -179,7 +179,7 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
 
   if (local.phase === 'daily_done') {
     return (
-      <Screen withBottomNavPadding={false}>
+      <Screen withBottomNavPadding={false} center>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
           <h1 className="text-xl font-semibold text-[#f5f0f1]">Sfida completata!</h1>
           <p className="text-sm text-fg-tertiary">Hai già completato lo scenario di oggi.<br />Torna domani per la prossima sfida.</p>
@@ -198,7 +198,7 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
   if (local.phase === 'error') {
     const canRetry = sceneId.startsWith(MAXWELL_ID_PREFIX);
     return (
-      <Screen withBottomNavPadding={false}>
+      <Screen withBottomNavPadding={false} center>
         <h1 className="text-xl font-semibold">Scenario non disponibile</h1>
         <p className="text-sm text-fg-tertiary">{local.message}</p>
         <div className="mt-4 flex gap-3">
