@@ -8,6 +8,11 @@ interface ScreenProps {
    * Adds space for the fixed bottom navigation plus the device safe area inset.
    */
   withBottomNavPadding?: boolean;
+  /**
+   * Centra verticalmente il contenuto (stati vuoti/di caricamento). Usa `100svh`,
+   * che non cambia quando la toolbar di iOS Safari si espande o si comprime.
+   */
+  center?: boolean;
   className?: string;
   contentClassName?: string;
   style?: React.CSSProperties;
@@ -17,13 +22,19 @@ export function Screen({
   children,
   header,
   withBottomNavPadding = true,
+  center = false,
   className,
   contentClassName,
   style
 }: ScreenProps) {
   return (
     <main
-      className={cn('min-h-screen min-h-[100dvh] flex flex-col items-center justify-center', className)}
+      className={cn(
+        'flex flex-col items-center',
+        // Default: contenuto allineato in alto, così non si sposta al variare di 100dvh.
+        center ? 'min-h-[100svh] justify-center' : 'min-h-screen min-h-[100dvh] justify-start',
+        className
+      )}
       style={style}
     >
       {header}
