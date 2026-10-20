@@ -37,6 +37,40 @@ import {
   readEnvFeatureFlagOverrides,
 } from '../services/feature-flags';
 import { withSuppressSignedInNavigation } from './auth-navigation';
+import { ROLE_IDS, EVENT_PLANNING_STATUSES } from './types';
+import type {
+  RoleId,
+  Rewards,
+  TurnSyncStatus,
+  RoleJourney,
+  RoleActivityOverride,
+  RoleProfile,
+  Role,
+  GameEvent,
+  EventPlanningStatus,
+  EventPlanning,
+  Activity,
+  ShopCatalogItem,
+  ActivitySlotsStatus,
+  ActivityTelemetryInput,
+  CompleteActivityResult,
+  CompleteNarrativeChoiceInput,
+  CompleteNarrativeChoiceResult,
+  ShopPurchaseResult,
+  TurnRecord,
+  PlayerProfile,
+  RegisterTurnInput,
+  RegisterTurnResult,
+  TurnSyncFeedback,
+  GameState,
+  TurnStats,
+  TheatreReputation,
+  LeaderboardEntry,
+  BadgeMetric,
+  Badge,
+  CatalogState,
+} from './types';
+import type { GameContextValue } from './game-context-types';
 
 // Public API re-exported from the domain modules, so importers keep using
 // '../state/store' unchanged.
@@ -45,287 +79,39 @@ export {
   setSuppressSignedInNavigation,
   withSuppressSignedInNavigation,
 } from './auth-navigation';
-
-export const ROLE_IDS = ['attore', 'luci', 'fonico', 'attrezzista', 'palco', 'rspp', 'dramaturg'] as const;
-export type RoleId = (typeof ROLE_IDS)[number];
-export type Rewards = { xp: number; reputation: number; cachet: number };
-export type TurnSyncStatus = 'pending' | 'synced' | 'synced_duplicate' | 'failed_boost_fallback';
-
-export type RoleJourney = {
-  eyebrow?: string;
-  headline: string;
-  summary: string;
-  recommendedActivityId?: string;
-  starterBadgeLabels?: string[];
-  objectives?: string[];
-  homeCtaLabel?: string;
-};
-
-export type RoleActivityOverride = {
-  xpMultiplier?: number;
-  cachetMultiplier?: number;
-  reputationBonus?: number;
-  highlightLabel?: string;
-  homeNote?: string;
-};
-
-export type RoleProfile = {
-  allowedActivityIds?: string[];
-  activityOrder?: string[];
-  homeMessage?: string;
-  journey?: RoleJourney;
-  activityOverrides?: Record<string, RoleActivityOverride>;
-};
-
-export type Role = {
-  id: RoleId;
-  name: string;
-  focus: string;
-  stats: { presence: number; precision: number; leadership: number; creativity: number };
-  profile?: RoleProfile;
-};
-
-export type GameEvent = {
-  id: string;
-  name: string;
-  theatre: string;
-  date: string;
-  time: string;
-  genre: string;
-  baseRewards: Rewards;
-  focusRole?: RoleId;
-};
-
-export const EVENT_PLANNING_STATUSES = ['planned', 'confirmed', 'cancelled'] as const;
-export type EventPlanningStatus = (typeof EVENT_PLANNING_STATUSES)[number];
-
-export type EventPlanning = {
-  eventId: string;
-  roleId: RoleId;
-  status: EventPlanningStatus;
-  updatedAt: number;
-};
-
-export type Activity = {
-  id: string;
-  title: string;
-  description: string;
-  duration: string;
-  xpReward: number;
-  cachetReward: number;
-  difficulty: 'Facile' | 'Medio' | 'Difficile';
-};
-
-export type ShopCategory = 'slot' | 'rep_atcl' | 'rep_theatre';
-
-export type ShopCatalogItem = {
-  code: string;
-  title: string;
-  description: string;
-  category: ShopCategory;
-  costCachet: number;
-  effectValue: number;
-  maxPurchasesPerUser: number | null;
-  active: boolean;
-  metadata?: Record<string, unknown>;
-};
-
-export type ActivitySlotsStatus = {
-  usedToday: number;
-  totalSlots: number;
-  remainingSlots: number;
-};
-
-export type ActivityTelemetryInput = {
-  score: number;
-  rating: string;
-  attempts?: number;
-  durationMs?: number;
-};
-
-export type CompleteActivityResult =
-  | {
-    ok: true;
-    activity: Activity;
-    rewards: Rewards;
-    slotsUsedToday: number;
-    slotsTotal: number;
-    cachetBalanceAfter: number;
-    reputationAfter: number;
-    isDuplicate?: boolean;
-  }
-  | {
-    ok: false;
-    error: string;
-    rejectionReason?: string | null;
-    slotsUsedToday?: number;
-    slotsTotal?: number;
-  };
-
-export type CompleteNarrativeChoiceInput = {
-  sceneId: string;
-  choiceId: string;
-  rewards: Partial<Rewards>;
-  setFlags?: string[];
-};
-
-export type CompleteNarrativeChoiceResult =
-  | { ok: true; rewards: Rewards }
-  | { ok: false; error: string };
-
-export type ShopPurchaseResult =
-  | {
-    ok: true;
-    status: 'applied' | 'duplicate';
-    cachetBalanceAfter: number;
-    reputationAfter: number;
-    extraSlotsAfter: number;
-    theatre?: string | null;
-    theatreReputationAfter?: number | null;
-    effect: Record<string, unknown>;
-  }
-  | {
-    ok: false;
-    status: 'rejected' | 'error';
-    error: string;
-    rejectionReason?: string | null;
-  };
-
-export type TurnRecord = {
-  id: string;
-  eventId: string;
-  eventName: string;
-  theatre: string;
-  date: string;
-  time: string;
-  roleId: RoleId;
-  rewards: Rewards;
-  createdAt: number;
-  syncStatus?: TurnSyncStatus;
-  boostRequested?: boolean;
-  boostApplied?: boolean;
-  boostRejectionReason?: string | null;
-};
-
-export type PlayerProfile = {
-  name: string;
-  email: string;
-  roleId: RoleId;
-  level: number;
-  xp: number;
-  xpToNextLevel: number;
-  xpTotal: number;
-  xpField: number;
-  reputation: number;
-  cachet: number;
-  tokenAtcl: number;
-  extraActivitySlots: number;
-  profileImage?: string;
-  lastActivityAt: number;
-  /** GDPR Art. 21 – se false il profilo non compare nella classifica pubblica. Default: true. */
-  leaderboardVisible: boolean;
-  /** Indica se il tutorial di benvenuto è stato completato. Default: false. */
-  tutorialCompleted: boolean;
-  /** ISO timestamp impostato quando l'utente completa (o bypassa) l'onboarding FTUE. Null = non ancora fatto. */
-  onboardingCompletedAt: string | null;
-  /** 'full' = ha giocato la prima missione; 'skipped_qr' = bypass via deep-link evento; 'skipped_manual' = ha saltato dal bottone "Salta". */
-  onboardingVariant: 'full' | 'skipped_qr' | 'skipped_manual' | null;
-  /** Statistiche skill guadagnate dai corsi (Issue #327). Valori iniziali: 0. */
-  skills: {
-    precision: number;
-    presence: number;
-    creativity: number;
-    leadership: number;
-  };
-  /** Record dei corsi completati: courseId → timestamp ISO dell'ultimo completamento. */
-  completedCourses: Record<string, string>;
-  /** Corsi attualmente in corso: courseId → timestamp ISO di avvio. */
-  activeCourses: Record<string, string>;
-};
-
-export type RegisterTurnInput = {
-  eventId: string;
-  roleId: RoleId;
-  eventOverride?: GameEvent;
-  boostRequested?: boolean;
-};
-
-export type RegisterTurnResult =
-  | {
-    ok: true;
-    syncStatus: TurnSyncStatus;
-    boostRequested: boolean;
-    boostApplied: boolean;
-    boostRejectionReason: string | null;
-    rewards: Rewards;
-    tokenBalanceAfter: number | null;
-    turn: TurnRecord;
-  }
-  | {
-    ok: false;
-    error: string;
-  };
-
-export type TurnSyncFeedback = {
-  syncStatus: TurnSyncStatus;
-  boostRequested: boolean;
-  boostApplied: boolean;
-  boostRejectionReason: string | null;
-  eventName: string;
-  createdAt: number;
-  geolocationAvailable?: boolean;
-};
-
-export type GameState = {
-  profile: PlayerProfile;
-  turns: TurnRecord[];
-  eventPlans: EventPlanning[];
-};
-
-export type TurnStats = {
-  totalTurns: number;
-  turnsThisMonth: number;
-  uniqueTheatres: number;
-};
-
-export type TheatreReputation = {
-  theatre: string;
-  reputation: number;
-  totalTurns: number;
-};
-
-export type LeaderboardEntry = {
-  id: string;
-  name: string;
-  roleId: RoleId;
-  xpTotal: number;
-  cachet: number;
-  reputation: number;
-  turnsCount: number;
-  profileImage?: string;
-  lastActivityAt?: number;
-};
-
-export type BadgeMetric = 'total_turns' | 'turns_this_month' | 'unique_theatres' | 'manual';
-
-export type Badge = {
-  id: string;
-  title: string;
-  description: string | null;
-  icon: string;
-  metric: BadgeMetric | null;
-  threshold: number | null;
-  isHidden: boolean;
-  unlocked: boolean;
-  unlockedAt: number | null;
-  seenAt: number | null;
-};
-
-type CatalogState = {
-  roles: Role[];
-  events: GameEvent[];
-  activities: Activity[];
-};
+export { ROLE_IDS, EVENT_PLANNING_STATUSES } from './types';
+export type {
+  RoleId,
+  Rewards,
+  TurnSyncStatus,
+  RoleJourney,
+  RoleActivityOverride,
+  RoleProfile,
+  Role,
+  GameEvent,
+  EventPlanningStatus,
+  EventPlanning,
+  Activity,
+  ShopCategory,
+  ShopCatalogItem,
+  ActivitySlotsStatus,
+  ActivityTelemetryInput,
+  CompleteActivityResult,
+  CompleteNarrativeChoiceInput,
+  CompleteNarrativeChoiceResult,
+  ShopPurchaseResult,
+  TurnRecord,
+  PlayerProfile,
+  RegisterTurnInput,
+  RegisterTurnResult,
+  TurnSyncFeedback,
+  GameState,
+  TurnStats,
+  TheatreReputation,
+  LeaderboardEntry,
+  BadgeMetric,
+  Badge,
+} from './types';
 
 // DB row types — shape returned by Supabase queries
 type DbEventRow = {
@@ -2253,86 +2039,6 @@ export function computeTurnRewards(event: GameEvent, roleId: RoleId): Rewards {
     reputation: event.baseRewards.reputation + Math.round(bonus / 3),
   };
 }
-
-type GameContextValue = {
-  authUserId: string | null;
-  authReady: boolean;
-  hasHydratedRemote: boolean;
-  state: GameState;
-  roles: Role[];
-  events: GameEvent[];
-  activities: Activity[];
-  turnStats: TurnStats;
-  statsLoading: boolean;
-  theatreReputation: TheatreReputation[];
-  theatreReputationLoading: boolean;
-  leaderboard: LeaderboardEntry[];
-  leaderboardLoading: boolean;
-  refreshLeaderboard: () => Promise<void>;
-  badges: Badge[];
-  badgesLoading: boolean;
-  featureFlags: MobileFeatureFlagsState;
-  featureFlagsReady: boolean;
-  featureFlagsSource: MobileFeatureFlagsSource;
-  isFeatureEnabled: (key: MobileFeatureFlagKey) => boolean;
-  eventPlans: EventPlanning[];
-  eventPlansLoading: boolean;
-  followedEvents: GameEvent[];
-  followedEventsLoading: boolean;
-  shopCatalog: ShopCatalogItem[];
-  shopCatalogLoading: boolean;
-  refreshShopCatalog: () => Promise<void>;
-  purchaseShopItem: (itemCode: string, targetTheatre?: string | null) => Promise<ShopPurchaseResult>;
-  activitySlotsStatus: ActivitySlotsStatus;
-  activitySlotsLoading: boolean;
-  refreshActivitySlotsStatus: () => Promise<void>;
-  getEventPlan: (eventId: string) => EventPlanning | null;
-  planEvent: (eventId: string, roleId: RoleId) => Promise<void>;
-  cancelEventPlan: (eventId: string) => Promise<void>;
-  followEvent: (eventId: string) => Promise<void>;
-  unfollowEvent: (eventId: string) => Promise<void>;
-  isEventFollowed: (eventId: string) => boolean;
-  markBadgesSeen: () => void;
-  updateProfile: (updates: Partial<Pick<PlayerProfile, 'name' | 'email' | 'roleId' | 'profileImage' | 'leaderboardVisible'>>) => void;
-  registerTurn: (input: RegisterTurnInput) => Promise<RegisterTurnResult>;
-  pendingBoostRequests: number;
-  turnSyncFeedback: TurnSyncFeedback | null;
-  clearTurnSyncFeedback: () => void;
-  completeActivity: (
-    activityId: string,
-    telemetry?: ActivityTelemetryInput
-  ) => Promise<CompleteActivityResult>;
-  completeNarrativeChoice: (input: CompleteNarrativeChoiceInput) => Promise<CompleteNarrativeChoiceResult>;
-  resetProgress: () => Promise<void>;
-  /** GDPR Art. 17 – elimina account e tutti i dati dal server e dal dispositivo.
-   *
-   * ⚠️  **ATTENZIONE per i futuri call site**: se questo metodo viene chiamato senza
-   * `options.onBeforeSignOut`, l'evento `SIGNED_OUT` emesso da `supabase.auth.signOut()`
-   * causerà il banner «Sessione scaduta» in `useAuth`. Passare sempre `markVoluntaryLogout`
-   * da `useAuth` come `onBeforeSignOut` — e `unmarkVoluntaryLogout` come `onSignOutFailed`
-   * — per gestire correttamente sia il caso nominale che l'errore (issue #1124).
-   *
-   * @param options.onBeforeSignOut - invocato immediatamente prima di `signOut()`.
-   *   Usare per impostare `isVoluntaryLogoutRef = true` in `useAuth`.
-   * @param options.onSignOutFailed - invocato se `signOut()` lancia un'eccezione, prima
-   *   di rithrowing. Usare per resettare `isVoluntaryLogoutRef = false` in `useAuth`
-   *   (altrimenti il ref resta bloccato a `true` e la prossima scadenza involontaria
-   *   della sessione non mostrerebbe il banner). */
-  deleteAccount: (options?: { onBeforeSignOut?: () => void; onSignOutFailed?: () => void }) => Promise<void>;
-  /** GDPR Art. 15/20 – scarica copia di tutti i dati personali in JSON. */
-  exportUserData: () => Promise<void>;
-  changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
-  sendPasswordResetEmail: (email: string) => Promise<void>;
-  completeTutorial: () => void;
-  resetTutorial: () => void;
-  /** Marca l'onboarding come completato e persiste su Supabase. Applica opzionalmente un bonus XP al profilo. */
-  completeOnboarding: (variant: 'full' | 'skipped_qr' | 'skipped_manual', xpReward?: number) => void;
-  /** Avvia un corso: scala il cachet e segna il corso come attivo. Issue #327. */
-  startCourse: (courseId: string) => { ok: true } | { ok: false; error: string };
-  /** Completa un corso attivo: assegna XP, incrementa la skill. Issue #327. */
-  completeCourse: (courseId: string) => { ok: true; xpGained: number; skillGained: CourseSkill; pointsGained: number } | { ok: false; error: string };
-  resetState: () => void;
-};
 
 const GameStateContext = createContext<GameContextValue | undefined>(undefined);
 
