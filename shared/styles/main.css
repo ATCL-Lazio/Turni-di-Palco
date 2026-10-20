@@ -122,9 +122,13 @@
      theme-appropriate overlay tint (white in dark, dark in light). */
   --color-overlay-tint: 255, 255, 255;
   --color-overlay-text: 255, 255, 255;
-  /* Bottom-nav glass background (translucent surface + blur). */
-  --color-nav-glass: rgba(15, 13, 14, 0.9);
   --color-nav-border: rgba(255, 255, 255, 0.05);
+  /* Liquid glass (<LiquidGlass>). La tinta resta densa (0.88) perché le label
+     della nav devono restare ≥ 4.5:1 anche sopra contenuto bianco o oro: il
+     vetro si legge da riflesso, bordo rifratto e saturazione, non dalla
+     trasparenza. `sheen` è il riflesso in alto. */
+  --color-liquid-glass-tint: rgba(15, 13, 14, 0.88);
+  --color-liquid-glass-sheen: 255, 255, 255;
   /* Generic glass surface (cards behind blur). */
   --color-glass-surface: rgba(26, 22, 23, 0.72);
   --color-glass-border: rgba(255, 255, 255, 0.05);
@@ -175,9 +179,9 @@ html[data-theme="light"] {
      visible on the light surfaces. */
   --color-overlay-tint:         15, 13, 14;
   --color-overlay-text:         22, 20, 19;
-  /* Bottom-nav: light glass over warm paper background. */
-  --color-nav-glass:            rgba(255, 252, 244, 0.85);
   --color-nav-border:           rgba(15, 13, 14, 0.08);
+  --color-liquid-glass-tint:    rgba(255, 252, 244, 0.88);
+  --color-liquid-glass-sheen:   255, 255, 255;
   --color-glass-surface:        rgba(255, 255, 255, 0.72);
   --color-glass-border:         rgba(15, 13, 14, 0.06);
   /* Burgundy gradient stops softened: keep some brand identity but no
@@ -220,9 +224,13 @@ html[data-theme="light"] .app-gradient {
 }
 
 /* Recolor the welcome-logo glow for the light theme so it stays visible
-   on a near-white background (the burgundy glow blends in otherwise). */
-html[data-theme="light"] .welcome-logo-pulse {
-  animation: glow-burgundy-light 3.2s ease-in-out infinite;
+   on a near-white background (the burgundy glow blends in otherwise).
+   Scoped to no-preference: this selector out-specifies the plain
+   `.welcome-logo-pulse { animation: none }` reduced-motion override. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme="light"] .welcome-logo-pulse {
+    animation: glow-burgundy-light 3.2s ease-in-out infinite;
+  }
 }
 
 @keyframes glow-burgundy-light {
@@ -264,9 +272,8 @@ html[data-theme="light"] .welcome-logo-pulse {
   .text-white\/60 { color: rgba(var(--color-overlay-text), 0.60); }
 }
 
-/* Bottom-nav glass: explicit token-driven surface so it adapts cleanly. */
+/* Bottom-nav: la superficie è `.liquid-glass`; qui solo il bordo per tema. */
 [data-tutorial="bottom-nav"] {
-  background-color: var(--color-nav-glass) !important;
   border-top-color: var(--color-nav-border) !important;
 }
 
@@ -764,9 +771,16 @@ html[data-theme="light"] .text-white {
   transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.mobile-card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+/* Hover lift only where hover is real: on touch devices :hover sticks
+   after a tap and leaves the card raised. Subtle gold ring on hover. */
+@media (hover: hover) and (pointer: fine) {
+  .mobile-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 10px 25px -5px rgba(0, 0, 0, 0.35),
+      0 8px 10px -6px rgba(0, 0, 0, 0.25),
+      0 0 0 1px rgba(244, 191, 79, 0.07);
+  }
 }
 
 .mobile-card-hover:active {
@@ -1024,6 +1038,55 @@ html[data-theme="light"] .text-white {
   }
 }
 
+/* ===== LIQUID GLASS =====
+   Superficie di vetro usata da <LiquidGlass>. Il componente imposta
+   `--lg-refraction: url(#…)` solo nei browser che applicano filtri SVG al
+   backdrop (Chromium); altrove il fallback vuoto lascia blur + saturazione.
+   In @layer components così le utility Tailwind (position, z-index, bordi)
+   restano libere di sovrascrivere. */
+@layer components {
+  .liquid-glass {
+    background-color: var(--color-liquid-glass-tint);
+    background-image: linear-gradient(
+      180deg,
+      rgba(var(--color-liquid-glass-sheen), 0.1) 0%,
+      rgba(var(--color-liquid-glass-sheen), 0) 45%
+    );
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    backdrop-filter: var(--lg-refraction,) blur(16px) saturate(140%);
+    box-shadow:
+      inset 0 1px 0 0 rgba(var(--color-liquid-glass-sheen), 0.16),
+      inset 0 -1px 0 0 rgba(0, 0, 0, 0.18);
+  }
+
+  .liquid-glass-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .liquid-glass {
+      background-color: var(--color-bg-primary);
+      background-image: none;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+
+  @media (prefers-contrast: more) {
+    .liquid-glass {
+      background-color: var(--color-bg-primary);
+      background-image: none;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      box-shadow: inset 0 1px 0 0 var(--color-border-strong);
+    }
+  }
+}
+
 @layer utilities {
   .glass-surface {
     background-color: var(--color-glass-surface);
@@ -1072,15 +1135,6 @@ html[data-theme="light"] .text-white {
   .animate-stagger-4 { animation: stagger-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: 210ms; }
   .animate-stagger-5 { animation: stagger-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: 280ms; }
   .animate-stagger-6 { animation: stagger-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: 350ms; }
-}
-
-/* Improved mobile card hover - subtle gold ring on hover */
-.mobile-card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 10px 25px -5px rgba(0, 0, 0, 0.35),
-    0 8px 10px -6px rgba(0, 0, 0, 0.25),
-    0 0 0 1px rgba(244, 191, 79, 0.07);
 }
 
 @media (prefers-reduced-motion: reduce) {
