@@ -143,25 +143,25 @@ export function TermsAndConditions({ onBack }: TermsAndConditionsProps) {
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
+          className="flex items-center justify-center size-[44px] text-accent"
           aria-label="Indietro"
         >
           <ArrowLeft size={24} />
         </button>
 
         <div className="flex flex-col items-start gap-1">
-          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[#f5f5f5]">
+          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-fg-primary">
             Termini e Condizioni
           </p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3]">Condizioni d’uso</p>
+          <p className="text-[16px] leading-[25.6px] text-fg-secondary">Condizioni d’uso</p>
         </div>
 
-        <div className="bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 flex flex-col gap-4">
-          <p className="text-[14px] leading-[20px] text-[#b8b2b3] !m-0">
+        <div className="bg-surface rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] p-4 flex flex-col gap-4">
+          <p className="text-[14px] leading-[20px] text-fg-secondary !m-0">
             Ultimo aggiornamento: {LAST_UPDATED}
           </p>
 
-          <div className="flex flex-col gap-3 text-[14px] leading-[20px] text-[#b8b2b3]">
+          <div className="flex flex-col gap-3 text-[14px] leading-[20px] text-fg-secondary">
             {SECTIONS.map((section) => (
               <div key={section.title}>
                 <p className="text-white font-semibold !m-0">{section.title}</p>

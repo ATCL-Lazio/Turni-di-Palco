@@ -292,23 +292,23 @@ function ChatHeader({ onBack, sessionCount, isLoading, isCreatingIssue, onOpenHi
   onBack: () => void; sessionCount: number; isLoading: boolean; isCreatingIssue: boolean; onOpenHistory: () => void;
 }) {
   return (
-    <Card className="border border-[#2d2728] bg-gradient-to-b from-[#241f20] to-[#1a1617] p-4 md:p-5">
+    <Card className="border border-border bg-gradient-to-b from-surface-elevated to-surface p-4 md:p-5">
       <div className="flex items-start gap-3 md:gap-4">
         <button type="button" onClick={onBack}
-          className="flex size-[44px] shrink-0 items-center justify-center rounded-xl border border-[#2d2728] bg-[#0f0d0e] text-[#f4bf4f] transition-colors hover:bg-[#241f20]"
+          className="flex size-[44px] shrink-0 items-center justify-center rounded-xl border border-border bg-page text-accent transition-colors hover:bg-[#241f20]"
           aria-label="Torna indietro">
           <ArrowLeft size={20} />
         </button>
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="inline-flex items-center gap-1 text-[12px] font-medium uppercase tracking-[0.08em] text-[#b8b2b3]">
-                <Sparkles size={12} className="text-[#f4bf4f]" /> Assistente AI
+              <p className="inline-flex items-center gap-1 text-[12px] font-medium uppercase tracking-[0.08em] text-fg-secondary">
+                <Sparkles size={12} className="text-accent" /> Assistente AI
               </p>
-              <h1 className="text-[25px] font-bold leading-[30px] text-[#f5f5f5]">Maxwell</h1>
+              <h1 className="text-[25px] font-bold leading-[30px] text-fg-primary">Maxwell</h1>
             </div>
             <Button type="button" variant="ghost" size="sm" onClick={onOpenHistory}
-              className="h-[40px] rounded-xl border border-[#3b3436] px-3 text-[#f4bf4f]"
+              className="h-[40px] rounded-xl border border-[#3b3436] px-3 text-accent"
               aria-label={`Apri cronologia chat, ${sessionCount} sessioni`}>
               <History size={16} /> Cronologia
             </Button>
@@ -318,7 +318,7 @@ function ChatHeader({ onBack, sessionCount, isLoading, isCreatingIssue, onOpenHi
             {isLoading && <Badge variant="default" size="sm"><Loader2 size={12} className="animate-spin" /> Risposta in corso</Badge>}
             {isCreatingIssue && <Badge variant="outline" size="sm"><Clock3 size={12} /> Segnalazione in preparazione</Badge>}
           </div>
-          <p className="text-[13px] leading-[19px] text-[#9a9697]">
+          <p className="text-[13px] leading-[19px] text-fg-tertiary">
             Maxwell è un assistente basato su intelligenza artificiale: descrivi il problema con parole semplici e, se serve, prepara automaticamente una segnalazione.
           </p>
         </div>
@@ -334,17 +334,17 @@ function AiDisclosureBanner({ onDismiss }: { onDismiss: () => void }) {
     <Card
       role="note"
       aria-label="Informativa sull'uso dell'intelligenza artificiale"
-      className="border border-[#3b3436] bg-[#1a1617] p-4"
+      className="border border-[#3b3436] bg-surface p-4"
     >
       <div className="flex items-start gap-3">
-        <div className="flex size-[36px] shrink-0 items-center justify-center rounded-xl bg-[#f4bf4f]/10 text-[#f4bf4f]">
+        <div className="flex size-[36px] shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
           <Info size={18} />
         </div>
         <div className="min-w-0 flex-1 space-y-1.5">
-          <p className="text-[13px] font-semibold leading-[18px] text-[#f5f5f5]">
+          <p className="text-[13px] font-semibold leading-[18px] text-fg-primary">
             Stai parlando con un'intelligenza artificiale
           </p>
-          <p className="text-[12px] leading-[18px] text-[#b8b2b3]">
+          <p className="text-[12px] leading-[18px] text-fg-secondary">
             Maxwell è un assistente automatico: le risposte sono generate da
             un'IA e possono contenere imprecisioni. Non vengono prese decisioni
             automatizzate sul tuo account e puoi sempre rivolgerti a un operatore
@@ -355,7 +355,7 @@ function AiDisclosureBanner({ onDismiss }: { onDismiss: () => void }) {
           type="button"
           onClick={onDismiss}
           aria-label="Ho capito, chiudi l'informativa"
-          className="flex size-[32px] shrink-0 items-center justify-center rounded-lg border border-[#3b3436] bg-[#0f0d0e] text-[#b8b2b3] transition-colors hover:text-[#f4bf4f]"
+          className="flex size-[32px] shrink-0 items-center justify-center rounded-lg border border-[#3b3436] bg-page text-fg-secondary transition-colors hover:text-gold-400"
         >
           <X size={16} />
         </button>
@@ -365,7 +365,7 @@ function AiDisclosureBanner({ onDismiss }: { onDismiss: () => void }) {
         variant="ghost"
         size="sm"
         onClick={onDismiss}
-        className="mt-3 h-[36px] w-full rounded-xl border border-[#3b3436] text-[#f4bf4f]"
+        className="mt-3 h-[36px] w-full rounded-xl border border-[#3b3436] text-accent"
       >
         Ho capito
       </Button>
@@ -378,12 +378,12 @@ function ChatMessageArea({ messages, isLoading, errorMessage, activeSession, scr
   activeSession: ChatSession | null; scrollRef: React.RefObject<HTMLDivElement | null>;
 }) {
   return (
-    <Card className="flex min-h-0 flex-1 flex-col border border-[#2d2728] bg-[#120f10] p-0">
-      <div className="border-b border-[#2d2728] px-4 py-3">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[#b8b2b3]">
-          <span className="inline-flex items-center gap-1.5 text-[#f4bf4f]"><Bot size={14} /> Chat attiva</span>
+    <Card className="flex min-h-0 flex-1 flex-col border border-border bg-[#120f10] p-0">
+      <div className="border-b border-border px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-fg-secondary">
+          <span className="inline-flex items-center gap-1.5 text-accent"><Bot size={14} /> Chat attiva</span>
           {activeSession && (
-            <span className="inline-flex items-center gap-1 text-[#9a9697]">
+            <span className="inline-flex items-center gap-1 text-fg-tertiary">
               <Clock3 size={12} /> Aggiornata: {formatSessionDate(activeSession.updatedAt)}
             </span>
           )}
@@ -395,7 +395,7 @@ function ChatMessageArea({ messages, isLoading, errorMessage, activeSession, scr
           {messages.map(msg => <ChatBubble key={msg.id} message={msg} />)}
           {isLoading && <TypingIndicator />}
           {errorMessage && (
-            <div role="alert" className="rounded-xl border border-[#ff4d4f]/40 bg-[#ff4d4f]/10 px-3 py-2 text-[12px] leading-[18px] text-[#ffd8d8]">
+            <div role="alert" className="rounded-xl border border-error/40 bg-error/10 px-3 py-2 text-[12px] leading-[18px] text-[#ffd8d8]">
               {errorMessage}
             </div>
           )}
@@ -412,8 +412,8 @@ function ChatBubble({ message }: { message: SupportMessage }) {
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <article className={`max-w-[88%] rounded-2xl border px-3 py-2.5 md:max-w-[78%] ${
         isUser
-          ? 'border-[#7f2038] bg-gradient-to-b from-[#8c1c38] to-[#6b1529] text-white'
-          : 'border-[#2d2728] bg-[#1a1617] text-white'
+          ? 'border-[#7f2038] bg-gradient-to-b from-burgundy-bright to-burgundy-800 text-white'
+          : 'border-border bg-surface text-white'
       }`} aria-label={isUser ? 'Messaggio utente' : 'Messaggio Maxwell'}>
         <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px]">
           <span className="inline-flex items-center gap-1">
@@ -433,13 +433,13 @@ function ChatBubble({ message }: { message: SupportMessage }) {
 function TypingIndicator() {
   return (
     <div className="flex justify-start">
-      <div className="max-w-[88%] rounded-2xl border border-[#2d2728] bg-[#1a1617] px-3 py-3 md:max-w-[78%]">
-        <div className="mb-2 inline-flex items-center gap-2 text-[12px] text-[#b8b2b3]">
+      <div className="max-w-[88%] rounded-2xl border border-border bg-surface px-3 py-3 md:max-w-[78%]">
+        <div className="mb-2 inline-flex items-center gap-2 text-[12px] text-fg-secondary">
           <Loader2 size={12} className="animate-spin" /> Maxwell sta scrivendo...
         </div>
         <div className="space-y-2">
-          <Skeleton className="h-2.5 w-40 bg-[#2d2728]" />
-          <Skeleton className="h-2.5 w-28 bg-[#2d2728]" />
+          <Skeleton className="h-2.5 w-40 bg-surface-hover" />
+          <Skeleton className="h-2.5 w-28 bg-surface-hover" />
         </div>
       </div>
     </div>
@@ -452,7 +452,7 @@ function ChatInputBar({ input, onInputChange, hasInput, isLoading, isCreatingIss
 }) {
   return (
     <div className="sticky bottom-[calc(env(safe-area-inset-bottom,_0px)+2px)]">
-      <Card className="border border-[#2d2728] bg-[#1a1617]/95 p-3 backdrop-blur md:p-4">
+      <Card className="border border-border bg-[#1a1617]/95 p-3 backdrop-blur md:p-4">
         <div className="flex items-end gap-3">
           <Textarea
             value={input}
@@ -460,7 +460,7 @@ function ChatInputBar({ input, onInputChange, hasInput, isLoading, isCreatingIss
             placeholder="Scrivi il tuo messaggio..."
             rows={2}
             aria-label="Scrivi un messaggio per Maxwell"
-            className="max-h-40 min-h-[56px] bg-[#0f0d0e] text-[14px] leading-[20px] text-white border-[#2d2728] pr-4"
+            className="max-h-40 min-h-[56px] bg-page text-[14px] leading-[20px] text-white border-border pr-4"
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void onSend(); } }}
           />
           <Button type="button" onClick={onSend} disabled={!hasInput || isLoading}
@@ -470,9 +470,9 @@ function ChatInputBar({ input, onInputChange, hasInput, isLoading, isCreatingIss
             <span className="hidden md:inline">{isLoading ? 'Invio...' : 'Invia'}</span>
           </Button>
         </div>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#9a9697]">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-fg-tertiary">
           <span>Invio: Enter - Nuova riga: Shift + Enter</span>
-          {isCreatingIssue && <span className="text-[#f4bf4f]">Segnalazione automatica in corso</span>}
+          {isCreatingIssue && <span className="text-accent">Segnalazione automatica in corso</span>}
         </div>
         {/* EU AI Act Art. 50: i contenuti generati dall'IA restano sempre
             riconoscibili come tali anche dopo aver chiuso l'informativa. */}
@@ -490,10 +490,10 @@ function HistoryDrawer({ chatSessions, activeSessionId, isLoading, onSelectSessi
   onSelectSession: (id: string) => void; onNewSession: () => void;
 }) {
   return (
-    <DrawerContent className="border-[#2d2728] bg-[#120f10] text-white data-[vaul-drawer-direction=bottom]:max-h-[82vh] data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:max-w-[420px]">
-      <DrawerHeader className="border-b border-[#2d2728]">
+    <DrawerContent className="border-border bg-[#120f10] text-white data-[vaul-drawer-direction=bottom]:max-h-[82vh] data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:max-w-[420px]">
+      <DrawerHeader className="border-b border-border">
         <DrawerTitle className="text-left text-[18px] text-white">Cronologia chat</DrawerTitle>
-        {isLoading && <p className="mt-2 text-left text-[12px] text-[#f4bf4f]">Attendi la risposta di Maxwell prima di cambiare sessione.</p>}
+        {isLoading && <p className="mt-2 text-left text-[12px] text-accent">Attendi la risposta di Maxwell prima di cambiare sessione.</p>}
       </DrawerHeader>
 
       <div className="px-4 pt-3">
@@ -510,20 +510,20 @@ function HistoryDrawer({ chatSessions, activeSessionId, isLoading, onSelectSessi
             return (
               <button key={session.id} type="button" onClick={() => onSelectSession(session.id)} disabled={isLoading}
                 className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors ${
-                  isActive ? 'border-[#a82847] bg-[#2d0a0f]/60' : 'border-[#2d2728] bg-[#1a1617] hover:bg-[#241f20]'
+                  isActive ? 'border-burgundy-600 bg-burgundy-950/60' : 'border-border bg-surface hover:bg-[#241f20]'
                 }`} aria-pressed={isActive} aria-label={`Apri sessione del ${formatSessionDate(session.updatedAt)}`}>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-[12px] leading-[18px] text-[#f4bf4f]">{formatSessionDate(session.updatedAt)}</span>
-                  {isActive && <span className="rounded-full border border-[#a82847] px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-[#f4bf4f]">Attiva</span>}
+                  <span className="text-[12px] leading-[18px] text-accent">{formatSessionDate(session.updatedAt)}</span>
+                  {isActive && <span className="rounded-full border border-burgundy-600 px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-accent">Attiva</span>}
                 </div>
-                <p className="mt-1 line-clamp-2 text-[12px] leading-[18px] text-[#b8b2b3]">{buildSessionPreview(session)}</p>
+                <p className="mt-1 line-clamp-2 text-[12px] leading-[18px] text-fg-secondary">{buildSessionPreview(session)}</p>
               </button>
             );
           })}
         </div>
       </ScrollArea>
 
-      <DrawerFooter className="border-t border-[#2d2728]">
+      <DrawerFooter className="border-t border-border">
         <DrawerClose asChild>
           <Button type="button" variant="ghost" className="h-[42px] rounded-xl">Chiudi</Button>
         </DrawerClose>

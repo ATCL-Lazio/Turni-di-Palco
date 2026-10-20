@@ -226,18 +226,18 @@ function CameraView({ videoRef, canvasRef, isStartingCamera, isHandlingScan, sca
         {isHandlingScan && <Overlay text="Verifica biglietto..." />}
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0f0d0e] to-transparent p-6">
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-page to-transparent p-6">
         <div className="app-content text-center">
           {scanError && (
             <>
               <p className="text-white mb-2">Biglietto non valido</p>
-              <p className="text-sm text-[#b8b2b3] mb-6">{scanError}</p>
+              <p className="text-sm text-fg-secondary mb-6">{scanError}</p>
             </>
           )}
           {cameraError ? (
             <>
               <p className="text-white mb-2">Impossibile avviare la fotocamera</p>
-              <p className="text-sm text-[#b8b2b3] mb-6">{cameraError}</p>
+              <p className="text-sm text-fg-secondary mb-6">{cameraError}</p>
               <div className="flex flex-col items-center gap-3">
                 <Button variant="primary" onClick={onRetryCamera} className="w-full max-w-xs">Riprova</Button>
                 <ManualSwitchButton onClick={onSwitchToManual} />
@@ -246,7 +246,7 @@ function CameraView({ videoRef, canvasRef, isStartingCamera, isHandlingScan, sca
           ) : (
             <>
               <p className="text-white mb-2">Inquadra il codice sul tuo biglietto ATCL</p>
-              <p className="text-sm text-[#b8b2b3] mb-6">Posiziona il codice al centro del riquadro</p>
+              <p className="text-sm text-fg-secondary mb-6">Posiziona il codice al centro del riquadro</p>
               <ManualSwitchButton onClick={onSwitchToManual} />
             </>
           )}
@@ -260,12 +260,12 @@ function ScanningFrame() {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
       <div className="relative w-64 h-64">
-        <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-[#f4bf4f] rounded-tl-lg" />
-        <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-[#f4bf4f] rounded-tr-lg" />
-        <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-[#f4bf4f] rounded-bl-lg" />
-        <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-[#f4bf4f] rounded-br-lg" />
+        <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-accent rounded-tl-lg" />
+        <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-accent rounded-tr-lg" />
+        <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-accent rounded-bl-lg" />
+        <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-accent rounded-br-lg" />
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-full h-1 bg-[#f4bf4f] animate-pulse" />
+          <div className="w-full h-1 bg-gold-400 animate-pulse" />
         </div>
       </div>
     </div>
@@ -275,7 +275,7 @@ function ScanningFrame() {
 function Overlay({ text }: { text: string }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-[#0f0d0e]/60">
-      <p className="text-sm text-[#b8b2b3]">{text}</p>
+      <p className="text-sm text-fg-secondary">{text}</p>
     </div>
   );
 }
@@ -283,7 +283,7 @@ function Overlay({ text }: { text: string }) {
 function ManualSwitchButton({ onClick }: { onClick: () => void }) {
   return (
     <button onClick={onClick}
-      className="inline-flex items-center justify-center gap-2 rounded-md px-2 py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors">
+      className="inline-flex items-center justify-center gap-2 rounded-md px-2 py-[10px] text-accent hover:text-gold-500 transition-colors">
       <Ticket size={16} />
       Inserisci numero biglietto
     </button>
@@ -299,15 +299,15 @@ function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHan
   return (
     <div className="p-6 app-content h-full overflow-y-auto pb-20">
       <div className="mb-6 text-center">
-        <div className="w-16 h-16 bg-[#241f20] rounded-full flex items-center justify-center mx-auto mb-4">
-          <Ticket className="text-[#f4bf4f]" size={32} />
+        <div className="w-16 h-16 bg-surface-elevated rounded-full flex items-center justify-center mx-auto mb-4">
+          <Ticket className="text-accent" size={32} />
         </div>
         <h3 className="text-white mb-2">Attiva il tuo Biglietto</h3>
-        <p className="text-sm text-[#b8b2b3]">Inserisci il numero di biglietto pre-registrato</p>
+        <p className="text-sm text-fg-secondary">Inserisci il numero di biglietto pre-registrato</p>
       </div>
 
       <div className="mb-6 text-center">
-        <div className="inline-block px-3 py-1 bg-[#241f20] rounded-full text-[10px] text-[#f4bf4f] font-bold uppercase tracking-wider">
+        <div className="inline-block px-3 py-1 bg-surface-elevated rounded-full text-[10px] text-accent font-bold uppercase tracking-wider">
           Attivazione Biglietto
         </div>
       </div>
@@ -321,22 +321,22 @@ function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHan
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="text-xs text-[#7f797a] ml-1 uppercase font-bold tracking-wider">Seleziona Evento</label>
+            <label className="text-xs text-fg-tertiary ml-1 uppercase font-bold tracking-wider">Seleziona Evento</label>
             <div className="relative">
               <select value={manualEventId} onChange={e => onEventChange(e.target.value)}
-                className="w-full bg-[#1a1617] border border-[#2d2728] rounded-xl px-4 py-3 text-sm text-white appearance-none focus:outline-none focus:border-[#f4bf4f] transition-colors">
+                className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-white appearance-none focus:outline-none focus:border-gold-400 transition-colors">
                 <option value="" disabled>Scegli l'evento...</option>
                 {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name} ({ev.date})</option>)}
               </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#f4bf4f]">
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-accent">
                 <X size={14} className="rotate-45" />
               </div>
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-xs text-[#7f797a] ml-1 uppercase font-bold tracking-wider">Numero Biglietto</label>
+            <label className="text-xs text-fg-tertiary ml-1 uppercase font-bold tracking-wider">Numero Biglietto</label>
             <Input type="text" placeholder="es. 12345" value={manualTicket} onChange={e => onTicketChange(e.target.value)} className="text-center" />
-            <p className="text-[10px] text-[#7f797a] text-center px-2 italic">Il biglietto deve essere stato pre-registrato dalla biglietteria autorizzata</p>
+            <p className="text-[10px] text-fg-tertiary text-center px-2 italic">Il biglietto deve essere stato pre-registrato dalla biglietteria autorizzata</p>
           </div>
         </div>
 
@@ -345,7 +345,7 @@ function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHan
             {isHandlingScan ? 'Verifica in corso...' : 'Attiva biglietto'}
           </Button>
           <button type="button" onClick={onSwitchToScanner}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-md py-[10px] text-[#f4bf4f] hover:text-[#e6a23c] transition-colors">
+            className="w-full inline-flex items-center justify-center gap-2 rounded-md py-[10px] text-accent hover:text-gold-500 transition-colors">
             <Camera size={16} />
             Usa la fotocamera
           </button>

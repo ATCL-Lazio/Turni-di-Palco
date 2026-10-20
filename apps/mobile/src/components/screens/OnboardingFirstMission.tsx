@@ -35,7 +35,7 @@ export function OnboardingFirstMission({ roleId, onComplete, onSkip }: Onboardin
     return (
       <Screen withBottomNavPadding={false} center>
         <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
-          <p className="text-[#b8b2b3]">Missione non trovata per questo ruolo.</p>
+          <p className="text-fg-secondary">Missione non trovata per questo ruolo.</p>
           <Button variant="primary" onClick={onSkip}>Continua</Button>
         </div>
       </Screen>
@@ -46,17 +46,17 @@ export function OnboardingFirstMission({ roleId, onComplete, onSkip }: Onboardin
     return (
       <Screen withBottomNavPadding={false} center>
         <div className="flex flex-col items-center justify-center h-full gap-6 px-6 text-center">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#a82847] to-[#6b1529] flex items-center justify-center shadow-lg">
-            <Star className="text-[#f4bf4f]" size={40} />
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-burgundy-600 to-burgundy-800 flex items-center justify-center shadow-lg">
+            <Star className="text-accent" size={40} />
           </div>
 
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#f4bf4f]">Prima missione completata</p>
-            <p className="text-[#f7f3f4] text-lg leading-snug px-2">{phase.outcomeText}</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-accent">Prima missione completata</p>
+            <p className="text-fg-primary text-lg leading-snug px-2">{phase.outcomeText}</p>
           </div>
 
-          <div className="flex items-center gap-2 bg-[#1a1617] border border-[#f4bf4f]/30 rounded-xl px-5 py-3">
-            <Zap className="text-[#f4bf4f]" size={20} />
+          <div className="flex items-center gap-2 bg-surface border border-accent/30 rounded-xl px-5 py-3">
+            <Zap className="text-accent" size={20} />
             <span className="text-white font-bold text-xl">+{phase.xpEarned} XP</span>
           </div>
 
@@ -73,20 +73,20 @@ export function OnboardingFirstMission({ roleId, onComplete, onSkip }: Onboardin
       <div className="flex flex-col h-full px-6 pt-8 pb-[calc(env(safe-area-inset-bottom,_0px)+32px)] gap-6">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#f4bf4f]">Prima missione</p>
-            <p className="text-xs text-[#9a9697] mt-1">{mission.scene.setting}</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-accent">Prima missione</p>
+            <p className="text-xs text-fg-tertiary mt-1">{mission.scene.setting}</p>
           </div>
           <button
             type="button"
             onClick={onSkip}
-            className="text-[#9a9697] text-sm underline underline-offset-2 py-1"
+            className="text-fg-tertiary text-sm underline underline-offset-2 py-1"
           >
             Salta
           </button>
         </div>
 
         <Card className="flex-1 flex flex-col justify-center">
-          <p className="text-[#f7f3f4] text-base leading-relaxed">{mission.scene.prompt}</p>
+          <p className="text-fg-primary text-base leading-relaxed">{mission.scene.prompt}</p>
         </Card>
 
         <div className="space-y-3">

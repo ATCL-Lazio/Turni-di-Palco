@@ -36,11 +36,11 @@ export function RoleSelection({ roles, showRoleJourney = true, onComplete }: Rol
       <Screen withBottomNavPadding={false}>
         <ScreenHeader gradient={false}>
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-full mb-4">
-              <Star className="text-[#f4bf4f]" size={32} />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-burgundy-600 to-burgundy-800 rounded-full mb-4">
+              <Star className="text-accent" size={32} />
             </div>
             <h2 className="mb-2">Scegli il tuo ruolo</h2>
-            <p className="text-[#b8b2b3]">Quale professione teatrale vuoi intraprendere?</p>
+            <p className="text-fg-secondary">Quale professione teatrale vuoi intraprendere?</p>
           </div>
         </ScreenHeader>
 
@@ -49,16 +49,16 @@ export function RoleSelection({ roles, showRoleJourney = true, onComplete }: Rol
             const Icon = roleIcons[role.id] ?? Users;
             return (
               <Card key={role.id} hoverable onClick={() => handleRoleSelect(role)} className="flex items-center gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
-                  <Icon className="text-[#f4bf4f]" size={24} />
+                <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-burgundy-600 to-burgundy-800 rounded-xl flex items-center justify-center">
+                  <Icon className="text-accent" size={24} />
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <h4 className="mb-1 text-white">{role.name}</h4>
-                  <p className="text-xs text-[#9a9697]">{role.focus}</p>
+                  <p className="text-xs text-fg-tertiary">{role.focus}</p>
                 </div>
 
-                <ChevronRight className="text-[#9a9697] flex-shrink-0" size={20} />
+                <ChevronRight className="text-fg-tertiary flex-shrink-0" size={20} />
               </Card>
             );
           })}
@@ -80,35 +80,35 @@ export function RoleSelection({ roles, showRoleJourney = true, onComplete }: Rol
           <button
             type="button"
             onClick={() => setStep(1)}
-            className="flex items-center justify-center size-[44px] text-[#f4bf4f]"
+            className="flex items-center justify-center size-[44px] text-accent"
             aria-label="Indietro"
           >
             <ArrowLeft size={24} />
           </button>
 
           <div className="mt-4 text-center mb-4">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl mb-4 shadow-lg">
-              <Icon className="text-[#f4bf4f]" size={40} />
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-burgundy-600 to-burgundy-800 rounded-2xl mb-4 shadow-lg">
+              <Icon className="text-accent" size={40} />
             </div>
             <h2 className="mb-3">{selectedRole.name}</h2>
-            <p className="text-[#b8b2b3] px-4">{selectedRole.focus}</p>
+            <p className="text-fg-secondary px-4">{selectedRole.focus}</p>
           </div>
 
           <Card className="mb-4">
-            <h4 className="mb-4 text-[#f4bf4f]">Caratteristiche principali</h4>
+            <h4 className="mb-4 text-accent">Caratteristiche principali</h4>
 
             <div className="space-y-4">
               {Object.entries(selectedRole.stats).map(([key, value]) => (
                 <div key={key}>
                   <div className="flex justify-between mb-2">
-                    <span className="text-[#b8b2b3] capitalize">
+                    <span className="text-fg-secondary capitalize">
                       {key === 'presence' ? 'Presenza scenica' : key === 'precision' ? 'Precisione' : key === 'leadership' ? 'Leadership' : 'Creatività'}
                     </span>
                     <span className="text-white">{value}/100</span>
                   </div>
-                  <div className="h-2 bg-[#241f20] rounded-full overflow-hidden">
+                  <div className="h-2 bg-surface-elevated rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-[#e6a23c] to-[#f4bf4f] rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-gold-500 to-gold-400 rounded-full transition-all duration-500"
                       style={{ width: `${value}%` }}
                     />
                   </div>
@@ -118,27 +118,27 @@ export function RoleSelection({ roles, showRoleJourney = true, onComplete }: Rol
           </Card>
 
           {/* #471 — Anteprima: cosa cambia in gioco con queste stat */}
-          <Card className="mb-4 border border-[#f4bf4f]/20">
-            <h4 className="mb-3 text-[#f4bf4f]">Cosa cambia in gioco</h4>
+          <Card className="mb-4 border border-accent/20">
+            <h4 className="mb-3 text-accent">Cosa cambia in gioco</h4>
             <ul className="space-y-3 list-none p-0 m-0">
               {getRoleStatPreviews(selectedRole.stats).map(preview => (
                 <li
                   key={preview.stat}
-                  className={`flex gap-3 items-start text-sm ${preview.active ? 'text-white' : 'text-[#b8b2b3]'}`}
+                  className={`flex gap-3 items-start text-sm ${preview.active ? 'text-white' : 'text-fg-secondary'}`}
                 >
                   <Sparkles
                     size={14}
                     aria-hidden="true"
-                    className={`mt-1 flex-shrink-0 ${preview.active ? 'text-[#f4bf4f]' : 'text-[#6f6a6b]'}`}
+                    className={`mt-1 flex-shrink-0 ${preview.active ? 'text-accent' : 'text-[#6f6a6b]'}`}
                   />
                   <div className="min-w-0">
                     <p className="font-semibold leading-snug">
                       {preview.label}
                       {preview.active ? null : (
-                        <span className="ml-2 text-xs text-[#b8b2b3] font-normal">(inattiva)</span>
+                        <span className="ml-2 text-xs text-fg-secondary font-normal">(inattiva)</span>
                       )}
                     </p>
-                    <p className="text-xs text-[#b8b2b3] mt-0.5">{preview.effect}</p>
+                    <p className="text-xs text-fg-secondary mt-0.5">{preview.effect}</p>
                   </div>
                 </li>
               ))}
@@ -146,21 +146,21 @@ export function RoleSelection({ roles, showRoleJourney = true, onComplete }: Rol
           </Card>
 
           {showRoleJourney && selectedRole.profile?.journey ? (
-            <Card className="mb-4 border border-[#f4bf4f]/20 bg-[#1a1617]">
+            <Card className="mb-4 border border-accent/20 bg-surface">
               <div className="space-y-3">
                 {selectedRole.profile.journey.eyebrow ? (
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f4bf4f]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">
                     {selectedRole.profile.journey.eyebrow}
                   </p>
                 ) : null}
                 <div>
                   <h4 className="text-white">{selectedRole.profile.journey.headline}</h4>
-                  <p className="mt-1 text-sm text-[#b8b2b3]">{selectedRole.profile.journey.summary}</p>
+                  <p className="mt-1 text-sm text-fg-secondary">{selectedRole.profile.journey.summary}</p>
                 </div>
                 {(selectedRole.profile.journey.objectives ?? []).length ? (
                   <div className="space-y-2">
                     {(selectedRole.profile.journey.objectives ?? []).slice(0, 3).map((objective) => (
-                      <p key={objective} className="text-sm text-[#f7f3f4]">
+                      <p key={objective} className="text-sm text-fg-primary">
                         • {objective}
                       </p>
                     ))}
@@ -171,7 +171,7 @@ export function RoleSelection({ roles, showRoleJourney = true, onComplete }: Rol
                     {(selectedRole.profile.journey.starterBadgeLabels ?? []).map((badgeLabel) => (
                       <span
                         key={badgeLabel}
-                        className="rounded-full border border-[#f4bf4f]/20 bg-[#241f20] px-3 py-1 text-xs text-[#f4bf4f]"
+                        className="rounded-full border border-accent/20 bg-surface-elevated px-3 py-1 text-xs text-accent"
                       >
                         {badgeLabel}
                       </span>

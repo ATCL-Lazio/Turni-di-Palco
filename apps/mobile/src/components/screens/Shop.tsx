@@ -61,7 +61,7 @@ export function Shop({
     <Screen contentClassName="px-6 pt-6 pb-8 space-y-5">
       <header className="space-y-2">
         <h2 className="text-white">Shop</h2>
-        <p className="text-[#b8b2b3]">Spendi cachet per potenziamenti strategici.</p>
+        <p className="text-fg-secondary">Spendi cachet per potenziamenti strategici.</p>
       </header>
 
       <BalanceCard cachet={cachet} />
@@ -69,7 +69,7 @@ export function Shop({
       {feedback && <FeedbackCard feedback={feedback} />}
 
       {loading && (
-        <Card><p className="text-[#b8b2b3] text-sm">Caricamento catalogo shop...</p></Card>
+        <Card><p className="text-fg-secondary text-sm">Caricamento catalogo shop...</p></Card>
       )}
 
       {items.map(item => (
@@ -88,10 +88,10 @@ export function Shop({
       ))}
 
       {!items.length && !loading && (
-        <Card className="border border-[#3d3a3b] bg-[#1a1617]">
+        <Card className="border border-border-strong bg-surface">
           <div className="flex items-start gap-3">
-            <AlertCircle className="text-[#f4bf4f] flex-shrink-0" size={18} />
-            <p className="text-sm text-[#b8b2b3]">Catalogo shop non disponibile al momento.</p>
+            <AlertCircle className="text-accent flex-shrink-0" size={18} />
+            <p className="text-sm text-fg-secondary">Catalogo shop non disponibile al momento.</p>
           </div>
         </Card>
       )}
@@ -103,14 +103,14 @@ export function Shop({
 
 function BalanceCard({ cachet }: { cachet: number }) {
   return (
-    <Card className="border border-[#2d2728] bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+    <Card className="border border-border bg-gradient-to-br from-surface to-surface-elevated">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Saldo disponibile</p>
+          <p className="text-xs uppercase tracking-wide text-fg-secondary">Saldo disponibile</p>
           <p className="text-2xl text-white font-semibold mt-1">{cachet} Cachet</p>
         </div>
-        <div className="w-12 h-12 rounded-xl bg-[#241f20] border border-[#3d3a3b] flex items-center justify-center">
-          <ShoppingBag className="text-[#f4bf4f]" size={22} />
+        <div className="w-12 h-12 rounded-xl bg-surface-elevated border border-border-strong flex items-center justify-center">
+          <ShoppingBag className="text-accent" size={22} />
         </div>
       </div>
     </Card>
@@ -121,7 +121,7 @@ function FeedbackCard({ feedback }: { feedback: { type: 'ok' | 'error'; message:
   return (
     <Card className={feedback.type === 'ok'
       ? 'border border-[#52c41a]/40 bg-[#1d2a1d]'
-      : 'border border-[#a82847]/50 bg-[#2a1a1f]'
+      : 'border border-burgundy-600/50 bg-[#2a1a1f]'
     }>
       <p className={feedback.type === 'ok' ? 'text-[#9be274]' : 'text-[#ff9aac]'}>{feedback.message}</p>
     </Card>
@@ -149,12 +149,12 @@ function ShopItemCard({
   const disabled = !canPurchase || busyItemCode != null || maxReached || insufficientCachet || theatreRequiredMissing;
 
   return (
-    <Card className="border border-white/5 bg-gradient-to-br from-[#1a1617] via-[#1d1819] to-[#221d1e]">
+    <Card className="border border-white/5 bg-gradient-to-br from-surface via-surface-elevated to-surface-elevated">
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-white text-lg">{item.title}</h3>
-            <p className="text-sm text-[#b8b2b3] mt-1">{item.description}</p>
+            <p className="text-sm text-fg-secondary mt-1">{item.description}</p>
           </div>
           {categoryLabel && <Badge variant="outline" size="sm">{categoryLabel}</Badge>}
         </div>
@@ -170,7 +170,7 @@ function ShopItemCard({
         )}
 
         <div className="flex items-center justify-between gap-3">
-          <div className="text-xs text-[#9a9697]">
+          <div className="text-xs text-fg-tertiary">
             {maxReached ? 'Limite acquisti raggiunto'
               : !canPurchase ? 'Acquisti temporaneamente disattivati'
               : insufficientCachet ? `Ti mancano ${item.costCachet - cachet} cachet`
@@ -190,10 +190,10 @@ function ItemMetaTags({ item }: { item: ShopCatalogItem }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs">
       <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/90">
-        <Coins size={12} className="text-[#f4bf4f]" /> {item.costCachet} cachet
+        <Coins size={12} className="text-accent" /> {item.costCachet} cachet
       </span>
       <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/90">
-        <Sparkles size={12} className="text-[#f4bf4f]" /> +{item.effectValue}
+        <Sparkles size={12} className="text-accent" /> +{item.effectValue}
       </span>
       {item.category === 'slot' && item.maxPurchasesPerUser != null && (
         <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/90">
@@ -213,19 +213,19 @@ function TheatreSelector({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Teatro target</p>
+      <p className="text-xs uppercase tracking-wide text-fg-secondary">Teatro target</p>
       {theatreOptions.length ? (
         <select
           value={selectedTheatre}
           onChange={e => onSelectTheatre(e.target.value)}
-          className="w-full rounded-xl border border-[#3d3a3b] bg-[#241f20] px-3 py-2 text-white outline-none focus:border-[#f4bf4f]"
+          className="w-full rounded-xl border border-border-strong bg-surface-elevated px-3 py-2 text-white outline-none focus:border-gold-400"
         >
           {theatreOptions.map(o => (
             <option key={o.theatre} value={o.theatre}>{o.theatre} ({o.reputation}/100)</option>
           ))}
         </select>
       ) : (
-        <div className="rounded-xl border border-[#a82847]/40 bg-[#2a1a1f] p-3 text-sm text-[#ff9aac]">
+        <div className="rounded-xl border border-burgundy-600/40 bg-[#2a1a1f] p-3 text-sm text-[#ff9aac]">
           Nessun teatro idoneo: devi registrare almeno un turno.
         </div>
       )}

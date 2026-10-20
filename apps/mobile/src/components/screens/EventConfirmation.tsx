@@ -115,8 +115,8 @@ export function EventConfirmation({
         />
 
         {pendingBoostRequests > 0 && (
-          <Card className="bg-[#2a1f14] border border-[#f4bf4f]/30">
-            <div className="flex items-center gap-2 text-[#f4bf4f]">
+          <Card className="bg-warning-surface border border-accent/30">
+            <div className="flex items-center gap-2 text-accent">
               <AlertTriangle size={16} />
               <p className="text-sm">{pendingBoostRequests} richiesta/e boost in verifica in coda offline.</p>
             </div>
@@ -134,7 +134,7 @@ export function EventConfirmation({
           {confirmError ? (
             <div
               role="alert"
-              className="rounded-lg border border-[#ff4d4f]/40 bg-[#ff4d4f]/10 px-4 py-3 text-sm text-[#ff4d4f]"
+              className="rounded-lg border border-error/40 bg-error/10 px-4 py-3 text-sm text-error"
             >
               {confirmError}
             </div>
@@ -161,16 +161,16 @@ function SuccessView({ feedbackTitle, feedbackMessage, rewards }: {
           <CheckCircle2 className="text-white" size={48} />
         </div>
         <h2 className="text-white mb-3">{feedbackTitle}</h2>
-        <p className="text-[#b8b2b3] mb-8">{feedbackMessage}</p>
-        <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20] mb-6">
-          <h4 className="text-[#f4bf4f] mb-4">Ricompense registrate</h4>
+        <p className="text-fg-secondary mb-8">{feedbackMessage}</p>
+        <Card className="bg-gradient-to-br from-surface to-surface-elevated mb-6">
+          <h4 className="text-accent mb-4">Ricompense registrate</h4>
           <div className="grid grid-cols-3 gap-4">
-            <RewardCell icon={TrendingUp} value={rewards.xp} label="XP" iconBg="from-[#e6a23c] to-[#f4bf4f]" />
-            <RewardCell icon={Award} value={rewards.reputation} label="Reputazione" iconBg="from-[#a82847] to-[#6b1529]" />
+            <RewardCell icon={TrendingUp} value={rewards.xp} label="XP" iconBg="from-gold-500 to-gold-400" />
+            <RewardCell icon={Award} value={rewards.reputation} label="Reputazione" iconBg="from-burgundy-600 to-burgundy-800" />
             <RewardCell icon={Coins} value={rewards.cachet} label="Cachet" iconBg="" plain />
           </div>
         </Card>
-        <p className="text-sm text-[#b8b2b3]">Reindirizzamento alla home...</p>
+        <p className="text-sm text-fg-secondary">Reindirizzamento alla home...</p>
       </div>
     </div>
   );
@@ -182,12 +182,12 @@ function RewardCell({ icon: Icon, value, label, iconBg, plain }: {
   return (
     <div className="text-center">
       <div className={`w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2 ${
-        plain ? 'bg-[#241f20]' : `bg-gradient-to-br ${iconBg}`
+        plain ? 'bg-surface-elevated' : `bg-gradient-to-br ${iconBg}`
       }`}>
-        <Icon className={plain ? 'text-[#f4bf4f]' : 'text-[#0f0d0e]'} size={24} />
+        <Icon className={plain ? 'text-accent' : 'text-[#0f0d0e]'} size={24} />
       </div>
       <p className="text-2xl text-white mb-1">+{value}</p>
-      <p className="text-xs text-[#b8b2b3]">{label}</p>
+      <p className="text-xs text-fg-secondary">{label}</p>
     </div>
   );
 }
@@ -200,9 +200,9 @@ function EventInfoCard({ event }: { event: { name: string; theatre: string; date
         {event.genre && <Badge variant="default" size="sm">{event.genre}</Badge>}
       </div>
       <div className="space-y-3">
-        <div className="flex items-center gap-3 text-[#b8b2b3]"><MapPin size={18} className="text-[#f4bf4f]" /><span>{event.theatre}</span></div>
-        <div className="flex items-center gap-3 text-[#b8b2b3]"><Calendar size={18} className="text-[#f4bf4f]" /><span>{event.date}</span></div>
-        <div className="flex items-center gap-3 text-[#b8b2b3]"><Clock size={18} className="text-[#f4bf4f]" /><span>{event.time}</span></div>
+        <div className="flex items-center gap-3 text-fg-secondary"><MapPin size={18} className="text-accent" /><span>{event.theatre}</span></div>
+        <div className="flex items-center gap-3 text-fg-secondary"><Calendar size={18} className="text-accent" /><span>{event.date}</span></div>
+        <div className="flex items-center gap-3 text-fg-secondary"><Clock size={18} className="text-accent" /><span>{event.time}</span></div>
       </div>
     </Card>
   );
@@ -210,11 +210,11 @@ function EventInfoCard({ event }: { event: { name: string; theatre: string; date
 
 function RoleCard({ role }: { role?: Role }) {
   return (
-    <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+    <Card className="bg-gradient-to-br from-surface to-surface-elevated">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h4 className="text-white mb-1">Ruolo registrato</h4>
-          <p className="text-sm text-[#b8b2b3]">{role?.focus ?? 'Selezionato in fase di registrazione'}</p>
+          <p className="text-sm text-fg-secondary">{role?.focus ?? 'Selezionato in fase di registrazione'}</p>
         </div>
         <Badge variant="outline" size="md">{role?.name ?? 'Ruolo'}</Badge>
       </div>
@@ -226,21 +226,21 @@ function BoostCard({ cachet, tokenAtcl, boostRequested, allowBoost, isOffline, o
   cachet: number; tokenAtcl: number; boostRequested: boolean; allowBoost: boolean; isOffline: boolean; onToggleBoost: () => void;
 }) {
   return (
-    <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+    <Card className="bg-gradient-to-br from-surface to-surface-elevated">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h4 className="text-[#f4bf4f] mb-1">Boost token ATCL</h4>
-          <p className="text-sm text-[#b8b2b3]">Costo 1 token. Effetto: +10% XP e +10% Cachet.</p>
-          <p className="text-xs text-[#b8b2b3] mt-2">Saldo economico: Cachet {cachet} - Token {tokenAtcl}</p>
+          <h4 className="text-accent mb-1">Boost token ATCL</h4>
+          <p className="text-sm text-fg-secondary">Costo 1 token. Effetto: +10% XP e +10% Cachet.</p>
+          <p className="text-xs text-fg-secondary mt-2">Saldo economico: Cachet {cachet} - Token {tokenAtcl}</p>
         </div>
         <button type="button" onClick={onToggleBoost} disabled={!allowBoost}
           className={`rounded-full px-4 py-2 text-sm transition-colors ${
-            boostRequested ? 'bg-[#f4bf4f] text-[#0f0d0e]' : 'bg-[#241f20] text-[#b8b2b3]'
+            boostRequested ? 'bg-gold-400 text-[#0f0d0e]' : 'bg-surface-elevated text-fg-secondary'
           }`}>
           {boostRequested ? 'Boost ON' : 'Boost OFF'}
         </button>
       </div>
-      <div className="mt-3 rounded-lg bg-[#241f20] px-3 py-2 text-xs text-[#b8b2b3]">
+      <div className="mt-3 rounded-lg bg-surface-elevated px-3 py-2 text-xs text-fg-secondary">
         {!allowBoost ? 'Boost temporaneamente disattivato da configurazione.'
           : isOffline ? 'Offline: richiesta boost in coda, verifica solo online.'
           : boostRequested ? 'Online: la verifica token avviene lato server al momento della registrazione.'
@@ -255,27 +255,27 @@ function RewardsPreviewCard({ resolvedRewards, boostedRewards, boostRequested, a
 }) {
   const showBoosted = boostRequested && allowBoost;
   return (
-    <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
-      <h4 className="text-[#f4bf4f] mb-4">Ricompense previste</h4>
+    <Card className="bg-gradient-to-br from-surface to-surface-elevated">
+      <h4 className="text-accent mb-4">Ricompense previste</h4>
       <div className="flex items-center justify-around">
         <div className="text-center">
-          <TrendingUp className="text-[#f4bf4f] mx-auto mb-2" size={24} />
+          <TrendingUp className="text-accent mx-auto mb-2" size={24} />
           <p className="text-white mb-1">+{showBoosted ? boostedRewards.xp : resolvedRewards.xp}</p>
-          <p className="text-xs text-[#b8b2b3]">XP</p>
+          <p className="text-xs text-fg-secondary">XP</p>
         </div>
         <div className="text-center">
-          <Award className="text-[#f4bf4f] mx-auto mb-2" size={24} />
+          <Award className="text-accent mx-auto mb-2" size={24} />
           <p className="text-white mb-1">+{resolvedRewards.reputation}</p>
-          <p className="text-xs text-[#b8b2b3]">Reputazione</p>
+          <p className="text-xs text-fg-secondary">Reputazione</p>
         </div>
         <div className="text-center">
-          <Coins className="text-[#f4bf4f] mx-auto mb-2" size={24} />
+          <Coins className="text-accent mx-auto mb-2" size={24} />
           <p className="text-white mb-1">+{showBoosted ? boostedRewards.cachet : resolvedRewards.cachet}</p>
-          <p className="text-xs text-[#b8b2b3]">Cachet</p>
+          <p className="text-xs text-fg-secondary">Cachet</p>
         </div>
       </div>
       {showBoosted && (
-        <div className="mt-3 text-xs text-[#f4bf4f] flex items-center gap-2">
+        <div className="mt-3 text-xs text-accent flex items-center gap-2">
           <Zap size={14} /> Richiesta boost attiva (conferma finale solo lato server).
         </div>
       )}

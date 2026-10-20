@@ -36,7 +36,7 @@ function useReducedMotion(): boolean {
 function SpotlightHighlight({ rect, reducedMotion }: { rect: DOMRect; reducedMotion: boolean }) {
   return (
     <div
-      className={`absolute border-2 border-[#f4bf4f] rounded-xl ${reducedMotion ? '' : 'animate-tutorial-spotlight-pulse'}`}
+      className={`absolute border-2 border-accent rounded-xl ${reducedMotion ? '' : 'animate-tutorial-spotlight-pulse'}`}
       style={{
         top: rect.top - 8,
         left: rect.left - 8,
@@ -87,7 +87,7 @@ function StepCard({
 
   return (
     <div
-      className={`relative rounded-2xl border border-[#3a2f30] bg-[#1a1617] p-5 shadow-[0px_16px_40px_rgba(0,0,0,0.45)] ${reducedMotion ? '' : (position ? 'animate-tutorial-tooltip-in' : 'animate-tutorial-fade-in')}`}
+      className={`relative rounded-2xl border border-[#3a2f30] bg-surface p-5 shadow-[0px_16px_40px_rgba(0,0,0,0.45)] ${reducedMotion ? '' : (position ? 'animate-tutorial-tooltip-in' : 'animate-tutorial-fade-in')}`}
       style={positionStyle}
     >
       {position && position.arrowDirection === 'up' && (
@@ -131,7 +131,7 @@ function BottomControls({
         {Array.from({ length: total }, (_, i) => (
           <div
             key={i}
-            className={`h-2 w-2 rounded-full transition-colors ${i === step ? 'bg-[#f4bf4f]' : 'bg-[#3a2f30]'}`}
+            className={`h-2 w-2 rounded-full transition-colors ${i === step ? 'bg-gold-400' : 'bg-[#3a2f30]'}`}
           />
         ))}
       </div>
@@ -139,7 +139,7 @@ function BottomControls({
         ref={nextButtonRef}
         type="button"
         onClick={onNext}
-        className="h-[44px] w-full max-w-[320px] rounded-[16px] bg-gradient-to-b from-[#a82847] to-[#6b1529] text-[16px] font-semibold text-white"
+        className="h-[44px] w-full max-w-[320px] rounded-[16px] bg-gradient-to-b from-burgundy-600 to-burgundy-800 text-[16px] font-semibold text-white"
       >
         {isFirst ? 'Inizia' : isLast ? 'Inizia a esplorare' : 'Avanti'}
       </button>
@@ -147,7 +147,7 @@ function BottomControls({
         <button
           type="button"
           onClick={onSkip}
-          className="text-sm text-[#8a7a7b] underline"
+          className="text-sm text-fg-tertiary underline"
         >
           Salta tutorial
         </button>

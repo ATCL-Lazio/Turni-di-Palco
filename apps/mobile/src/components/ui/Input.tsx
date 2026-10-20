@@ -10,21 +10,21 @@ export function Input({ label, error, helperText, className = '', ...props }: In
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-[#b8b2b3] mb-2">
+        <label className="block text-fg-secondary mb-2">
           {label}
         </label>
       )}
       <input
-        className={`w-full bg-[#241f20] border-2 ${
-          error ? 'border-[#ff4d4f]' : 'border-[#2d2728]'
-        } rounded-lg px-4 py-3 text-white placeholder:text-[#9a9697] focus:border-[#f4bf4f] focus:outline-none transition-colors ${className}`}
+        className={`w-full bg-surface-elevated border-2 ${
+          error ? 'border-error' : 'border-border'
+        } rounded-lg px-4 py-3 text-white placeholder:text-[#9a9697] focus:border-gold-400 focus:outline-none transition-colors ${className}`}
         {...props}
       />
       {error && (
-        <p className="text-[#ff4d4f] mt-1 text-sm">{error}</p>
+        <p className="text-error mt-1 text-sm">{error}</p>
       )}
       {helperText && !error && (
-        <p className="text-[#9a9697] mt-1 text-sm">{helperText}</p>
+        <p className="text-fg-tertiary mt-1 text-sm">{helperText}</p>
       )}
     </div>
   );

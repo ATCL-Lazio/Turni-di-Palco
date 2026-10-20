@@ -139,8 +139,8 @@ export function Home({
       </div>
 
       {pendingBoostRequests > 0 && (
-        <Card className="bg-[#2a1f14] border border-[#f4bf4f]/30">
-          <p className="text-sm text-[#f4bf4f]">
+        <Card className="bg-warning-surface border border-accent/30">
+          <p className="text-sm text-accent">
             Boost in verifica: {pendingBoostRequests} richiesta/e in coda offline.
           </p>
         </Card>
@@ -159,9 +159,9 @@ export function Home({
       )}
 
       {showOnboardingCoachmark && (
-        <div className="flex items-center gap-3 rounded-xl bg-[#f4bf4f]/10 border border-[#f4bf4f]/30 px-4 py-3">
-          <span className="text-[#f4bf4f] text-xl">👋</span>
-          <p className="text-sm text-[#f4bf4f]">
+        <div className="flex items-center gap-3 rounded-xl bg-accent/10 border border-accent/30 px-4 py-3">
+          <span className="text-accent text-xl">👋</span>
+          <p className="text-sm text-accent">
             Sei pronto! Scansiona il tuo primo turno o avvia un'attività per guadagnare XP.
           </p>
         </div>
@@ -282,29 +282,29 @@ function NotificationBell({
       <PopoverTrigger asChild>
         <button type="button" aria-label="Notifiche"
           className="relative flex items-center justify-center size-[44px] rounded-lg hover:bg-[#241f20] transition mobile-card-hover">
-          <Bell size={20} className="text-[#f4bf4f]" aria-hidden="true" />
+          <Bell size={20} className="text-accent" aria-hidden="true" />
           {hasNewBadges && (
-            <span className={`absolute -top-1 -right-1 w-3 h-3 bg-[#f4bf4f] rounded-full ${animateBadges ? 'mobile-badge-pop' : ''}`} />
+            <span className={`absolute -top-1 -right-1 w-3 h-3 bg-gold-400 rounded-full ${animateBadges ? 'mobile-badge-pop' : ''}`} />
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 bg-[#1a1617] border-[#3d3a3b] p-3">
+      <PopoverContent align="end" className="w-80 bg-surface border-border-strong p-3">
         {showBadge && hasNewBadges ? (
           <div className={`flex items-start gap-3 ${animateBadges ? 'mobile-badge-pop' : ''}`}>
-            <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#f4bf4f] to-[#e6a23c] rounded-lg flex items-center justify-center mobile-pulse-once">
+            <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-gold-400 to-gold-500 rounded-lg flex items-center justify-center mobile-pulse-once">
               <Award className="text-[#0f0d0e]" size={20} />
             </div>
             <div className="flex-1">
-              <p className="text-xs text-[#f4bf4f] mb-1 font-semibold">Nuovo titolo ottenuto</p>
+              <p className="text-xs text-accent mb-1 font-semibold">Nuovo titolo ottenuto</p>
               <p className="text-white text-sm">{newBadgeTitle ?? 'Hai sbloccato un nuovo badge'}</p>
             </div>
             <button type="button" onClick={onDismiss} aria-label="Ignora notifica"
-              className="text-[#9a9697] p-1 hover:text-white flex-shrink-0 transition-colors">
+              className="text-fg-tertiary p-1 hover:text-white flex-shrink-0 transition-colors">
               <X size={16} aria-hidden="true" />
             </button>
           </div>
         ) : (
-          <p className="text-[#b8b2b3] text-sm text-center py-4">Nessuna notifica</p>
+          <p className="text-fg-secondary text-sm text-center py-4">Nessuna notifica</p>
         )}
       </PopoverContent>
     </Popover>
@@ -344,12 +344,12 @@ function StatsGrid({
 // closes #470 — tokenAtcl rimosso dalla home, visibile nella schermata Carriera
 function EconomyCard({ cachet }: { cachet: number }) {
   return (
-    <Card className="bg-[#1a1617] border border-[#2d2728]">
+    <Card className="bg-surface border border-border">
       <h4 className="text-white text-sm font-semibold mb-3">Economia</h4>
-      <div className="rounded-xl bg-[#241f20] border border-[#3d3a3b] p-3">
+      <div className="rounded-xl bg-surface-elevated border border-border-strong p-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs text-[#b8b2b3]">Cachet</p>
-          <Coins size={14} className="text-[#f4bf4f]" />
+          <p className="text-xs text-fg-secondary">Cachet</p>
+          <Coins size={14} className="text-accent" />
         </div>
         <p className="text-white text-lg font-semibold mt-1">{cachet}</p>
       </div>
@@ -375,19 +375,19 @@ function TurnSyncFeedbackCard({
   const showGeolocationWarning = feedback.geolocationAvailable === false;
 
   return (
-    <Card className="bg-[#241f20] border border-[#3d3a3b]">
+    <Card className="bg-surface-elevated border border-border-strong">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-sm text-white">{message}</p>
-          <p className="text-xs text-[#b8b2b3]">{feedback.eventName}</p>
+          <p className="text-xs text-fg-secondary">{feedback.eventName}</p>
           {showGeolocationWarning && (
-            <p className="text-xs text-[#f4bf4f] mt-2">
+            <p className="text-xs text-accent mt-2">
               ⚠️ Turno registrato senza geolocalizzazione. Abilita il GPS per una validazione più accurata in futuro.
             </p>
           )}
         </div>
         {onDismiss && (
-          <button type="button" onClick={onDismiss} className="text-[#9a9697] hover:text-white transition-colors p-1" aria-label="Chiudi notifica boost">
+          <button type="button" onClick={onDismiss} className="text-fg-tertiary hover:text-white transition-colors p-1" aria-label="Chiudi notifica boost">
             <X size={16} />
           </button>
         )}
@@ -404,15 +404,15 @@ function RoleJourneyCard({
   onOpen: () => void;
 }) {
   return (
-    <Card className="animate-stagger-2 border border-[#f4bf4f]/30 bg-gradient-to-br from-[#201819] via-[#251b1d] to-[#171314]">
+    <Card className="animate-stagger-2 border border-accent/30 bg-gradient-to-br from-surface via-surface-elevated to-surface">
       <div className="space-y-3">
         {journey.eyebrow && (
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f4bf4f]">{journey.eyebrow}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">{journey.eyebrow}</p>
         )}
         <div className="space-y-1">
           <h3 className="text-white text-lg font-semibold">{journey.headline}</h3>
-          <p className="text-sm text-[#b8b2b3]">{journey.summary}</p>
-          {journey.homeMessage && <p className="text-xs text-[#f4bf4f]">{journey.homeMessage}</p>}
+          <p className="text-sm text-fg-secondary">{journey.summary}</p>
+          {journey.homeMessage && <p className="text-xs text-accent">{journey.homeMessage}</p>}
         </div>
         <div className="flex flex-wrap gap-2">
           {journey.recommendedActivityTitle && (
@@ -425,7 +425,7 @@ function RoleJourneyCard({
         {(journey.objectives ?? []).length > 0 && (
           <div className="space-y-2">
             {(journey.objectives ?? []).slice(0, 3).map(objective => (
-              <p key={objective} className="text-sm text-[#f7f3f4]">&bull; {objective}</p>
+              <p key={objective} className="text-sm text-fg-primary">&bull; {objective}</p>
             ))}
           </div>
         )}
@@ -461,7 +461,7 @@ function UpcomingEventSection({
       <div className="flex items-center justify-between">
         <h3 className="text-white text-base font-semibold tracking-tight">Prossimo evento</h3>
         {eventState === 'ready' && (
-          <button onClick={onViewEventDetails} className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-2 rounded-lg transition-colors">
+          <button onClick={onViewEventDetails} className="text-sm text-accent hover:text-gold-500 px-3 py-2 rounded-lg transition-colors">
             Dettagli
           </button>
         )}
@@ -477,13 +477,13 @@ function UpcomingEventSection({
         ) : eventState === 'error' ? (
           <div className="space-y-2">
             <p className="text-white">Errore nel caricamento</p>
-            <p className="text-sm text-[#b8b2b3]">Controlla la connessione e riprova.</p>
+            <p className="text-sm text-fg-secondary">Controlla la connessione e riprova.</p>
             <Button variant="secondary" size="sm" onClick={onViewTurni}>Riprova</Button>
           </div>
         ) : eventState === 'empty' ? (
           <div className="space-y-3">
             <p className="text-white">Nessun evento in programma</p>
-            <p className="text-sm text-[#b8b2b3]">Aggiungi un evento o registra un biglietto.</p>
+            <p className="text-sm text-fg-secondary">Aggiungi un evento o registra un biglietto.</p>
             <div className="flex gap-2">
               {allowScanQr && <Button variant="secondary" size="sm" onClick={onScanQR}>Registra Biglietto</Button>}
               <Button variant="ghost" size="sm" onClick={onViewTurni}>Vedi turni</Button>
@@ -516,13 +516,13 @@ function EventCard({
   return (
     <div className="space-y-2">
       <div className="flex items-start gap-3 mb-4">
-        <div className="flex-shrink-0 bg-[#241f20] rounded-lg flex flex-col items-center justify-center w-[70px] h-[70px] gap-1">
-          <Calendar className="text-[#f4bf4f] block" size={50} />
-          <p className="text-xs leading-none text-[#f4bf4f] !m-0">{event.date?.slice(0, 6)}</p>
+        <div className="flex-shrink-0 bg-surface-elevated rounded-lg flex flex-col items-center justify-center w-[70px] h-[70px] gap-1">
+          <Calendar className="text-accent block" size={50} />
+          <p className="text-xs leading-none text-accent !m-0">{event.date?.slice(0, 6)}</p>
         </div>
         <div className="flex-1 min-w-0">
           <h4 className="text-white text-lg leading-tight line-clamp-2">{event.name}</h4>
-          <p className="text-sm text-[#b8b2b3]">{event.theatre} &middot; {event.time}</p>
+          <p className="text-sm text-fg-secondary">{event.theatre} &middot; {event.time}</p>
           <div className="flex flex-wrap items-center gap-2 mt-2">
             <Tag size="sm" variant="outline" className="p-1">{event.genre ?? 'ATCL'}</Tag>
             <Badge variant="default" size="sm">Turni {totalTurns}</Badge>
@@ -558,7 +558,7 @@ function TurnStatsSection({
     <section className="animate-stagger-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-white text-base font-semibold tracking-tight">Turni ATCL</h3>
-        <button onClick={onViewTurni} className="text-sm text-[#f4bf4f] hover:text-[#e6a23c] px-3 py-2 rounded-lg transition-colors">
+        <button onClick={onViewTurni} className="text-sm text-accent hover:text-gold-500 px-3 py-2 rounded-lg transition-colors">
           Vedi tutti
         </button>
       </div>
@@ -593,13 +593,13 @@ function ActivitiesCard({
       <h3 className="text-white text-base font-semibold tracking-tight">Attività simulate</h3>
       <Card hoverable onClick={onViewActivities} className="mb-5">
         <div className="flex items-center gap-4">
-          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
-            <Play className="text-[#f4bf4f]" size={24} />
+          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-burgundy-600 to-burgundy-800 rounded-xl flex items-center justify-center">
+            <Play className="text-accent" size={24} />
           </div>
           <div className="flex-1">
             <h4 className="text-white mb-1">{activitiesCount} attività disponibili</h4>
           </div>
-          <ChevronRight className="text-[#9a9697]" size={20} />
+          <ChevronRight className="text-fg-tertiary" size={20} />
         </div>
       </Card>
     </section>

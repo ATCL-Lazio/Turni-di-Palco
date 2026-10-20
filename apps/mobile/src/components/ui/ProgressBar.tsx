@@ -37,20 +37,20 @@ export function ProgressBar({
   };
 
   const colors = {
-    burgundy: 'bg-gradient-to-r from-[#8c1c38] to-[#a82847]',
-    gold: 'bg-gradient-to-r from-[#e6a23c] to-[#f4bf4f]'
+    burgundy: 'bg-gradient-to-r from-burgundy-bright to-burgundy-600',
+    gold: 'bg-gradient-to-r from-gold-500 to-gold-400'
   };
 
   return (
     <div className="w-full">
       {showLabel && (
-        <div className="flex justify-between text-sm text-[#b8b2b3] mb-1">
+        <div className="flex justify-between text-sm text-fg-secondary mb-1">
           <span>{value}</span>
           <span>{max}</span>
         </div>
       )}
       <div
-        className={`w-full bg-[#241f20] rounded-full overflow-hidden ${heights[size]}`}
+        className={`w-full bg-surface-elevated rounded-full overflow-hidden ${heights[size]}`}
         role="progressbar"
         aria-valuenow={value}
         aria-valuemin={0}

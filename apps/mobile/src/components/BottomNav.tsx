@@ -38,7 +38,7 @@ export function BottomNav({ activeTab, onTabChange, enabledTabs }: BottomNavProp
 
           {indicatorStyle && (
             <div
-              className="absolute top-0 h-[2px] bg-[#f4bf4f] rounded-full transition-[left] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+              className="absolute top-0 h-[2px] bg-gold-400 rounded-full transition-[left] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
               style={indicatorStyle}
             />
           )}
@@ -74,8 +74,8 @@ const TabButton = React.memo(function TabButton({ id, icon: Icon, label, isActiv
       aria-selected={isActive}
       className={`relative flex flex-1 min-w-0 flex-col items-center justify-center gap-[3px] py-1 rounded-xl transition-colors duration-150 ${
         isActive
-          ? 'text-[#f4bf4f] tab-button-active'
-          : 'text-[#6a6566] hover:text-[#9a9697] active:text-[#b8b2b3]'
+          ? 'text-accent tab-button-active'
+          : 'text-fg-tertiary hover:text-[#9a9697] active:text-[#b8b2b3]'
       }`}
     >
       <Icon

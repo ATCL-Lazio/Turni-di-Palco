@@ -6,6 +6,49 @@
 @import "./extracted-pwa-styles/layout.css";
 @import "./extracted-pwa-styles/style.css";
 
+/* Semantic color utilities (Tailwind v4), e.g. `bg-surface`,
+   `text-fg-secondary`, `border-border`, `from-burgundy-600`, `bg-accent/10`.
+   `inline reference` = the utilities resolve straight to the CSS variables
+   defined below in `:root` / `html[data-theme="light"]` (so they flip with
+   the theme), and Tailwind emits no extra custom properties. Opacity
+   modifiers compile to `color-mix(in oklab, var(...) N%, transparent)`.
+   Do not add new color values here: point at an existing variable. */
+@theme inline reference {
+  /* Theme-aware: dark defaults in :root, light overrides below. */
+  --color-page: var(--color-bg-primary);
+  --color-surface: var(--color-bg-surface);
+  --color-surface-elevated: var(--color-bg-surface-elevated);
+  --color-surface-hover: var(--color-bg-surface-hover);
+  --color-warning-surface: var(--color-warning-surface);
+  --color-fg-primary: var(--color-text-primary);
+  --color-fg-secondary: var(--color-text-secondary);
+  --color-fg-tertiary: var(--color-text-tertiary);
+  --color-accent: var(--color-accent);
+  --color-accent-strong: var(--color-accent-strong);
+  --color-error: var(--color-error);
+  --color-success: var(--color-success);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  /* Brand burgundy gradient stops, softened in the light theme. */
+  --color-burgundy-deep: var(--color-burgundy-deep);
+  --color-burgundy-mid: var(--color-burgundy-mid);
+  --color-burgundy-base: var(--color-burgundy-base);
+  --color-burgundy-bright: var(--color-burgundy-700);
+
+  /* Brand palette constants: identical in both themes (decorative
+     gradients, avatars, gold CTAs). Note: `--color-burgundy-700` is NOT
+     exposed here because the light theme redefines it; use
+     `burgundy-bright` for the theme-aware stop. */
+  --color-burgundy-950: var(--color-burgundy-950);
+  --color-burgundy-900: var(--color-burgundy-900);
+  --color-burgundy-800: var(--color-burgundy-800);
+  --color-burgundy-600: var(--color-burgundy-600);
+  --color-burgundy-500: var(--color-burgundy-500);
+  --color-gold-400: var(--color-gold-400);
+  --color-gold-500: var(--color-gold-500);
+  --color-gold-600: var(--color-gold-600);
+}
+
 :root {
   --color-burgundy-950: #2d0a0f;
   --color-burgundy-900: #4a0e1a;
@@ -98,20 +141,18 @@
 /* ====================================================================
    Light theme — WCAG 2.1 AA contrast (issue #476).
 
-   Strategy: components in this codebase use Tailwind arbitrary-value
-   classes (e.g. `bg-[#1a1617]`, `text-[#b8b2b3]`) baked with hex
-   literals, so a normal `:root` token swap doesn't reach them. Instead:
+   Strategy: theme palettes (dark defaults in `:root`, light overrides
+   on `html[data-theme="light"]`) are CSS variables, exposed to Tailwind
+   as semantic utilities by the `@theme inline reference` block at the
+   top of this file (`bg-surface`, `text-fg-secondary`, `border-border`,
+   `text-accent`, ...), so they flip automatically with the theme.
+   Prefer those over arbitrary hex classes like `bg-[#1a1617]`, which do
+   NOT follow the theme.
 
-   1. Define theme palettes (dark + light) on `html[data-theme=...]`.
-   2. Add semantic accent / border tokens only used by the override layer.
-   3. Override the most-used Tailwind hex utility classes inside
-      `@layer utilities` so they route through CSS variables and flip
-      automatically when the theme switches.
-
-   Brand decorative gradients (burgundy `#a82847`/`#6b1529`/`#8c1c38` and
-   gold `#f4bf4f`/`#e6a23c`) are intentionally NOT remapped: they are
-   used as colorful backdrops for hero/avatar elements that should look
-   the same in both themes; their on-color text remains `text-white` /
+   Brand decorative gradients (burgundy `burgundy-600`/`burgundy-800` and
+   gold `gold-400`/`gold-500`) are intentionally constant: they are used
+   as colorful backdrops for hero/avatar elements that should look the
+   same in both themes; their on-color text remains `text-white` /
    `text-[#0f0d0e]`. ==================================================== */
 
 html[data-theme="light"] {
@@ -202,86 +243,11 @@ html[data-theme="light"] .app-gradient {
 }
 
 /* --------------------------------------------------------------------
-   Theme-aware utility overrides for hardcoded Tailwind hex classes.
+   Theme-aware overrides for Tailwind's white overlay utilities.
    Placed inside `@layer utilities` so they sit alongside Tailwind's own
-   arbitrary-value utilities (which are also in that layer); source order
-   here ensures the variable-backed values win.
+   utilities (also in that layer); source order here makes these win.
    -------------------------------------------------------------------- */
 @layer utilities {
-  /* Surface backgrounds — flip per theme. */
-  .bg-\[\#0f0d0e\] { background-color: var(--color-bg-primary); }
-  .bg-\[\#1a1617\] { background-color: var(--color-bg-surface); }
-  .bg-\[\#1f1719\] { background-color: var(--color-bg-surface); }
-  .bg-\[\#241f20\] { background-color: var(--color-bg-surface-elevated); }
-  .bg-\[\#2d2728\] { background-color: var(--color-bg-surface-hover); }
-  .bg-\[\#2a1f14\] { background-color: var(--color-warning-surface); }
-
-  /* Surface gradients (cards/sections) — re-route stops through tokens. */
-  .from-\[\#1a1617\] { --tw-gradient-from: var(--color-bg-surface); }
-  .from-\[\#1f1719\] { --tw-gradient-from: var(--color-bg-surface); }
-  .from-\[\#201819\] { --tw-gradient-from: var(--color-bg-surface); }
-  .from-\[\#241f20\] { --tw-gradient-from: var(--color-bg-surface-elevated); }
-  .from-\[\#0f0d0e\] { --tw-gradient-from: var(--color-bg-primary); }
-  .via-\[\#1d1819\]  { --tw-gradient-via:  var(--color-bg-surface-elevated); }
-  .via-\[\#221b1d\]  { --tw-gradient-via:  var(--color-bg-surface-elevated); }
-  .via-\[\#251b1d\]  { --tw-gradient-via:  var(--color-bg-surface-elevated); }
-  .to-\[\#0f0d0e\]   { --tw-gradient-to:   var(--color-bg-primary); }
-  .to-\[\#1a1617\]   { --tw-gradient-to:   var(--color-bg-surface); }
-  .to-\[\#171314\]   { --tw-gradient-to:   var(--color-bg-surface); }
-  .to-\[\#231e1f\]   { --tw-gradient-to:   var(--color-bg-surface-elevated); }
-  .to-\[\#241f20\]   { --tw-gradient-to:   var(--color-bg-surface-elevated); }
-  .to-\[\#221d1e\]   { --tw-gradient-to:   var(--color-bg-surface-elevated); }
-
-  /* Brand burgundy gradient stops — kept as decorative brand colors in
-     dark mode but softened in light mode (see html[data-theme=light]
-     overrides below) so they don't render as black "holes" on the warm
-     paper page. */
-  .from-\[\#2d0a0f\] { --tw-gradient-from: var(--color-burgundy-deep); }
-  .from-\[\#4a0e1a\] { --tw-gradient-from: var(--color-burgundy-mid); }
-  .via-\[\#4a0e1a\]  { --tw-gradient-via:  var(--color-burgundy-mid); }
-  .from-\[\#6b1529\] { --tw-gradient-from: var(--color-burgundy-base); }
-  .from-\[\#8c1c38\] { --tw-gradient-from: var(--color-burgundy-700); }
-
-  /* Body text colors. */
-  .text-\[\#f5f5f5\]  { color: var(--color-text-primary); }
-  .text-\[\#f7f3f4\]  { color: var(--color-text-primary); }
-  .text-\[\#ffffff\]  { color: var(--color-text-primary); }
-  .text-\[\#e3e0e0\]  { color: var(--color-text-secondary); }
-  .text-\[\#d9d4d5\]  { color: var(--color-text-secondary); }
-  .text-\[\#b8b2b3\]  { color: var(--color-text-secondary); }
-  .text-\[\#9b9496\]  { color: var(--color-text-secondary); }
-  .text-\[\#9a9697\]  { color: var(--color-text-tertiary); }
-  .text-\[\#8a7a7b\]  { color: var(--color-text-tertiary); }
-  .text-\[\#7f797a\]  { color: var(--color-text-tertiary); }
-  .text-\[\#6a6566\]  { color: var(--color-text-tertiary); }
-
-  /* Accent / state foreground tokens. */
-  .text-\[\#f4bf4f\]  { color: var(--color-accent); }
-  .text-\[\#e6a23c\]  { color: var(--color-accent-strong); }
-  .text-\[\#ff4d4f\]  { color: var(--color-error); }
-  .text-\[\#52c41a\]  { color: var(--color-success); }
-
-  /* Borders. */
-  .border-\[\#2d2728\]  { border-color: var(--color-border); }
-  .border-\[\#3d3a3b\]  { border-color: var(--color-border-strong); }
-  .border-\[\#f4bf4f\]  { border-color: var(--color-accent); }
-  .border-\[\#ff4d4f\]  { border-color: var(--color-error); }
-  .border-\[\#f4bf4f\]\/30 { border-color: color-mix(in srgb, var(--color-accent) 30%, transparent); }
-  .border-\[\#f4bf4f\]\/40 { border-color: color-mix(in srgb, var(--color-accent) 40%, transparent); }
-  .border-\[\#f4bf4f\]\/20 { border-color: color-mix(in srgb, var(--color-accent) 20%, transparent); }
-  .border-\[\#f4bf4f\]\/10 { border-color: color-mix(in srgb, var(--color-accent) 10%, transparent); }
-  .border-\[\#ff4d4f\]\/40 { border-color: color-mix(in srgb, var(--color-error) 40%, transparent); }
-
-  /* Translucent surfaces (alpha modifier variants). */
-  .bg-\[\#0f0d0e\]\/90 { background-color: color-mix(in srgb, var(--color-bg-primary) 90%, transparent); }
-  .bg-\[\#0f0d0e\]\/80 { background-color: color-mix(in srgb, var(--color-bg-primary) 80%, transparent); }
-  .bg-\[\#1a1617\]\/90 { background-color: color-mix(in srgb, var(--color-bg-surface) 90%, transparent); }
-  .bg-\[\#1a1617\]\/80 { background-color: color-mix(in srgb, var(--color-bg-surface) 80%, transparent); }
-  .bg-\[\#241f20\]\/80 { background-color: color-mix(in srgb, var(--color-bg-surface-elevated) 80%, transparent); }
-  .bg-\[\#f4bf4f\]\/10 { background-color: color-mix(in srgb, var(--color-accent) 10%, transparent); }
-  .bg-\[\#f4bf4f\]\/15 { background-color: color-mix(in srgb, var(--color-accent) 15%, transparent); }
-  .bg-\[\#ff4d4f\]\/10 { background-color: color-mix(in srgb, var(--color-error) 10%, transparent); }
-
   /* `bg-white/N` and `border-white/N` are used as subtle elevation hints on
      dark cards; in light mode they need to invert to a dark tint, otherwise
      they vanish into the white surface. `--color-overlay-tint` carries the

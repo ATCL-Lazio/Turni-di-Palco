@@ -42,7 +42,7 @@ export function Activities({
     <>
       <header className="space-y-2">
         <h2 className="text-white">Attività simulate</h2>
-        <p className="text-[#b8b2b3]">Migliora le tue skill e guadagna ricompense</p>
+        <p className="text-fg-secondary">Migliora le tue skill e guadagna ricompense</p>
       </header>
 
       <TrainingBanner />
@@ -81,8 +81,8 @@ export function Activities({
 
       {totalActivities === 0 && (
         <Card className="text-center">
-          <p className="text-sm text-[#9a9697]">Nuove attività in arrivo</p>
-          <p className="text-sm text-[#b8b2b3]">Stiamo preparando nuove sfide e attività</p>
+          <p className="text-sm text-fg-tertiary">Nuove attività in arrivo</p>
+          <p className="text-sm text-fg-secondary">Stiamo preparando nuove sfide e attività</p>
         </Card>
       )}
     </>
@@ -101,17 +101,17 @@ function ScenarioPreviewCard({ onOpen }: { onOpen: () => void }) {
   return (
     <Card className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wider text-[#a82847]">Scenario narrativo</span>
+        <span className="text-xs uppercase tracking-wider text-burgundy-600">Scenario narrativo</span>
         <Tag size="sm" variant="info">Anteprima</Tag>
       </div>
       <p className="text-sm text-white">Cinque minuti al sipario</p>
-      <p className="text-sm text-[#9a9697]">
+      <p className="text-sm text-fg-tertiary">
         Una scelta rapida prima dell'apertura. Conseguenze immediate.
       </p>
       <button
         type="button"
         onClick={onOpen}
-        className="w-full rounded-xl bg-[#a82847] px-4 py-2 text-sm font-medium text-white"
+        className="w-full rounded-xl bg-burgundy-600 px-4 py-2 text-sm font-medium text-white"
       >
         Inizia scenario
       </button>
@@ -121,14 +121,14 @@ function ScenarioPreviewCard({ onOpen }: { onOpen: () => void }) {
 
 function TrainingBanner() {
   return (
-    <Card className="border border-[#f4bf4f]/30 bg-gradient-to-br from-[#1a1617] to-[#241f20]">
+    <Card className="border border-accent/30 bg-gradient-to-br from-surface to-surface-elevated">
       <div className="flex items-start gap-4">
-        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-xl flex items-center justify-center">
-          <TrendingUp className="text-[#f4bf4f]" size={22} />
+        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-burgundy-600 to-burgundy-800 rounded-xl flex items-center justify-center">
+          <TrendingUp className="text-accent" size={22} />
         </div>
         <div className="space-y-1">
           <h3 className="text-white">Allenati ogni giorno</h3>
-          <p className="text-sm text-[#b8b2b3]">
+          <p className="text-sm text-fg-secondary">
             Completa le attività per migliorare le tue competenze e prepararti per gli eventi reali
           </p>
         </div>
@@ -146,15 +146,15 @@ function DailyProgressCard({
   slotsLoading: boolean;
 }) {
   return (
-    <Card className="border border-[#2d2728] bg-[#1a1617]">
+    <Card className="border border-border bg-surface">
       <div className="flex items-center justify-between gap-4">
         <div className="space-y-1">
-          <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Missioni giornaliere</p>
+          <p className="text-xs uppercase tracking-wide text-fg-secondary">Missioni giornaliere</p>
           <h3 className="text-white text-lg font-semibold">{completedToday}/{dailyGoal} completate oggi</h3>
-          {slotsLoading && <p className="text-sm text-[#b8b2b3]">Verifica slot in corso...</p>}
+          {slotsLoading && <p className="text-sm text-fg-secondary">Verifica slot in corso...</p>}
         </div>
-        <div className="w-12 h-12 rounded-full bg-[#241f20] flex items-center justify-center">
-          <Flag className="text-[#f4bf4f]" size={22} />
+        <div className="w-12 h-12 rounded-full bg-surface-elevated flex items-center justify-center">
+          <Flag className="text-accent" size={22} />
         </div>
       </div>
       <div className="mt-4">
@@ -184,24 +184,24 @@ function ActivityCard({
     <Card
       hoverable={canStart}
       onClick={canStart ? onStart : undefined}
-      className="border border-white/5 bg-gradient-to-br from-[#1a1617] via-[#1d1819] to-[#221d1e]"
+      className="border border-white/5 bg-gradient-to-br from-surface via-surface-elevated to-surface-elevated"
     >
       <div className="flex items-start gap-4">
-        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#a82847] to-[#6b1529] rounded-2xl flex items-center justify-center">
-          <Play className="text-[#f4bf4f]" size={22} />
+        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-burgundy-600 to-burgundy-800 rounded-2xl flex items-center justify-center">
+          <Play className="text-accent" size={22} />
         </div>
         <div className="flex-1 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">Missione {index + 1}</p>
+              <p className="text-xs uppercase tracking-wide text-fg-secondary">Missione {index + 1}</p>
               <h4 className="text-white text-lg">{activity.title}</h4>
             </div>
-            <div className="flex items-center gap-2 text-[#f4bf4f]"><Play size={18} /></div>
+            <div className="flex items-center gap-2 text-accent"><Play size={18} /></div>
           </div>
 
-          <p className="text-sm text-[#b8b2b3]">{activity.description}</p>
+          <p className="text-sm text-fg-secondary">{activity.description}</p>
 
-          <div className="flex flex-wrap items-center gap-2 text-sm text-[#b8b2b3]">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-fg-secondary">
             <span className="inline-flex items-center gap-2"><Clock size={14} />{activity.duration}</span>
             <Badge variant="outline" size="sm">{difficultyLabel}</Badge>
             {isRecommended && (
@@ -229,10 +229,10 @@ function RewardTags({ xp, cachet }: { xp: number; cachet: number }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/90 backdrop-blur">
-        <TrendingUp size={12} className="text-[#f4bf4f]" /> +{xp} XP
+        <TrendingUp size={12} className="text-accent" /> +{xp} XP
       </span>
       <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/90 backdrop-blur">
-        <Coins size={12} className="text-[#f4bf4f]" /> +{cachet}
+        <Coins size={12} className="text-accent" /> +{cachet}
       </span>
     </div>
   );

@@ -8,13 +8,13 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-gradient-to-b from-[#8c1c38] to-[#a82847] text-white shadow-md hover:shadow-lg hover:from-[#6b1529] hover:to-[#8c1c38] active:scale-[0.97]',
-        primary: 'bg-gradient-to-b from-[#8c1c38] to-[#a82847] text-white shadow-md hover:shadow-lg hover:from-[#6b1529] hover:to-[#8c1c38] active:scale-[0.97]',
+        default: 'bg-gradient-to-b from-burgundy-bright to-burgundy-600 text-white shadow-md hover:shadow-lg hover:from-burgundy-800 hover:to-[#8c1c38] active:scale-[0.97]',
+        primary: 'bg-gradient-to-b from-burgundy-bright to-burgundy-600 text-white shadow-md hover:shadow-lg hover:from-burgundy-800 hover:to-[#8c1c38] active:scale-[0.97]',
         destructive: 'bg-red-600 text-white hover:bg-red-700 active:scale-[0.97]',
-        outline: 'border border-[#2d2728] bg-transparent text-[#f7f3f4] hover:bg-[#241f20] active:scale-[0.97]',
-        secondary: 'border-2 border-[#a82847] text-[#f4bf4f] bg-transparent hover:bg-[#a82847]/10 active:scale-[0.97]',
-        ghost: 'text-[#f4bf4f] hover:bg-[#241f20] active:scale-[0.97]',
-        link: 'text-[#f4bf4f] underline-offset-4 hover:underline',
+        outline: 'border border-border bg-transparent text-fg-primary hover:bg-[#241f20] active:scale-[0.97]',
+        secondary: 'border-2 border-burgundy-600 text-accent bg-transparent hover:bg-burgundy-600/10 active:scale-[0.97]',
+        ghost: 'text-accent hover:bg-[#241f20] active:scale-[0.97]',
+        link: 'text-accent underline-offset-4 hover:underline',
       },
       size: {
         default: 'px-6 py-3 text-base',
