@@ -16,6 +16,7 @@ import { Badge } from '../ui/Badge';
 import { Tag } from '../ui/Tag';
 import { Slider } from '../ui/slider';
 import { useAccessibilityPreferences } from '../../hooks/useAccessibilityPreferences';
+import { createImmediatePressGuard } from '../../lib/immediate-press';
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
@@ -123,7 +124,12 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
   );
   const [phase, setPhase] = useState<'intro' | 'playing' | 'feedback' | 'done'>('intro');
   const [roundIndex, setRoundIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
+  // The cue position lives in a ref and is written straight to the DOM as a
+  // transform from the rAF loop: no React render per frame, compositor-only
+  // updates, and the score reads the exact value on screen at stop time.
+  const progressRef = useRef(0);
+  const cueRef = useRef<HTMLDivElement | null>(null);
+  const stopPressGuardRef = useRef(createImmediatePressGuard());
   const [roundScores, setRoundScores] = useState<number[]>([]);
   const [feedback, setFeedback] = useState<{ label: string; delta: number } | null>(null);
   const directionRef = useRef(1);
@@ -139,6 +145,11 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
   const round = rounds[roundIndex];
   const roundLabel = `Round ${roundIndex + 1}/${rounds.length}`;
   const isPlaying = phase === 'playing';
+
+  const setCueProgress = useCallback((value: number) => {
+    progressRef.current = value;
+    if (cueRef.current) cueRef.current.style.transform = `translateX(${value}%)`;
+  }, []);
 
   const stopAnimation = useCallback(() => {
     if (animationRef.current != null) {
@@ -159,17 +170,15 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
       const delta = time - lastTime;
       lastTime = time;
 
-      setProgress((value) => {
-        let next = value + directionRef.current * delta * speed;
-        if (next >= 100) {
-          next = 100;
-          directionRef.current = -1;
-        } else if (next <= 0) {
-          next = 0;
-          directionRef.current = 1;
-        }
-        return next;
-      });
+      let next = progressRef.current + directionRef.current * delta * speed;
+      if (next >= 100) {
+        next = 100;
+        directionRef.current = -1;
+      } else if (next <= 0) {
+        next = 0;
+        directionRef.current = 1;
+      }
+      setCueProgress(next);
 
       animationRef.current = window.requestAnimationFrame(animate);
     };
@@ -179,7 +188,7 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
     return () => {
       stopAnimation();
     };
-  }, [phase, roundIndex, stopAnimation]);
+  }, [phase, roundIndex, stopAnimation, setCueProgress, speed]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -199,7 +208,7 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
     }
     if (startedAtRef.current == null) startedAtRef.current = Date.now();
     setFeedback(null);
-    setProgress(0);
+    setCueProgress(0);
     directionRef.current = 1;
     hasStoppedRef.current = false;
     setPhase('playing');
@@ -211,7 +220,7 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
     hasStoppedRef.current = true;
     attemptCountRef.current += 1;
 
-    const result = computeRoundScore(round.target, progress, round.tolerance);
+    const result = computeRoundScore(round.target, progressRef.current, round.tolerance);
     const nextScores = [...roundScores, result.score];
 
     setRoundScores(nextScores);
@@ -227,7 +236,7 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
         setRoundIndex((value) => value + 1);
         setPhase('playing');
         setFeedback(null);
-        setProgress(0);
+        setCueProgress(0);
         directionRef.current = 1;
         hasStoppedRef.current = false;
       } else {
@@ -272,10 +281,10 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
             className="absolute top-0 bottom-0 w-2 bg-[#f4bf4f]/40"
             style={{ left: `${round.target}%`, transform: 'translateX(-50%)' }}
           />
-          <div
-            className="absolute top-0 bottom-0 w-3 bg-[#f4bf4f] rounded-full shadow-[0_0_8px_rgba(244,191,79,0.6)]"
-            style={{ left: `${progress}%`, transform: 'translateX(-50%)' }}
-          />
+          {/* Full-width layer so translateX(%) maps to track percent. */}
+          <div ref={cueRef} className="absolute inset-0 will-change-transform" aria-hidden="true">
+            <div className="absolute top-0 bottom-0 left-0 w-3 -translate-x-1/2 bg-[#f4bf4f] rounded-full shadow-[0_0_8px_rgba(244,191,79,0.6)]" />
+          </div>
         </div>
 
         <div className="flex items-center justify-between mt-2 text-xs text-[#9a9697]">
@@ -318,8 +327,16 @@ function TimingMinigame({ config, activityTitle, statBenefits, onComplete, onCan
             variant="primary"
             size="lg"
             fullWidth
-            className="min-h-[56px]"
-            onClick={handleStop}
+            className="min-h-[56px] touch-manipulation"
+            // Stop on press, not release: onClick adds the whole tap duration
+            // of latency. The guard swallows the click ending the same tap and
+            // still lets keyboard activation (Enter/Space) through.
+            onPointerDown={(event) => {
+              if (stopPressGuardRef.current.shouldHandlePointerDown(event)) handleStop();
+            }}
+            onClick={(event) => {
+              if (stopPressGuardRef.current.shouldHandleClick(event)) handleStop();
+            }}
             disabled={phase !== 'playing'}
           >
             Blocca
