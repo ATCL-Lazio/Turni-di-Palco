@@ -37,14 +37,11 @@ import {
   readEnvFeatureFlagOverrides,
 } from '../services/feature-flags';
 import { withSuppressSignedInNavigation } from './auth-navigation';
-import { ROLE_IDS, EVENT_PLANNING_STATUSES } from './types';
 import type {
   RoleId,
   Rewards,
   TurnSyncStatus,
-  RoleJourney,
   RoleActivityOverride,
-  RoleProfile,
   Role,
   GameEvent,
   EventPlanningStatus,
@@ -73,6 +70,14 @@ import type {
 import type { GameContextValue } from './game-context-types';
 import { roles, events, activities, DEFAULT_SHOP_CATALOG } from './catalog';
 import { MAX_TURNS, MOBILE_WATCHDOG_TIMEOUTS } from './constants';
+import { normalizeText, isRecord, isRoleId, normalizeRoleProfile } from './normalizers';
+import {
+  resolveEventPlanningStatus,
+  resolveEventPlanningRoleId,
+  sortEventsForPlanning,
+  upsertEventPlan,
+  removeEventPlan,
+} from './event-planning';
 
 // Public API re-exported from the domain modules, so importers keep using
 // '../state/store' unchanged.
@@ -115,6 +120,9 @@ export type {
   Badge,
 } from './types';
 export { roles, events, activities } from './catalog';
+export { isRoleId } from './normalizers';
+export { parseEventScheduleTimestamp } from './event-planning';
+export { selectIsOnboarded } from './selectors';
 
 // DB row types — shape returned by Supabase queries
 type DbEventRow = {
@@ -324,14 +332,6 @@ const OFFLINE_SYNC_SERVER_LOG_PREVIEW_HOST_RE =
 
 // Common prefix for all offline sync–related log messages to make them easy to filter.
 const OFFLINE_SYNC_LOG_PREFIX = '[TDP Offline Sync]';
-const HTML_ENTITY_MAP: Record<string, string> = {
-  amp: '&',
-  lt: '<',
-  gt: '>',
-  quot: '"',
-  apos: "'",
-  nbsp: ' ',
-};
 
 const QUEUED_MUTATION_KINDS = [
   'profile_upsert',
@@ -564,98 +564,6 @@ function logOfflineSync(message: string, details?: unknown, level: OfflineSyncLo
   enqueueMirroredClientLog(message, level, details);
 }
 
-function decodeUnicodeEscapes(value: string) {
-  if (!value.includes('\\u')) return value;
-  return value.replace(/\\u([0-9a-fA-F]{4})/g, (match, codePoint: string) => {
-    const parsed = Number.parseInt(codePoint, 16);
-    if (!Number.isFinite(parsed)) return match;
-    return String.fromCodePoint(parsed);
-  });
-}
-
-function decodeHtmlEntities(value: string) {
-  if (!value.includes('&')) return value;
-  let decoded = value;
-  for (let i = 0; i < 2; i += 1) {
-    const next = decoded.replace(/&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity) => {
-      if (entity[0] === '#') {
-        const isHex = entity[1]?.toLowerCase() === 'x';
-        const number = Number.parseInt(entity.slice(isHex ? 2 : 1), isHex ? 16 : 10);
-        if (!Number.isFinite(number)) return match;
-        try {
-          return String.fromCodePoint(number);
-        } catch {
-          return match;
-        }
-      }
-      return HTML_ENTITY_MAP[entity] ?? match;
-    });
-    if (next === decoded) break;
-    decoded = next;
-  }
-  return decoded;
-}
-
-function normalizeText(value: string | null | undefined) {
-  if (!value) return '';
-  return decodeHtmlEntities(decodeUnicodeEscapes(value));
-}
-
-function isEventPlanningStatus(value: unknown): value is EventPlanningStatus {
-  return typeof value === 'string'
-    && (EVENT_PLANNING_STATUSES as readonly string[]).includes(value);
-}
-
-function resolveEventPlanningStatus(value: unknown): EventPlanningStatus {
-  return isEventPlanningStatus(value) ? value : 'planned';
-}
-
-function resolveEventPlanningRoleId(value: unknown, fallbackRoleId: RoleId): RoleId {
-  return isRoleId(value) ? value : fallbackRoleId;
-}
-
-const ITALIAN_MONTHS: Record<string, string> = {
-  gen: '01', feb: '02', mar: '03', apr: '04', mag: '05', giu: '06',
-  lug: '07', ago: '08', set: '09', ott: '10', nov: '11', dic: '12',
-};
-
-export function parseEventScheduleTimestamp(event: Pick<GameEvent, 'date' | 'time'>) {
-  const parts = event.date.trim().split(/\s+/);
-  if (parts.length === 3) {
-    const [day, monthStr, year] = parts;
-    const month = ITALIAN_MONTHS[monthStr.toLowerCase()];
-    if (month) {
-      const timestamp = new Date(`${year}-${month}-${day.padStart(2, '0')}T${event.time || '00:00'}`).getTime();
-      return Number.isFinite(timestamp) ? timestamp : 0;
-    }
-  }
-  const timestamp = new Date(`${event.date} ${event.time}`).getTime();
-  return Number.isFinite(timestamp) ? timestamp : 0;
-}
-
-function sortEventsForPlanning(events: GameEvent[]) {
-  const now = Date.now();
-  return [...events].sort((left, right) => {
-    const leftTimestamp = parseEventScheduleTimestamp(left);
-    const rightTimestamp = parseEventScheduleTimestamp(right);
-    const leftFuture = leftTimestamp >= now;
-    const rightFuture = rightTimestamp >= now;
-
-    if (leftFuture !== rightFuture) return leftFuture ? -1 : 1;
-    if (leftFuture && rightFuture) return leftTimestamp - rightTimestamp;
-    return rightTimestamp - leftTimestamp;
-  });
-}
-
-function upsertEventPlan(plans: EventPlanning[], nextPlan: EventPlanning) {
-  const filtered = plans.filter((plan) => plan.eventId !== nextPlan.eventId);
-  return [nextPlan, ...filtered].sort((left, right) => right.updatedAt - left.updatedAt);
-}
-
-function removeEventPlan(plans: EventPlanning[], eventId: string) {
-  return plans.filter((plan) => plan.eventId !== eventId);
-}
-
 function notifyCriticalError(message: string, errors: unknown[]) {
   const details = formatErrorDetails(errors);
   reportCriticalError({
@@ -707,98 +615,6 @@ function persistStoredSession(session: Session | null) {
   } catch {
     // ignore storage errors
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === 'object' && !Array.isArray(value);
-}
-
-export function isRoleId(value: unknown): value is RoleId {
-  return typeof value === 'string' && (ROLE_IDS as readonly string[]).includes(value);
-}
-
-function normalizeStringArray(value: unknown): string[] | undefined {
-  if (!Array.isArray(value)) return undefined;
-  const next = value
-    .filter((entry): entry is string => typeof entry === 'string')
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-  return next.length ? next : undefined;
-}
-
-function normalizeRoleJourney(value: unknown): RoleJourney | undefined {
-  if (!isRecord(value)) return undefined;
-  const headline = typeof value.headline === 'string' ? value.headline.trim() : '';
-  const summary = typeof value.summary === 'string' ? value.summary.trim() : '';
-  if (!headline || !summary) return undefined;
-  const eyebrow = typeof value.eyebrow === 'string' && value.eyebrow.trim()
-    ? value.eyebrow.trim()
-    : undefined;
-  const recommendedActivityId =
-    typeof value.recommendedActivityId === 'string' && value.recommendedActivityId.trim()
-      ? value.recommendedActivityId.trim()
-      : undefined;
-  const starterBadgeLabels = normalizeStringArray(value.starterBadgeLabels);
-  const objectives = normalizeStringArray(value.objectives);
-  const homeCtaLabel = typeof value.homeCtaLabel === 'string' && value.homeCtaLabel.trim()
-    ? value.homeCtaLabel.trim()
-    : undefined;
-
-  return {
-    eyebrow,
-    headline,
-    summary,
-    recommendedActivityId,
-    starterBadgeLabels,
-    objectives,
-    homeCtaLabel,
-  };
-}
-
-function normalizeRoleActivityOverride(value: unknown): RoleActivityOverride | undefined {
-  if (!isRecord(value)) return undefined;
-  const xpMultiplier = Number(value.xpMultiplier);
-  const cachetMultiplier = Number(value.cachetMultiplier);
-  const reputationBonus = Number(value.reputationBonus);
-  const highlightLabel = typeof value.highlightLabel === 'string' && value.highlightLabel.trim()
-    ? value.highlightLabel.trim()
-    : undefined;
-  const homeNote = typeof value.homeNote === 'string' && value.homeNote.trim()
-    ? value.homeNote.trim()
-    : undefined;
-
-  const next: RoleActivityOverride = {};
-  if (Number.isFinite(xpMultiplier) && xpMultiplier > 0) next.xpMultiplier = xpMultiplier;
-  if (Number.isFinite(cachetMultiplier) && cachetMultiplier > 0) next.cachetMultiplier = cachetMultiplier;
-  if (Number.isFinite(reputationBonus)) next.reputationBonus = Math.round(reputationBonus);
-  if (highlightLabel) next.highlightLabel = highlightLabel;
-  if (homeNote) next.homeNote = homeNote;
-  return Object.keys(next).length ? next : undefined;
-}
-
-function normalizeRoleProfile(value: unknown): RoleProfile | undefined {
-  if (!isRecord(value)) return undefined;
-  const allowedActivityIds = normalizeStringArray(value.allowedActivityIds);
-  const activityOrder = normalizeStringArray(value.activityOrder);
-  const homeMessage = typeof value.homeMessage === 'string' && value.homeMessage.trim()
-    ? value.homeMessage.trim()
-    : undefined;
-  const journey = normalizeRoleJourney(value.journey);
-  const activityOverrides = isRecord(value.activityOverrides)
-    ? Object.fromEntries(
-      Object.entries(value.activityOverrides)
-        .map(([activityId, override]) => [activityId, normalizeRoleActivityOverride(override)])
-        .filter((entry): entry is [string, RoleActivityOverride] => Boolean(entry[1]))
-    )
-    : undefined;
-
-  const next: RoleProfile = {};
-  if (allowedActivityIds?.length) next.allowedActivityIds = allowedActivityIds;
-  if (activityOrder?.length) next.activityOrder = activityOrder;
-  if (homeMessage) next.homeMessage = homeMessage;
-  if (journey) next.journey = journey;
-  if (activityOverrides && Object.keys(activityOverrides).length) next.activityOverrides = activityOverrides;
-  return Object.keys(next).length ? next : undefined;
 }
 
 export function getRoleActivityOverride(
@@ -5257,9 +5073,4 @@ export function useGameState() {
     throw new Error('useGameState must be used within GameStateProvider');
   }
   return ctx;
-}
-
-/** Returns true if the user has already completed (or skipped) the FTUE onboarding. */
-export function selectIsOnboarded(profile: Pick<PlayerProfile, 'onboardingCompletedAt'>): boolean {
-  return profile.onboardingCompletedAt !== null;
 }
