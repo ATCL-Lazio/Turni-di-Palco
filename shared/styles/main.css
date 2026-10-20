@@ -183,9 +183,13 @@ html[data-theme="light"] .app-gradient {
 }
 
 /* Recolor the welcome-logo glow for the light theme so it stays visible
-   on a near-white background (the burgundy glow blends in otherwise). */
-html[data-theme="light"] .welcome-logo-pulse {
-  animation: glow-burgundy-light 3.2s ease-in-out infinite;
+   on a near-white background (the burgundy glow blends in otherwise).
+   Scoped to no-preference: this selector out-specifies the plain
+   `.welcome-logo-pulse { animation: none }` reduced-motion override. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme="light"] .welcome-logo-pulse {
+    animation: glow-burgundy-light 3.2s ease-in-out infinite;
+  }
 }
 
 @keyframes glow-burgundy-light {
@@ -801,9 +805,16 @@ html[data-theme="light"] .text-white {
   transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.mobile-card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+/* Hover lift only where hover is real: on touch devices :hover sticks
+   after a tap and leaves the card raised. Subtle gold ring on hover. */
+@media (hover: hover) and (pointer: fine) {
+  .mobile-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 10px 25px -5px rgba(0, 0, 0, 0.35),
+      0 8px 10px -6px rgba(0, 0, 0, 0.25),
+      0 0 0 1px rgba(244, 191, 79, 0.07);
+  }
 }
 
 .mobile-card-hover:active {
@@ -1158,15 +1169,6 @@ html[data-theme="light"] .text-white {
   .animate-stagger-4 { animation: stagger-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: 210ms; }
   .animate-stagger-5 { animation: stagger-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: 280ms; }
   .animate-stagger-6 { animation: stagger-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: 350ms; }
-}
-
-/* Improved mobile card hover - subtle gold ring on hover */
-.mobile-card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 10px 25px -5px rgba(0, 0, 0, 0.35),
-    0 8px 10px -6px rgba(0, 0, 0, 0.25),
-    0 0 0 1px rgba(244, 191, 79, 0.07);
 }
 
 @media (prefers-reduced-motion: reduce) {

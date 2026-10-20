@@ -4,16 +4,16 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from './utils';
 
 export const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl transition-[scale,transform,color,background-color,border-color,box-shadow] duration-100 ease-out motion-reduce:active:scale-100 disabled:opacity-50 disabled:cursor-not-allowed',
   {
     variants: {
       variant: {
-        default: 'bg-gradient-to-b from-[#8c1c38] to-[#a82847] text-white shadow-md hover:shadow-lg hover:from-[#6b1529] hover:to-[#8c1c38] active:scale-95',
-        primary: 'bg-gradient-to-b from-[#8c1c38] to-[#a82847] text-white shadow-md hover:shadow-lg hover:from-[#6b1529] hover:to-[#8c1c38] active:scale-95',
-        destructive: 'bg-red-600 text-white hover:bg-red-700 active:scale-95',
-        outline: 'border border-[#2d2728] bg-transparent text-[#f7f3f4] hover:bg-[#241f20] active:scale-95',
-        secondary: 'border-2 border-[#a82847] text-[#f4bf4f] bg-transparent hover:bg-[#a82847]/10 active:scale-95',
-        ghost: 'text-[#f4bf4f] hover:bg-[#241f20] active:scale-95',
+        default: 'bg-gradient-to-b from-[#8c1c38] to-[#a82847] text-white shadow-md hover:shadow-lg hover:from-[#6b1529] hover:to-[#8c1c38] active:scale-[0.97]',
+        primary: 'bg-gradient-to-b from-[#8c1c38] to-[#a82847] text-white shadow-md hover:shadow-lg hover:from-[#6b1529] hover:to-[#8c1c38] active:scale-[0.97]',
+        destructive: 'bg-red-600 text-white hover:bg-red-700 active:scale-[0.97]',
+        outline: 'border border-[#2d2728] bg-transparent text-[#f7f3f4] hover:bg-[#241f20] active:scale-[0.97]',
+        secondary: 'border-2 border-[#a82847] text-[#f4bf4f] bg-transparent hover:bg-[#a82847]/10 active:scale-[0.97]',
+        ghost: 'text-[#f4bf4f] hover:bg-[#241f20] active:scale-[0.97]',
         link: 'text-[#f4bf4f] underline-offset-4 hover:underline',
       },
       size: {

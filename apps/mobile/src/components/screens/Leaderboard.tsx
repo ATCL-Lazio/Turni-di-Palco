@@ -3,6 +3,7 @@ import { Trophy } from 'lucide-react';
 import { LeaderboardEntry, useGameState } from '../../state/store';
 import { Card } from '../ui/Card';
 import { Screen } from '../ui/Screen';
+import { computeFlipShifts } from '../../lib/flip';
 
 interface LeaderboardProps {
   onSelectEntry?: (entry: LeaderboardEntry, isCurrentUser: boolean) => void;
@@ -35,6 +36,11 @@ export function Leaderboard({ onSelectEntry }: LeaderboardProps) {
   useLayoutEffect(() => {
     animateRowTransitions(sorted, rowRefs, previousRowTops, timerIdsRef, rafIdsRef);
     return () => {
+      // Cancelling a pending frame/timer would leave rows stuck at their
+      // inverse offset: snap any in-flight row back to its layout position.
+      if (rafIdsRef.current.length > 0 || timerIdsRef.current.length > 0) {
+        rowRefs.current.forEach(resetRowAnimation);
+      }
       rafIdsRef.current.forEach(id => cancelAnimationFrame(id));
       rafIdsRef.current = [];
       timerIdsRef.current.forEach(id => clearTimeout(id));
@@ -56,7 +62,7 @@ export function Leaderboard({ onSelectEntry }: LeaderboardProps) {
       ) : sorted.length === 0 ? (
         <Card><p className="text-[#b8b2b3]">Nessun dato disponibile.</p></Card>
       ) : (
-        <div className="space-y-3">
+        <div className="relative space-y-3">
           {sorted.map((entry, index) => {
             const roleName = roles.find(r => r.id === entry.roleId)?.name ?? 'Ruolo';
             const isMe = Boolean(authUserId) && entry.id === authUserId;
@@ -140,7 +146,7 @@ function RankBadge({ position }: { position: number }) {
 function CurrentUserIndicator() {
   return (
     <span className="relative inline-flex w-2.5 h-2.5 shrink-0" aria-hidden="true">
-      <span className="absolute inset-0 rounded-full bg-[#f4bf4f]/35 animate-ping" />
+      <span className="absolute inset-0 rounded-full bg-[#f4bf4f]/35 motion-safe:animate-ping" />
       <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-[#f4bf4f] shadow-[0_0_10px_rgba(244,191,79,0.28)]" />
     </span>
   );
@@ -170,6 +176,18 @@ function getRankClass(position: number) {
   }
 }
 
+function prefersReducedMotion() {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function resetRowAnimation(rowNode: HTMLDivElement) {
+  rowNode.style.transition = '';
+  rowNode.style.transform = '';
+  rowNode.style.willChange = '';
+}
+
 function animateRowTransitions(
   sorted: { id: string }[],
   rowRefs: React.MutableRefObject<Map<string, HTMLDivElement>>,
@@ -177,30 +195,52 @@ function animateRowTransitions(
   timerIdsRef: React.MutableRefObject<number[]>,
   rafIdsRef: React.MutableRefObject<number[]>,
 ) {
-  const nextRowIds = new Set(sorted.map(e => e.id));
+  // Layout positions (offsetTop within the positioned list container) ignore
+  // both page scroll and any transform applied below, so an unchanged list
+  // yields no shift and never replays the previous movement.
+  const nextRowTops = measureRowTops(sorted, rowRefs.current);
+  const shifts = prefersReducedMotion()
+    ? new Map<string, number>()
+    : computeFlipShifts(previousRowTops.current, nextRowTops);
+  previousRowTops.current = nextRowTops;
 
-  for (const [rowId, previousTop] of previousRowTops.current.entries()) {
-    if (!nextRowIds.has(rowId)) { previousRowTops.current.delete(rowId); continue; }
+  const animatedRows: HTMLDivElement[] = [];
+  for (const [rowId, deltaY] of shifts) {
     const rowNode = rowRefs.current.get(rowId);
     if (!rowNode) continue;
-    const deltaY = previousTop - rowNode.getBoundingClientRect().top;
-    if (Math.abs(deltaY) > 1) {
-      rowNode.style.transition = 'none';
-      rowNode.style.transform = `translateY(${deltaY}px)`;
-      rowNode.style.willChange = 'transform';
-      const rafId = requestAnimationFrame(() => {
-        rafIdsRef.current = rafIdsRef.current.filter(id => id !== rafId);
-        rowNode.style.transition = 'transform 380ms cubic-bezier(0.22, 1, 0.36, 1)';
-        rowNode.style.transform = 'translateY(0)';
-        const timerId = window.setTimeout(() => { rowNode.style.willChange = ''; }, 400);
-        timerIdsRef.current.push(timerId);
-      });
-      rafIdsRef.current.push(rafId);
-    }
+    rowNode.style.transition = 'none';
+    rowNode.style.transform = `translateY(${deltaY}px)`;
+    rowNode.style.willChange = 'transform';
+    animatedRows.push(rowNode);
   }
+  if (animatedRows.length === 0) return;
 
+  const rafId = requestAnimationFrame(() => {
+    rafIdsRef.current = rafIdsRef.current.filter(id => id !== rafId);
+    for (const rowNode of animatedRows) {
+      rowNode.style.transition = 'transform 380ms cubic-bezier(0.22, 1, 0.36, 1)';
+      rowNode.style.transform = 'translateY(0)';
+    }
+    const timerId = window.setTimeout(() => {
+      timerIdsRef.current = timerIdsRef.current.filter(id => id !== timerId);
+      animatedRows.forEach(resetRowAnimation);
+      // Re-snapshot once things settle: rank changes also restyle podium cards
+      // (borders, transition-all), so the layout measured at commit time can
+      // still drift by a pixel or two and would otherwise animate next refresh.
+      previousRowTops.current = measureRowTops(sorted, rowRefs.current);
+    }, 400);
+    timerIdsRef.current.push(timerId);
+  });
+  rafIdsRef.current.push(rafId);
+}
+
+function measureRowTops(sorted: { id: string }[], rowNodes: Map<string, HTMLDivElement>) {
+  const tops = new Map<string, number>();
   for (const entry of sorted) {
-    const rowNode = rowRefs.current.get(entry.id);
-    if (rowNode) previousRowTops.current.set(entry.id, rowNode.getBoundingClientRect().top);
+    const rowNode = rowNodes.get(entry.id);
+    // offsetParent is null while hidden (display: none): offsetTop reads 0
+    // there and would make every row fly in once the list is shown again.
+    if (rowNode && rowNode.offsetParent) tops.set(entry.id, rowNode.offsetTop);
   }
+  return tops;
 }
