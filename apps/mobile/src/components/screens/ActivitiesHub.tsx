@@ -46,8 +46,8 @@ export function ActivitiesHub({
 
       {!resolvedSection && (
         <Card className="text-center py-10">
-          <p className="text-sm text-[#9a9697]">Sezione non disponibile</p>
-          <p className="text-sm text-[#b8b2b3] mt-1">
+          <p className="text-sm text-fg-tertiary">Sezione non disponibile</p>
+          <p className="text-sm text-fg-secondary mt-1">
             Turni e attivita sono temporaneamente disattivati dalle feature flag.
           </p>
         </Card>
@@ -65,7 +65,7 @@ function SectionSwitcher({
   onSectionChange: (section: ActivitiesHubSection) => void;
 }) {
   return (
-    <div className="rounded-[14px] border border-[#2d2728] bg-[#1a1617] p-1 grid grid-cols-2 gap-1">
+    <div className="rounded-[14px] border border-border bg-surface p-1 grid grid-cols-2 gap-1">
       <SwitcherButton
         active={activeSection === 'turns'}
         icon={<Ticket size={16} />}
@@ -96,8 +96,8 @@ function SwitcherButton({
       onClick={onClick}
       className={`min-h-[44px] rounded-[10px] px-3 text-sm font-medium transition-colors ${
         active
-          ? 'bg-[#f4bf4f] text-[#1a1617]'
-          : 'text-[#b8b2b3] hover:text-white hover:bg-[#2a2425]'
+          ? 'bg-gold-400 text-[#1a1617]'
+          : 'text-fg-secondary hover:text-white hover:bg-[#2a2425]'
       }`}
     >
       <span className="inline-flex items-center gap-2 justify-center w-full">

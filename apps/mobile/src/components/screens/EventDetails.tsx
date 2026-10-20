@@ -54,7 +54,7 @@ export function EventDetails({
   const planningStatusLabel = planning ? getPlanningStatusLabel(planning.status) : 'Da pianificare';
   const planningStatusClassName = planning
     ? getPlanningStatusClassName(planning.status)
-    : 'border-white/10 bg-white/5 text-[#b8b2b3]';
+    : 'border-white/10 bg-white/5 text-fg-secondary';
 
   if (!event) {
     return (
@@ -62,7 +62,7 @@ export function EventDetails({
         <div className="app-content px-6 space-y-6 pt-6">
           <div>
             <h2 className="text-white mb-2">Dettagli evento</h2>
-            <p className="text-[#b8b2b3]">Nessun evento disponibile.</p>
+            <p className="text-fg-secondary">Nessun evento disponibile.</p>
           </div>
           <Button variant="ghost" size="lg" fullWidth onClick={onBack}>
             Torna indietro
@@ -147,7 +147,7 @@ export function EventDetails({
       <div className="app-content px-6 space-y-6 pt-6">
         <div>
           <h2 className="text-white mb-2">Dettagli evento</h2>
-          <p className="text-[#b8b2b3]">Informazioni sull'evento selezionato</p>
+          <p className="text-fg-secondary">Informazioni sull'evento selezionato</p>
         </div>
 
         <Card>
@@ -156,44 +156,44 @@ export function EventDetails({
               <h3 className="text-white text-lg leading-tight">{event.name}</h3>
               {event.genre ? <Badge variant="default" size="sm">{event.genre}</Badge> : null}
             </div>
-            <div className="flex items-center gap-3 text-[#b8b2b3]">
-              <MapPin size={18} className="text-[#f4bf4f]" />
+            <div className="flex items-center gap-3 text-fg-secondary">
+              <MapPin size={18} className="text-accent" />
               <span>{event.theatre}</span>
             </div>
-            <div className="flex items-center gap-3 text-[#b8b2b3]">
-              <Calendar size={18} className="text-[#f4bf4f]" />
+            <div className="flex items-center gap-3 text-fg-secondary">
+              <Calendar size={18} className="text-accent" />
               <span>{event.date}</span>
             </div>
-            <div className="flex items-center gap-3 text-[#b8b2b3]">
-              <Clock size={18} className="text-[#f4bf4f]" />
+            <div className="flex items-center gap-3 text-fg-secondary">
+              <Clock size={18} className="text-accent" />
               <span>{event.time}</span>
             </div>
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-[#1a1617] to-[#241f20]">
-          <h4 className="text-[#f4bf4f] mb-4">Ricompense base</h4>
+        <Card className="bg-gradient-to-br from-surface to-surface-elevated">
+          <h4 className="text-accent mb-4">Ricompense base</h4>
           <div className="grid grid-cols-3 gap-3 text-center">
             <div>
               <p className="text-white text-lg">+{event.baseRewards.xp}</p>
-              <p className="text-xs text-[#b8b2b3]">XP</p>
+              <p className="text-xs text-fg-secondary">XP</p>
             </div>
             <div>
               <p className="text-white text-lg">+{event.baseRewards.reputation}</p>
-              <p className="text-xs text-[#b8b2b3]">Reputazione</p>
+              <p className="text-xs text-fg-secondary">Reputazione</p>
             </div>
             <div>
               <p className="text-white text-lg">+{event.baseRewards.cachet}</p>
-              <p className="text-xs text-[#b8b2b3]">Cachet</p>
+              <p className="text-xs text-fg-secondary">Cachet</p>
             </div>
           </div>
         </Card>
 
-        <Card className="border border-[#f4bf4f]/10 bg-[#151112]">
+        <Card className="border border-accent/10 bg-[#151112]">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h4 className="text-white">Pianificazione partecipazione</h4>
-              <p className="text-sm text-[#b8b2b3] mt-1">
+              <p className="text-sm text-fg-secondary mt-1">
                 Salva il ruolo che intendi coprire per questo evento e mantieni lo stato visibile nella lista.
               </p>
             </div>
@@ -205,7 +205,7 @@ export function EventDetails({
           </div>
 
           <div className="mt-5 space-y-3">
-            <label className="block text-sm text-[#b8b2b3]" htmlFor="event-role-select">
+            <label className="block text-sm text-fg-secondary" htmlFor="event-role-select">
               Ruolo previsto
             </label>
             <Select
@@ -214,7 +214,7 @@ export function EventDetails({
             >
               <SelectTrigger
                 id="event-role-select"
-                className="w-full border-[#2d2728] bg-[#241f20] text-white"
+                className="w-full border-border bg-surface-elevated text-white"
               >
                 <SelectValue placeholder="Scegli un ruolo" />
               </SelectTrigger>
@@ -226,13 +226,13 @@ export function EventDetails({
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-sm text-[#b8b2b3]">
+            <p className="text-sm text-fg-secondary">
               {planning
                 ? `Stato attuale: ${planningStatusLabel.toLowerCase()} come ${savedRoleName}.`
                 : 'Nessuna pianificazione salvata per questo evento.'}
             </p>
             {planning && planning.roleId !== selectedRoleId ? (
-              <p className="text-sm text-[#f4bf4f]">
+              <p className="text-sm text-accent">
                 Modifica pronta da salvare: {selectedRoleName}.
               </p>
             ) : null}
@@ -241,7 +241,7 @@ export function EventDetails({
           {planningError ? (
             <div
               role="alert"
-              className="mt-4 rounded-lg border border-[#ff4d4f]/40 bg-[#ff4d4f]/10 px-4 py-3 text-sm text-[#ff4d4f]"
+              className="mt-4 rounded-lg border border-error/40 bg-error/10 px-4 py-3 text-sm text-error"
             >
               {planningError}
             </div>
@@ -273,7 +273,7 @@ export function EventDetails({
           {calendarError ? (
             <div
               role="alert"
-              className="rounded-lg border border-[#ff4d4f]/40 bg-[#ff4d4f]/10 px-4 py-3 text-sm text-[#ff4d4f]"
+              className="rounded-lg border border-error/40 bg-error/10 px-4 py-3 text-sm text-error"
             >
               {calendarError}
             </div>
@@ -311,9 +311,9 @@ function getPlanningStatusClassName(status: EventPlanning['status']) {
     case 'confirmed':
       return 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300';
     case 'cancelled':
-      return 'border-white/10 bg-white/5 text-[#b8b2b3]';
+      return 'border-white/10 bg-white/5 text-fg-secondary';
     default:
-      return 'border-[#f4bf4f]/40 bg-[#f4bf4f]/10 text-[#f4bf4f]';
+      return 'border-accent/40 bg-accent/10 text-accent';
   }
 }
 

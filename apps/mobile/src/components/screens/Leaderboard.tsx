@@ -48,13 +48,13 @@ export function Leaderboard({ onSelectEntry }: LeaderboardProps) {
     <Screen contentClassName="px-6 pt-6 pb-8 space-y-6">
       <header className="space-y-2">
         <h2 className="text-2xl text-white font-semibold leading-tight">Classifica</h2>
-        <p className="text-sm text-[#b8b2b3]">Top giocatori per XP</p>
+        <p className="text-sm text-fg-secondary">Top giocatori per XP</p>
       </header>
 
       {showInitialLoading ? (
-        <p className="text-[#b8b2b3]">Caricamento...</p>
+        <p className="text-fg-secondary">Caricamento...</p>
       ) : sorted.length === 0 ? (
-        <Card><p className="text-[#b8b2b3]">Nessun dato disponibile.</p></Card>
+        <Card><p className="text-fg-secondary">Nessun dato disponibile.</p></Card>
       ) : (
         <div className="space-y-3">
           {sorted.map((entry, index) => {
@@ -102,8 +102,8 @@ function LeaderboardRow({
       <div className="flex items-center gap-3">
         <RankBadge position={index} />
 
-        <div className={`flex items-center justify-center w-12 h-12 rounded-xl bg-[#241f20] overflow-hidden ${
-          isMe ? 'ring-2 ring-[#f4bf4f]/45 shadow-[0_0_16px_rgba(244,191,79,0.16)]' : ''
+        <div className={`flex items-center justify-center w-12 h-12 rounded-xl bg-surface-elevated overflow-hidden ${
+          isMe ? 'ring-2 ring-gold-400/45 shadow-[0_0_16px_rgba(244,191,79,0.16)]' : ''
         }`}>
           {entry.profileImage ? (
             <img src={entry.profileImage} alt={entry.name} className="w-full h-full object-cover" />
@@ -117,10 +117,10 @@ function LeaderboardRow({
             {isMe && <CurrentUserIndicator />}
             <p className="text-white font-semibold truncate min-w-0" style={{ marginBottom: 0 }}>{entry.name}</p>
           </div>
-          <p className="text-xs text-[#b8b2b3] truncate">{roleName}</p>
+          <p className="text-xs text-fg-secondary truncate">{roleName}</p>
         </div>
 
-        <div className="flex items-center gap-2 text-[#f4bf4f] shrink-0">
+        <div className="flex items-center gap-2 text-accent shrink-0">
           <Trophy size={18} />
           <span className="text-white font-semibold">{entry.xpTotal}</span>
         </div>
@@ -140,8 +140,8 @@ function RankBadge({ position }: { position: number }) {
 function CurrentUserIndicator() {
   return (
     <span className="relative inline-flex w-2.5 h-2.5 shrink-0" aria-hidden="true">
-      <span className="absolute inset-0 rounded-full bg-[#f4bf4f]/35 animate-ping" />
-      <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-[#f4bf4f] shadow-[0_0_10px_rgba(244,191,79,0.28)]" />
+      <span className="absolute inset-0 rounded-full bg-gold-400/35 animate-ping" />
+      <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-gold-400 shadow-[0_0_10px_rgba(244,191,79,0.28)]" />
     </span>
   );
 }
@@ -149,16 +149,16 @@ function CurrentUserIndicator() {
 // === Helpers ===
 
 const PODIUM_CLASSES = [
-  'leaderboard-podium-gold border border-[#f4bf4f]/35 shadow-[0_0_0_1px_rgba(244,191,79,0.10),0_0_24px_rgba(244,191,79,0.14)]',
+  'leaderboard-podium-gold border border-gold-400/35 shadow-[0_0_0_1px_rgba(244,191,79,0.10),0_0_24px_rgba(244,191,79,0.14)]',
   'leaderboard-podium-silver border border-[#d0d5dd]/28 shadow-[0_0_0_1px_rgba(208,213,221,0.08),0_0_20px_rgba(208,213,221,0.10)]',
   'leaderboard-podium-bronze border border-[#c97a3d]/28 shadow-[0_0_0_1px_rgba(201,122,61,0.08),0_0_20px_rgba(201,122,61,0.10)]',
 ];
 
 function getPodiumCardClass(position: number, isMe: boolean) {
   if (position < 3) {
-    return `${PODIUM_CLASSES[position]}${isMe ? ' ring-1 ring-[#f4bf4f]/18' : ''}`;
+    return `${PODIUM_CLASSES[position]}${isMe ? ' ring-1 ring-gold-400/18' : ''}`;
   }
-  return isMe ? 'border border-[#f4bf4f]/25 shadow-[0_0_0_1px_rgba(244,191,79,0.08),0_0_18px_rgba(244,191,79,0.10)]' : '';
+  return isMe ? 'border border-gold-400/25 shadow-[0_0_0_1px_rgba(244,191,79,0.08),0_0_18px_rgba(244,191,79,0.10)]' : '';
 }
 
 function getRankClass(position: number) {
@@ -166,7 +166,7 @@ function getRankClass(position: number) {
     case 0: return 'bg-gradient-to-b from-[#f6c85f] to-[#d89a1f] text-[#0f0d0e] shadow-[0_8px_18px_rgba(244,191,79,0.24)]';
     case 1: return 'bg-gradient-to-b from-[#e5e7eb] to-[#aeb6c2] text-[#0f0d0e] shadow-[0_8px_18px_rgba(208,213,221,0.18)]';
     case 2: return 'bg-gradient-to-b from-[#d7996a] to-[#a95e27] text-white shadow-[0_8px_18px_rgba(201,122,61,0.18)]';
-    default: return 'text-[#b8b2b3]';
+    default: return 'text-fg-secondary';
   }
 }
 

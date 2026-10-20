@@ -170,8 +170,8 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
     return (
       <Screen withBottomNavPadding={false}>
         <div className="flex flex-1 flex-col items-center justify-center gap-4">
-          <div className="size-8 animate-spin rounded-full border-2 border-[#a82847] border-t-transparent" aria-hidden="true" />
-          <p className="text-sm text-[#9a9697]">Maxwell sta preparando uno scenario…</p>
+          <div className="size-8 animate-spin rounded-full border-2 border-burgundy-600 border-t-transparent" aria-hidden="true" />
+          <p className="text-sm text-fg-tertiary">Maxwell sta preparando uno scenario…</p>
         </div>
       </Screen>
     );
@@ -182,11 +182,11 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
       <Screen withBottomNavPadding={false}>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
           <h1 className="text-xl font-semibold text-[#f5f0f1]">Sfida completata!</h1>
-          <p className="text-sm text-[#9a9697]">Hai già completato lo scenario di oggi.<br />Torna domani per la prossima sfida.</p>
+          <p className="text-sm text-fg-tertiary">Hai già completato lo scenario di oggi.<br />Torna domani per la prossima sfida.</p>
           <button
             type="button"
             onClick={onClose}
-            className="mt-2 rounded-xl bg-[#a82847] px-6 py-2 text-sm font-medium text-white"
+            className="mt-2 rounded-xl bg-burgundy-600 px-6 py-2 text-sm font-medium text-white"
           >
             Torna alle attività
           </button>
@@ -200,13 +200,13 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
     return (
       <Screen withBottomNavPadding={false}>
         <h1 className="text-xl font-semibold">Scenario non disponibile</h1>
-        <p className="text-sm text-[#9a9697]">{local.message}</p>
+        <p className="text-sm text-fg-tertiary">{local.message}</p>
         <div className="mt-4 flex gap-3">
           {canRetry && (
             <button
               type="button"
               onClick={startLoad}
-              className="rounded-xl bg-[#a82847] px-4 py-2 text-sm font-medium text-white"
+              className="rounded-xl bg-burgundy-600 px-4 py-2 text-sm font-medium text-white"
             >
               Riprova
             </button>
@@ -214,7 +214,7 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-[#4a3f41] px-4 py-2 text-sm font-medium text-[#b8b2b3]"
+            className="rounded-xl border border-[#4a3f41] px-4 py-2 text-sm font-medium text-fg-secondary"
           >
             Torna indietro
           </button>
@@ -254,14 +254,14 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
 
     return (
       <Screen withBottomNavPadding={false}>
-        <span className="text-xs uppercase tracking-wider text-[#a82847]">Esito</span>
+        <span className="text-xs uppercase tracking-wider text-burgundy-600">Esito</span>
         <h1 className="text-xl font-semibold">{local.scene.title}</h1>
-        <p className="text-base leading-relaxed text-[#e3e0e0]">{local.outcome.text}</p>
+        <p className="text-base leading-relaxed text-fg-secondary">{local.outcome.text}</p>
         <p className="text-sm font-medium text-[#d4af37]">{rewardsLine(local.rewards)}</p>
         <button
           type="button"
           onClick={handleContinue}
-          className="mt-6 w-full rounded-xl bg-[#a82847] px-4 py-3 text-sm font-medium text-white"
+          className="mt-6 w-full rounded-xl bg-burgundy-600 px-4 py-3 text-sm font-medium text-white"
         >
           {local.finished ? 'Continua' : 'Avanti →'}
         </button>
@@ -338,18 +338,18 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
   return (
     <Screen withBottomNavPadding={false}>
       <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wider text-[#9a9697]">{activeScene.setting}</span>
+        <span className="text-xs uppercase tracking-wider text-fg-tertiary">{activeScene.setting}</span>
         <button
           type="button"
           onClick={onClose}
-          className="text-xs text-[#9a9697] underline"
+          className="text-xs text-fg-tertiary underline"
           aria-label="Chiudi scenario"
         >
           Esci
         </button>
       </div>
       <h1 className="text-xl font-semibold">{activeScene.title}</h1>
-      <p className="text-base leading-relaxed text-[#e3e0e0]">{activeScene.prompt}</p>
+      <p className="text-base leading-relaxed text-fg-secondary">{activeScene.prompt}</p>
 
       <div className="mt-4 flex flex-col gap-2">
         {activeScene.choices.map(choice => {
@@ -364,15 +364,15 @@ export function NarrativeScene({ sceneId, roleId, roleStats, onSubmit, onClose }
               disabled={disabled}
               className={`rounded-xl border px-4 py-3 text-left text-sm transition ${
                 disabled
-                  ? 'border-[#2d2728] bg-[#1a1617] text-[#6f6a6b]'
-                  : 'border-[#a82847] bg-[#1a1617] text-white hover:bg-[#2d1820]'
+                  ? 'border-border bg-surface text-[#6f6a6b]'
+                  : 'border-burgundy-600 bg-surface text-white hover:bg-[#2d1820]'
               }`}
             >
               <span className="block font-medium">{choice.label}</span>
               {!availability.available && availability.reason === 'stat' && availability.detail && (
-                <span className="mt-1 block text-xs text-[#a82847]">{availability.detail}</span>
+                <span className="mt-1 block text-xs text-burgundy-600">{availability.detail}</span>
               )}
-              {isSubmittingThis && <span className="mt-1 block text-xs text-[#9a9697]">In corso…</span>}
+              {isSubmittingThis && <span className="mt-1 block text-xs text-fg-tertiary">In corso…</span>}
             </button>
           );
         })}

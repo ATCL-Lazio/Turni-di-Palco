@@ -64,7 +64,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
           <button
             type="button"
             onClick={onBack}
-            className="flex items-center justify-center size-[44px] text-[#f4bf4f] shrink-0"
+            className="flex items-center justify-center size-[44px] text-accent shrink-0"
             aria-label="Indietro"
           >
             <ArrowLeft size={24} />
@@ -73,14 +73,14 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
 
         {/* Title block */}
         <div className="flex items-start gap-3">
-          <div className="flex items-center justify-center size-[48px] rounded-[14px] bg-[#f4bf4f]/10 shrink-0">
-            <Shield size={24} className="text-[#f4bf4f]" />
+          <div className="flex items-center justify-center size-[48px] rounded-[14px] bg-accent/10 shrink-0">
+            <Shield size={24} className="text-accent" />
           </div>
           <div className="flex flex-col gap-0.5">
-            <h1 className="text-[22px] leading-[28px] font-bold tracking-[-0.2px] text-[#f5f5f5]">
+            <h1 className="text-[22px] leading-[28px] font-bold tracking-[-0.2px] text-fg-primary">
               Privacy Policy
             </h1>
-            <p className="text-[14px] leading-[20px] text-[#b8b2b3]">
+            <p className="text-[14px] leading-[20px] text-fg-secondary">
               Come trattiamo i tuoi dati
             </p>
             <p className="text-[12px] leading-[16px] text-[#b8b2b3]/60">
@@ -98,14 +98,14 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
             {highlights.map(({ icon: Icon, title, desc }) => (
               <div
                 key={title}
-                className="bg-[#1a1617] rounded-[14px] p-3.5 flex flex-col gap-2"
+                className="bg-surface rounded-[14px] p-3.5 flex flex-col gap-2"
               >
-                <div className="flex items-center justify-center size-[32px] rounded-[9px] bg-[#f4bf4f]/10">
-                  <Icon size={16} className="text-[#f4bf4f]" />
+                <div className="flex items-center justify-center size-[32px] rounded-[9px] bg-accent/10">
+                  <Icon size={16} className="text-accent" />
                 </div>
                 <div>
-                  <p className="text-[13px] font-semibold text-[#f5f5f5] leading-[18px]">{title}</p>
-                  <p className="text-[12px] leading-[17px] text-[#b8b2b3] mt-0.5">{desc}</p>
+                  <p className="text-[13px] font-semibold text-fg-primary leading-[18px]">{title}</p>
+                  <p className="text-[12px] leading-[17px] text-fg-secondary mt-0.5">{desc}</p>
                 </div>
               </div>
             ))}
@@ -117,41 +117,41 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
           <p className="text-[11px] font-semibold uppercase tracking-widest text-[#b8b2b3]/60 px-1">
             Intelligenza artificiale
           </p>
-          <div className="bg-[#1a1617] rounded-[16px] p-4 flex flex-col gap-3">
+          <div className="bg-surface rounded-[16px] p-4 flex flex-col gap-3">
             <div className="flex items-start gap-3">
-              <div className="flex items-center justify-center size-[36px] rounded-[10px] bg-[#f4bf4f]/10 shrink-0">
-                <Sparkles size={18} className="text-[#f4bf4f]" />
+              <div className="flex items-center justify-center size-[36px] rounded-[10px] bg-accent/10 shrink-0">
+                <Sparkles size={18} className="text-accent" />
               </div>
               <div className="flex flex-col gap-0.5">
-                <p className="text-[14px] font-semibold text-[#f5f5f5] leading-[19px]">
+                <p className="text-[14px] font-semibold text-fg-primary leading-[19px]">
                   Assistente "Maxwell"
                 </p>
-                <p className="text-[12px] leading-[17px] text-[#b8b2b3]">
+                <p className="text-[12px] leading-[17px] text-fg-secondary">
                   In conformità al Regolamento UE 2024/1689 (AI Act)
                 </p>
               </div>
             </div>
-            <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
-              Il supporto è gestito da <span className="text-[#f5f5f5] font-medium">Maxwell</span>,
+            <p className="text-[13px] leading-[19px] text-fg-secondary">
+              Il supporto è gestito da <span className="text-fg-primary font-medium">Maxwell</span>,
               un assistente conversazionale basato su intelligenza artificiale. Ti
               informiamo sempre quando stai interagendo con l'IA e le sue risposte
               sono chiaramente indicate come generate automaticamente.
             </p>
-            <ul className="flex flex-col gap-2 text-[13px] leading-[19px] text-[#b8b2b3]">
+            <ul className="flex flex-col gap-2 text-[13px] leading-[19px] text-fg-secondary">
               <li className="flex gap-2">
-                <span className="text-[#f4bf4f]">•</span>
+                <span className="text-accent">•</span>
                 Le risposte possono contenere imprecisioni: verifica sempre le informazioni importanti.
               </li>
               <li className="flex gap-2">
-                <span className="text-[#f4bf4f]">•</span>
+                <span className="text-accent">•</span>
                 Non vengono prese decisioni automatizzate con effetti giuridici o significativi sul tuo account.
               </li>
               <li className="flex gap-2">
-                <span className="text-[#f4bf4f]">•</span>
+                <span className="text-accent">•</span>
                 I messaggi che invii vengono usati solo per generare la risposta ed eventuali segnalazioni di supporto.
               </li>
               <li className="flex gap-2">
-                <span className="text-[#f4bf4f]">•</span>
+                <span className="text-accent">•</span>
                 Puoi sempre richiedere assistenza a un operatore umano.
               </li>
             </ul>
@@ -160,51 +160,51 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
 
         {/* Titolare del trattamento e DPO — GDPR Art. 13 */}
         <LegalSection icon={Building2} title="Titolare del trattamento">
-          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
-            Il titolare del trattamento è <span className="text-[#f5f5f5] font-medium">{CONTROLLER.name}</span>,
+          <p className="text-[13px] leading-[19px] text-fg-secondary">
+            Il titolare del trattamento è <span className="text-fg-primary font-medium">{CONTROLLER.name}</span>,
             {' '}{CONTROLLER.address}.
           </p>
-          <ul className="flex flex-col gap-1.5 text-[13px] leading-[19px] text-[#b8b2b3]">
-            <li>PEC: <span className="text-[#f5f5f5]">{CONTROLLER.pec}</span></li>
-            <li>Email privacy: <span className="text-[#f5f5f5]">{CONTROLLER.privacyEmail}</span></li>
-            <li>Responsabile della protezione dei dati (DPO/RPD): <span className="text-[#f5f5f5]">{CONTROLLER.dpo}</span> — {CONTROLLER.privacyEmail}</li>
+          <ul className="flex flex-col gap-1.5 text-[13px] leading-[19px] text-fg-secondary">
+            <li>PEC: <span className="text-fg-primary">{CONTROLLER.pec}</span></li>
+            <li>Email privacy: <span className="text-fg-primary">{CONTROLLER.privacyEmail}</span></li>
+            <li>Responsabile della protezione dei dati (DPO/RPD): <span className="text-fg-primary">{CONTROLLER.dpo}</span> — {CONTROLLER.privacyEmail}</li>
           </ul>
         </LegalSection>
 
         {/* Dati raccolti, finalità e base giuridica — GDPR Art. 13 */}
         <LegalSection icon={Database} title="Dati che trattiamo e perché">
-          <ul className="flex flex-col gap-2 text-[13px] leading-[19px] text-[#b8b2b3]">
+          <ul className="flex flex-col gap-2 text-[13px] leading-[19px] text-fg-secondary">
             <Bullet>
-              <b className="text-[#f5f5f5] font-medium">Dati account</b> (nome visualizzato, email, password, ruolo, foto profilo) — per creare e gestire il tuo account. Base giuridica: esecuzione del contratto (Art. 6.1.b).
+              <b className="text-fg-primary font-medium">Dati account</b> (nome visualizzato, email, password, ruolo, foto profilo) — per creare e gestire il tuo account. Base giuridica: esecuzione del contratto (Art. 6.1.b).
             </Bullet>
             <Bullet>
-              <b className="text-[#f5f5f5] font-medium">Data di nascita</b> — usata solo al momento della registrazione per verificare l'età minima (14 anni) e non conservata.
+              <b className="text-fg-primary font-medium">Data di nascita</b> — usata solo al momento della registrazione per verificare l'età minima (14 anni) e non conservata.
             </Bullet>
             <Bullet>
-              <b className="text-[#f5f5f5] font-medium">Geolocalizzazione</b> — raccolta solo durante la registrazione dei turni, previo consenso esplicito (Art. 6.1.a). Puoi revocarlo in ogni momento.
+              <b className="text-fg-primary font-medium">Geolocalizzazione</b> — raccolta solo durante la registrazione dei turni, previo consenso esplicito (Art. 6.1.a). Puoi revocarlo in ogni momento.
             </Bullet>
             <Bullet>
-              <b className="text-[#f5f5f5] font-medium">Dati di gioco</b> (progressi, turni, badge, classifica) — per il funzionamento del servizio. Base giuridica: contratto.
+              <b className="text-fg-primary font-medium">Dati di gioco</b> (progressi, turni, badge, classifica) — per il funzionamento del servizio. Base giuridica: contratto.
             </Bullet>
             <Bullet>
-              <b className="text-[#f5f5f5] font-medium">Statistiche d'uso</b> — pseudonimizzate e raccolte solo con il tuo consenso analytics (Art. 6.1.a).
+              <b className="text-fg-primary font-medium">Statistiche d'uso</b> — pseudonimizzate e raccolte solo con il tuo consenso analytics (Art. 6.1.a).
             </Bullet>
           </ul>
         </LegalSection>
 
         {/* Destinatari, sub-responsabili e trasferimenti — GDPR Artt. 28, 44-49 */}
         <LegalSection icon={Users} title="Destinatari e trasferimenti">
-          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+          <p className="text-[13px] leading-[19px] text-fg-secondary">
             Non vendiamo i tuoi dati. Ci avvaliamo di fornitori che trattano i dati per nostro conto (responsabili del trattamento):
           </p>
-          <ul className="flex flex-col gap-2 text-[13px] leading-[19px] text-[#b8b2b3]">
-            <Bullet><b className="text-[#f5f5f5] font-medium">Supabase</b> — database, autenticazione e archiviazione.</Bullet>
-            <Bullet><b className="text-[#f5f5f5] font-medium">Vercel</b> — hosting dell'applicazione e delle API.</Bullet>
-            <Bullet><b className="text-[#f5f5f5] font-medium">Render</b> — servizio dell'assistente AI "Maxwell".</Bullet>
-            <Bullet><b className="text-[#f5f5f5] font-medium">GitHub</b> — gestione delle segnalazioni di supporto.</Bullet>
-            <Bullet><b className="text-[#f5f5f5] font-medium">Iubenda</b> — pubblicazione della documentazione privacy.</Bullet>
+          <ul className="flex flex-col gap-2 text-[13px] leading-[19px] text-fg-secondary">
+            <Bullet><b className="text-fg-primary font-medium">Supabase</b> — database, autenticazione e archiviazione.</Bullet>
+            <Bullet><b className="text-fg-primary font-medium">Vercel</b> — hosting dell'applicazione e delle API.</Bullet>
+            <Bullet><b className="text-fg-primary font-medium">Render</b> — servizio dell'assistente AI "Maxwell".</Bullet>
+            <Bullet><b className="text-fg-primary font-medium">GitHub</b> — gestione delle segnalazioni di supporto.</Bullet>
+            <Bullet><b className="text-fg-primary font-medium">Iubenda</b> — pubblicazione della documentazione privacy.</Bullet>
           </ul>
-          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+          <p className="text-[13px] leading-[19px] text-fg-secondary">
             Alcuni fornitori possono trattare i dati al di fuori dell'UE/SEE: in tal caso il trasferimento è
             regolato da garanzie adeguate ai sensi degli Artt. 44-49 GDPR (es. Clausole Contrattuali Standard).
           </p>
@@ -212,25 +212,25 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
 
         {/* Conservazione — GDPR Art. 5.1.e */}
         <LegalSection icon={Clock} title="Per quanto tempo li conserviamo">
-          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+          <p className="text-[13px] leading-[19px] text-fg-secondary">
             Conserviamo i dati personali solo per il tempo necessario alle finalità indicate e agli
             obblighi di legge:
           </p>
-          <ul className="flex flex-col gap-2 text-[13px] leading-[19px] text-[#b8b2b3]">
+          <ul className="flex flex-col gap-2 text-[13px] leading-[19px] text-fg-secondary">
             <Bullet>
-              <b className="text-[#f5f5f5] font-medium">Dati account e di gioco</b>: per tutta la durata
+              <b className="text-fg-primary font-medium">Dati account e di gioco</b>: per tutta la durata
               dell'account; vengono eliminati quando richiedi la cancellazione dell'account.
             </Bullet>
             <Bullet>
-              <b className="text-[#f5f5f5] font-medium">Geolocalizzazione</b>: <span className="text-[#f5f5f5]">non viene conservata</span>.
+              <b className="text-fg-primary font-medium">Geolocalizzazione</b>: <span className="text-fg-primary">non viene conservata</span>.
               È usata solo in tempo reale per verificare la presenza al turno e non viene salvata nei nostri archivi.
             </Bullet>
             <Bullet>
-              <b className="text-[#f5f5f5] font-medium">Statistiche d'uso</b>: raccolte in forma
+              <b className="text-fg-primary font-medium">Statistiche d'uso</b>: raccolte in forma
               pseudonimizzata e conservate per un periodo limitato.
             </Bullet>
             <Bullet>
-              <b className="text-[#f5f5f5] font-medium">Log tecnici</b>: gestiti a fini di sicurezza e
+              <b className="text-fg-primary font-medium">Log tecnici</b>: gestiti a fini di sicurezza e
               diagnostica dai nostri fornitori per un periodo limitato.
             </Bullet>
           </ul>
@@ -238,8 +238,8 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
 
         {/* Minori — GDPR Art. 8 */}
         <LegalSection icon={Baby} title="Minori">
-          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
-            Il servizio è rivolto a persone di almeno <span className="text-[#f5f5f5] font-medium">14 anni</span>,
+          <p className="text-[13px] leading-[19px] text-fg-secondary">
+            Il servizio è rivolto a persone di almeno <span className="text-fg-primary font-medium">14 anni</span>,
             età del consenso digitale in Italia (D.Lgs. 101/2018). Alla registrazione verifichiamo l'età e
             non consentiamo l'iscrizione agli under-14. Se ritieni che un minore di 14 anni si sia registrato,
             scrivici a {CONTROLLER.privacyEmail} e provvederemo.
@@ -248,19 +248,19 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
 
         {/* Diritti dell'interessato — GDPR Artt. 15-22 */}
         <LegalSection icon={Scale} title="I tuoi diritti">
-          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+          <p className="text-[13px] leading-[19px] text-fg-secondary">
             Puoi esercitare in ogni momento i diritti di accesso, rettifica, cancellazione, limitazione,
             opposizione e portabilità, e revocare i consensi prestati. Dall'app puoi scaricare i tuoi dati
             ed eliminare l'account. Per richieste: {CONTROLLER.privacyEmail}.
           </p>
-          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
-            Hai inoltre il diritto di proporre reclamo al <span className="text-[#f5f5f5] font-medium">Garante per la protezione dei dati personali</span> (garanteprivacy.it).
+          <p className="text-[13px] leading-[19px] text-fg-secondary">
+            Hai inoltre il diritto di proporre reclamo al <span className="text-fg-primary font-medium">Garante per la protezione dei dati personali</span> (garanteprivacy.it).
           </p>
         </LegalSection>
 
         {/* Cookie e archiviazione locale — ePrivacy */}
         <LegalSection icon={Cookie} title="Cookie e archiviazione locale">
-          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+          <p className="text-[13px] leading-[19px] text-fg-secondary">
             Usiamo solo cookie/archiviazione tecnica necessari al funzionamento (sessione, preferenze,
             consensi). Le statistiche d'uso sono attivate solo con un consenso separato e revocabile,
             gestibile da "Gestisci account → Privacy". Non usiamo cookie di profilazione pubblicitaria.
@@ -269,7 +269,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
 
         {/* Dichiarazione di accessibilità */}
         <LegalSection icon={Accessibility} title="Accessibilità">
-          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+          <p className="text-[13px] leading-[19px] text-fg-secondary">
             Ci impegniamo a rendere l'applicazione accessibile e a migliorarla continuamente, ispirandoci
             alle Linee guida WCAG 2.1 livello AA. Se incontri barriere o difficoltà d'uso, segnalacelo a
             {' '}{CONTROLLER.privacyEmail}: interverremo per trovare una soluzione.
@@ -280,16 +280,16 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
             Sostituisce l'embed Iubenda: nessuna dipendenza da terzi per il
             documento legale, che resta consultabile senza connessione. */}
         <LegalSection icon={FileText} title="Documento completo">
-          <p className="text-[13px] leading-[19px] text-[#b8b2b3]">
+          <p className="text-[13px] leading-[19px] text-fg-secondary">
             Le sezioni qui sopra costituiscono la Privacy Policy vigente di Turni di Palco:
-            è un documento completo e sempre consultabile, <span className="text-[#f5f5f5] font-medium">anche offline</span>.
-            Per richieste scrivi a <span className="text-[#f5f5f5]">{CONTROLLER.privacyEmail}</span>.
+            è un documento completo e sempre consultabile, <span className="text-fg-primary font-medium">anche offline</span>.
+            Per richieste scrivi a <span className="text-fg-primary">{CONTROLLER.privacyEmail}</span>.
           </p>
           <a
             href={IUBENDA_PRIVACY_POLICY_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[13px] leading-[19px] text-[#f4bf4f] underline underline-offset-2"
+            className="text-[13px] leading-[19px] text-accent underline underline-offset-2"
           >
             Consulta anche la versione archiviata su Iubenda
           </a>
@@ -317,9 +317,9 @@ function LegalSection({
       <p className="text-[11px] font-semibold uppercase tracking-widest text-[#b8b2b3]/60 px-1">
         {title}
       </p>
-      <div className="bg-[#1a1617] rounded-[16px] p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-center size-[36px] rounded-[10px] bg-[#f4bf4f]/10">
-          <Icon size={18} className="text-[#f4bf4f]" />
+      <div className="bg-surface rounded-[16px] p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-center size-[36px] rounded-[10px] bg-accent/10">
+          <Icon size={18} className="text-accent" />
         </div>
         {children}
       </div>
@@ -330,7 +330,7 @@ function LegalSection({
 function Bullet({ children }: { children: React.ReactNode }) {
   return (
     <li className="flex gap-2">
-      <span className="text-[#f4bf4f]">•</span>
+      <span className="text-accent">•</span>
       <span>{children}</span>
     </li>
   );

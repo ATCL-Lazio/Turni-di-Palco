@@ -188,7 +188,7 @@ export function Courses({ embedded = false }: CoursesProps) {
     <>
       <header className="space-y-2">
         <h2 className="text-white">Corsi di Formazione</h2>
-        <p className="text-[#b8b2b3]">
+        <p className="text-fg-secondary">
           Investi tempo e cachet per migliorare le tue skill
         </p>
       </header>
@@ -198,7 +198,7 @@ export function Courses({ embedded = false }: CoursesProps) {
 
       {/* Feedback messaggio */}
       {feedback && (
-        <div className="rounded-xl bg-[#241f20] border border-[#a82847]/40 px-4 py-3 text-sm text-white">
+        <div className="rounded-xl bg-surface-elevated border border-burgundy-600/40 px-4 py-3 text-sm text-white">
           {feedback}
         </div>
       )}
@@ -248,16 +248,16 @@ function SkillsCard({
   );
 
   return (
-    <Card className="border border-[#2d2728] bg-[#1a1617]">
+    <Card className="border border-border bg-surface">
       <div className="flex items-center gap-2 mb-3">
-        <TrendingUp size={16} className="text-[#f4bf4f]" />
+        <TrendingUp size={16} className="text-accent" />
         <h3 className="text-white text-sm font-semibold">Le tue skill</h3>
       </div>
       <div className="grid grid-cols-2 gap-3">
         {entries.map(([skill, value]) => (
           <div key={skill} className="space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[#b8b2b3]">{SKILL_LABELS[skill]}</span>
+              <span className="text-xs text-fg-secondary">{SKILL_LABELS[skill]}</span>
               <span
                 className="text-xs font-semibold"
                 style={{ color: SKILL_COLORS[skill] }}
@@ -295,7 +295,7 @@ function CourseCard({
   const skillLabel = SKILL_LABELS[course.skill];
 
   return (
-    <Card className="border border-white/5 bg-gradient-to-br from-[#1a1617] via-[#1d1819] to-[#221d1e]">
+    <Card className="border border-white/5 bg-gradient-to-br from-surface via-surface-elevated to-surface-elevated">
       <div className="flex items-start gap-4">
         {/* Icona */}
         <div
@@ -309,7 +309,7 @@ function CourseCard({
           {/* Intestazione */}
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-xs uppercase tracking-wide text-[#b8b2b3]">
+              <p className="text-xs uppercase tracking-wide text-fg-secondary">
                 {skillLabel} · +{course.skillPoints} punti
               </p>
               <h4 className="text-white text-base font-semibold leading-tight">
@@ -320,10 +320,10 @@ function CourseCard({
           </div>
 
           {/* Descrizione */}
-          <p className="text-sm text-[#b8b2b3]">{course.description}</p>
+          <p className="text-sm text-fg-secondary">{course.description}</p>
 
           {/* Metadati */}
-          <div className="flex flex-wrap items-center gap-3 text-sm text-[#b8b2b3]">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-fg-secondary">
             <span className="inline-flex items-center gap-1.5">
               <Clock size={13} />
               {course.durationMinutes} min
@@ -381,7 +381,7 @@ function ActiveProgress({
 
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between text-xs text-[#b8b2b3]">
+      <div className="flex items-center justify-between text-xs text-fg-secondary">
         <span>Progresso</span>
         <span>
           {status.remainingMs > 0
@@ -416,7 +416,7 @@ function CourseActions({
           'w-full rounded-xl px-4 py-2 text-sm font-medium text-white transition-opacity',
           canComplete && !isBusy
             ? 'bg-[#4fc87a] hover:opacity-90'
-            : 'bg-[#2d2728] opacity-50 cursor-not-allowed',
+            : 'bg-surface-hover opacity-50 cursor-not-allowed',
         ].join(' ')}
       >
         <span className="inline-flex items-center gap-2 justify-center">
@@ -449,7 +449,7 @@ function CourseActions({
       disabled={isBusy}
       className={[
         'w-full rounded-xl px-4 py-2 text-sm font-medium text-white transition-opacity',
-        isBusy ? 'bg-[#2d2728] opacity-50 cursor-not-allowed' : 'bg-[#a82847] hover:opacity-90',
+        isBusy ? 'bg-surface-hover opacity-50 cursor-not-allowed' : 'bg-burgundy-600 hover:opacity-90',
       ].join(' ')}
     >
       <span className="inline-flex items-center gap-2 justify-center">

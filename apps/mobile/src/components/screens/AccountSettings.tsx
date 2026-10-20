@@ -109,20 +109,20 @@ export function AccountSettings({
   return (
     <>
     <AlertDialog open={confirmPending !== null} onOpenChange={open => { if (!open) setConfirmPending(null); }}>
-      <AlertDialogContent className="bg-[#1a1617] border-[#2d2728] text-white">
+      <AlertDialogContent className="bg-surface border-border text-white">
         <AlertDialogHeader>
           <AlertDialogTitle>{confirmPending ? confirmConfig[confirmPending].title : ''}</AlertDialogTitle>
-          <AlertDialogDescription className="text-[#b8b2b3]">
+          <AlertDialogDescription className="text-fg-secondary">
             {confirmPending ? confirmConfig[confirmPending].description : ''}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="bg-transparent border-[#2d2728] text-[#b8b2b3] hover:bg-[#2d2728] hover:text-white">Annulla</AlertDialogCancel>
+          <AlertDialogCancel className="bg-transparent border-border text-fg-secondary hover:bg-[#2d2728] hover:text-white">Annulla</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
             className={confirmPending && confirmConfig[confirmPending].destructive
-              ? 'bg-[#a82847] hover:bg-[#8c1c38] text-white border-0'
-              : 'bg-[#f4bf4f] hover:bg-[#d4a030] text-[#0f0d0e] border-0'}>
+              ? 'bg-burgundy-600 hover:bg-[#8c1c38] text-white border-0'
+              : 'bg-gold-400 hover:bg-[#d4a030] text-[#0f0d0e] border-0'}>
             {confirmPending ? confirmConfig[confirmPending].actionLabel : ''}
           </AlertDialogAction>
         </AlertDialogFooter>
@@ -135,13 +135,13 @@ export function AccountSettings({
     >
       <div className="flex h-full w-full flex-col gap-6">
         <button type="button" onClick={onBack}
-          className="flex items-center justify-center size-[44px] text-[#f4bf4f]" aria-label="Indietro">
+          className="flex items-center justify-center size-[44px] text-accent" aria-label="Indietro">
           <ArrowLeft size={24} />
         </button>
 
         <div className="flex flex-col items-start gap-1">
-          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-[#f5f5f5]">Gestisci account</p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3]">Impostazioni e privacy</p>
+          <p className="text-[24px] leading-[31.2px] font-bold tracking-[-0.24px] text-fg-primary">Gestisci account</p>
+          <p className="text-[16px] leading-[25.6px] text-fg-secondary">Impostazioni e privacy</p>
         </div>
 
         <UserInfoCard userName={userName} email={email} />
@@ -177,18 +177,18 @@ export function AccountSettings({
         />
         <SettingsActionCard icon={KeyRound} label="Cambia password" subtitle="Aggiorna le credenziali di accesso" onClick={onChangePassword} />
         <SettingsActionCard icon={RotateCcw} label="Reimposta tutorial" subtitle="Rivedi la guida di benvenuto" onClick={handleResetTutorial} />
-        <SettingsActionCard icon={Trash2} label="Resetta progressi" subtitle="Azzeramento irreversibile della carriera" onClick={handleReset} iconColor="text-[#ff4d4f]" />
+        <SettingsActionCard icon={Trash2} label="Resetta progressi" subtitle="Azzeramento irreversibile della carriera" onClick={handleReset} iconColor="text-error" />
 
         <div className="mt-auto flex flex-col gap-4">
-          {resetError && <p className="text-[14px] leading-[20px] text-[#ff4d4f] text-center">{resetError}</p>}
-          {deleteError && <p className="text-[14px] leading-[20px] text-[#ff4d4f] text-center">{deleteError}</p>}
+          {resetError && <p className="text-[14px] leading-[20px] text-error text-center">{resetError}</p>}
+          {deleteError && <p className="text-[14px] leading-[20px] text-error text-center">{deleteError}</p>}
           <CopyrightNotice />
           <button type="button" onClick={handleDeleteAccount}
             className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[14px] leading-[20px] text-[#ff4d4f]/70 w-full">
             <UserX size={16} /> Elimina account
           </button>
           <button type="button" onClick={onLogout}
-            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[18px] leading-[28px] text-[#ff4d4f] w-full">
+            className="flex items-center justify-center gap-[6px] h-[44px] rounded-md text-[18px] leading-[28px] text-error w-full">
             <LogOut size={20} /> Esci
           </button>
         </div>
@@ -203,10 +203,10 @@ export function AccountSettings({
 function UserInfoCard({ userName, email }: { userName: string; email: string }) {
   return (
     <SettingsCard>
-      <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
+      <div className="flex items-center justify-between text-[14px] leading-[20px] text-fg-secondary">
         <span>Nome</span><span className="text-white">{userName || 'Utente'}</span>
       </div>
-      <div className="flex items-center justify-between text-[14px] leading-[20px] text-[#b8b2b3]">
+      <div className="flex items-center justify-between text-[14px] leading-[20px] text-fg-secondary">
         <span>Email</span><span className="text-white">{email || '—'}</span>
       </div>
     </SettingsCard>
@@ -231,21 +231,21 @@ function AccessibilityCard() {
   return (
     <SettingsCard className="gap-[14px]">
       <div className="flex items-center gap-[12px]">
-        <Accessibility className="text-[#f4bf4f]" size={24} aria-hidden="true" />
+        <Accessibility className="text-accent" size={24} aria-hidden="true" />
         <div className="text-left">
           <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">Accessibilità</p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">Tema, font e modalità accessibile</p>
+          <p className="text-[16px] leading-[25.6px] text-fg-secondary !m-0">Tema, font e modalità accessibile</p>
         </div>
       </div>
 
-      <div className="border-t border-[#2d2728] pt-[12px] flex flex-col gap-[16px]">
+      <div className="border-t border-border pt-[12px] flex flex-col gap-[16px]">
         {/* Theme */}
         <div className="flex flex-col gap-[8px]" role="radiogroup" aria-label="Tema interfaccia">
           <div className="flex items-center gap-[8px]">
-            <Sun size={16} className="text-[#f4bf4f]" aria-hidden="true" />
+            <Sun size={16} className="text-accent" aria-hidden="true" />
             <p className="text-[16px] leading-[25.6px] text-white !m-0">Tema</p>
           </div>
-          <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">
+          <p className="text-[12px] leading-[18px] text-fg-secondary !m-0">
             Il tema chiaro migliora la leggibilità per chi ha sensibilità ai contrasti elevati.
           </p>
           <div className="flex gap-[8px]">
@@ -258,8 +258,8 @@ function AccessibilityCard() {
                 onClick={() => setTheme(opt.value)}
                 className={`flex-1 py-[8px] px-[12px] rounded-[10px] text-[14px] border transition-colors ${
                   theme === opt.value
-                    ? 'border-[#f4bf4f] bg-[#f4bf4f]/15 text-[#f4bf4f]'
-                    : 'border-[#2d2728] text-white hover:border-[#3d3a3b]'
+                    ? 'border-accent bg-accent/15 text-accent'
+                    : 'border-border text-white hover:border-[#3d3a3b]'
                 }`}
               >
                 {opt.label}
@@ -271,7 +271,7 @@ function AccessibilityCard() {
         {/* Font scale */}
         <div className="flex flex-col gap-[8px]" role="radiogroup" aria-label="Dimensione del testo">
           <p className="text-[16px] leading-[25.6px] text-white !m-0">Dimensione testo</p>
-          <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">
+          <p className="text-[12px] leading-[18px] text-fg-secondary !m-0">
             Adatta la dimensione del testo a tutta l'app.
           </p>
           <div className="flex gap-[8px]">
@@ -285,8 +285,8 @@ function AccessibilityCard() {
                 onClick={() => setFontScale(opt.value)}
                 className={`flex-1 min-h-[44px] px-[8px] rounded-[10px] border transition-colors ${
                   fontScale === opt.value
-                    ? 'border-[#f4bf4f] bg-[#f4bf4f]/15 text-[#f4bf4f]'
-                    : 'border-[#2d2728] text-white hover:border-[#3d3a3b]'
+                    ? 'border-accent bg-accent/15 text-accent'
+                    : 'border-border text-white hover:border-[#3d3a3b]'
                 }`}
               >
                 {opt.label}
@@ -299,7 +299,7 @@ function AccessibilityCard() {
         <div className="flex items-center justify-between gap-[12px]">
           <div className="flex-1">
             <p className="text-[16px] leading-[25.6px] text-white !m-0">Modalità accessibile</p>
-            <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">
+            <p className="text-[12px] leading-[18px] text-fg-secondary !m-0">
               Tempi più lunghi e tolleranze più ampie nei minigiochi a tempo.
             </p>
           </div>
@@ -320,25 +320,25 @@ function VersionCard({ appInfo, appInfoStatus, appInfoError }: {
   return (
     <SettingsCard className="gap-[12px]">
       <div className="flex items-center gap-[12px]">
-        <History className="text-[#f4bf4f]" size={24} />
+        <History className="text-accent" size={24} />
         <div className="text-left">
           <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">Versione app</p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">{appInfo?.version ? `v${appInfo.version}` : 'vdev'}</p>
+          <p className="text-[16px] leading-[25.6px] text-fg-secondary !m-0">{appInfo?.version ? `v${appInfo.version}` : 'vdev'}</p>
         </div>
       </div>
-      <div className="border-t border-[#2d2728] pt-[10px] flex flex-col gap-[8px]">
+      <div className="border-t border-border pt-[10px] flex flex-col gap-[8px]">
         <div className="flex items-center justify-between">
           <p className="text-[16px] leading-[25.6px] text-white !m-0">Changelog</p>
-          {appInfo?.repo && <span className="text-[12px] leading-[16px] text-[#9a9697]">{appInfo.repo}</span>}
+          {appInfo?.repo && <span className="text-[12px] leading-[16px] text-fg-tertiary">{appInfo.repo}</span>}
         </div>
-        {appInfoStatus === 'loading' && <p className="text-[14px] leading-[20px] text-[#b8b2b3]">Caricamento...</p>}
-        {appInfoStatus === 'error' && <p className="text-[14px] leading-[20px] text-[#ff4d4f]">{appInfoError ?? 'Impossibile caricare il changelog'}</p>}
+        {appInfoStatus === 'loading' && <p className="text-[14px] leading-[20px] text-fg-secondary">Caricamento...</p>}
+        {appInfoStatus === 'error' && <p className="text-[14px] leading-[20px] text-error">{appInfoError ?? 'Impossibile caricare il changelog'}</p>}
         {appInfoStatus === 'idle' && appInfo?.changelog?.length ? (
           <div className="flex flex-col gap-[10px]">
             {appInfo.changelog.map(entry => (
               <div key={entry.sha} className="flex flex-col gap-[2px]">
                 <p className="text-[14px] leading-[20px] text-white !m-0">{entry.message}</p>
-                <p className="text-[12px] leading-[16px] text-[#9a9697] !m-0">
+                <p className="text-[12px] leading-[16px] text-fg-tertiary !m-0">
                   {entry.sha}{entry.date ? ` - ${formatChangelogDate(entry.date)}` : ''}{entry.author ? ` - ${entry.author}` : ''}
                 </p>
               </div>
@@ -346,7 +346,7 @@ function VersionCard({ appInfo, appInfoStatus, appInfoError }: {
           </div>
         ) : null}
         {appInfoStatus === 'idle' && !appInfo?.changelog?.length && (
-          <p className="text-[14px] leading-[20px] text-[#9a9697]">Nessun aggiornamento disponibile.</p>
+          <p className="text-[14px] leading-[20px] text-fg-tertiary">Nessun aggiornamento disponibile.</p>
         )}
       </div>
     </SettingsCard>
@@ -373,27 +373,27 @@ function PermissionsSection({ permissionStatuses, permissionMessages, onRequest 
   return (
     <SettingsCard className="gap-[12px]">
       <div className="flex items-center gap-[12px]">
-        <ShieldCheck className="text-[#f4bf4f]" size={24} />
+        <ShieldCheck className="text-accent" size={24} />
         <div className="text-left">
           <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">Permessi app</p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">Gestisci accessi e autorizzazioni</p>
+          <p className="text-[16px] leading-[25.6px] text-fg-secondary !m-0">Gestisci accessi e autorizzazioni</p>
         </div>
       </div>
-      <div className="border-t border-[#2d2728] pt-[10px] flex flex-col gap-[12px]">
+      <div className="border-t border-border pt-[10px] flex flex-col gap-[12px]">
         {PERMISSION_ROWS.map(({ key, icon: Icon, label }) => (
           <div key={key} className="flex items-start justify-between gap-[12px]">
             <div className="flex items-start gap-[10px]">
-              <Icon className="text-[#f4bf4f]" size={20} />
+              <Icon className="text-accent" size={20} />
               <div>
                 <p className="text-[16px] leading-[25.6px] text-white !m-0">{label}</p>
-                <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Stato: {formatPermissionStatus(permissionStatuses[key])}</p>
+                <p className="text-[12px] leading-[18px] text-fg-secondary !m-0">Stato: {formatPermissionStatus(permissionStatuses[key])}</p>
                 {permissionMessages[key] && (
-                  <p className="text-[12px] leading-[18px] text-[#9a9697] !m-0">{permissionMessages[key]}</p>
+                  <p className="text-[12px] leading-[18px] text-fg-tertiary !m-0">{permissionMessages[key]}</p>
                 )}
               </div>
             </div>
             <button type="button" onClick={() => onRequest(key)} disabled={!canRequest[key]}
-              className="text-[12px] leading-[18px] px-[10px] py-[6px] rounded-[10px] border border-[#2d2728] text-white disabled:opacity-50">
+              className="text-[12px] leading-[18px] px-[10px] py-[6px] rounded-[10px] border border-border text-white disabled:opacity-50">
               Richiedi
             </button>
           </div>
@@ -412,17 +412,17 @@ function NotificationToggleCard({ notificationPermission, notificationStatusLabe
     <SettingsCard className="gap-[8px]">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-[12px]">
-          <Bell className="text-[#f4bf4f]" size={24} />
+          <Bell className="text-accent" size={24} />
           <div className="text-left">
             <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">Notifiche di sistema</p>
-            <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">Aggiornamenti su badge ed eventi</p>
+            <p className="text-[16px] leading-[25.6px] text-fg-secondary !m-0">Aggiornamenti su badge ed eventi</p>
           </div>
         </div>
         <Switch checked={notificationPermission === 'granted'} onCheckedChange={onToggle} disabled={notificationPermission === 'unsupported'} />
       </div>
-      <p className="text-[14px] leading-[20px] text-[#b8b2b3]">Stato: {notificationStatusLabel}</p>
+      <p className="text-[14px] leading-[20px] text-fg-secondary">Stato: {notificationStatusLabel}</p>
       {notificationMessage && (
-        <p className="text-[12px] leading-[18px] text-[#9a9697]">{notificationMessage}</p>
+        <p className="text-[12px] leading-[18px] text-fg-tertiary">{notificationMessage}</p>
       )}
     </SettingsCard>
   );
@@ -441,7 +441,7 @@ function LinksSection({ showAiSupport, showTicketPrototype, supportStatus, onVie
       {showAiSupport && (
         <>
           <LinkRow icon={MessageCircle} label="Supporto" subtitle="Chat con Maxwell" onClick={onViewSupport} disabled={supportDisabled} />
-          {supportUnavailable && <p className="text-[14px] leading-[20px] text-[#ff4d4f]">Supporto AI attualmente non disponibile.</p>}
+          {supportUnavailable && <p className="text-[14px] leading-[20px] text-error">Supporto AI attualmente non disponibile.</p>}
         </>
       )}
       {showTicketPrototype && (
@@ -460,18 +460,18 @@ function LinkRow({ icon: Icon, label, subtitle, onClick, disabled }: {
     <button type="button" onClick={onClick} disabled={disabled}
       className="min-h-[56px] py-[2px] flex items-center justify-between disabled:opacity-60 disabled:cursor-not-allowed">
       <div className="flex items-center gap-[12px]">
-        <Icon className="text-[#f4bf4f]" size={24} />
+        <Icon className="text-accent" size={24} />
         <div className="text-left">
           <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">{label}</p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">{subtitle}</p>
+          <p className="text-[16px] leading-[25.6px] text-fg-secondary !m-0">{subtitle}</p>
         </div>
       </div>
-      <ChevronRight className="text-[#9a9697]" size={20} />
+      <ChevronRight className="text-fg-tertiary" size={20} />
     </button>
   );
 }
 
-function SettingsActionCard({ icon: Icon, label, subtitle, onClick, iconColor = 'text-[#f4bf4f]' }: {
+function SettingsActionCard({ icon: Icon, label, subtitle, onClick, iconColor = 'text-accent' }: {
   icon: React.ElementType; label: string; subtitle: string; onClick: () => void; iconColor?: string;
 }) {
   return (
@@ -481,10 +481,10 @@ function SettingsActionCard({ icon: Icon, label, subtitle, onClick, iconColor = 
           <Icon className={iconColor} size={24} />
           <div className="text-left">
             <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">{label}</p>
-            <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">{subtitle}</p>
+            <p className="text-[16px] leading-[25.6px] text-fg-secondary !m-0">{subtitle}</p>
           </div>
         </div>
-        <ChevronRight className="text-[#9a9697]" size={20} />
+        <ChevronRight className="text-fg-tertiary" size={20} />
       </button>
     </SettingsCard>
   );
@@ -492,7 +492,7 @@ function SettingsActionCard({ icon: Icon, label, subtitle, onClick, iconColor = 
 
 function SettingsCard({ children, className = 'gap-[10px]' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-[#1a1617] rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col ${className}`}>
+    <div className={`bg-surface rounded-[16.4px] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] px-[12px] py-[12px] flex flex-col ${className}`}>
       {children}
     </div>
   );
@@ -735,20 +735,20 @@ function GdprPrivacyCard({
   return (
     <SettingsCard className="gap-[14px]">
       <div className="flex items-center gap-[12px]">
-        <Shield className="text-[#f4bf4f]" size={24} />
+        <Shield className="text-accent" size={24} />
         <div className="text-left">
           <p className="text-[18px] leading-[25.2px] font-semibold text-white !m-0">Privacy e dati</p>
-          <p className="text-[16px] leading-[25.6px] text-[#b8b2b3] !m-0">Controlli GDPR</p>
+          <p className="text-[16px] leading-[25.6px] text-fg-secondary !m-0">Controlli GDPR</p>
         </div>
       </div>
 
-      <div className="border-t border-[#2d2728] pt-[12px] flex flex-col gap-[16px]">
+      <div className="border-t border-border pt-[12px] flex flex-col gap-[16px]">
         {/* Leaderboard opt-out */}
         <div className="flex items-center justify-between gap-[12px]">
           <div className="flex-1">
             <p className="text-[16px] leading-[25.6px] text-white !m-0">Visibile in classifica</p>
-            <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Il tuo profilo appare nella classifica pubblica</p>
-            <p className="text-[12px] leading-[18px] text-[#9a9697] !m-0 mt-1">Se sei minorenne è nascosto per impostazione predefinita: puoi renderti visibile da qui.</p>
+            <p className="text-[12px] leading-[18px] text-fg-secondary !m-0">Il tuo profilo appare nella classifica pubblica</p>
+            <p className="text-[12px] leading-[18px] text-fg-tertiary !m-0 mt-1">Se sei minorenne è nascosto per impostazione predefinita: puoi renderti visibile da qui.</p>
           </div>
           <Switch checked={leaderboardVisible} onCheckedChange={onToggleLeaderboard} />
         </div>
@@ -758,7 +758,7 @@ function GdprPrivacyCard({
           <div className="flex items-start justify-between gap-[12px]">
             <div className="flex-1">
               <p className="text-[16px] leading-[25.6px] text-white !m-0">Verifica GPS ai turni</p>
-              <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">
+              <p className="text-[12px] leading-[18px] text-fg-secondary !m-0">
                 Consenti la raccolta della posizione GPS per la verifica presenza. Stato: {geoLabel}
               </p>
             </div>
@@ -766,12 +766,12 @@ function GdprPrivacyCard({
           <div className="flex gap-[8px]">
             <button type="button" onClick={onGrantGeoConsent}
               disabled={geoConsent === 'granted'}
-              className="flex-1 py-[6px] px-[10px] rounded-[10px] border border-[#2d2728] text-[12px] text-white disabled:opacity-40">
+              className="flex-1 py-[6px] px-[10px] rounded-[10px] border border-border text-[12px] text-white disabled:opacity-40">
               Consenti
             </button>
             <button type="button" onClick={onDenyGeoConsent}
               disabled={geoConsent === 'denied'}
-              className="flex-1 py-[6px] px-[10px] rounded-[10px] border border-[#2d2728] text-[12px] text-white disabled:opacity-40">
+              className="flex-1 py-[6px] px-[10px] rounded-[10px] border border-border text-[12px] text-white disabled:opacity-40">
               Nega
             </button>
           </div>
@@ -780,10 +780,10 @@ function GdprPrivacyCard({
         {/* Export data */}
         <button type="button" onClick={onExportData}
           className="flex items-center gap-[10px] py-[6px]">
-          <Download className="text-[#f4bf4f]" size={20} />
+          <Download className="text-accent" size={20} />
           <div className="text-left">
             <p className="text-[16px] leading-[25.6px] font-semibold text-white !m-0">Scarica i miei dati</p>
-            <p className="text-[12px] leading-[18px] text-[#b8b2b3] !m-0">Esporta profilo, turni e badge in JSON</p>
+            <p className="text-[12px] leading-[18px] text-fg-secondary !m-0">Esporta profilo, turni e badge in JSON</p>
           </div>
         </button>
       </div>
