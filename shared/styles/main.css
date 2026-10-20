@@ -6,6 +6,49 @@
 @import "./extracted-pwa-styles/layout.css";
 @import "./extracted-pwa-styles/style.css";
 
+/* Semantic color utilities (Tailwind v4), e.g. `bg-surface`,
+   `text-fg-secondary`, `border-border`, `from-burgundy-600`, `bg-accent/10`.
+   `inline reference` = the utilities resolve straight to the CSS variables
+   defined below in `:root` / `html[data-theme="light"]` (so they flip with
+   the theme), and Tailwind emits no extra custom properties. Opacity
+   modifiers compile to `color-mix(in oklab, var(...) N%, transparent)`.
+   Do not add new color values here: point at an existing variable. */
+@theme inline reference {
+  /* Theme-aware: dark defaults in :root, light overrides below. */
+  --color-page: var(--color-bg-primary);
+  --color-surface: var(--color-bg-surface);
+  --color-surface-elevated: var(--color-bg-surface-elevated);
+  --color-surface-hover: var(--color-bg-surface-hover);
+  --color-warning-surface: var(--color-warning-surface);
+  --color-fg-primary: var(--color-text-primary);
+  --color-fg-secondary: var(--color-text-secondary);
+  --color-fg-tertiary: var(--color-text-tertiary);
+  --color-accent: var(--color-accent);
+  --color-accent-strong: var(--color-accent-strong);
+  --color-error: var(--color-error);
+  --color-success: var(--color-success);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  /* Brand burgundy gradient stops, softened in the light theme. */
+  --color-burgundy-deep: var(--color-burgundy-deep);
+  --color-burgundy-mid: var(--color-burgundy-mid);
+  --color-burgundy-base: var(--color-burgundy-base);
+  --color-burgundy-bright: var(--color-burgundy-700);
+
+  /* Brand palette constants: identical in both themes (decorative
+     gradients, avatars, gold CTAs). Note: `--color-burgundy-700` is NOT
+     exposed here because the light theme redefines it; use
+     `burgundy-bright` for the theme-aware stop. */
+  --color-burgundy-950: var(--color-burgundy-950);
+  --color-burgundy-900: var(--color-burgundy-900);
+  --color-burgundy-800: var(--color-burgundy-800);
+  --color-burgundy-600: var(--color-burgundy-600);
+  --color-burgundy-500: var(--color-burgundy-500);
+  --color-gold-400: var(--color-gold-400);
+  --color-gold-500: var(--color-gold-500);
+  --color-gold-600: var(--color-gold-600);
+}
+
 :root {
   --color-burgundy-950: #2d0a0f;
   --color-burgundy-900: #4a0e1a;
