@@ -238,7 +238,9 @@ function measureRowTops(sorted: { id: string }[], rowNodes: Map<string, HTMLDivE
   const tops = new Map<string, number>();
   for (const entry of sorted) {
     const rowNode = rowNodes.get(entry.id);
-    if (rowNode) tops.set(entry.id, rowNode.offsetTop);
+    // offsetParent is null while hidden (display: none): offsetTop reads 0
+    // there and would make every row fly in once the list is shown again.
+    if (rowNode && rowNode.offsetParent) tops.set(entry.id, rowNode.offsetTop);
   }
   return tops;
 }
