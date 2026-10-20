@@ -11,12 +11,6 @@ import { resolveDisplayName } from '../lib/profile-utils';
 import { COOKIE_CONSENT_KEY, GEO_CONSENT_KEY } from '../constants/privacy';
 import { clearLocalActivationStores } from '../services/ticket-activation';
 import {
-  getXpToNextLevel,
-  getStatMultiplier,
-  getLeadershipCachetMultiplier,
-  STAT_EFFECTS,
-} from '../../../../shared/config/balancing';
-import {
   COURSES_CATALOG,
   COURSE_COMPLETION_XP,
   COURSE_COOLDOWN_MS,
@@ -40,7 +34,6 @@ import type {
   RoleId,
   Rewards,
   TurnSyncStatus,
-  RoleActivityOverride,
   Role,
   GameEvent,
   EventPlanning,
@@ -133,6 +126,12 @@ import type {
   PlannedParticipationRpcRow,
   TurnRegistrationRpcRow,
 } from './supabase-mappers';
+import { applyRewards, computeTurnRewards } from './rewards';
+import {
+  computeTurnStatsFromTurns,
+  computeTheatreReputationFromTurns,
+  computeFallbackBadges,
+} from './turn-stats';
 
 // Public API re-exported from the domain modules, so importers keep using
 // '../state/store' unchanged.
@@ -181,6 +180,7 @@ export { selectIsOnboarded } from './selectors';
 export { getOfflineSyncRetryDelayMs } from './offline-sync-queue';
 export { localizeTurnRegistrationError } from './errors';
 export { resolveTurnSyncStatusFromRpc } from './supabase-mappers';
+export { getRoleActivityOverride, computeActivityRewards, computeTurnRewards } from './rewards';
 
 const STORAGE_KEY = 'tdp-mobile-ui-state';
 const TUTORIAL_COMPLETED_KEY_PREFIX = 'tdp-tutorial-completed:';
@@ -261,52 +261,6 @@ function persistStoredSession(session: Session | null) {
   } catch {
     // ignore storage errors
   }
-}
-
-export function getRoleActivityOverride(
-  role: Role | null | undefined,
-  activityId: string
-): RoleActivityOverride | undefined {
-  return role?.profile?.activityOverrides?.[activityId];
-}
-
-export function computeActivityRewards(
-  activity: Activity,
-  role: Role | null | undefined,
-  skills?: { precision: number; presence: number; creativity: number; leadership: number } | null,
-): Rewards {
-  const override = getRoleActivityOverride(role, activity.id);
-  const xpMultiplier = override?.xpMultiplier ?? 1;
-  const cachetMultiplier = override?.cachetMultiplier ?? 1;
-  const reputationBonus = override?.reputationBonus ?? 0;
-
-  // Applica bonus skill derivati dai corsi completati (Issue #327).
-  // Gate each multiplier on the activity type, mirroring computeRewardBreakdown
-  // in role-effects.ts (closes #1594). Leadership is global (always applied).
-  let skillXpMult = 1;
-  let skillCachetMult = 1;
-  if (skills) {
-    const presenceActivities = STAT_EFFECTS.presence.affectedActivities as readonly string[];
-    const creativityActivities = STAT_EFFECTS.creativity.affectedActivities as readonly string[];
-    const precisionActivities = STAT_EFFECTS.precision.affectedActivities as readonly string[];
-    const presenceMult = presenceActivities.includes(activity.id)
-      ? getStatMultiplier('presence', 'xp', skills.presence)
-      : 1;
-    const creativityMult = creativityActivities.includes(activity.id)
-      ? getStatMultiplier('creativity', 'xp', skills.creativity)
-      : 1;
-    skillXpMult = presenceMult * creativityMult;
-    const precisionMult = precisionActivities.includes(activity.id)
-      ? getStatMultiplier('precision', 'cachet', skills.precision)
-      : 1;
-    skillCachetMult = precisionMult * getLeadershipCachetMultiplier(skills.leadership);
-  }
-
-  return {
-    xp: Math.max(0, Math.round(activity.xpReward * xpMultiplier * skillXpMult)),
-    cachet: Math.max(0, Math.round(activity.cachetReward * cachetMultiplier * skillCachetMult)),
-    reputation: Math.max(0, 5 + reputationBonus),
-  };
 }
 
 function createInitialState(): GameState {
@@ -453,171 +407,6 @@ function saveState(state: GameState) {
   } catch {
     // ignore storage errors
   }
-}
-
-function computeTurnStatsFromTurns(turns: TurnRecord[]): TurnStats {
-  const totalTurns = turns.length;
-  if (!turns.length) {
-    return { totalTurns: 0, turnsThisMonth: 0, uniqueTheatres: 0 };
-  }
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const turnsThisMonth = turns.filter((turn) => {
-    const created = new Date(turn.createdAt);
-    return created.getFullYear() === year && created.getMonth() === month;
-  }).length;
-  const uniqueTheatres = new Set(turns.map((turn) => turn.theatre).filter(Boolean)).size;
-  return { totalTurns, turnsThisMonth, uniqueTheatres };
-}
-
-function computeTheatreReputationFromTurns(turns: TurnRecord[]): TheatreReputation[] {
-  const map = new Map<string, { reputation: number; totalTurns: number }>();
-
-  turns.forEach((turn) => {
-    const theatre = turn.theatre?.trim();
-    if (!theatre) return;
-    const previous = map.get(theatre) ?? { reputation: 0, totalTurns: 0 };
-    map.set(theatre, {
-      reputation: Math.min(100, previous.reputation + (turn.rewards?.reputation ?? 0)),
-      totalTurns: previous.totalTurns + 1,
-    });
-  });
-
-  return [...map.entries()]
-    .map(([theatre, entry]) => ({
-      theatre,
-      reputation: entry.reputation,
-      totalTurns: entry.totalTurns,
-    }))
-    .sort(
-      (a, b) =>
-        b.reputation - a.reputation ||
-        b.totalTurns - a.totalTurns ||
-        a.theatre.localeCompare(b.theatre)
-    );
-}
-
-const FALLBACK_BADGES: Array<Omit<Badge, 'unlocked' | 'unlockedAt' | 'seenAt'>> = [
-  {
-    id: 'first_turn',
-    title: 'Primo sipario',
-    description: 'Registra il tuo primo turno ATCL.',
-    icon: 'Award',
-    metric: 'total_turns',
-    threshold: 1,
-    isHidden: false,
-  },
-  {
-    id: 'turns_this_month_3',
-    title: 'Ritmo di scena',
-    description: 'Completa 3 turni nello stesso mese.',
-    icon: 'Calendar',
-    metric: 'turns_this_month',
-    threshold: 3,
-    isHidden: false,
-  },
-  {
-    id: 'unique_theatres_3',
-    title: 'Teatri in tour',
-    description: 'Lavora in 3 teatri diversi.',
-    icon: 'MapPin',
-    metric: 'unique_theatres',
-    threshold: 3,
-    isHidden: false,
-  },
-  {
-    id: 'total_turns_10',
-    title: 'Presenza costante',
-    description: 'Raggiungi 10 turni registrati.',
-    icon: 'Theater',
-    metric: 'total_turns',
-    threshold: 10,
-    isHidden: false,
-  },
-  {
-    id: 'turns_this_month_6',
-    title: 'Settimana piena',
-    description: 'Completa 6 turni nello stesso mese.',
-    icon: 'Calendar',
-    metric: 'turns_this_month',
-    threshold: 6,
-    isHidden: true,
-  },
-  {
-    id: 'unique_theatres_5',
-    title: 'Compagnia itinerante',
-    description: 'Lavora in 5 teatri diversi.',
-    icon: 'MapPin',
-    metric: 'unique_theatres',
-    threshold: 5,
-    isHidden: false,
-  },
-  {
-    id: 'total_turns_25',
-    title: 'Veterano di palco',
-    description: 'Raggiungi 25 turni registrati.',
-    icon: 'Award',
-    metric: 'total_turns',
-    threshold: 25,
-    isHidden: true,
-  },
-  {
-    id: 'unique_theatres_8',
-    title: 'Mappa completa',
-    description: 'Lavora in 8 teatri diversi.',
-    icon: 'MapPin',
-    metric: 'unique_theatres',
-    threshold: 8,
-    isHidden: true,
-  },
-];
-
-function computeFallbackBadges(stats: TurnStats): Badge[] {
-  return FALLBACK_BADGES.map((badge) => {
-    const unlocked =
-      badge.metric === 'total_turns' && badge.threshold != null
-        ? stats.totalTurns >= badge.threshold
-        : badge.metric === 'turns_this_month' && badge.threshold != null
-          ? stats.turnsThisMonth >= badge.threshold
-          : badge.metric === 'unique_theatres' && badge.threshold != null
-            ? stats.uniqueTheatres >= badge.threshold
-            : false;
-    return { ...badge, unlocked, unlockedAt: null, seenAt: null };
-  });
-}
-
-function applyRewards(profile: PlayerProfile, rewards: Rewards, source: 'turn' | 'activity'): PlayerProfile {
-  let nextXp = profile.xp + rewards.xp;
-  let nextLevel = profile.level;
-  let nextThreshold = profile.xpToNextLevel;
-
-  while (nextXp >= nextThreshold) {
-    nextXp -= nextThreshold;
-    nextLevel += 1;
-    nextThreshold = getXpToNextLevel(nextLevel);
-  }
-
-  return {
-    ...profile,
-    xp: nextXp,
-    xpToNextLevel: nextThreshold,
-    level: nextLevel,
-    xpTotal: profile.xpTotal + rewards.xp,
-    xpField: source === 'turn' ? profile.xpField + rewards.xp : profile.xpField,
-    cachet: profile.cachet + rewards.cachet,
-    reputation: Math.min(100, profile.reputation + rewards.reputation),
-    lastActivityAt: Date.now(),
-  };
-}
-
-export function computeTurnRewards(event: GameEvent, roleId: RoleId): Rewards {
-  const bonus = event.focusRole === roleId ? 15 : 0;
-  return {
-    xp: event.baseRewards.xp + bonus,
-    cachet: event.baseRewards.cachet + Math.round(bonus / 2),
-    reputation: event.baseRewards.reputation + Math.round(bonus / 3),
-  };
 }
 
 const GameStateContext = createContext<GameContextValue | undefined>(undefined);
