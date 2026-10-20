@@ -41,11 +41,11 @@ export function AtclPromoBanner({ promotion }: AtclPromoBannerProps) {
   return (
     <Card
       animateOnMount
-      className="overflow-hidden border border-[#f4bf4f]/20 bg-gradient-to-br from-[#2d0a0f] via-[#4a0e1a] to-[#1a1617]"
+      className="overflow-hidden border border-accent/20 bg-gradient-to-br from-burgundy-deep via-burgundy-mid to-surface"
     >
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[#f4bf4f]/15 px-3 py-1 text-[11px] uppercase tracking-wide text-[#f4bf4f]">
+          <div className="inline-flex items-center gap-2 rounded-full bg-accent/15 px-3 py-1 text-[11px] uppercase tracking-wide text-accent">
             <Megaphone size={13} />
             <span>{promotion.badgeLabel}</span>
           </div>
@@ -61,7 +61,7 @@ export function AtclPromoBanner({ promotion }: AtclPromoBannerProps) {
           <Button
             variant="secondary"
             size="sm"
-            className="min-h-[40px] border-[#f4bf4f] bg-[#f4bf4f]/10 text-[#f4bf4f] hover:bg-[#f4bf4f]/20"
+            className="min-h-[40px] border-accent bg-accent/10 text-accent hover:bg-gold-400/20"
             onClick={handleOpenCta}
           >
             {promotion.ctaLabel}

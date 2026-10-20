@@ -605,8 +605,8 @@ export function AppShell() {
               <div className="app-content px-6 pt-6 space-y-4">
                 <Card>
                   <h3 className="text-white mb-2">Registrazione non disponibile</h3>
-                  <p className="text-[#b8b2b3] text-sm mb-4">Questa funzione e temporaneamente disattivata dalla configurazione runtime.</p>
-                  <button type="button" className="text-sm text-[#f4bf4f] hover:text-[#e6a23c]" onClick={() => handleTabChange('home')}>Torna alla Home</button>
+                  <p className="text-fg-secondary text-sm mb-4">Questa funzione e temporaneamente disattivata dalla configurazione runtime.</p>
+                  <button type="button" className="text-sm text-accent hover:text-gold-500" onClick={() => handleTabChange('home')}>Torna alla Home</button>
                 </Card>
               </div>
             </div>
@@ -822,25 +822,25 @@ export function AppShell() {
     <div className="min-h-screen app-gradient app-shell">
       <a href="#main-content" className="skip-link">Salta al contenuto principale</a>
       {!isOnline && (
-        <div className="fixed top-0 left-0 right-0 z-[998] bg-[#2a1f14] border-b border-[#f4bf4f]/30 px-4 py-2 text-center text-sm text-[#f4bf4f]">
+        <div className="fixed top-0 left-0 right-0 z-[998] bg-warning-surface border-b border-accent/30 px-4 py-2 text-center text-sm text-accent">
           Sei offline — le modifiche saranno sincronizzate al ritorno della connessione
         </div>
       )}
       {isDemoMode && (
-        <div className="fixed top-0 left-0 right-0 z-[997] bg-[#1a1617] border-b border-[#a82847]/40 px-4 py-2 text-center text-sm text-[#b8b2b3]">
+        <div className="fixed top-0 left-0 right-0 z-[997] bg-surface border-b border-burgundy-600/40 px-4 py-2 text-center text-sm text-fg-secondary">
           Modalità demo — i dati non vengono salvati
         </div>
       )}
       {infoToast && (
         <div role="status" aria-live="polite"
-          className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] left-4 right-4 z-[999] flex items-center justify-between gap-3 rounded-xl bg-[#2a1f14] border border-[#f4bf4f]/30 px-4 py-3 shadow-lg text-sm text-[#f4bf4f]">
+          className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] left-4 right-4 z-[999] flex items-center justify-between gap-3 rounded-xl bg-warning-surface border border-accent/30 px-4 py-3 shadow-lg text-sm text-accent">
           <span>{infoToast}</span>
           <button type="button" onClick={() => setInfoToast(null)}
-            className="shrink-0 inline-flex items-center justify-center size-6 text-[#b8b2b3] hover:text-white text-lg leading-none" aria-label="Chiudi">✕</button>
+            className="shrink-0 inline-flex items-center justify-center size-6 text-fg-secondary hover:text-white text-lg leading-none" aria-label="Chiudi">✕</button>
         </div>
       )}
       <ScreenTransition animationClass={screenAnimation} animationKey={screenAnimationKey}>
-        <Suspense fallback={<div className="min-h-screen app-gradient flex items-center justify-center"><div className="animate-shimmer h-8 w-32 rounded-lg bg-[#1a1617]" /></div>}>
+        <Suspense fallback={<div className="min-h-screen app-gradient flex items-center justify-center"><div className="animate-shimmer h-8 w-32 rounded-lg bg-surface" /></div>}>
         {routeConfig.showBottomNav ? (
           <MainLayout activeTab={nav.activeTab} enabledTabs={enabledNavTabs} onTabChange={handleTabChange}>
             {renderScreen()}
