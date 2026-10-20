@@ -16,6 +16,7 @@ import { getUserHash, setAnalyticsAuthToken, trackShareClicked } from '../servic
 import { buildShareUrl, sharePayload } from '../lib/share';
 import { PENDING_EVENT_KEY, readPendingEventFromUrl, stripEventLinkParams } from '../lib/event-linking';
 import type { ActivatedEventPayload } from '../services/ticket-activation';
+import { lazyWithPreload } from '../lib/lazy-with-preload';
 
 import { MainLayout } from '../layouts/MainLayout';
 import { ScreenTransition } from './ui/ScreenTransition';
@@ -31,19 +32,30 @@ import { Home } from './screens/Home';
 import { CookieConsent } from './screens/CookieConsent';
 
 // Lazy-loaded screens (non-critical, loaded on demand)
-const ATCLTurns = React.lazy(() => import('./screens/ATCLTurns').then(m => ({ default: m.ATCLTurns })));
+// Loader nominati per le schermate dei tab principali: condivisi da lazy e dal
+// prefetch in idle, così la prima visita a un tab non attende il chunk.
+const loadLeaderboard = () => import('./screens/Leaderboard').then(m => ({ default: m.Leaderboard }));
+const loadActivitiesHub = () => import('./screens/ActivitiesHub').then(m => ({ default: m.ActivitiesHub }));
+const loadATCLTurns = () => import('./screens/ATCLTurns').then(m => ({ default: m.ATCLTurns }));
+const loadActivities = () => import('./screens/Activities').then(m => ({ default: m.Activities }));
+const loadShop = () => import('./screens/Shop').then(m => ({ default: m.Shop }));
+const loadProfile = () => import('./screens/Profile').then(m => ({ default: m.Profile }));
+
+const Leaderboard = lazyWithPreload(loadLeaderboard);
+const ActivitiesHub = lazyWithPreload(loadActivitiesHub);
+const ATCLTurns = lazyWithPreload(loadATCLTurns);
+const Activities = lazyWithPreload(loadActivities);
+const Shop = lazyWithPreload(loadShop);
+const Profile = lazyWithPreload(loadProfile);
+const TAB_SCREENS = [Leaderboard, ActivitiesHub, ATCLTurns, Activities, Shop, Profile];
+
 const QRScanner = React.lazy(() => import('./screens/QRScanner').then(m => ({ default: m.QRScanner })));
 const EventConfirmation = React.lazy(() => import('./screens/EventConfirmation').then(m => ({ default: m.EventConfirmation })));
 const EventDetails = React.lazy(() => import('./screens/EventDetails').then(m => ({ default: m.EventDetails })));
-const Activities = React.lazy(() => import('./screens/Activities').then(m => ({ default: m.Activities })));
-const ActivitiesHub = React.lazy(() => import('./screens/ActivitiesHub').then(m => ({ default: m.ActivitiesHub })));
 const ActivityDetail = React.lazy(() => import('./screens/ActivityDetail').then(m => ({ default: m.ActivityDetail })));
 const ActivityMinigame = React.lazy(() => import('./screens/ActivityMinigame').then(m => ({ default: m.ActivityMinigame })));
 const ActivityResult = React.lazy(() => import('./screens/ActivityResult').then(m => ({ default: m.ActivityResult })));
 const NarrativeScene = React.lazy(() => import('./screens/NarrativeScene').then(m => ({ default: m.NarrativeScene })));
-const Shop = React.lazy(() => import('./screens/Shop').then(m => ({ default: m.Shop })));
-const Leaderboard = React.lazy(() => import('./screens/Leaderboard').then(m => ({ default: m.Leaderboard })));
-const Profile = React.lazy(() => import('./screens/Profile').then(m => ({ default: m.Profile })));
 const PublicProfile = React.lazy(() => import('./screens/PublicProfile').then(m => ({ default: m.PublicProfile })));
 const AccountSettings = React.lazy(() => import('./screens/AccountSettings').then(m => ({ default: m.AccountSettings })));
 const SupportChat = React.lazy(() => import('./screens/SupportChat').then(m => ({ default: m.SupportChat })));
@@ -57,6 +69,25 @@ const TicketQrActivationPrototype = React.lazy(() => import('./screens/TicketQrA
 const OnboardingFirstMission = React.lazy(() => import('./screens/OnboardingFirstMission').then(m => ({ default: m.OnboardingFirstMission })));
 import { Card } from './ui/Card';
 import { Tab } from '../types/navigation';
+
+/** Esegue `callback` quando il browser è inattivo (fallback setTimeout). Ritorna la cancel. */
+function scheduleIdle(callback: () => void): () => void {
+  if (typeof window.requestIdleCallback === 'function') {
+    const id = window.requestIdleCallback(callback, { timeout: 3000 });
+    return () => window.cancelIdleCallback(id);
+  }
+  const id = window.setTimeout(callback, 1500);
+  return () => window.clearTimeout(id);
+}
+
+/** Placeholder leggero nell'area contenuto mentre arriva il chunk della schermata. */
+function ScreenFallback() {
+  return (
+    <div className="app-content px-6 pt-6" role="status" aria-label="Caricamento" data-screen-fallback="">
+      <div className="animate-shimmer h-8 w-32 rounded-lg bg-[#1a1617]" />
+    </div>
+  );
+}
 
 function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -113,10 +144,16 @@ export function AppShell() {
   const [publicProfileTheatres, setPublicProfileTheatres] = useState<Array<{ theatre: string; turnsCount: number }>>([]);
   const [publicProfileTheatresLoading, setPublicProfileTheatresLoading] = useState(false);
 
-  // Tab animation state
-  const [screenAnimation, setScreenAnimation] = useState('');
+  // Tab animation state: la chiave cambia a ogni cambio tab. Aggiornata in render
+  // (pattern "adjust state on prop change") così il crossfade parte nello stesso
+  // commit della nuova schermata, senza un frame intermedio a opacità piena.
+  const [animatedTab, setAnimatedTab] = useState(nav.activeTab);
   const [screenAnimationKey, setScreenAnimationKey] = useState(0);
-  const previousTabRef = useRef(nav.activeTab);
+  if (nav.activeTab !== animatedTab) {
+    setAnimatedTab(nav.activeTab);
+    setScreenAnimationKey(v => v + 1);
+  }
+  const tabPrefetchDoneRef = useRef(false);
   // When true, role-selection onComplete marks onboarding as 'skipped_qr' and goes home directly
   const qrOnboardingBypassRef = useRef(false);
 
@@ -377,21 +414,6 @@ export function AppShell() {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, [criticalError]);
-
-  // Tab animation
-  useEffect(() => {
-    if (nav.activeTab === previousTabRef.current) return;
-    const tabOrder = ['home', 'leaderboard', 'activities', 'shop', 'profile'];
-    const currentIndex = tabOrder.indexOf(nav.activeTab);
-    const previousIndex = tabOrder.indexOf(previousTabRef.current);
-    let animation: string;
-    if (currentIndex === -1 || previousIndex === -1) animation = 'tab-fade-in';
-    else if (currentIndex > previousIndex) animation = 'tab-slide-right';
-    else animation = 'tab-slide-left';
-    setScreenAnimation(animation);
-    setScreenAnimationKey(v => v + 1);
-    previousTabRef.current = nav.activeTab;
-  }, [nav.activeTab]);
 
   // Redirect turns tab to activities hub
   useEffect(() => {
@@ -808,6 +830,18 @@ export function AppShell() {
 
   // Determine layout
   const routeConfig = getRouteConfig(nav.screen);
+  const showBottomNav = routeConfig.showBottomNav;
+
+  // Prefetch dei chunk dei tab principali quando l'utente è nell'area con bottom
+  // nav e il browser è inattivo. Errori ignorati: la navigazione reale ritenta
+  // il caricamento tramite React.lazy.
+  useEffect(() => {
+    if (!showBottomNav || tabPrefetchDoneRef.current) return;
+    return scheduleIdle(() => {
+      tabPrefetchDoneRef.current = true;
+      TAB_SCREENS.forEach(screen => { screen.preload().catch(() => undefined); });
+    });
+  }, [showBottomNav]);
 
   const normalizedError = useMemo(() => {
     if (!criticalError) return null;
@@ -839,17 +873,20 @@ export function AppShell() {
             className="shrink-0 inline-flex items-center justify-center size-6 text-[#b8b2b3] hover:text-white text-lg leading-none" aria-label="Chiudi">✕</button>
         </div>
       )}
-      <ScreenTransition animationClass={screenAnimation} animationKey={screenAnimationKey}>
-        <Suspense fallback={<div className="min-h-screen app-gradient flex items-center justify-center"><div className="animate-shimmer h-8 w-32 rounded-lg bg-[#1a1617]" /></div>}>
-        {routeConfig.showBottomNav ? (
-          <MainLayout activeTab={nav.activeTab} enabledTabs={enabledNavTabs} onTabChange={handleTabChange}>
+      {/* MainLayout rende la bottom nav fuori da Suspense e ScreenTransition: resta
+          montata mentre arrivano i chunk e non eredita le animazioni dei contenuti. */}
+      <MainLayout
+        showBottomNav={showBottomNav}
+        activeTab={nav.activeTab}
+        enabledTabs={enabledNavTabs}
+        onTabChange={handleTabChange}
+      >
+        <ScreenTransition animationClass={screenAnimationKey > 0 ? 'tab-fade-in' : ''} animationKey={screenAnimationKey}>
+          <Suspense fallback={<ScreenFallback />}>
             {renderScreen()}
-          </MainLayout>
-        ) : (
-          <div id="main-content" tabIndex={-1} className="app-frame">{renderScreen()}</div>
-        )}
-        </Suspense>
-      </ScreenTransition>
+          </Suspense>
+        </ScreenTransition>
+      </MainLayout>
 
       {nav.screen === 'home' && hasHydratedRemote && !state.profile.tutorialCompleted && (
         <WelcomeTutorial
