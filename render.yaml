@@ -15,43 +15,12 @@ services:
   - key: VITE_DEV_CONTROL_PLANE_URL
     sync: false
   - key: VITE_AI_SUPPORT_ENDPOINT
-    value: https://maxwell-ai-support.onrender.com/api/ai/chat
+    value: /api/ai/chat
   - key: VITE_AI_SUPPORT_ISSUE_ENDPOINT
-    value: https://maxwell-ai-support.onrender.com/api/ai/issue
+    value: /api/ai/issue
   region: frankfurt
   buildCommand: npm ci && npm run build:mobile
   startCommand: npm --workspace apps/mobile run preview:https -- --host 0.0.0.0 --port $PORT --strictPort --clearScreen false
-  autoDeployTrigger: commit
-  previews:
-    generation: manual
-- type: web
-  name: Maxwell-AI-Support
-  runtime: node
-  repo: https://github.com/Heartran/Turni-di-Palco
-  branch: render/preview
-  plan: free
-  envVars:
-  - key: VITE_SUPABASE_ANON_KEY
-    sync: false
-  - key: VITE_SUPABASE_URL
-    sync: false
-  - key: AI_SUPPORT_ALLOWED_ORIGINS
-    value: https://turni-di-palco-fq85.onrender.com,https://turni-di-palco-fq85.onrender.com/mobile,https://turni-di-palco.vercel.app,https://turni-di-palco-*-atcl.vercel.app
-  - key: AI_SUPPORT_GH_REPO
-    value: ATCL-Lazio/Turni-di-Palco
-  - key: GITHUB_APP_ID
-    sync: false
-  - key: GITHUB_APP_INSTALLATION_ID
-    sync: false
-  - key: GITHUB_APP_PRIVATE_KEY
-    sync: false
-  - key: GROQ_API_KEY
-    sync: false
-  - key: GROQ_MODEL
-    value: llama-3.3-70b-versatile
-  region: frankfurt
-  buildCommand: npm ci
-  startCommand: npm run ai:support
   autoDeployTrigger: commit
   previews:
     generation: manual

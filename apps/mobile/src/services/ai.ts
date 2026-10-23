@@ -11,6 +11,7 @@ type AiSupportRequest = {
   messages: AiChatMessage[];
   endpoint?: string;
   signal?: AbortSignal;
+  sessionId?: string;
 };
 
 type AiSupportResponse = {
@@ -176,6 +177,7 @@ export async function requestAiSupport({
   messages,
   endpoint,
   signal,
+  sessionId,
 }: AiSupportRequest) {
   // Use a single AbortController driven by withMobileWatchdog's timeout so that
   // the inner fetch() is aborted when the 25-second watchdog fires, preventing
@@ -212,9 +214,11 @@ export async function requestAiSupport({
         body: JSON.stringify({
           prompt: SUPPORT_PROMPT,
           messages,
+          sessionId,
           context: {
             userName,
             memory,
+            sessionId,
           },
         }),
       });
