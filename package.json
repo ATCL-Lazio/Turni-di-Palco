@@ -36,12 +36,8 @@
     "@biomejs/biome": "^2.4.4",
     "@eslint/js": "^10.0.1",
     "husky": "^9.1.7",
-    "lint-staged": "^17.6.0",
     "qrcode": "^1.5.4",
     "qrcode-terminal": "^0.12.0"
-  },
-  "lint-staged": {
-    "apps/mobile/**/*.{ts,tsx}": "eslint --fix"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",
