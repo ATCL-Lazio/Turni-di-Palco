@@ -4,6 +4,7 @@ import { Input } from '../ui/Input';
 import { Ticket, Camera, X } from 'lucide-react';
 import jsQR from 'jsqr';
 import { GameEvent } from '../../state/store';
+import { buildManualTicketScan, normalizeRedeemCodeInput } from '../../services/ticket-activation';
 
 interface QRScannerProps {
   onClose: () => void;
@@ -14,6 +15,7 @@ interface QRScannerProps {
 export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
   const [manualTicket, setManualTicket] = useState('');
   const [manualEventId, setManualEventId] = useState('');
+  const [manualCode, setManualCode] = useState('');
   const [isScanning, setIsScanning] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -151,12 +153,14 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualTicket.trim() || !manualEventId.trim()) { setScanError('Inserisci sia ID Evento che Numero Ticket.'); return; }
+    if (!manualTicket.trim() || !manualEventId.trim() || !manualCode.trim()) { setScanError('Inserisci evento, numero biglietto e codice ticket.'); return; }
     // Strip characters that would break the colon-delimited composite or inject
     // unexpected segments into the protocol string (closes #1616).
     const safeTicket = manualTicket.trim().replace(/[^A-Za-z0-9\- ]/g, '');
     if (!safeTicket) { setScanError('Formato biglietto non valido.'); return; }
-    await handleScanAttempt(`manual-ticket:${manualEventId}:${safeTicket}`);
+    const safeCode = normalizeRedeemCodeInput(manualCode);
+    if (!safeCode) { setScanError('Codice ticket non valido. Sono 10 caratteri (lettere e cifre), es. ABCDE-12345.'); return; }
+    await handleScanAttempt(buildManualTicketScan(manualEventId, safeTicket, safeCode));
   };
 
   return (
@@ -180,11 +184,13 @@ export function QRScanner({ onClose, onScan, events = [] }: QRScannerProps) {
           <ManualEntryForm
             manualTicket={manualTicket}
             manualEventId={manualEventId}
+            manualCode={manualCode}
             events={events}
             scanError={scanError}
             isHandlingScan={isHandlingScan}
             onTicketChange={setManualTicket}
             onEventChange={setManualEventId}
+            onCodeChange={setManualCode}
             onSubmit={handleManualSubmit}
             onSwitchToScanner={() => setIsScanning(true)}
           />
@@ -290,10 +296,10 @@ function ManualSwitchButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHandlingScan, onTicketChange, onEventChange, onSubmit, onSwitchToScanner }: {
-  manualTicket: string; manualEventId: string; events: GameEvent[];
+function ManualEntryForm({ manualTicket, manualEventId, manualCode, events, scanError, isHandlingScan, onTicketChange, onEventChange, onCodeChange, onSubmit, onSwitchToScanner }: {
+  manualTicket: string; manualEventId: string; manualCode: string; events: GameEvent[];
   scanError: string | null; isHandlingScan: boolean;
-  onTicketChange: (v: string) => void; onEventChange: (v: string) => void;
+  onTicketChange: (v: string) => void; onEventChange: (v: string) => void; onCodeChange: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void; onSwitchToScanner: () => void;
 }) {
   return (
@@ -303,7 +309,7 @@ function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHan
           <Ticket className="text-accent" size={32} />
         </div>
         <h3 className="text-white mb-2">Attiva il tuo Biglietto</h3>
-        <p className="text-sm text-fg-secondary">Inserisci il numero di biglietto pre-registrato</p>
+        <p className="text-sm text-fg-secondary">Inserisci numero biglietto e codice ticket stampati sul biglietto</p>
       </div>
 
       <div className="mb-6 text-center">
@@ -336,7 +342,12 @@ function ManualEntryForm({ manualTicket, manualEventId, events, scanError, isHan
           <div className="space-y-2">
             <label className="text-xs text-fg-tertiary ml-1 uppercase font-bold tracking-wider">Numero Biglietto</label>
             <Input type="text" placeholder="es. 12345" value={manualTicket} onChange={e => onTicketChange(e.target.value)} className="text-center" />
-            <p className="text-[10px] text-fg-tertiary text-center px-2 italic">Il biglietto deve essere stato pre-registrato dalla biglietteria autorizzata</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs text-fg-tertiary ml-1 uppercase font-bold tracking-wider">Codice Ticket</label>
+            <Input type="text" placeholder="es. ABCDE-12345" value={manualCode} onChange={e => onCodeChange(e.target.value)}
+              autoCapitalize="characters" autoComplete="off" spellCheck={false} className="text-center uppercase tracking-widest" />
+            <p className="text-[10px] text-fg-tertiary text-center px-2 italic">Il biglietto deve essere stato emesso dalla biglietteria autorizzata. Il codice è stampato accanto al QR.</p>
           </div>
         </div>
 

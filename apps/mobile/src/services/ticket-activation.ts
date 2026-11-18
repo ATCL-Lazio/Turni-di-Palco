@@ -13,6 +13,8 @@ export type GeneratedTicket = {
   json: string;
   hash: string;
   qrValue: string;
+  /** Human-typable code (XXXXX-XXXXX) for manual activation. Returned only at issue time. */
+  redeemCode: string;
   persistedRemotely: boolean;
 };
 
@@ -323,7 +325,48 @@ async function invokeTicketActivation(body: Record<string, unknown>) {
   return response;
 }
 
-function stableStringify(value: TicketPayload): string {
+const REDEEM_CODE_PATTERN = /^[0-9A-HJKMNP-TV-Z]{10}$/;
+
+/**
+ * Normalises a typed redeem code: uppercase, spaces and dashes removed, common
+ * look-alikes folded (O to 0, I and L to 1). Returns the display form
+ * XXXXX-XXXXX, or null when the input is not a well-formed code.
+ */
+export function normalizeRedeemCodeInput(input: string): string | null {
+  const cleaned = input.toUpperCase().replace(/[\s-]+/g, '').replace(/O/g, '0').replace(/[IL]/g, '1');
+  if (!REDEEM_CODE_PATTERN.test(cleaned)) return null;
+  return `${cleaned.slice(0, 5)}-${cleaned.slice(5)}`;
+}
+
+const MANUAL_TICKET_PREFIX = 'manual-ticket:';
+const MANUAL_CODE_SEPARATOR = '|';
+
+/** Builds the internal scan string for manual entry: manual-ticket:<event>:<ticket>[|<code>]. */
+export function buildManualTicketScan(eventId: string, ticketNumber: string, redeemCode?: string): string {
+  const base = `${MANUAL_TICKET_PREFIX}${eventId}:${ticketNumber}`;
+  return redeemCode && redeemCode.trim() ? `${base}${MANUAL_CODE_SEPARATOR}${redeemCode.trim()}` : base;
+}
+
+export function parseManualTicketScan(
+  scan: string
+): { eventId: string; ticketNumber: string; redeemCode?: string } | null {
+  if (!scan.startsWith(MANUAL_TICKET_PREFIX)) return null;
+  let rest = scan.slice(MANUAL_TICKET_PREFIX.length);
+  let redeemCode: string | undefined;
+  const codeAt = rest.lastIndexOf(MANUAL_CODE_SEPARATOR);
+  if (codeAt !== -1) {
+    redeemCode = rest.slice(codeAt + 1);
+    rest = rest.slice(0, codeAt);
+  }
+  // Split only on the first colon so a colon inside the ticket number is preserved.
+  const sep = rest.indexOf(':');
+  const eventId = (sep === -1 ? rest : rest.slice(0, sep)).trim();
+  const ticketNumber = (sep === -1 ? '' : rest.slice(sep + 1)).trim();
+  if (!eventId || !ticketNumber) return null;
+  return { eventId, ticketNumber, ...(redeemCode ? { redeemCode } : {}) };
+}
+
+function displayPayload(value: TicketPayload): string {
   return JSON.stringify({
     circuit: value.circuit,
     eventName: value.eventName,
@@ -333,34 +376,37 @@ function stableStringify(value: TicketPayload): string {
   });
 }
 
-async function sha256Hex(input: string): Promise<string> {
-  const encoded = new TextEncoder().encode(input);
-  const digest = await crypto.subtle.digest('SHA-256', encoded);
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
-}
+type IssueTicketResponse = { reserved?: boolean; hash?: string; redeemCode?: string; error?: string } | null;
 
-async function reserveHashRemotely(payload: TicketPayload, hash: string) {
-  if (!supabase || !isSupabaseConfigured) return false;
-
-  const { data, error } = await invokeTicketActivation({
-    action: 'reserve_hash',
-    hash,
-    payload,
-  });
+async function issueTicketRemotely(payload: TicketPayload): Promise<{ hash: string; redeemCode: string }> {
+  const { data, error } = await invokeTicketActivation({ action: 'issue_ticket', payload });
 
   if (error) {
     const errorMessage = await resolveFunctionErrorMessage(
       error,
-      'Errore Supabase durante la prenotazione hash.'
+      'Errore Supabase durante l\'emissione del ticket.'
     );
     throw new Error(errorMessage);
   }
 
-  return Boolean((data as { reserved?: boolean } | null)?.reserved);
+  const response = data as IssueTicketResponse;
+  if (!response?.reserved) {
+    throw new Error(
+      response?.error || 'Impossibile emettere il ticket. Verifica evento e numero biglietto (potrebbe essere un duplicato).'
+    );
+  }
+  const hash = typeof response.hash === 'string' ? response.hash.trim().toLowerCase() : '';
+  const redeemCode = typeof response.redeemCode === 'string' ? response.redeemCode.trim() : '';
+  if (!/^[0-9a-f]{64}$/.test(hash) || !redeemCode) {
+    throw new Error('Risposta server inattesa durante l\'emissione del ticket.');
+  }
+  return { hash, redeemCode };
 }
 
+/**
+ * Issues a ticket: the server generates a random QR value and a redeem code.
+ * The redeem code is shown only here; the server keeps just a keyed verifier.
+ */
 export async function generateTicketQr(params: {
   circuit: string;
   eventName: string;
@@ -380,27 +426,11 @@ export async function generateTicketQr(params: {
     throw new Error('Compila tutti i campi richiesti del JSON ticket.');
   }
 
-  const json = stableStringify(payload);
-  const hash = await sha256Hex(json);
-  let persistedRemotely = false;
-
-  if (localActivationStore.has(hash)) {
-    throw new Error('Ticket gia generato in questa sessione. Verifica eventID e ticketNumber.');
+  if (!supabase || !isSupabaseConfigured) {
+    throw new Error('Supabase non configurato: impossibile emettere il ticket.');
   }
 
-  if (supabase && isSupabaseConfigured) {
-    try {
-      const reserved = await reserveHashRemotely(payload, hash);
-      if (!reserved) {
-        throw new Error(
-          'Ticket gia presente su Supabase. Verifica eventID e ticketNumber (potrebbe essere un duplicato).'
-        );
-      }
-      persistedRemotely = true;
-    } catch (error) {
-      throw error instanceof Error ? error : new Error('Errore durante la registrazione hash su Supabase.');
-    }
-  }
+  const { hash, redeemCode } = await issueTicketRemotely(payload);
 
   cleanupOldRecords();
   localActivationStore.set(hash, {
@@ -414,12 +444,14 @@ export async function generateTicketQr(params: {
 
   return {
     payload,
-    json,
+    json: displayPayload(payload),
     hash,
     qrValue: hash,
-    persistedRemotely,
+    redeemCode,
+    persistedRemotely: true,
   };
 }
+
 export function parseTicketQrValue(input: string): string | null {
   const trimmed = input.trim();
 
@@ -653,7 +685,8 @@ export async function activateTicketHash(
 export async function activateTicketByDetails(
   eventID: string,
   ticketNumber: string,
-  userId: string
+  userId: string,
+  redeemCode?: string
 ): Promise<{ ok: true; eventId?: string; event?: ActivatedEventPayload } | { ok: false; error: string }> {
   const normalizedEventId = eventID.trim();
   const normalizedTicket = ticketNumber.trim();
@@ -661,6 +694,15 @@ export async function activateTicketByDetails(
 
   if (!normalizedEventId || !normalizedTicket || !normalizedUserId) {
     return { ok: false, error: 'Dati mancanti per l\'attivazione manuale.' };
+  }
+
+  // Optional: legacy tickets have no code. When a code is supplied it must be well formed.
+  let normalizedRedeemCode: string | null = null;
+  if (redeemCode !== undefined && redeemCode.trim() !== '') {
+    normalizedRedeemCode = normalizeRedeemCodeInput(redeemCode);
+    if (!normalizedRedeemCode) {
+      return { ok: false, error: 'Codice ticket non valido. Controlla di averlo digitato correttamente.' };
+    }
   }
 
   // Enforce UUID only when Supabase-backed auth is active.
@@ -684,7 +726,11 @@ export async function activateTicketByDetails(
 
     const { data, error } = await invokeTicketActivation({
       action: 'activate_by_details',
-      payload: { eventID: normalizedEventId, ticketNumber: normalizedTicket },
+      payload: {
+        eventID: normalizedEventId,
+        ticketNumber: normalizedTicket,
+        ...(normalizedRedeemCode ? { redeemCode: normalizedRedeemCode } : {}),
+      },
       userId: normalizedUserId,
     });
 
