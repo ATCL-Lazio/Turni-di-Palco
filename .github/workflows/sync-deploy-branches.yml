@@ -24,7 +24,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -65,7 +65,7 @@ jobs:
       deployments: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Create GitHub Deployment - Turni-di-Palco
         uses: chrnorm/deployment-action@v2
@@ -127,7 +127,7 @@ jobs:
       deployments: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Create GitHub Deployment - Maxwell-AI-Support
         uses: chrnorm/deployment-action@v2
@@ -190,7 +190,7 @@ jobs:
       deployments: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Create GitHub Deployment - Turni-di-Palco-Control-Plane
         uses: chrnorm/deployment-action@v2

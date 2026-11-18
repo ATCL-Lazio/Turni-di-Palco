@@ -31,7 +31,7 @@ jobs:
             lockfile: apps/mobile/package-lock.json
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # Scansione del working tree corrente (`--no-git`): blocca qualsiasi
       # segreto presente in un file versionato. La config .gitleaks.toml estende

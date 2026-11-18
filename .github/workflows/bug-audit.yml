@@ -20,7 +20,7 @@ jobs:
     name: Security Pattern Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Check for innerHTML usage with dynamic data
         run: |
@@ -94,7 +94,7 @@ jobs:
     name: TypeScript Audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v5
         with:
@@ -143,7 +143,7 @@ jobs:
     name: Async & Promise Audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Check for floating promises (missing await)
         run: |
@@ -181,7 +181,7 @@ jobs:
     name: Data Integrity Audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Check for date format consistency
         run: |
@@ -224,7 +224,7 @@ jobs:
     name: Config & Dependency Audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v5
         with:
@@ -344,7 +344,7 @@ jobs:
     name: Resource & Error Handling Audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Check for unclosed resources in tools
         run: |
