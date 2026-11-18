@@ -1015,9 +1015,66 @@ function resolveApiKey() {
   return stripEnvValue(process.env.AI_SUPPORT_API_KEY) || '';
 }
 
+// Constant-time token comparison without hashing the secret: both values are
+// copied into zero-padded buffers of the same length so timingSafeEqual accepts
+// any input, and the real lengths are compared at the end.
+function safeTokenEqual(provided, expected) {
+  if (typeof provided !== 'string' || typeof expected !== 'string') return false;
+  if (!provided || !expected) return false;
+  const a = Buffer.from(provided, 'utf8');
+  const b = Buffer.from(expected, 'utf8');
+  const len = Math.max(a.length, b.length);
+  const paddedA = Buffer.alloc(len);
+  const paddedB = Buffer.alloc(len);
+  a.copy(paddedA);
+  b.copy(paddedB);
+  const sameBytes = crypto.timingSafeEqual(paddedA, paddedB);
+  return sameBytes && a.length === b.length;
+}
+
+// Number of trusted reverse-proxy hops in front of this server (default 0:
+// X-Forwarded-For is ignored and the socket address is used).
+function resolveTrustProxyHops() {
+  const hops = Number.parseInt(process.env.AI_SUPPORT_TRUST_PROXY_HOPS ?? '', 10);
+  return Number.isInteger(hops) && hops > 0 ? Math.min(hops, 10) : 0;
+}
+
+function resolveClientIp(req, hops = resolveTrustProxyHops()) {
+  const remoteIp = req.socket?.remoteAddress || req.connection?.remoteAddress || 'unknown';
+  if (!hops) return remoteIp;
+  const header = req.headers['x-forwarded-for'];
+  const raw = Array.isArray(header) ? header.join(',') : typeof header === 'string' ? header : '';
+  const parts = raw.split(',').map((part) => part.trim()).filter(Boolean);
+  // Right-most entries are appended by our own proxies; count back `hops` from the end.
+  const index = parts.length - hops;
+  return index >= 0 ? parts[index] : remoteIp;
+}
+
 function isAdminEnabled() {
   if (process.env.AI_SUPPORT_ADMIN_ENABLED === undefined) return false;
   return isTruthy(process.env.AI_SUPPORT_ADMIN_ENABLED);
+}
+
+// Fail closed: refuse (503) when no secret is configured, 401 on mismatch.
+function authorizeRequest(req, res, secrets, logPrefix, clientIp, start) {
+  const configured = secrets.filter(Boolean);
+  if (!configured.length) {
+    logLine(
+      `${logPrefix}\n  client=${clientIp}\n  status=${formatStatus(503)}\n  duration=${Date.now() - start}ms\n  reason=auth token not configured`
+    );
+    sendJson(res, 503, { error: 'Service not configured' });
+    return false;
+  }
+  const provided = getRequestAuthToken(req);
+  if (!configured.some((secret) => safeTokenEqual(provided, secret))) {
+    logLine(
+      `${logPrefix}\n  client=${clientIp}\n  status=${formatStatus(401)}\n  duration=${Date.now() - start}ms`
+    );
+    res.setHeader('WWW-Authenticate', 'Bearer, x-ai-support-token');
+    sendJson(res, 401, { error: 'Unauthorized' });
+    return false;
+  }
+  return true;
 }
 
 function createRateLimiter() {
@@ -2289,14 +2346,7 @@ const requestHandler = (req, res) => {
   const allowedOrigins = parseAllowedOrigins();
   const origin = req.headers.origin;
   const corsOrigin = resolveCorsOrigin(origin, allowedOrigins);
-  const forwardedFor = req.headers['x-forwarded-for'];
-  const forwardedIp = Array.isArray(forwardedFor)
-    ? forwardedFor[0]
-    : typeof forwardedFor === 'string'
-      ? forwardedFor.split(',')[0].trim()
-      : '';
-  const remoteIp = req.socket?.remoteAddress || req.connection?.remoteAddress;
-  const clientIp = forwardedIp || remoteIp || 'unknown';
+  const clientIp = resolveClientIp(req);
 
   if (corsOrigin) {
     res.setHeader('Access-Control-Allow-Origin', corsOrigin);
@@ -2360,6 +2410,9 @@ const requestHandler = (req, res) => {
       sendJson(res, 403, { error: 'Admin endpoints disabled' });
       return;
     }
+    if (!authorizeRequest(req, res, [resolveIssueAuthToken(), resolveApiKey()], `${requestId} GET /auth`, clientIp, start)) {
+      return;
+    }
     const groqAuth = checkGroqAuth();
     const ghAuth = checkGhAuth();
     logLine(
@@ -2402,6 +2455,9 @@ const requestHandler = (req, res) => {
         `${requestId} POST /auth/command\n  client=${clientIp}\n  status=${formatStatus(403)}\n  duration=${Date.now() - start}ms`
       );
       sendJson(res, 403, { error: 'Admin endpoints disabled' });
+      return;
+    }
+    if (!authorizeRequest(req, res, [resolveIssueAuthToken(), resolveApiKey()], `${requestId} POST /auth/command`, clientIp, start)) {
       return;
     }
     let authBody = '';
@@ -2472,28 +2528,9 @@ const requestHandler = (req, res) => {
     return;
   }
 
-  if (req.url === '/api/ai/issue') {
-    const requiredToken = resolveIssueAuthToken();
-    if (requiredToken) {
-      const providedToken = getRequestAuthToken(req);
-      if (!providedToken || providedToken !== requiredToken) {
-        logLine(
-          `${requestId} POST /api/ai/issue\n  client=${clientIp}\n  status=${formatStatus(401)}\n  duration=${Date.now() - start}ms`
-        );
-        sendJson(res, 401, { error: 'Unauthorized' });
-        return;
-      }
-    }
-  }
-
-  const apiKey = resolveApiKey();
   const token = getRequestAuthToken(req);
-  if (apiKey && req.url !== '/api/ai/issue' && (!token || token !== apiKey)) {
-    logLine(
-      `${requestId} POST ${req.url}\n  client=${clientIp}\n  status=${formatStatus(401)}\n  duration=${Date.now() - start}ms`
-    );
-    res.setHeader('WWW-Authenticate', 'Bearer, x-ai-support-token');
-    sendJson(res, 401, { error: 'Unauthorized' });
+  const accepted = req.url === '/api/ai/issue' ? [resolveIssueAuthToken()] : [resolveApiKey()];
+  if (!authorizeRequest(req, res, accepted, `${requestId} POST ${req.url}`, clientIp, start)) {
     return;
   }
 

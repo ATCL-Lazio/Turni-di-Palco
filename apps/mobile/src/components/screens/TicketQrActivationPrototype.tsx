@@ -51,8 +51,8 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
       setScanInput(result.qrValue);
       setGenerateMessage(
         result.persistedRemotely
-          ? 'QR registrato su Supabase e cache locale.'
-          : 'QR generato in locale (fallback prototipo).'
+          ? 'Ticket emesso: QR casuale registrato su Supabase. Copia e stampa il codice ticket.'
+          : 'Ticket emesso.'
       );
     } catch (error) {
       setGenerateMessage(error instanceof Error ? error.message : 'Errore durante la generazione.');
@@ -61,10 +61,20 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
     }
   };
 
+  const handleCopyCode = async () => {
+    if (!generated) return;
+    try {
+      await navigator.clipboard.writeText(generated.redeemCode);
+      setGenerateMessage('Codice copiato negli appunti.');
+    } catch {
+      setGenerateMessage('Copia non riuscita: seleziona e copia il codice a mano.');
+    }
+  };
+
   const handleActivate = () => {
     const hash = parseTicketQrValue(scanInput);
     if (!hash) {
-      setScanMessage('Payload QR non valido. Formato atteso: hash SHA-256 (64 caratteri).');
+      setScanMessage('Payload QR non valido. Formato atteso: valore QR di 64 caratteri esadecimali.');
       return;
     }
     setPendingActivationHash(hash);
@@ -123,10 +133,10 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
       <section className="rounded-2xl border border-border bg-surface p-4 space-y-4">
         <div className="flex items-center gap-2 text-white">
           <QrCode size={18} className="text-accent" />
-          <h3 className="text-base !m-0">1) Generazione payload e hash QR</h3>
+          <h3 className="text-base !m-0">1) Emissione ticket (QR casuale + codice)</h3>
         </div>
         <p className="text-sm text-fg-secondary">
-          Struttura JSON richiesta: circuit, eventName, eventID, ticketNumber, date.
+          Dati richiesti: circuit, eventName, eventID, ticketNumber, date. QR e codice sono generati dal server.
         </p>
         <div className="grid grid-cols-1 gap-3">
           <Input value={circuit} onChange={(event) => setCircuit(event.target.value)} placeholder="Circuito (es. TicketOne)" />
@@ -144,9 +154,17 @@ export function TicketQrActivationPrototype({ userId, onBack }: TicketQrActivati
 
         {generated ? (
           <div className="rounded-xl border border-border bg-page p-3 text-xs text-fg-secondary space-y-2">
-            <p className="!m-0"><strong>QR value (hash):</strong> {generated.qrValue}</p>
-            <p className="!m-0 break-all"><strong>Hash SHA-256:</strong> {generated.hash}</p>
-            <p className="!m-0 break-all"><strong>JSON:</strong> {generated.json}</p>
+            <p className="!m-0 break-all"><strong>Valore QR (casuale, generato dal server):</strong> {generated.qrValue}</p>
+            <div className="rounded-lg border border-border bg-surface p-3 space-y-2">
+              <p className="!m-0"><strong>Codice ticket (attivazione manuale):</strong></p>
+              <p className="!m-0 text-lg tracking-widest text-white select-all">{generated.redeemCode}</p>
+              <Button variant="secondary" onClick={handleCopyCode}>Copia codice</Button>
+              <p className="!m-0">
+                Stampa il codice insieme al ticket: viene mostrato solo ora e non può essere recuperato.
+                Rigenerando il ticket il QR e il codice precedenti smettono di funzionare.
+              </p>
+            </div>
+            <p className="!m-0 break-all"><strong>Dati ticket:</strong> {generated.json}</p>
           </div>
         ) : null}
       </section>

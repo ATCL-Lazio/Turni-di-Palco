@@ -1,4 +1,5 @@
 import type { AtclPromotion, AtclPromotionSlot } from '../data/atcl_promotions';
+import { sanitizePromoUrl } from '../lib/safe-external-url';
 import { getLocalAtclPromotionBySlot, isAtclPromotionActive } from '../data/atcl_promotions';
 
 type PromotionBySlot = Partial<Record<AtclPromotionSlot, AtclPromotion>>;
@@ -68,7 +69,7 @@ export function getLocalAtclNewsTickerItems(now: Date = new Date()): AtclNewsTic
   return localPromotions.map((promotion, index) => ({
     id: `local-${promotion.id}-${index}`,
     title: collapseWhitespace(promotion.title),
-    url: promotion.ctaUrl ?? 'https://www.atcllazio.it/',
+    url: sanitizePromoUrl(promotion.ctaUrl) ?? 'https://www.atcllazio.it/',
     sourceLabel: promotion.badgeLabel || 'ATCL',
     publishedAt: promotion.startsAt,
   }));
@@ -363,7 +364,7 @@ function buildExternalProxyUrl(url: string): string {
 
 function mapRssItemToTickerItem(item: RssItem, sourceLabel: string): AtclNewsTickerItem | null {
   const title = truncate(collapseWhitespace(item.title), 160);
-  const url = collapseWhitespace(item.link);
+  const url = sanitizePromoUrl(collapseWhitespace(item.link));
   if (!title || !url) return null;
 
   const publishedAt = toIsoDate(item.pubDate);
@@ -396,7 +397,7 @@ function mapItemToPromotion(
     description:
       truncate(item.description || 'Consulta i dettagli sul sito ufficiale.', 220),
     ctaLabel: config.ctaLabel,
-    ctaUrl: item.link || undefined,
+    ctaUrl: sanitizePromoUrl(item.link),
     startsAt: toIsoDate(item.pubDate),
   };
 }

@@ -166,7 +166,7 @@ export function AppShell() {
   // Ticket activation state
   type PendingTicketActivation =
     | { mode: 'hash'; hash: string; eventId: string; event?: ActivatedEventPayload }
-    | { mode: 'manual'; eventId: string; ticketNumber: string };
+    | { mode: 'manual'; eventId: string; ticketNumber: string; redeemCode?: string };
   const [pendingTicketActivation, setPendingTicketActivation] = useState<PendingTicketActivation | null>(null);
   const [confirmationEventOverride, setConfirmationEventOverride] = useState<GameEvent | null>(null);
 

@@ -32,6 +32,6 @@ paths = [
   # Output di build / dipendenze: artefatti generati, non sorgenti da scansionare.
   # (In CI il checkout è pulito e non esistono; allowlist difensiva per run locali.)
   '''(^|/)node_modules/''',
-  '''(^|/)build/''',
-  '''(^|/)dist/''',
+  '''^apps/mobile/build/''',
+  '''^apps/pwa/dist/''',
 ]

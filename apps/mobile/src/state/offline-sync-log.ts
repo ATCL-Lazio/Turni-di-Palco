@@ -54,22 +54,54 @@ function normalizeMirroredLogLevel(value: unknown): OfflineSyncLogLevel {
   return 'info';
 }
 
-function serializeMirroredLogDetails(details: unknown): unknown {
-  if (details == null) return undefined;
-  if (typeof details === 'string' || typeof details === 'number' || typeof details === 'boolean') {
-    return details;
-  }
-  if (details instanceof Error) {
+const REDACTED = '[redacted]';
+const SENSITIVE_KEY_RE =
+  /token|password|passwd|secret|authorization|cookie|api[-_]?key|apikey|jwt|session|credential|email|otp|pin_?code/i;
+const JWT_RE = /eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*/g;
+const BEARER_RE = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}/gi;
+// Quantificatori limitati e classi senza sovrapposizioni: nessun backtracking polinomiale (ReDoS).
+const EMAIL_RE = /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63}){1,5}/g;
+const MAX_REDACT_DEPTH = 6;
+
+function redactString(value: string): string {
+  return value.replace(JWT_RE, REDACTED).replace(BEARER_RE, '$1 ' + REDACTED).replace(EMAIL_RE, REDACTED);
+}
+
+/**
+ * Redacts obviously sensitive keys (tokens, passwords, authorization, email...)
+ * and token/e-mail-looking substrings from log details before they are written
+ * to the console or mirrored to the server (#1683).
+ */
+export function redactLogDetails(value: unknown, depth = 0): unknown {
+  if (value == null) return value;
+  if (typeof value === 'string') return redactString(value);
+  if (typeof value !== 'object') return value;
+  if (depth >= MAX_REDACT_DEPTH) return '[truncated]';
+  if (value instanceof Error) {
     return {
-      name: details.name,
-      message: details.message,
-      stack: details.stack ?? null,
+      name: value.name,
+      message: redactString(value.message),
+      stack: value.stack ? redactString(value.stack) : null,
     };
   }
+  if (Array.isArray(value)) return value.map((item) => redactLogDetails(item, depth + 1));
+  const out: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    out[key] = SENSITIVE_KEY_RE.test(key) ? REDACTED : redactLogDetails(item, depth + 1);
+  }
+  return out;
+}
+
+function serializeMirroredLogDetails(details: unknown): unknown {
+  if (details == null) return undefined;
+  const redacted = redactLogDetails(details);
+  if (typeof redacted === 'string' || typeof redacted === 'number' || typeof redacted === 'boolean') {
+    return redacted;
+  }
   try {
-    return JSON.parse(JSON.stringify(details));
+    return JSON.parse(JSON.stringify(redacted));
   } catch {
-    return String(details);
+    return String(redacted);
   }
 }
 
@@ -145,8 +177,9 @@ function enqueueMirroredClientLog(message: string, level: OfflineSyncLogLevel, d
   writeMirroredClientLogs(queue);
 }
 
-export function logOfflineSync(message: string, details?: unknown, level: OfflineSyncLogLevel = 'info') {
-  const formattedMessage = `${OFFLINE_SYNC_LOG_PREFIX} ${new Date().toISOString()} ${message}`;
+export function logOfflineSync(message: string, rawDetails?: unknown, level: OfflineSyncLogLevel = 'info') {
+  const details = rawDetails === undefined ? undefined : redactLogDetails(rawDetails);
+  const formattedMessage = `${OFFLINE_SYNC_LOG_PREFIX} ${new Date().toISOString()} ${redactString(message)}`;
   if (level === 'warn') {
     if (details === undefined) console.warn(formattedMessage);
     else console.warn(formattedMessage, details);
@@ -157,7 +190,7 @@ export function logOfflineSync(message: string, details?: unknown, level: Offlin
     if (details === undefined) console.info(formattedMessage);
     else console.info(formattedMessage, details);
   }
-  enqueueMirroredClientLog(message, level, details);
+  enqueueMirroredClientLog(redactString(message), level, details);
 }
 
 function parseOptionalBooleanEnv(value: unknown): boolean | null {

@@ -4,6 +4,7 @@ import { LeaderboardEntry, useGameState } from '../../state/store';
 import { Card } from '../ui/Card';
 import { Screen } from '../ui/Screen';
 import { computeFlipShifts } from '../../lib/flip';
+import { sanitizeProfileImageUrl } from '../../lib/profile-image-url';
 
 interface LeaderboardProps {
   onSelectEntry?: (entry: LeaderboardEntry, isCurrentUser: boolean) => void;
@@ -111,8 +112,8 @@ function LeaderboardRow({
         <div className={`flex items-center justify-center w-12 h-12 rounded-xl bg-surface-elevated overflow-hidden ${
           isMe ? 'ring-2 ring-gold-400/45 shadow-[0_0_16px_rgba(244,191,79,0.16)]' : ''
         }`}>
-          {entry.profileImage ? (
-            <img src={entry.profileImage} alt={entry.name} className="w-full h-full object-cover" />
+          {sanitizeProfileImageUrl(entry.profileImage) ? (
+            <img src={sanitizeProfileImageUrl(entry.profileImage)} alt={entry.name} className="w-full h-full object-cover" />
           ) : (
             <span className="text-white font-semibold">{initial}</span>
           )}

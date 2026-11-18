@@ -81,10 +81,9 @@ export default async function handler(req, res) {
     }
 
     const payload = await upstream.arrayBuffer();
-    const contentType =
-      upstream.headers.get('content-type') || sourceConfig.defaultContentType;
-
-    res.setHeader('Content-Type', contentType);
+    // Fixed per-source Content-Type: never forward the upstream one.
+    res.setHeader('Content-Type', sourceConfig.defaultContentType);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader(
       'Cache-Control',
       `public, max-age=${PROMO_PROXY_MAX_AGE_SECONDS}`

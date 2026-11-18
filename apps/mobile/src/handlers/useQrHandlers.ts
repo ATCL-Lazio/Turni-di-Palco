@@ -5,6 +5,7 @@ import {
   activateTicketHash,
   isManualTicketActivatedInSession,
   isTicketHashActivatedInSession,
+  parseManualTicketScan,
   parseTicketQrValue,
   resolveTicketHashPreview,
   type ActivatedEventPayload,
@@ -15,7 +16,7 @@ import type { Screen } from '../types/navigation';
 
 export type PendingTicketActivation =
   | { mode: 'hash'; hash: string; eventId: string; event?: ActivatedEventPayload }
-  | { mode: 'manual'; eventId: string; ticketNumber: string };
+  | { mode: 'manual'; eventId: string; ticketNumber: string; redeemCode?: string };
 
 export interface QrHandlerDeps {
   authUserId: string | null;
@@ -93,14 +94,9 @@ export function useQrHandlers(deps: QrHandlerDeps) {
 
     // Manual ticket entry (requires pre-registered ticket via Python generator)
     if (code.startsWith('manual-ticket:')) {
-      // Split only on the first two colons so that a colon inside the ticket
-      // number or event id is preserved rather than silently truncated.
-      const prefixLen = 'manual-ticket:'.length;
-      const rest = code.slice(prefixLen);
-      const sep = rest.indexOf(':');
-      const eventId = sep === -1 ? rest : rest.slice(0, sep);
-      const ticketNumber = sep === -1 ? '' : rest.slice(sep + 1);
-      if (!eventId || !ticketNumber) return { ok: false as const, error: 'Dati manuali incompleti.' };
+      const manual = parseManualTicketScan(code);
+      if (!manual) return { ok: false as const, error: 'Dati manuali incompleti.' };
+      const { eventId, ticketNumber, redeemCode } = manual;
 
       const normalizedEventId = eventId.trim();
       const normalizedTicketNumber = ticketNumber.trim();
@@ -112,7 +108,7 @@ export function useQrHandlers(deps: QrHandlerDeps) {
       // activation call in handleEventConfirm will perform its own lookup and return
       // a proper error if the event truly does not exist (closes #1342).
 
-      setPendingTicketActivation({ mode: 'manual', eventId: normalizedEventId, ticketNumber: normalizedTicketNumber });
+      setPendingTicketActivation({ mode: 'manual', eventId: normalizedEventId, ticketNumber: normalizedTicketNumber, redeemCode });
       setConfirmationEventOverride(mapActivatedEvent(normalizedEventId, events) ?? null);
       setScannedEventId(normalizedEventId);
       navigate('event-confirmation');
@@ -197,7 +193,7 @@ export function useQrHandlers(deps: QrHandlerDeps) {
         return { ok: false, error: 'Sessione non valida. Effettua di nuovo il login.' };
       }
 
-      const activation = await activateTicketByDetails(pendingTicketActivation.eventId, pendingTicketActivation.ticketNumber, activationUserId);
+      const activation = await activateTicketByDetails(pendingTicketActivation.eventId, pendingTicketActivation.ticketNumber, activationUserId, pendingTicketActivation.redeemCode);
       if (!activation.ok) return { ok: false, error: activation.error };
 
       const resolvedEventId = activation.eventId ?? pendingTicketActivation.eventId;

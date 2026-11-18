@@ -1,14 +1,18 @@
-# Ticket hash registrar (Python prototype)
+# Generatore ticket (prototipo Python)
 
-Prototipo per biglietterie teatrali che:
-- Calcola l'hash SHA-256 dal payload canonico del biglietto.
-- **Pre-registra (riserva) l'hash su Supabase via `reserve_hash`. Questa è l'unica via autorizzata per la generazione di ticket validi.**
+Strumento per la biglietteria che **emette** i ticket sul server:
+- Il server genera un valore casuale a 256 bit (il contenuto del QR) e un **codice manuale** di 10 caratteri.
+- Il valore del QR non deriva piu dai campi del biglietto (evento, numero, data): non si puo indovinare.
+- Il codice manuale va **stampato accanto al QR**: serve per l'attivazione a mano ed e mostrato una sola volta.
 
 ## ⚠️ IMPORTANTE: Flusso Obbligatorio
 
-**Tutti i ticket DEVONO essere pre-registrati tramite questo strumento Python prima di poter essere attivati.**  
-L'attivazione client-side è possibile solo per ticket già pre-registrati in `ticket_activations` tramite `reserve_hash`.  
-Il flusso client-side diretto (`register_ticket`) è stato rimosso per garantire il controllo della biglietteria autorizzata.
+**Tutti i ticket DEVONO essere emessi tramite questo strumento (o la schermata admin dell'app) prima di poter essere attivati.**
+L'attivazione e possibile solo per ticket gia presenti in `ticket_activations`.
+
+Per emettere servono un **account admin** (ruolo `admin` in `app_metadata`) e la chiave **anon** del progetto. Lo strumento non usa piu la chiave service-role e non deve piu stare sui computer di biglietteria.
+
+> I ticket emessi con la vecchia versione (hash dei campi, azione `reserve_hash`) non sono piu generabili: `reserve_hash` risponde con un invito ad aggiornare.
 
 ## Struttura JSON del ticket
 
@@ -42,28 +46,27 @@ Nella UI:
 1. (Prima volta) Apri **Impostazioni circuito** e seleziona il circuito emittente predefinito.
 2. Premi **Aggiorna calendario** e seleziona l'evento.
 3. Inserisci **solo** il numero biglietto.
-4. Premi **Genera e Prenota Hash**.
-5. Ottieni hash e JSON da usare per la conferma della prenotazione.
+4. Premi **Genera e Prenota Hash**; alla prima emissione ti viene chiesto l'accesso con l'account admin (oppure imposta `TICKET_ADMIN_EMAIL` e `TICKET_ADMIN_PASSWORD`).
+5. Copia il **valore del QR** (da codificare nel QR) e il **codice manuale** (da stampare sul biglietto).
 
 Il circuito predefinito viene salvato localmente in `~/.turni_ticket_qr_ui.json`.
 Puoi cambiare path impostando `TICKET_QR_UI_SETTINGS_PATH`.
-L'hash e il solo SHA-256 del payload canonico (64 caratteri).
+Il valore del QR e un segreto casuale di 64 caratteri generato dal server.
 
 La lista circuiti del menu e esterna in `tools/ticket_qr_generator/circuit_options.json`.
 Puoi sovrascrivere il file con `TICKET_QR_CIRCUITS_PATH` oppure passare una lista CSV diretta con `TICKET_QR_CIRCUITS` (es: `TICKETONE,TICKETTANDO/18 MONTHS,CIAO TICKETS`).
 
-Per leggere il calendario eventi nella UI imposta:
+Per emettere ticket (quando disattivi "Modalita locale") imposta:
 
 ```bash
 export SUPABASE_URL="https://<project>.supabase.co"
-export SUPABASE_ANON_KEY="<anon-or-service-key>"
+export SUPABASE_ANON_KEY="<anon-key>"
+# Facoltativi: se mancano, vengono chiesti a ogni avvio
+export TICKET_ADMIN_EMAIL="<email account admin>"
+export TICKET_ADMIN_PASSWORD="<password account admin>"
 ```
 
-Per prenotare hash su Supabase (quando disattivi "Modalita locale"), serve anche:
-
-```bash
-export SUPABASE_SERVICE_ROLE_KEY="<service-role-key>"
-```
+Per leggere il calendario eventi nella UI servono `SUPABASE_URL` e una chiave API Supabase (`SUPABASE_ANON_KEY`, oppure `SUPABASE_SERVICE_ROLE_KEY` se il calendario non e leggibile con la chiave anon: tienila solo su una macchina fidata e non e piu necessaria per emettere i ticket).
 
 ## Esecuzione CLI
 
@@ -76,7 +79,7 @@ python tools/ticket_qr_generator/generate_ticket_qr.py \
   --event-from-calendar
 ```
 
-### Modalita manuale (compatibilita)
+### Modalita manuale (solo prove locali)
 
 ```bash
 python tools/ticket_qr_generator/generate_ticket_qr.py \
@@ -86,4 +89,14 @@ python tools/ticket_qr_generator/generate_ticket_qr.py \
   --ticket-number "1234567890" \
   --date "2026-02-11T11:54:00+01:00" \
   --skip-supabase
+```
+
+In modalita `--skip-supabase` il valore e casuale e **non viene registrato**: non puo essere attivato.
+
+L'output JSON contiene `hash` (valore del QR) e `redeem_code` (codice manuale da stampare).
+
+## Test
+
+```bash
+python -m unittest tools/ticket_qr_generator/test_generate_ticket_qr.py
 ```

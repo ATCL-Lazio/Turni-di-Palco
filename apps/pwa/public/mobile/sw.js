@@ -1,4 +1,4 @@
-const CACHE_VERSION = "mobile-v1";
+const CACHE_VERSION = "mobile-v2";
 const PRECACHE_URLS = ["/mobile/", "/mobile/index.html"];
 
 self.addEventListener("install", (event) => {

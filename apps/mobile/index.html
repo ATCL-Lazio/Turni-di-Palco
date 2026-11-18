@@ -9,7 +9,7 @@
     />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://vercel.live; img-src 'self' data: blob: https:; font-src 'self' data: https://vercel.live; connect-src 'self' https: wss:; frame-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self' https:; upgrade-insecure-requests"
+      content="default-src 'self'; script-src 'self' https://vercel.live; style-src 'self' 'unsafe-inline' https://vercel.live; img-src 'self' data: blob: https://*.supabase.co https://vercel.live; font-src 'self' data: https://vercel.live; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live; frame-src 'self' https://vercel.live; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests"
     />
     <meta name="description" content="Turni di Palco - App di gamification teatrale per ATCL Lazio" />
     <title>Turni di Palco</title>
@@ -19,17 +19,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Turni di Palco" />
-    <script>
-      (function () {
-        var localHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
-        if (localHosts.has(window.location.hostname)) return;
-        var manifestLink = document.createElement("link");
-        manifestLink.rel = "manifest";
-        manifestLink.href = "/mobile/manifest.webmanifest";
-        manifestLink.crossOrigin = "use-credentials";
-        document.head.appendChild(manifestLink);
-      })();
-    </script>
+    <script src="/mobile/manifest-link.js"></script>
     <base href="/mobile/" />
     <link rel="icon" type="image/png" sizes="192x192" href="icons/pwa-192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="icons/pwa-512.png" />

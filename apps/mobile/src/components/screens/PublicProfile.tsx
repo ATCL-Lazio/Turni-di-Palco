@@ -3,6 +3,7 @@ import { ArrowLeft, Coins, Shield, Sparkles, Theater, Trophy, Users } from 'luci
 import { ProgressBar } from '../ui/ProgressBar';
 import { Card } from '../ui/Card';
 import { Tag } from '../ui/Tag';
+import { sanitizeProfileImageUrl } from '../../lib/profile-image-url';
 
 interface PublicProfileProps {
   userName: string;
@@ -53,9 +54,9 @@ export function PublicProfile({
 
         <div className="flex items-center px-[25px] gap-[16px]">
           <div className="bg-gradient-to-b from-burgundy-600 to-burgundy-800 rounded-full shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] size-[96px] flex items-center justify-center overflow-hidden">
-            {profileImage ? (
+            {sanitizeProfileImageUrl(profileImage) ? (
               <img
-                src={profileImage}
+                src={sanitizeProfileImageUrl(profileImage)}
                 alt={userName || 'Profilo utente'}
                 className="w-full h-full object-cover"
               />

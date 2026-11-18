@@ -9,6 +9,7 @@ export type ErrorOverlayProps = {
 };
 
 export function ErrorOverlay({ title, message, details, onReload, onHome }: ErrorOverlayProps) {
+  const showDetails = Boolean(import.meta.env.DEV);
   return (
     <div
       className="fixed inset-0 z-[1000] flex items-center justify-center bg-page px-6 py-10"
@@ -39,7 +40,8 @@ export function ErrorOverlay({ title, message, details, onReload, onHome }: Erro
             Torna alla home
           </button>
         </div>
-        {details ? (
+        {/* Raw technical details are shown only in development builds (#1683). */}
+        {showDetails && details ? (
           <details className="mt-4 text-[12px] text-fg-tertiary">
             <summary className="cursor-pointer">Dettagli tecnici</summary>
             <pre className="mt-2 whitespace-pre-wrap rounded-[12px] border border-border bg-[#141112] p-3 text-[12px] text-fg-secondary">
