@@ -1015,13 +1015,15 @@ function resolveApiKey() {
   return stripEnvValue(process.env.AI_SUPPORT_API_KEY) || '';
 }
 
-// Constant-time token comparison. Hashing both sides to a fixed length avoids
-// leaking the secret length and lets timingSafeEqual accept any input.
+// Constant-time token comparison. Both sides are mapped to a fixed length with an
+// HMAC keyed by a random per-process key, which avoids leaking the secret length
+// and lets timingSafeEqual accept any input (HMAC, not a bare hash of the secret).
+const TOKEN_COMPARE_KEY = crypto.randomBytes(32);
 function safeTokenEqual(provided, expected) {
   if (typeof provided !== 'string' || typeof expected !== 'string') return false;
   if (!provided || !expected) return false;
-  const a = crypto.createHash('sha256').update(provided).digest();
-  const b = crypto.createHash('sha256').update(expected).digest();
+  const a = crypto.createHmac('sha256', TOKEN_COMPARE_KEY).update(provided).digest();
+  const b = crypto.createHmac('sha256', TOKEN_COMPARE_KEY).update(expected).digest();
   return crypto.timingSafeEqual(a, b);
 }
 

@@ -59,7 +59,8 @@ const SENSITIVE_KEY_RE =
   /token|password|passwd|secret|authorization|cookie|api[-_]?key|apikey|jwt|session|credential|email|otp|pin_?code/i;
 const JWT_RE = /eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*/g;
 const BEARER_RE = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}/gi;
-const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+// Quantificatori limitati e classi senza sovrapposizioni: nessun backtracking polinomiale (ReDoS).
+const EMAIL_RE = /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63}){1,5}/g;
 const MAX_REDACT_DEPTH = 6;
 
 function redactString(value: string): string {
