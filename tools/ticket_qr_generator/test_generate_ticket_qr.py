@@ -10,10 +10,8 @@ import io
 import json
 import os
 import pathlib
-import re
 import sys
-import unittest
-from unittest import mock
+from unittest import TestCase, main, mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
@@ -39,7 +37,7 @@ class FakeResponse:
             raise gen.requests.HTTPError(f"HTTP {self.status_code}")
 
 
-class SignInTests(unittest.TestCase):
+class SignInTests(TestCase):
     def test_returns_access_token(self) -> None:
         with mock.patch.object(gen.requests, "post", return_value=FakeResponse(200, {"access_token": "jwt"})) as post:
             token = gen.sign_in_admin(supabase_url=URL, anon_key="anon", email="a@b.it", password="pw")
@@ -60,7 +58,7 @@ class SignInTests(unittest.TestCase):
                 gen.sign_in_admin(supabase_url=URL, anon_key="anon", email="a@b.it", password="pw")
 
 
-class IssueTicketTests(unittest.TestCase):
+class IssueTicketTests(TestCase):
     def issue(self, response: FakeResponse) -> dict[str, str]:
         with mock.patch.object(gen.requests, "post", return_value=response) as post:
             result = gen.issue_ticket(supabase_url=URL, anon_key="anon", access_token="jwt", payload=PAYLOAD)
@@ -104,7 +102,7 @@ def run_main(argv: list[str], env: dict[str, str]) -> tuple[int, str, str]:
 BASE_ARGS = ["--circuit", "ATCL", "--event-name", "Esempio", "--event-id", "ATCL-001", "--ticket-number", "1", "--date", "2026-02-11T11:54:00+01:00"]
 
 
-class MainTests(unittest.TestCase):
+class MainTests(TestCase):
     def test_local_mode_uses_random_unregistered_value(self) -> None:
         code1, out1, err1 = run_main([*BASE_ARGS, "--skip-supabase"], {})
         code2, out2, _ = run_main([*BASE_ARGS, "--skip-supabase"], {})
@@ -156,4 +154,4 @@ class MainTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    main()
