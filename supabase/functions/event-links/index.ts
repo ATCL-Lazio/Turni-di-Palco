@@ -64,7 +64,6 @@ const ALLOWED_HOSTS = [
   'www.turnidipalco.it',
   'turni-di-palco.onrender.com',
   'turni-di-palco-fq85.onrender.com',
-  'maxwell-ai-support.onrender.com',
 ];
 
 const DEFAULT_BASE_URL = 'https://turnidipalco.it/mobile/index.html';

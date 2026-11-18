@@ -8,7 +8,6 @@ const ISSUE_LIMIT_PER_HOUR = 5;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
 const GITHUB_REPO =
   process.env.AI_SUPPORT_GH_REPO ?? 'ATCL-Lazio/Turni-di-Palco';
-const MAXWELL_ISSUE_URL = process.env.MAXWELL_ISSUE_ENDPOINT;
 
 const UPSTREAM_TIMEOUT_MS = 22000;
 
@@ -79,26 +78,6 @@ export default async function handler(req, res) {
         url: ghData.html_url,
         number: ghData.number,
       });
-      return;
-    }
-
-    // Se MAXWELL_ISSUE_ENDPOINT è impostato, usa il proxy legacy
-    if (MAXWELL_ISSUE_URL) {
-      const upstream = await fetch(MAXWELL_ISSUE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(req.body),
-        signal: controller.signal,
-      });
-
-      const payload = await upstream.text();
-      res
-        .status(upstream.status)
-        .setHeader(
-          'Content-Type',
-          upstream.headers.get('content-type') || 'application/json',
-        )
-        .send(payload);
       return;
     }
 
