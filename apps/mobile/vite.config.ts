@@ -69,7 +69,18 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: '/mobile/',
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+      // La CSP via <meta> è pensata per i build: in dev Vite inietta script inline
+      // (React refresh) e usa ws://, che una CSP rigorosa bloccherebbe.
+      name: 'strip-csp-meta-in-dev',
+      apply: 'serve',
+      transformIndexHtml: (html: string) =>
+        html.replace(/\s*<meta\s+http-equiv="Content-Security-Policy"[^>]*>/i, ''),
+    },
+    ],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {
