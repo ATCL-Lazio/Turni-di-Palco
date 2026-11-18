@@ -6,8 +6,9 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import secrets
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox, simpledialog, ttk
 
 from dotenv import load_dotenv
 
@@ -16,14 +17,14 @@ load_dotenv()
 
 from generate_ticket_qr import (
     CalendarEvent,
+    TicketIssueError,
     TicketPayload,
-    canonical_payload_json,
     default_ticket_circuit,
     fetch_calendar_events,
     get_calendar_api_key,
+    issue_ticket,
     pretty_payload_json,
-    reserve_hash,
-    sha256_hex,
+    sign_in_admin,
 )
 
 
@@ -68,8 +69,8 @@ class TicketQrGeneratorUI:
         self.root.minsize(980, 680)
 
         supabase_url = os.getenv("SUPABASE_URL", "").strip()
-        service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
-        has_creds = bool(supabase_url and service_role_key)
+        anon_key = os.getenv("SUPABASE_ANON_KEY", "").strip()
+        has_creds = bool(supabase_url and anon_key)
         self.circuit_options = self._load_circuit_options()
 
         self.circuit_var = tk.StringVar(value=self._initial_circuit())
@@ -81,6 +82,8 @@ class TicketQrGeneratorUI:
         self.skip_supabase_var = tk.BooleanVar(value=not has_creds)
         self.calendar_status_var = tk.StringVar(value="Calendario non caricato.")
         self.hash_var = tk.StringVar(value="-")
+        self.redeem_var = tk.StringVar(value="-")
+        self._access_token: str | None = None
         self.calendar_events: list[CalendarEvent] = []
 
         self._configure_theme()
@@ -370,8 +373,16 @@ class TicketQrGeneratorUI:
         self.json_box.pack(fill="x")
         self.json_box.configure(highlightthickness=1, highlightbackground=COLOR_BORDER, highlightcolor=COLOR_ACCENT)
 
-        ttk.Label(result_card, text="Hash SHA-256", style="FieldLabel.TLabel").pack(anchor="w", pady=(8, 4))
+        ttk.Label(result_card, text="Valore del QR (segreto casuale, 64 caratteri)", style="FieldLabel.TLabel").pack(
+            anchor="w", pady=(8, 4)
+        )
         ttk.Entry(result_card, textvariable=self.hash_var, state="readonly", style="Value.TEntry").pack(fill="x")
+        ttk.Label(
+            result_card,
+            text="Codice manuale (da stampare sul biglietto, serve per l'attivazione a mano)",
+            style="FieldLabel.TLabel",
+        ).pack(anchor="w", pady=(8, 4))
+        ttk.Entry(result_card, textvariable=self.redeem_var, state="readonly", style="Value.TEntry").pack(fill="x")
 
     def _open_circuit_settings(self) -> None:
         dialog = tk.Toplevel(self.root)
@@ -520,38 +531,67 @@ class TicketQrGeneratorUI:
             raise ValueError("Tutti i campi sono obbligatori.")
         return payload
 
+    def _admin_access_token(self, supabase_url: str, anon_key: str) -> str:
+        """Signs in once per session as an admin user (env vars or a prompt) and caches the token."""
+        if self._access_token:
+            return self._access_token
+        email = os.getenv("TICKET_ADMIN_EMAIL", "").strip() or (
+            simpledialog.askstring("Accesso admin", "Email account admin:", parent=self.root) or ""
+        ).strip()
+        password = os.getenv("TICKET_ADMIN_PASSWORD", "") or (
+            simpledialog.askstring("Accesso admin", "Password account admin:", show="*", parent=self.root) or ""
+        )
+        if not email or not password:
+            raise ValueError("Servono email e password di un account admin per emettere i ticket.")
+        self._access_token = sign_in_admin(
+            supabase_url=supabase_url, anon_key=anon_key, email=email, password=password
+        )
+        return self._access_token
+
     def _generate(self) -> None:
         try:
             payload = self._build_payload()
-            canonical_json = canonical_payload_json(payload)
-            payload_hash = sha256_hex(canonical_json)
 
             is_remote = not self.skip_supabase_var.get()
+            redeem_code = ""
             if is_remote:
-                supabase_url = os.getenv("SUPABASE_URL", "")
-                service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-                if not supabase_url or not service_role_key:
+                supabase_url = os.getenv("SUPABASE_URL", "").strip()
+                anon_key = os.getenv("SUPABASE_ANON_KEY", "").strip()
+                if not supabase_url or not anon_key:
                     raise ValueError(
-                        "Imposta SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY oppure abilita la modalita locale."
+                        "Imposta SUPABASE_URL e SUPABASE_ANON_KEY oppure abilita la modalita locale."
                     )
-
-                reserved = reserve_hash(
-                    supabase_url=supabase_url,
-                    service_role_key=service_role_key,
-                    payload=payload,
-                    payload_hash=payload_hash,
-                )
-                if not reserved:
-                    raise ValueError("Hash gia presente su Supabase. Verifica i dati del ticket (forse gia generato).")
+                access_token = self._admin_access_token(supabase_url, anon_key)
+                try:
+                    issued = issue_ticket(
+                        supabase_url=supabase_url,
+                        anon_key=anon_key,
+                        access_token=access_token,
+                        payload=payload,
+                    )
+                except TicketIssueError:
+                    # Token expired or refused: forget it so the next attempt asks to sign in again.
+                    self._access_token = None
+                    raise
+                ticket_value = issued["hash"]
+                redeem_code = issued["redeem_code"]
+            else:
+                # Local-only mode: random value, NOT registered, so it can never be activated.
+                ticket_value = secrets.token_hex(32)
 
             self.json_box.delete("1.0", tk.END)
             self.json_box.insert(tk.END, pretty_payload_json(payload))
-            self.hash_var.set(payload_hash)
+            self.hash_var.set(ticket_value)
+            self.redeem_var.set(redeem_code or "-")
 
-            success_msg = f"Hash generato correttamente.\n\nHash: {payload_hash}"
             if is_remote:
-                success_msg += "\n\nHash prenotato correttamente su Supabase."
-
+                success_msg = (
+                    "Ticket emesso e registrato su Supabase.\n\n"
+                    f"Codice manuale: {redeem_code}\n\n"
+                    "Stampa il codice accanto al QR: non viene mostrato di nuovo."
+                )
+            else:
+                success_msg = "Modalita locale: valore generato ma NON registrato (non attivabile)."
             messagebox.showinfo("Completato", success_msg)
         except Exception as error:
             messagebox.showerror("Errore", str(error))

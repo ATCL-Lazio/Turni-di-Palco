@@ -5,11 +5,12 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
-import hashlib
+import getpass
 import html
 import json
 import os
 import re
+import secrets
 import sys
 import unicodedata
 from collections import OrderedDict
@@ -239,32 +240,78 @@ def pretty_payload_json(payload: TicketPayload) -> str:
     return json.dumps(to_payload_dict(payload), ensure_ascii=False, indent=2)
 
 
-def sha256_hex(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+class TicketIssueError(RuntimeError):
+    """The server refused to sign in or to issue the ticket (message is operator-facing)."""
 
 
-def reserve_hash(
+def sign_in_admin(
     *,
     supabase_url: str,
-    service_role_key: str,
-    payload: TicketPayload,
-    payload_hash: str,
+    anon_key: str,
+    email: str,
+    password: str,
     timeout_s: int = 15,
-) -> bool:
-    endpoint = f"{supabase_url.rstrip('/')}/functions/v1/ticket-activation"
+) -> str:
+    """Signs in as an admin user and returns the access token (JWT)."""
     response = requests.post(
-        endpoint,
-        headers={
-            "Authorization": f"Bearer {service_role_key}",
-            "apikey": service_role_key,
-            "Content-Type": "application/json",
-        },
-        json={"action": "reserve_hash", "hash": payload_hash, "payload": to_payload_dict(payload)},
+        f"{supabase_url.rstrip('/')}/auth/v1/token",
+        params={"grant_type": "password"},
+        headers={"apikey": anon_key, "Content-Type": "application/json"},
+        json={"email": email, "password": password},
         timeout=timeout_s,
     )
+    if response.status_code in (400, 401, 403):
+        raise TicketIssueError("Accesso non riuscito: controlla email e password dell'account admin.")
+    response.raise_for_status()
+    token = (response.json() if response.content else {}).get("access_token")
+    if not isinstance(token, str) or not token:
+        raise TicketIssueError("Risposta di accesso non valida.")
+    return token
+
+
+def issue_ticket(
+    *,
+    supabase_url: str,
+    anon_key: str,
+    access_token: str,
+    payload: TicketPayload,
+    timeout_s: int = 15,
+) -> dict[str, str]:
+    """Asks the server to issue a ticket: it returns the random QR value and the manual redeem code."""
+    response = requests.post(
+        f"{supabase_url.rstrip('/')}/functions/v1/ticket-activation",
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "apikey": anon_key,
+            "Content-Type": "application/json",
+        },
+        json={"action": "issue_ticket", "payload": to_payload_dict(payload)},
+        timeout=timeout_s,
+    )
+    if response.status_code == 403:
+        raise TicketIssueError("L'account non ha il ruolo admin richiesto per emettere ticket.")
     response.raise_for_status()
     body = response.json() if response.content else {}
-    return bool(body.get("reserved"))
+    if not body.get("reserved"):
+        raise TicketIssueError(
+            str(body.get("error") or "Ticket non emesso: forse esiste gia per questo evento e numero.")
+        )
+    ticket_value = body.get("hash")
+    redeem_code = body.get("redeemCode")
+    if not isinstance(ticket_value, str) or not isinstance(redeem_code, str):
+        raise TicketIssueError("Risposta del server non valida.")
+    return {"hash": ticket_value, "redeem_code": redeem_code}
+
+
+def resolve_admin_credentials() -> tuple[str, str]:
+    """Admin login from TICKET_ADMIN_EMAIL / TICKET_ADMIN_PASSWORD, otherwise asked on the terminal."""
+    email = os.getenv("TICKET_ADMIN_EMAIL", "").strip()
+    password = os.getenv("TICKET_ADMIN_PASSWORD", "")
+    if not email:
+        email = input("Email account admin: ").strip()
+    if not password:
+        password = getpass.getpass("Password account admin: ")
+    return email, password
 
 
 def parse_args() -> argparse.Namespace:
@@ -287,7 +334,7 @@ def main() -> int:
     args = parse_args()
 
     supabase_url = os.getenv("SUPABASE_URL", "")
-    service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+    anon_key = os.getenv("SUPABASE_ANON_KEY", "").strip()
     calendar_api_key = get_calendar_api_key()
 
     try:
@@ -322,31 +369,39 @@ def main() -> int:
         print("All fields are required.", file=sys.stderr)
         return 1
 
-    if not args.skip_supabase and (not supabase_url or not service_role_key):
-        print("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required (or use --skip-supabase).", file=sys.stderr)
+    if not args.skip_supabase and (not supabase_url or not anon_key):
+        print("SUPABASE_URL and SUPABASE_ANON_KEY are required (or use --skip-supabase).", file=sys.stderr)
         return 1
 
     canonical_json = canonical_payload_json(payload)
-    payload_hash = sha256_hex(canonical_json)
+    ticket_value = ""
+    redeem_code = ""
     reserved = False
-    if not args.skip_supabase:
-        reserved = reserve_hash(
-            supabase_url=supabase_url,
-            service_role_key=service_role_key,
-            payload=payload,
-            payload_hash=payload_hash,
-        )
-        if not reserved:
-            print(
-                "Hash gia presente su Supabase. Verifica eventID/ticketNumber: i duplicati non sono consentiti.",
-                file=sys.stderr,
+    if args.skip_supabase:
+        # Local-only mode: random value, NOT registered, so it can never be activated.
+        ticket_value = secrets.token_hex(32)
+        print("Modalita locale: il ticket NON e registrato e non puo essere attivato.", file=sys.stderr)
+    else:
+        try:
+            email, password = resolve_admin_credentials()
+            access_token = sign_in_admin(
+                supabase_url=supabase_url, anon_key=anon_key, email=email, password=password
             )
+            issued = issue_ticket(
+                supabase_url=supabase_url, anon_key=anon_key, access_token=access_token, payload=payload
+            )
+        except (TicketIssueError, requests.RequestException) as error:
+            print(str(error), file=sys.stderr)
             return 2
+        ticket_value = issued["hash"]
+        redeem_code = issued["redeem_code"]
+        reserved = True
 
     print(
         json.dumps(
             {
-                "hash": payload_hash,
+                "hash": ticket_value,
+                "redeem_code": redeem_code,
                 "json_payload": pretty_payload_json(payload),
                 "canonical_json": canonical_json,
                 "supabase_reserved": reserved,
