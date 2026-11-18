@@ -161,12 +161,6 @@ class ProblemDetector {
     const problems = [];
     const services = [
       {
-        name: 'Maxwell-AI-Support',
-        url:
-          process.env.WATCHDOG_SERVICE_MAXWELL_URL ||
-          'https://maxwell-ai-support.onrender.com/health'
-      },
-      {
         name: 'Turni-di-Palco',
         url:
           process.env.WATCHDOG_SERVICE_TURNI_URL ||

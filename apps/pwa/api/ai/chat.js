@@ -15,10 +15,6 @@ const ANTHROPIC_BASE_URL =
 const MANAGED_AGENTS_BETA = 'managed-agents-2026-04-01';
 const ANTHROPIC_VERSION = '2023-06-01';
 
-const MAXWELL_LEGACY_URL =
-  process.env.MAXWELL_ENDPOINT ??
-  'https://maxwell-ai-support.onrender.com/api/ai/chat';
-
 const REQUEST_TIMEOUT_MS = 30000;
 
 // Cache sessioni in-memory per mappare le sessionId dell'app mobile con le sessioni Claude
@@ -295,23 +291,6 @@ export default async function handler(req, res) {
         });
         return;
       }
-    }
-
-    // Se ANTHROPIC_API_KEY non è presente, fallback su MAXWELL_ENDPOINT legacy
-    if (process.env.MAXWELL_ENDPOINT) {
-      const upstream = await fetch(MAXWELL_LEGACY_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(req.body),
-        signal: controller.signal,
-      });
-
-      const payload = await upstream.text();
-      res
-        .status(upstream.status)
-        .setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json')
-        .send(payload);
-      return;
     }
 
     res.status(503).json({
