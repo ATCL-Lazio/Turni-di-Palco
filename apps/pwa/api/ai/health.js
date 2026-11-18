@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   // Se è configurata ANTHROPIC_API_KEY, il backend AI è attivo su Claude Platform
   if (ANTHROPIC_API_KEY) {
-    res.status(200).json({ ok: true, provider: 'claude-platform' });
+    res.status(200).json({ ok: true });
     return;
   }
 

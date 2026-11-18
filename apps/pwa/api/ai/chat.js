@@ -1,3 +1,10 @@
+import { rateLimit, requireUser } from './_guard.js';
+
+const MAX_MESSAGES = 40;
+const MAX_MESSAGE_CHARS = 4000;
+const MAX_SESSION_ID_CHARS = 128;
+const CHAT_LIMIT_PER_MIN = 20;
+
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const CLAUDE_AGENT_ID =
   process.env.CLAUDE_AGENT_ID ?? 'agent_01UoCa14bYqmCDp1RLjyRE39';
@@ -221,12 +228,42 @@ export default async function handler(req, res) {
     return;
   }
 
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  if (!rateLimit(`chat:${user.id}`, CHAT_LIMIT_PER_MIN, 60_000)) {
+    res.status(429).json({ ok: false, error: 'Troppe richieste, riprova tra poco' });
+    return;
+  }
+
+  const messages = req.body?.messages;
+  if (
+    messages !== undefined &&
+    (!Array.isArray(messages) ||
+      messages.length > MAX_MESSAGES ||
+      messages.some(
+        (m) =>
+          !m ||
+          typeof m.content !== 'string' ||
+          m.content.length > MAX_MESSAGE_CHARS ||
+          !['user', 'assistant'].includes(m.role),
+      ))
+  ) {
+    res.status(400).json({ ok: false, error: 'Payload non valido' });
+    return;
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
     const userMessage = extractUserMessage(req.body);
-    const clientSessionId = req.body?.sessionId || req.body?.context?.sessionId;
+    const rawSessionId = req.body?.sessionId || req.body?.context?.sessionId;
+    // La sessione e' legata all'utente: un sessionId altrui non apre la sua chat.
+    const clientSessionId =
+      typeof rawSessionId === 'string' && rawSessionId.length <= MAX_SESSION_ID_CHARS
+        ? `${user.id}:${rawSessionId}`
+        : undefined;
 
     // Se è configurata ANTHROPIC_API_KEY, utilizziamo Claude Platform
     if (ANTHROPIC_API_KEY) {
@@ -285,7 +322,8 @@ export default async function handler(req, res) {
     if (error.name === 'AbortError') {
       res.status(504).json({ ok: false, error: 'AI request timeout' });
     } else {
-      res.status(502).json({ ok: false, error: 'AI provider error', detail: error.message });
+      console.error('[Claude Chat] provider error:', error.message);
+      res.status(502).json({ ok: false, error: 'AI provider error' });
     }
   } finally {
     clearTimeout(timeoutId);

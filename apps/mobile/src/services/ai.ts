@@ -1,3 +1,4 @@
+import { supabase } from '../lib/supabase';
 import { withMobileWatchdog } from './mobile-watchdog';
 
 export type AiChatMessage = {
@@ -75,6 +76,19 @@ const DEFAULT_ENDPOINT = (() => {
 })();
 const DEFAULT_ISSUE_ENDPOINT =
   import.meta.env.VITE_AI_SUPPORT_ISSUE_ENDPOINT ?? null;
+// Gli endpoint /api/ai/* richiedono il JWT Supabase dell'utente.
+async function buildAuthHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  try {
+    const { data } = (await supabase?.auth.getSession()) ?? { data: null };
+    const token = data?.session?.access_token;
+    if (token) headers.Authorization = `Bearer ${token}`;
+  } catch {
+    // Senza sessione la richiesta partira' senza token e il server rispondera' 401.
+  }
+  return headers;
+}
+
 const AI_SUPPORT_REQUEST_WATCHDOG_MS = 25000;
 const AI_ISSUE_REQUEST_WATCHDOG_MS = 20000;
 const AI_AVAILABILITY_WATCHDOG_MIN_MS = 5000;
@@ -207,9 +221,7 @@ export async function requestAiSupport({
       const target = resolveEndpoint(endpoint);
       const response = await fetch(target, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: await buildAuthHeaders(),
         signal: combinedSignal,
         body: JSON.stringify({
           prompt: SUPPORT_PROMPT,
@@ -348,9 +360,7 @@ export async function requestAiIssue({
       const target = resolveIssueEndpoint(endpoint);
       const response = await fetch(target, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify(safePayload),
         signal: controller.signal,
       });

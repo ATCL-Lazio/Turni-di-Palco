@@ -70,3 +70,6 @@ tools/ticket_qr_generator/__pycache__/
 
 # Agent/tool local configs — may contain personal access tokens; never commit.
 .codex/
+
+# Local Claude Code settings (permessi per-macchina, non condividere)
+.claude/settings.local.json
