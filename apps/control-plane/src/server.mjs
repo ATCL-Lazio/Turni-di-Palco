@@ -74,15 +74,27 @@ const ALLOWED_ORIGINS = new Set(
       ]
 );
 const ALLOWED_EMAILS = new Set(parseCsv(process.env.CONTROL_PLANE_ALLOWED_EMAILS).map((value) => value.toLowerCase()));
+// Fail closed: with an empty CONTROL_PLANE_ALLOWED_EMAILS every authenticated request is refused (403).
+// Local development only: CONTROL_PLANE_ALLOW_ANY_EMAIL=true skips the email allowlist; it is ignored when NODE_ENV=production.
+const ALLOW_ANY_EMAIL_DEV =
+  String(process.env.CONTROL_PLANE_ALLOW_ANY_EMAIL || "").trim().toLowerCase() === "true" &&
+  process.env.NODE_ENV !== "production";
+if (ALLOWED_EMAILS.size === 0) {
+  console.warn(
+    ALLOW_ANY_EMAIL_DEV
+      ? "[control-plane] WARNING: CONTROL_PLANE_ALLOWED_EMAILS is empty and CONTROL_PLANE_ALLOW_ANY_EMAIL=true: email allowlist DISABLED (dev only)."
+      : "[control-plane] WARNING: CONTROL_PLANE_ALLOWED_EMAILS is empty: all authenticated requests will be refused (403)."
+  );
+}
 
 const READ_TABLE_ALLOWLIST = buildAllowlist(
   process.env.CONTROL_PLANE_DB_READ_ALLOWLIST,
   [ROLE_TABLE, CONFIRM_TABLE, EXECUTION_TABLE, AUDIT_TABLE]
 );
-const MUTATE_TABLE_ALLOWLIST = buildAllowlist(
-  process.env.CONTROL_PLANE_DB_MUTATE_ALLOWLIST,
-  [CONFIRM_TABLE, EXECUTION_TABLE, AUDIT_TABLE]
-);
+// Audit/confirmation/execution/role tables are written only by internal server code (service client),
+// never through the operator-facing mutate path: no default entries and a hard deny even if listed via env.
+const MUTATE_TABLE_ALLOWLIST = buildAllowlist(process.env.CONTROL_PLANE_DB_MUTATE_ALLOWLIST, []);
+const MUTATE_TABLE_DENYLIST = new Set([ROLE_TABLE, CONFIRM_TABLE, EXECUTION_TABLE, AUDIT_TABLE]);
 
 const ROLE_RANK = Object.freeze({
   dev_viewer: 1,
@@ -214,7 +226,8 @@ loadPendingFromDisk();
 
 const app = express();
 app.disable("x-powered-by");
-app.set("trust proxy", true);
+// Number of trusted reverse-proxy hops (default 1). `true` would trust a client-supplied X-Forwarded-For.
+app.set("trust proxy", parseTrustProxyHops(process.env.CONTROL_PLANE_TRUST_PROXY_HOPS));
 app.use(express.json({ limit: "1mb" }));
 app.use(requestIdMiddleware);
 app.use(securityHeadersMiddleware);
@@ -463,6 +476,7 @@ function buildAllowlist(raw, fallbackList) {
 function isTableAllowed(tableName, allowlist) {
   const normalized = normalizeTableName(tableName);
   if (!normalized) return false;
+  if (allowlist === MUTATE_TABLE_ALLOWLIST && MUTATE_TABLE_DENYLIST.has(normalized)) return false;
   if (allowlist.has("*")) return true;
   return allowlist.has(normalized);
 }
@@ -608,12 +622,18 @@ function corsMiddleware(req, res, next) {
   return next();
 }
 
-function extractClientIp(req) {
-  const directIp = asString(req.socket?.remoteAddress);
-  if (directIp) return directIp;
+function parseTrustProxyHops(raw) {
+  const value = Number.parseInt(String(raw ?? "").trim(), 10);
+  return Number.isInteger(value) && value >= 0 && value <= 10 ? value : 1;
+}
 
+function extractClientIp(req) {
+  // req.ip honours the "trust proxy" hop count; socket.remoteAddress would be the proxy for every client.
   const resolvedIp = asString(req.ip);
   if (resolvedIp) return resolvedIp;
+
+  const directIp = asString(req.socket?.remoteAddress);
+  if (directIp) return directIp;
 
   return "unknown";
 }
@@ -811,6 +831,13 @@ async function resolveAuthContext(token) {
 
   const user = data.user;
   const emailLower = asString(user.email).toLowerCase();
+  if (ALLOWED_EMAILS.size === 0 && !ALLOW_ANY_EMAIL_DEV) {
+    return {
+      ok: false,
+      statusCode: 403,
+      reason: "CONTROL_PLANE_ALLOWED_EMAILS non configurata: accesso negato.",
+    };
+  }
   if (ALLOWED_EMAILS.size > 0 && (!emailLower || !ALLOWED_EMAILS.has(emailLower))) {
     return {
       ok: false,
