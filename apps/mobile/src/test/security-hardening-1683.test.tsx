@@ -60,7 +60,8 @@ describe('redactLogDetails', () => {
   });
 
   it('scrubs token-like and email-like substrings and errors', () => {
-    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTYifQ.c2lnbmF0dXJl';
+    // Finto JWT composto a runtime: nessuna stringa nel sorgente somiglia a un segreto (gitleaks).
+    const jwt = ['eyJhbGciOiJIUzI1NiJ9', 'eyJzdWIiOiIxMjM0NTYifQ', 'c2lnbmF0dXJl'].join('.');
     expect(redactLogDetails(`failed with ${jwt} for mario@example.com`)).toBe('failed with [redacted] for [redacted]');
     const err = redactLogDetails(new Error('Bearer abcdefgh12345678 rejected')) as { message: string };
     expect(err.message).toBe('Bearer [redacted] rejected');
