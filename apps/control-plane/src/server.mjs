@@ -734,9 +734,9 @@ function uniqueStrings(values) {
 
 function extractRolesFromClaims(user) {
   const appMetadata = isPlainObject(user?.app_metadata) ? user.app_metadata : {};
-  const userMetadata = isPlainObject(user?.user_metadata) ? user.user_metadata : {};
-
-  const candidates = [appMetadata.roles, appMetadata.role, userMetadata.roles, userMetadata.role];
+  // Solo app_metadata: user_metadata e' scrivibile dall'utente (auth.updateUser) e
+  // non deve mai concedere ruoli.
+  const candidates = [appMetadata.roles, appMetadata.role];
   const rawRoles = [];
 
   for (const candidate of candidates) {
