@@ -20,10 +20,12 @@ Use private disclosure only.
 
 1. Open a private report from this repository's **Security** tab using **Report a vulnerability**.
 2. Include:
-   - affected component (for example `apps/pwa`, `apps/mobile`, `supabase/functions`, `tools/*`)
+   - affected component (for example `apps/pwa`, `apps/mobile`, `apps/control-plane`, `supabase/functions`, `tools/*`)
    - reproducible steps and prerequisites
    - impact and attack scenario
    - proof of concept and logs/screenshots when available
+
+Reporting contact: GitHub private vulnerability reporting (Security tab of this repository) or the repository maintainers via GitHub. No public email address is published for security reports.
 
 If you cannot access the Security tab, contact the maintainers on GitHub first and request a private channel before sharing technical details.
 
