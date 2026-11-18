@@ -25,11 +25,9 @@
     "build:mobile": "npm --workspace apps/mobile run build && npm run sync:mobile",
     "build:pwa": "npm --prefix apps/pwa install && npm --prefix apps/pwa run build",
     "ai:codex": "node tools/ai-codex.js",
-    "ai:support": "node tools/ai-support-server.js",
     "cleanup:events": "node tools/cleanup-old-events.js",
     "validate:content": "node tools/validate-content.js",
     "generate:theater-scenes": "node tools/generate-theater-scenes.js",
-    "keep-alive": "node tools/keep-alive-reciprocal.js",
     "watchdog": "node tools/maxwell-watchdog.js"
   },
   "devDependencies": {
