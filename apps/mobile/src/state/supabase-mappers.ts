@@ -2,6 +2,7 @@ import { COOKIE_CONSENT_KEY } from '../constants/privacy';
 import type { Rewards, TurnSyncStatus, ShopCatalogItem, TurnRecord, PlayerProfile } from './types';
 import { DEFAULT_SHOP_CATALOG } from './catalog';
 import { isRecord } from './normalizers';
+import { sanitizeProfileImageUrl } from '../lib/profile-image-url';
 import type { ProfileUpsertPayload, TurnRegisterPayload } from './offline-sync-queue';
 
 // DB row types — shape returned by Supabase queries
@@ -116,7 +117,7 @@ export function buildProfileUpsertPayload(userId: string, profile: PlayerProfile
     name: profile.name,
     email: profile.email,
     role_id: profile.roleId,
-    profile_image: profile.profileImage ?? null,
+    profile_image: sanitizeProfileImageUrl(profile.profileImage, userId) ?? null,
     leaderboard_visible: profile.leaderboardVisible,
     ...(cookieConsentAt ? { cookie_consent_at: cookieConsentAt } : {}),
     onboarding_completed_at: profile.onboardingCompletedAt ?? null,
