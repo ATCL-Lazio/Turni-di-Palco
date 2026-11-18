@@ -27,3 +27,25 @@ exclude:
   - supabase/
   - render.yaml
   - vercel.json
+  - api/
+  - development/
+  - package.json
+  - package-lock.json
+  - audit-report.json
+  - tmp_audit_mobile/
+  - TECHNICAL_NOTES.md
+  - DEVELOPMENT.md
+  - ONBOARDING.md
+  - .gitleaks.toml
+  - eslint.config.js
+  - Gemfile
+  - Gemfile.lock
+  - .husky/
+  - .github/
+  - .vscode/
+  - .claude/
+  - .mcp.json
+  - .cert/
+  - .prettierrc
+  - .editorconfig
+  - .gitattributes
