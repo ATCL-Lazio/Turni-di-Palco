@@ -48,13 +48,9 @@ Issues are automatically labeled with:
 The watchdog will create issues like:
 
 ```
-🐌 Slow response: Maxwell-AI-Support
+🐌 Slow response: Turni-di-Palco
 
 Response time: 8500ms (threshold: 5000ms)
 
 Recommendation: Check service health and consider optimization
 ```
-
-## Integration with Maxwell
-
-The watchdog can be integrated into the main Maxwell AI Support server for continuous monitoring.
