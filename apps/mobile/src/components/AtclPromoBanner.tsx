@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowUpRight, Megaphone } from 'lucide-react';
+import { sanitizePromoUrl } from '../lib/safe-external-url';
 import type { AtclPromotion } from '../data/atcl_promotions';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
@@ -30,12 +31,13 @@ function formatPromotionRange(startsAt?: string, endsAt?: string): string | null
 }
 
 export function AtclPromoBanner({ promotion }: AtclPromoBannerProps) {
-  const canOpenCta = Boolean(promotion.ctaLabel && promotion.ctaUrl);
+  const safeCtaUrl = sanitizePromoUrl(promotion.ctaUrl);
+  const canOpenCta = Boolean(promotion.ctaLabel && safeCtaUrl);
   const rangeLabel = formatPromotionRange(promotion.startsAt, promotion.endsAt);
 
   const handleOpenCta = () => {
-    if (!promotion.ctaUrl || typeof window === 'undefined') return;
-    window.open(promotion.ctaUrl, '_blank', 'noopener,noreferrer');
+    if (!safeCtaUrl || typeof window === 'undefined') return;
+    window.open(safeCtaUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (
