@@ -6,8 +6,15 @@ import {
   canActivateByDetails,
   canActivateByHash,
   canActivateByTicketNumber,
+  canReissueTicket,
+  computeVerifier,
   decideAttemptLimit,
+  decideDetailsActivation,
   extractClientIp,
+  formatRedeemCode,
+  generateRedeemCode,
+  generateTicketValue,
+  matchesStoredVerifier,
   MAX_ATTEMPTS_PER_IP,
   MAX_ATTEMPTS_PER_USER,
 } from './guards.ts';
@@ -37,6 +44,15 @@ function isAdminUser(user: { app_metadata?: Record<string, unknown> } | null): b
 async function sha256Hex(input: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Server-side key for the redeem-code verifier. Optional TICKET_CODE_PEPPER;
+ * otherwise the same fallback as the attempt salt. Changing it invalidates the
+ * manual redeem codes of existing tickets (QR activation is unaffected).
+ */
+function getVerifierKey(fallback: string): string {
+  return Deno.env.get('TICKET_CODE_PEPPER') ?? Deno.env.get('TICKET_ATTEMPT_SALT') ?? fallback;
 }
 
 /**
@@ -151,14 +167,14 @@ serve(async (req: Request) => {
     const { action, hash, payload, userId: requestedUserId } = body;
 
     const activationActions = ['activate_hash', 'activate_by_details', 'activate_by_ticket_number'];
-    const authRequiredActions = [...activationActions, 'reserve_hash', 'resolve_hash'];
+    const authRequiredActions = [...activationActions, 'issue_ticket', 'reserve_hash', 'resolve_hash'];
     const needsAuthenticatedUser = activationActions.includes(action);
     const needsAuth = authRequiredActions.includes(action);
     let resolvedUserId = typeof requestedUserId === 'string' ? requestedUserId.trim() : '';
     let authenticatedUser: { id: string; app_metadata?: Record<string, unknown> } | null = null;
 
     if (needsAuth) {
-      // Verify JWT signature via Supabase auth (covers reserve_hash, resolve_hash, and activation actions)
+      // Verify JWT signature via Supabase auth (covers issue_ticket, reserve_hash, resolve_hash, and activation actions)
       const authHeader = req.headers.get('Authorization');
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return jsonResponse({ error: 'Sessione scaduta o non disponibile. Effettua di nuovo il login.' }, 401);
@@ -186,90 +202,98 @@ serve(async (req: Request) => {
       if (!isAdminUser(authenticatedUser)) {
         return jsonResponse({ error: 'Accesso negato: ruolo admin richiesto' }, 403);
       }
+      // Client-computed hashes are derived from guessable fields and are no
+      // longer accepted. Old clients get a clear message.
+      return jsonResponse({ reserved: false, error: 'Aggiorna l\'app per generare i ticket.' }, 200);
+    }
 
-      if (!hash || !payload) {
-        return jsonResponse({ error: 'Missing hash or payload' }, 400);
+    if (action === 'issue_ticket') {
+      if (!isAdminUser(authenticatedUser)) {
+        return jsonResponse({ error: 'Accesso negato: ruolo admin richiesto' }, 403);
+      }
+      const adminId = authenticatedUser?.id ?? '';
+      if (!adminId || !payload || typeof payload !== 'object') {
+        return jsonResponse({ error: 'Missing payload' }, 400);
       }
 
-      const normalizedHash = typeof hash === 'string' ? hash.trim().toLowerCase() : '';
-      if (!/^[0-9a-f]{64}$/.test(normalizedHash)) {
-        return jsonResponse({ reserved: false, error: 'Hash non valido.' }, 200);
-      }
-
-      const normalizedPayload = payload as {
-        circuit?: unknown;
-        eventName?: unknown;
-        eventID?: unknown;
-        ticketNumber?: unknown;
-        date?: unknown;
-        attendeeId?: unknown;
-      };
-
+      const input = payload as Record<string, unknown>;
       // Lowercase circuit on write so it matches the lowercase comparison used by
-      // activate_by_ticket_number (.eq('circuit', payload.circuit.toLowerCase())).
-      // Storing the original case caused case-sensitive PostgreSQL `=` queries to
-      // return zero rows whenever the circuit name contained uppercase characters
-      // (closes #1384).
-      const circuit = String(normalizedPayload.circuit ?? '').trim().toLowerCase();
-      const eventName = String(normalizedPayload.eventName ?? '').trim();
-      const eventId = String(normalizedPayload.eventID ?? '').trim();
-      const ticketNumber = String(normalizedPayload.ticketNumber ?? '').trim();
-      const date = String(normalizedPayload.date ?? '').trim();
+      // activate_by_ticket_number (closes #1384).
+      const circuit = String(input.circuit ?? '').trim().toLowerCase();
+      const eventName = String(input.eventName ?? '').trim();
+      const eventId = String(input.eventID ?? '').trim();
+      const ticketNumber = String(input.ticketNumber ?? '').trim();
+      const date = String(input.date ?? '').trim();
 
       if (!circuit || !eventName || !eventId || !ticketNumber || !date) {
-        return jsonResponse({ error: 'Missing hash or payload' }, 400);
+        return jsonResponse({ error: 'Missing payload' }, 400);
+      }
+      if ([circuit, eventName, eventId, ticketNumber, date].some((v) => v.length > 200)) {
+        return jsonResponse({ error: 'Parametri mancanti o non validi.' }, 400);
       }
 
-      // Optional: UUID of the attendee this ticket was issued to. When provided,
-      // activate_by_details enforces that the caller matches this ID, preventing
-      // IDOR ticket theft while still allowing legitimate attendee self-activation
-      // (closes #1582). Must be a valid UUID; invalid values are silently ignored.
-      const rawAttendeeId = typeof normalizedPayload.attendeeId === 'string'
-        ? normalizedPayload.attendeeId.trim()
-        : null;
+      // Optional intended recipient (UUID); invalid values are ignored.
+      const rawAttendeeId = typeof input.attendeeId === 'string' ? input.attendeeId.trim() : null;
       const attendeeId = rawAttendeeId &&
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawAttendeeId)
         ? rawAttendeeId
         : null;
 
-      // Insert new ticket activation record (unassigned).
-      // reserved_by records the generating admin's user ID so that
-      // delete-my-account can clean up unactivated tickets when the admin
-      // deletes their account (GDPR Art. 17, closes #1385).
-      // attendee_id records the intended recipient so activate_by_details can
-      // enforce attendee-bound ownership (closes #1582).
+      const genericFailure = { reserved: false, error: 'Impossibile emettere il ticket. Verifica evento e numero biglietto.' };
+
+      const ticketValue = generateTicketValue();
+      const redeemCode = generateRedeemCode();
+      const verifier = await computeVerifier(getVerifierKey(serviceKey), ticketValue, redeemCode);
+
       const { error: insertError } = await supabase.from('ticket_activations').insert({
-        hash: normalizedHash,
+        hash: ticketValue,
         circuit,
         event_name: eventName,
         event_id: eventId,
         ticket_number: ticketNumber,
         date,
-        reserved_by: authenticatedUser?.id ?? null,
+        reserved_by: adminId,
         attendee_id: attendeeId,
+        redeem_code_verifier: verifier,
       });
 
-      if (insertError) {
-        if ((insertError as { code?: string }).code === '23505') {
-          // Primary key collision: hash already exists. Check if this admin
-          // reserved it themselves — a common case when the HTTP response was
-          // lost mid-flight and the client retries. Return success so the
-          // client can continue instead of showing a misleading "duplicate"
-          // error (closes #1511).
-          const { data: existing } = await supabase
-            .from('ticket_activations')
-            .select('reserved_by')
-            .eq('hash', normalizedHash)
-            .maybeSingle();
-          if (existing?.reserved_by === authenticatedUser?.id) {
-            return jsonResponse({ reserved: true }, 200);
-          }
-          return jsonResponse({ reserved: false, error: 'Hash already exists' }, 200);
-        }
-        throw insertError;
+      if (!insertError) {
+        return jsonResponse({ reserved: true, hash: ticketValue, redeemCode: formatRedeemCode(redeemCode) }, 200);
+      }
+      if ((insertError as { code?: string }).code !== '23505') throw insertError;
+
+      // The ticket already exists. The reserving admin may re-issue it while it
+      // is not activated: the previous QR and code stop working.
+      const { data: existing, error: existingError } = await supabase
+        .from('ticket_activations')
+        .select('hash, reserved_by, activated_by')
+        .eq('circuit', circuit)
+        .eq('event_id', eventId)
+        .eq('ticket_number', ticketNumber)
+        .maybeSingle();
+      if (existingError) throw existingError;
+      if (!existing || !canReissueTicket({ reservedBy: existing.reserved_by, activatedBy: existing.activated_by }, adminId)) {
+        return jsonResponse(genericFailure, 200);
       }
 
-      return jsonResponse({ reserved: true }, 200);
+      const { data: replaced, error: replaceError } = await supabase
+        .from('ticket_activations')
+        .update({
+          hash: ticketValue,
+          event_name: eventName,
+          date,
+          attendee_id: attendeeId,
+          redeem_code_verifier: verifier,
+        })
+        .eq('hash', existing.hash)
+        .eq('reserved_by', adminId)
+        .is('activated_by', null)
+        .select('hash');
+      if (replaceError) throw replaceError;
+      if (!replaced || replaced.length === 0) {
+        return jsonResponse(genericFailure, 200);
+      }
+      return jsonResponse({ reserved: true, hash: ticketValue, redeemCode: formatRedeemCode(redeemCode) }, 200);
     }
 
     if (action === 'resolve_hash') {
@@ -383,32 +407,49 @@ serve(async (req: Request) => {
       }
 
       if (action === 'activate_by_details') {
-        const { data: ticket, error: lookupError } = await supabase
+        const { data: candidates, error: lookupError } = await supabase
           .from('ticket_activations')
-          .select('hash, attendee_id')
+          .select('hash, attendee_id, redeem_code_verifier')
           .eq('event_id', payload.eventID)
           .eq('ticket_number', payload.ticketNumber)
-          .maybeSingle();
+          .limit(5);
 
         if (lookupError) throw lookupError;
 
-        if (!ticket) {
+        // Rows with a redeem-code verifier need the code (the attendee binding is
+        // then irrelevant). Wrong or missing code looks exactly like "not found";
+        // the attempt was already counted by the rate limiter above.
+        // Legacy rows (no verifier) keep the attendee_id rule.
+        let chosenHash: string | null = null;
+        let sawForbidden = false;
+        for (const row of candidates ?? []) {
+          const verifier = typeof row.redeem_code_verifier === 'string' && row.redeem_code_verifier
+            ? row.redeem_code_verifier
+            : null;
+          const codeMatches = verifier && typeof row.hash === 'string'
+            ? await matchesStoredVerifier(getVerifierKey(serviceKey), row.hash, payload.redeemCode, verifier)
+            : false;
+          const decision = decideDetailsActivation({
+            attendeeId: row.attendee_id,
+            hasVerifier: verifier !== null,
+            codeMatches,
+            callerId: resolvedUserId,
+          });
+          if (decision === 'allow') {
+            chosenHash = row.hash;
+            break;
+          }
+          if (decision === 'forbidden') sawForbidden = true;
+        }
+
+        if (!chosenHash) {
+          if (sawForbidden) {
+            return jsonResponse({ error: 'Accesso negato: questo ticket non appartiene all\'utente corrente.' }, 403);
+          }
           return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
         }
 
-        // IDOR guard (closes #1580, #1582, #1680): manual activation requires the
-        // ticket to be bound to the caller. Tickets without attendee_id (legacy rows
-        // or reservations without a known recipient) are NOT claimable by event id +
-        // ticket number; they remain activatable through their QR (activate_hash).
-        if (!canActivateByDetails(ticket.attendee_id, resolvedUserId)) {
-          return jsonResponse({ error: 'Accesso negato: questo ticket non appartiene all\'utente corrente.' }, 403);
-        }
-
-        targetHash = ticket.hash;
-
-        if (targetHash == null) {
-          return jsonResponse({ ok: false, error: 'Ticket non attivabile: hash mancante.' }, 200);
-        }
+        targetHash = chosenHash;
       } else if (action === 'activate_by_ticket_number') {
         let query = supabase
           .from('ticket_activations')
