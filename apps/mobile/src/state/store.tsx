@@ -984,13 +984,18 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         async () => {
           const stored = readStoredSession();
           if (stored) {
-            const { data: restoredData, error: restoreError } = await supabase!.auth.setSession({
-              access_token: stored.access_token,
-              refresh_token: stored.refresh_token,
-            });
-            if (restoreError || !restoredData.session) {
-              persistStoredSession(null);
-              await supabase!.auth.signOut();
+            // Legacy duplicate token copy (already removed from storage by
+            // readStoredSession): use it only if supabase-js has no session.
+            const { data: existing } = await supabase!.auth.getSession();
+            if (!existing.session) {
+              const { data: restoredData, error: restoreError } = await supabase!.auth.setSession({
+                access_token: stored.access_token,
+                refresh_token: stored.refresh_token,
+              });
+              if (restoreError || !restoredData.session) {
+                persistStoredSession(null);
+                await supabase!.auth.signOut();
+              }
             }
           }
 

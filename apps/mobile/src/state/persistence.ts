@@ -49,43 +49,56 @@ export function writeTutorialCompleted(userId: string, value: boolean): void {
 
 type StoredSession = { access_token: string; refresh_token: string; user_id?: string };
 
+/**
+ * One-time migration helper (closes part of #1683).
+ *
+ * Older builds kept a duplicate copy of access/refresh tokens under
+ * `tdp-supabase-session[:ref]`. supabase-js already persists the session itself
+ * (`sb-<ref>-auth-token`), so the duplicate is no longer written. This reads
+ * any leftover copy ONCE and removes it immediately, so the caller can use it
+ * as a fallback only when supabase-js has no session of its own (avoids
+ * logging out users upgraded from an older build).
+ */
 export function readStoredSession(): StoredSession | null {
   if (typeof window === 'undefined') return null;
+  let found: StoredSession | null = null;
   try {
-    const keys = [SUPABASE_SESSION_KEY, LEGACY_SUPABASE_SESSION_KEY];
-    for (const key of keys) {
+    for (const key of [SUPABASE_SESSION_KEY, LEGACY_SUPABASE_SESSION_KEY]) {
       const raw = window.localStorage.getItem(key);
       if (!raw) continue;
-      const parsed = JSON.parse(raw) as StoredSession;
-      if (!parsed.access_token || !parsed.refresh_token) continue;
-      return parsed;
+      try {
+        const parsed = JSON.parse(raw) as StoredSession;
+        if (!found && parsed.access_token && parsed.refresh_token) found = parsed;
+      } catch {
+        // malformed copy: just drop it
+      }
+      window.localStorage.removeItem(key);
     }
-    return null;
   } catch {
-    return null;
+    // ignore storage errors
   }
+  return found;
 }
 
+/**
+ * Persists only the non-secret user-id marker (used by hasStoredAuthState).
+ * Tokens are owned exclusively by supabase-js.
+ */
 export function persistStoredSession(session: Session | null) {
   if (typeof window === 'undefined') return;
   try {
     const sessionKeys = [SUPABASE_SESSION_KEY, LEGACY_SUPABASE_SESSION_KEY];
     const sessionIdKeys = [SUPABASE_SESSION_ID_KEY, LEGACY_SUPABASE_SESSION_ID_KEY];
 
+    // Never keep a duplicate token copy around.
+    sessionKeys.forEach((key) => window.localStorage.removeItem(key));
+
     if (!session) {
-      sessionKeys.forEach((key) => window.localStorage.removeItem(key));
       sessionIdKeys.forEach((key) => window.localStorage.removeItem(key));
       return;
     }
-    const payload: StoredSession = {
-      access_token: session.access_token,
-      refresh_token: session.refresh_token,
-      user_id: session.user.id,
-    };
-    window.localStorage.setItem(SUPABASE_SESSION_KEY, JSON.stringify(payload));
     window.localStorage.setItem(SUPABASE_SESSION_ID_KEY, session.user.id);
-    // Cleanup unscoped legacy keys to avoid cross-project token bleed.
-    window.localStorage.removeItem(LEGACY_SUPABASE_SESSION_KEY);
+    // Cleanup unscoped legacy id key to avoid cross-project bleed.
     window.localStorage.removeItem(LEGACY_SUPABASE_SESSION_ID_KEY);
   } catch {
     // ignore storage errors
