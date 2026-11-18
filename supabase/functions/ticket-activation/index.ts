@@ -1,6 +1,16 @@
 /// <reference path="../@types/deno.d.ts" />
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.0';
+import {
+  ATTEMPT_WINDOW_MINUTES,
+  canActivateByDetails,
+  canActivateByHash,
+  canActivateByTicketNumber,
+  decideAttemptLimit,
+  extractClientIp,
+  MAX_ATTEMPTS_PER_IP,
+  MAX_ATTEMPTS_PER_USER,
+} from './guards.ts';
 
 const allowedOrigin = Deno.env.get('SITE_URL') ?? 'https://turnidipalco.it';
 
@@ -11,11 +21,83 @@ const corsHeaders = {
 };
 
 
-function jsonResponse(payload: Record<string, unknown>, status = 200) {
+function jsonResponse(payload: Record<string, unknown>, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(payload), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, ...extraHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+function isAdminUser(user: { app_metadata?: Record<string, unknown> } | null): boolean {
+  const role = user?.app_metadata?.role as string | undefined;
+  const roles = user?.app_metadata?.roles as string[] | undefined;
+  return role === 'admin' || (Array.isArray(roles) && roles.includes('admin'));
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Records an activation attempt and reports whether the caller is over the
+ * per-user / per-IP limit. The IP is stored only as a salted hash.
+ *
+ * Fails open (and logs) if the attempts table is unavailable, so that the
+ * function keeps working if it is deployed before the migration; the limit is
+ * only enforced once `ticket_activation_attempts` exists.
+ */
+async function checkAttemptLimit(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  action: string,
+  req: Request,
+  salt: string,
+): Promise<{ limited: boolean; retryAfterSeconds: number }> {
+  const retryAfterSeconds = ATTEMPT_WINDOW_MINUTES * 60;
+  try {
+    const ip = extractClientIp(req.headers);
+    const ipHash = ip ? await sha256Hex(`${salt}:${ip}`) : null;
+
+    const { error: insertError } = await supabase
+      .from('ticket_activation_attempts')
+      .insert({ user_id: userId, ip_hash: ipHash, action });
+    if (insertError) throw insertError;
+
+    const since = new Date(Date.now() - ATTEMPT_WINDOW_MINUTES * 60 * 1000).toISOString();
+    const { count: userCount, error: userCountError } = await supabase
+      .from('ticket_activation_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', since);
+    if (userCountError) throw userCountError;
+
+    let ipCount: number | null = null;
+    if (ipHash) {
+      const { count, error: ipCountError } = await supabase
+        .from('ticket_activation_attempts')
+        .select('id', { count: 'exact', head: true })
+        .eq('ip_hash', ipHash)
+        .gte('created_at', since);
+      if (ipCountError) throw ipCountError;
+      ipCount = count ?? 0;
+    }
+
+    // Opportunistic cleanup of old rows (about 1% of calls).
+    if (Math.random() < 0.01) {
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      await supabase.from('ticket_activation_attempts').delete().lt('created_at', cutoff);
+    }
+
+    const decision = decideAttemptLimit(userCount ?? 0, ipCount, {
+      user: MAX_ATTEMPTS_PER_USER,
+      ip: MAX_ATTEMPTS_PER_IP,
+    });
+    return { limited: !decision.allowed, retryAfterSeconds };
+  } catch (err) {
+    console.warn('[ticket-activation] attempt limiter unavailable, continuing:', (err as { message?: string })?.message);
+    return { limited: false, retryAfterSeconds };
+  }
 }
 
 async function loadEventSnapshot(supabase: ReturnType<typeof createClient>, eventId: string | null | undefined) {
@@ -101,12 +183,7 @@ serve(async (req: Request) => {
     }
 
     if (action === 'reserve_hash') {
-      const roleSingle = authenticatedUser?.app_metadata?.role as string | undefined;
-      const rolesArray = authenticatedUser?.app_metadata?.roles as string[] | undefined;
-      const isAdmin =
-        roleSingle === 'admin' ||
-        (Array.isArray(rolesArray) && rolesArray.includes('admin'));
-      if (!isAdmin) {
+      if (!isAdminUser(authenticatedUser)) {
         return jsonResponse({ error: 'Accesso negato: ruolo admin richiesto' }, 403);
       }
 
@@ -196,12 +273,7 @@ serve(async (req: Request) => {
     }
 
     if (action === 'resolve_hash') {
-      const resolveRoleSingle = authenticatedUser?.app_metadata?.role as string | undefined;
-      const resolveRolesArray = authenticatedUser?.app_metadata?.roles as string[] | undefined;
-      const isResolveAdmin =
-        resolveRoleSingle === 'admin' ||
-        (Array.isArray(resolveRolesArray) && resolveRolesArray.includes('admin'));
-      if (!isResolveAdmin) {
+      if (!isAdminUser(authenticatedUser)) {
         return jsonResponse({ error: 'Accesso negato: ruolo admin richiesto' }, 403);
       }
 
@@ -255,6 +327,19 @@ serve(async (req: Request) => {
         return jsonResponse({ error: 'Parametri mancanti o non validi.' }, 400);
       }
 
+      // Rate limit all activation attempts (QR hash, details, ticket number) per
+      // user and per client IP. Tickets are looked up by guessable identifiers, so
+      // every activation path is throttled.
+      const attemptSalt = Deno.env.get('TICKET_ATTEMPT_SALT') ?? serviceKey;
+      const limit = await checkAttemptLimit(supabase, resolvedUserId, action, req, attemptSalt);
+      if (limit.limited) {
+        return jsonResponse(
+          { error: 'Troppi tentativi. Riprova tra qualche minuto.' },
+          429,
+          { 'Retry-After': String(limit.retryAfterSeconds) },
+        );
+      }
+
       // 1. Resolve hash if using details or ticket number
       //
       // TOCTOU note: activate_by_details and activate_by_ticket_number perform a
@@ -283,6 +368,18 @@ serve(async (req: Request) => {
           return jsonResponse({ ok: false, error: 'Hash non valido.' }, 200);
         }
         targetHash = normalizedHash;
+
+        // Attendee-bound tickets can only be claimed by their attendee, even when
+        // the QR value is known. Unbound tickets remain claimable by QR holders.
+        const { data: hashTicket, error: hashLookupError } = await supabase
+          .from('ticket_activations')
+          .select('attendee_id')
+          .eq('hash', normalizedHash)
+          .maybeSingle();
+        if (hashLookupError) throw hashLookupError;
+        if (hashTicket && !canActivateByHash(hashTicket.attendee_id, resolvedUserId)) {
+          return jsonResponse({ error: 'Accesso negato: questo ticket non appartiene all\'utente corrente.' }, 403);
+        }
       }
 
       if (action === 'activate_by_details') {
@@ -299,11 +396,11 @@ serve(async (req: Request) => {
           return jsonResponse({ ok: false, error: 'Ticket non trovato.' }, 200);
         }
 
-        // IDOR guard: enforce ownership only when attendee_id was recorded at
-        // reservation time (new tickets). When attendee_id IS NULL (pre-migration
-        // rows or reservations without a known recipient), the check is skipped
-        // for backward compatibility. Closes #1580 and #1582.
-        if (ticket.attendee_id !== null && ticket.attendee_id !== resolvedUserId) {
+        // IDOR guard (closes #1580, #1582, #1680): manual activation requires the
+        // ticket to be bound to the caller. Tickets without attendee_id (legacy rows
+        // or reservations without a known recipient) are NOT claimable by event id +
+        // ticket number; they remain activatable through their QR (activate_hash).
+        if (!canActivateByDetails(ticket.attendee_id, resolvedUserId)) {
           return jsonResponse({ error: 'Accesso negato: questo ticket non appartiene all\'utente corrente.' }, 403);
         }
 
@@ -350,10 +447,11 @@ serve(async (req: Request) => {
         // reserve_hash stores the reserving admin's id in `reserved_by`; `user_id` is
         // never written and is therefore always null, causing the old check to fire for
         // every caller (closes #1574).
-        // Allow activation when reserved_by IS NULL (legacy/migrated tickets or tickets
-        // whose generating admin deleted their account) so they are not permanently
-        // locked out — closes #1605.
-        if (tickets[0].reserved_by !== null && tickets[0].reserved_by !== resolvedUserId) {
+        // Tickets with reserved_by IS NULL (legacy/migrated tickets or tickets whose
+        // generating admin deleted their account) are activatable only by an admin,
+        // so they are not permanently locked out (#1605) but cannot be claimed by an
+        // arbitrary user who knows the ticket number (#1680).
+        if (!canActivateByTicketNumber(tickets[0].reserved_by, resolvedUserId, isAdminUser(authenticatedUser))) {
           return jsonResponse({ error: 'Accesso negato: questo ticket non appartiene all\'utente corrente.' }, 403);
         }
 
