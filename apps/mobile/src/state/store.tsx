@@ -608,7 +608,18 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (mutation.kind === 'turn_insert') {
-          const { error } = await supabase.from('turns').insert(mutation.payload);
+          // Kind legacy (code persistito da versioni precedenti): le scritture dirette
+          // su `turns` non sono piu' consentite ai client, quindi passa dalla RPC che
+          // calcola le ricompense lato server ed e' idempotente su p_client_action_id.
+          const { error } = await supabase.rpc('register_turn_with_token_boost', {
+            p_event_id: mutation.payload.event_id,
+            p_role_id: mutation.payload.role_id,
+            p_client_action_id: mutation.payload.id,
+            p_boost_requested: false,
+            p_checkin_latitude: null,
+            p_checkin_longitude: null,
+            p_checkin_accuracy_m: null,
+          });
           if (!error || isDuplicateSyncError(error)) return { status: 'applied' };
           return shouldRetrySyncError(error)
             ? { status: 'retry', error }
