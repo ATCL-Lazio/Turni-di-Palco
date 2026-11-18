@@ -19,8 +19,6 @@ jobs:
   dependency-audit:
     name: Dependency Audit (${{ matrix.path }})
     runs-on: ubuntu-latest
-    # Le voci con `informational: true` riportano i risultati senza bloccare la PR.
-    continue-on-error: ${{ matrix.informational == true }}
     strategy:
       fail-fast: false
       matrix:
@@ -31,10 +29,6 @@ jobs:
           - name: mobile
             path: apps/mobile
             lockfile: apps/mobile/package-lock.json
-          - name: pwa
-            path: apps/pwa
-            lockfile: apps/pwa/package-lock.json
-            informational: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
