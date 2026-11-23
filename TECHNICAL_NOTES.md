@@ -16,28 +16,18 @@
   - Build: `npm run build:mobile`
   - Preview: `npm --workspace apps/mobile run preview` (usata dai deploy Render/Vercel)
   - Sync only: `npm run sync:mobile`
-  - AI support server (local): `npm run ai:support` (default local port)
-  - Dev + AI support together: `npm --workspace apps/mobile run dev:with-ai`
   - Allowlist host Vite (dev/preview): `VITE_ALLOWED_HOSTS` (comma-separated)
 
 ## AI support (mobile)
 
-- Client calls `POST /api/ai/chat` (proxy in `apps/mobile/vite.config.ts`).
-- Availability check uses `GET /health` (proxy in `apps/mobile/vite.config.ts`).
-- Local server: `tools/ai-support-server.js` uses `codex exec`.
-- Optional env:
-  - `AI_SUPPORT_PORT` (server port, default local fallback)
-  - `VITE_AI_SUPPORT_PORT` (client/proxy port, default local fallback)
-  - `AI_SUPPORT_ALLOWED_ORIGINS` (comma-separated allowlist; default deny if unset)
-  - `AI_SUPPORT_API_KEY` (opzionale ma consigliata: se presente, protegge `/api/ai/chat` e `/api/ai/issue`; inviare `Authorization: Bearer ...` o `X-AI-SUPPORT-TOKEN`)
-  - `AI_SUPPORT_RATE_LIMIT_MAX` (rate limit requests per window, default 60)
-  - `AI_SUPPORT_RATE_LIMIT_WINDOW_MS` (rate limit window in ms, default 60000)
-  - `AI_SUPPORT_ADMIN_ENABLED` (admin endpoints `/auth` + `/auth/command`; default false)
-  - `VITE_AI_SUPPORT_ENDPOINT` (client endpoint override)
-  - `VITE_AI_SUPPORT_ISSUE_ENDPOINT` (issue endpoint override)
-- CORS: if the health endpoint is reached cross-origin, the server must reply with
-  `Access-Control-Allow-Origin` matching the calling origin (or `*`) so the browser can
-  read the response in `mode: "cors"`. In dev, prefer the same-origin `/health` proxy.
+- Il supporto AI (Maxwell) gira su Claude Platform (Managed Agent) ed e servito dalle funzioni
+  Vercel in `apps/pwa/api/ai/*`: `POST /api/ai/chat`, `POST /api/ai/issue`, `GET /api/ai/health`.
+  Il vecchio server `tools/ai-support-server.js` e stato rimosso.
+- Le chiamate richiedono il JWT Supabase dell'utente (`Authorization: Bearer ...`) e hanno un rate limit per utente.
+- Variabili lato server (Vercel): `ANTHROPIC_API_KEY` (senza, chat e health rispondono 503), `GITHUB_TOKEN`
+  (apertura issue), `SUPABASE_URL` e `SUPABASE_ANON_KEY` (verifica del JWT; vanno bene anche le `VITE_*`).
+- Lato client: `VITE_AI_SUPPORT_ENDPOINT` e `VITE_AI_SUPPORT_ISSUE_ENDPOINT` (override facoltativi).
+- In sviluppo locale non c'e piu un server AI: la chat risulta non disponibile salvo endpoint configurato.
 
 ## Routing (produzione)
 

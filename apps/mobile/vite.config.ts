@@ -44,7 +44,6 @@ function resolveHttps(): ServerOptions | undefined {
 }
 
 const DEFAULT_ALLOWED_HOSTS = ['turni-di-palco-fq85.onrender.com'];
-const DEFAULT_AI_SUPPORT_PORT = 8787;
 
 function resolveAllowedHosts(env: Record<string, string>) {
   const raw =
@@ -63,9 +62,6 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const httpsOption = resolveHttps();
   const allowedHosts = resolveAllowedHosts(env);
-  const aiSupportPort = Number(
-    env.AI_SUPPORT_PORT || env.VITE_AI_SUPPORT_PORT || process.env.AI_SUPPORT_PORT
-  ) || DEFAULT_AI_SUPPORT_PORT;
 
   return {
     base: '/mobile/',
@@ -100,16 +96,6 @@ export default defineConfig(({ mode }) => {
       https: httpsOption,
       allowedHosts,
       open: true,
-      proxy: {
-        '/api/ai/chat': {
-          target: `http://localhost:${aiSupportPort}`,
-          changeOrigin: true,
-        },
-        '/health': {
-          target: `http://localhost:${aiSupportPort}`,
-          changeOrigin: true,
-        },
-      },
     },
     preview: {
       host: true,
