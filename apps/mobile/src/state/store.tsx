@@ -46,6 +46,7 @@ import {
   upsertPendingTurn,
 } from './turn-registration';
 import { executeQueuedMutation, type QueueExecutionResult } from './offline-sync-executor';
+import { flushOfflineQueue, type FlushResult } from './offline-sync-flush';
 import { useAuthSession } from './hooks/use-auth-session';
 import { useOfflineSyncRetryLoop } from './hooks/use-offline-sync-retry-loop';
 import { useServerLogMirror } from './hooks/use-server-log-mirror';
@@ -91,12 +92,10 @@ import {
 } from './offline-sync-log';
 import {
   OFFLINE_SYNC_QUEUE_KEY,
-  OFFLINE_SYNC_MAX_ATTEMPTS,
   isNavigatorOffline,
   readTurnGeolocationSnapshot,
   summarizeQueuedMutation,
   readQueuedSupabaseMutations,
-  writeQueuedSupabaseMutations,
   enqueueQueuedSupabaseMutation,
   countPendingBoostRequests,
 } from './offline-sync-queue';
@@ -507,172 +506,31 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const flushQueuedSupabaseMutations = useCallback(async () => {
-    if (!isSupabaseConfigured || !supabase || !authUserId) {
-      logOfflineSync('Flush skipped: missing prerequisites', {
-        isSupabaseConfigured,
-        hasSupabaseClient: Boolean(supabase),
-        authUserId,
-      });
-      return;
-    }
     if (offlineSyncInFlightRef.current) {
       logOfflineSync('Flush skipped: already in progress');
       return;
     }
-    if (isNavigatorOffline()) {
-      logOfflineSync('Flush skipped: browser offline');
-      return;
-    }
-
-    let queue = readQueuedSupabaseMutations();
-    if (!queue.length) {
-      logOfflineSync('Flush skipped: queue empty');
-      return;
-    }
-    const queuedForUser = queue.filter((entry) => entry.userId === authUserId).length;
-    if (!queuedForUser) {
-      logOfflineSync('Flush skipped: no queued mutations for active user', {
-        authUserId,
-        queueSize: queue.length,
-      });
-      return;
-    }
-
-    logOfflineSync('Flush started', {
-      authUserId,
-      queuedForUser,
-      queueSize: queue.length,
-    });
-
     offlineSyncInFlightRef.current = true;
-    let shouldRefreshTurnStats = false;
-    let shouldRefreshTheatreReputation = false;
-    let shouldRefreshBadges = false;
-
+    let result: FlushResult;
     try {
-      for (const queuedMutation of [...queue]) {
-        // Re-check connectivity at the start of each iteration so that a
-        // mid-flush connectivity drop does not increment the attempts counter
-        // for all remaining mutations — spurious attempt increments can push
-        // near-max-retry entries over the discard threshold, permanently
-        // losing valid queued mutations on a transient network blip (closes #1379).
-        if (isNavigatorOffline()) {
-          logOfflineSync('Flush aborted mid-loop: browser went offline', {
-            authUserId,
-            remainingForUser: queue.filter((entry) => entry.userId === authUserId).length,
-          }, 'warn');
-          break;
-        }
-
-        if (queuedMutation.userId !== authUserId) continue;
-        if (!queue.some((entry) => entry.id === queuedMutation.id)) continue;
-        logOfflineSync('Processing queued mutation', summarizeQueuedMutation(queuedMutation));
-
-        const result = await executeQueuedSupabaseMutation(queuedMutation);
-        if (result.status === 'applied' || result.status === 'discard') {
-          const latestQueue = readQueuedSupabaseMutations();
-          queue = latestQueue.filter((entry) => entry.id !== queuedMutation.id);
-          writeQueuedSupabaseMutations(queue);
-          refreshPendingBoostRequests(queue);
-          logOfflineSync(
-            result.status === 'applied'
-              ? 'Mutation synced successfully'
-              : 'Mutation discarded (non retryable)',
-            {
-              mutation: summarizeQueuedMutation(queuedMutation),
-              error: result.error ? formatSyncError(result.error) : undefined,
-              queueSize: queue.length,
-            }
-          );
-
-          if (
-            queuedMutation.kind === 'turn_insert' ||
-            queuedMutation.kind === 'turn_register' ||
-            queuedMutation.kind === 'activity_insert' ||
-            queuedMutation.kind === 'reset_progress'
-          ) {
-            shouldRefreshTurnStats = true;
-            shouldRefreshTheatreReputation = true;
-            shouldRefreshBadges = true;
-          }
-          if (queuedMutation.kind === 'mark_badges_seen') {
-            shouldRefreshBadges = true;
-          }
-
-          if (result.status === 'discard' && result.error) {
-            console.warn(
-              'Offline sync dropped mutation',
-              queuedMutation.kind,
-              formatSyncError(result.error)
-            );
-          }
-          continue;
-        }
-
-        const latestQueueForRetry = readQueuedSupabaseMutations();
-        queue = latestQueueForRetry.map((entry) =>
-          entry.id === queuedMutation.id
-            ? {
-              ...entry,
-              attempts: entry.attempts + 1,
-              lastError: formatSyncError(result.error),
-            }
-            : entry
-        );
-        writeQueuedSupabaseMutations(queue);
-        refreshPendingBoostRequests(queue);
-
-        const updatedMutation = queue.find((entry) => entry.id === queuedMutation.id);
-        logOfflineSync('Mutation retry scheduled', {
-          mutation: summarizeQueuedMutation(updatedMutation ?? queuedMutation),
-          error: formatSyncError(result.error),
-        });
-        if (
-          updatedMutation &&
-          updatedMutation.attempts >= OFFLINE_SYNC_MAX_ATTEMPTS
-        ) {
-          const latestQueueForDrop = readQueuedSupabaseMutations();
-          queue = latestQueueForDrop.filter((entry) => entry.id !== queuedMutation.id);
-          writeQueuedSupabaseMutations(queue);
-          refreshPendingBoostRequests(queue);
-          logOfflineSync('Mutation dropped after max retry attempts', {
-            mutation: summarizeQueuedMutation(updatedMutation),
-            queueSize: queue.length,
-          });
-          console.warn(
-            'Offline sync dropped mutation after max attempts',
-            updatedMutation.kind,
-            updatedMutation.lastError
-          );
-          notifyCriticalError(
-            'Alcune operazioni offline non sono sincronizzabili.',
-            [updatedMutation.lastError ?? result.error]
-          );
-          continue;
-        }
-
-        continue;
-      }
+      result = await flushOfflineQueue({
+        authUserId,
+        canSync: isSupabaseConfigured && Boolean(supabase),
+        execute: executeQueuedSupabaseMutation,
+        onQueueChanged: refreshPendingBoostRequests,
+      });
     } finally {
       offlineSyncInFlightRef.current = false;
-      refreshPendingBoostRequests(queue);
-      logOfflineSync('Flush completed', {
-        authUserId,
-        remainingForUser: queue.filter((entry) => entry.userId === authUserId).length,
-        queueSize: queue.length,
-      });
     }
+    if (!result.ran) return;
 
+    const { refresh } = result;
     const refreshTasks: Array<Promise<void>> = [];
-    if (shouldRefreshTurnStats) refreshTasks.push(refreshTurnStats());
-    if (shouldRefreshTheatreReputation) refreshTasks.push(refreshTheatreReputation());
-    if (shouldRefreshBadges) refreshTasks.push(refreshBadges());
+    if (refresh.turnStats) refreshTasks.push(refreshTurnStats());
+    if (refresh.theatreReputation) refreshTasks.push(refreshTheatreReputation());
+    if (refresh.badges) refreshTasks.push(refreshBadges());
     if (refreshTasks.length) {
-      logOfflineSync('Refreshing derived remote views after flush', {
-        shouldRefreshTurnStats,
-        shouldRefreshTheatreReputation,
-        shouldRefreshBadges,
-      });
+      logOfflineSync('Refreshing derived remote views after flush', refresh);
       await Promise.all(refreshTasks);
       logOfflineSync('Derived remote views refreshed');
     }
