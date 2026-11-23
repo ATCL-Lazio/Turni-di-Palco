@@ -1353,21 +1353,12 @@ function resolvePending({ commandId, confirmationToken }) {
   const normalizedCommandId = asString(commandId);
   const normalizedToken = asString(confirmationToken);
 
+  // The confirmation token is the only proof of the prepare step: look the entry up by its hash
+  // and never fall back to commandId alone, or any non-empty token would unlock a known commandId.
   let entry = null;
-
   if (normalizedToken) {
-    const tokenHash = hashToken(normalizedToken);
-    const mappedCommandId = pendingByTokenHash.get(tokenHash);
-    if (mappedCommandId) {
-      entry = pendingByCommandId.get(mappedCommandId) || null;
-      if (entry && entry.tokenHash !== tokenHash) {
-        return { entry: null, error: "Token conferma non valido." };
-      }
-    }
-  }
-
-  if (!entry && normalizedCommandId) {
-    entry = pendingByCommandId.get(normalizedCommandId) || null;
+    const mappedCommandId = pendingByTokenHash.get(hashToken(normalizedToken));
+    entry = mappedCommandId ? pendingByCommandId.get(mappedCommandId) || null : null;
   }
 
   if (!entry) {
