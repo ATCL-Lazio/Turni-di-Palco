@@ -36,7 +36,6 @@ import type {
   Role,
   GameEvent,
   EventPlanning,
-  Activity,
   ShopCatalogItem,
   ActivitySlotsStatus,
   ActivityTelemetryInput,
@@ -60,7 +59,7 @@ import type {
 import type { GameContextValue } from './game-context-types';
 import { roles, events, activities, DEFAULT_SHOP_CATALOG } from './catalog';
 import { MAX_TURNS, MOBILE_WATCHDOG_TIMEOUTS } from './constants';
-import { normalizeText, isRoleId, normalizeRoleProfile } from './normalizers';
+import { normalizeText, isRoleId } from './normalizers';
 import {
   resolveEventPlanningStatus,
   resolveEventPlanningRoleId,
@@ -113,6 +112,12 @@ import {
   parseShopPurchaseRpcRow,
   parseShopCatalogRows,
   buildTurnRecordFromPayload,
+  mapDbRoleRow,
+  mapDbEventRow,
+  mapDbActivityRow,
+  mapDbTurnRow,
+  mergeHydratedProfileRow,
+  mergeRealtimeProfileRow,
 } from './supabase-mappers';
 import type {
   DbEventRow,
@@ -1697,49 +1702,17 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           const nextRoles =
             rolesRes.error || !rolesRes.data?.length
               ? roles
-              : (rolesRes.data as DbRoleRow[]).map((role) => ({
-                id: isRoleId(role.id) ? role.id : 'attore',
-                name: role.name,
-                focus: role.focus,
-                stats: {
-                  presence: Number(role.stats?.presence ?? 0),
-                  precision: Number(role.stats?.precision ?? 0),
-                  leadership: Number(role.stats?.leadership ?? 0),
-                  creativity: Number(role.stats?.creativity ?? 0),
-                },
-                profile: normalizeRoleProfile(role.role_profile),
-              }));
+              : (rolesRes.data as DbRoleRow[]).map(mapDbRoleRow);
 
           const nextEvents =
             eventsRes.error || !eventsRes.data?.length
               ? (isSupabaseConfigured ? [] : import.meta.env.DEV ? events : [])
-              : (eventsRes.data as DbEventRow[]).map((event) => ({
-                id: event.id,
-                name: normalizeText(event.name),
-                theatre: normalizeText(event.theatre),
-                date: normalizeText(event.event_date),
-                time: normalizeText(event.event_time),
-                genre: normalizeText(event.genre),
-                baseRewards: {
-                  xp: Number(event.base_rewards?.xp ?? 0),
-                  reputation: Number(event.base_rewards?.reputation ?? 0),
-                  cachet: Number(event.base_rewards?.cachet ?? 0),
-                },
-                focusRole: (event.focus_role ?? undefined) as RoleId | undefined,
-              }));
+              : (eventsRes.data as DbEventRow[]).map(mapDbEventRow);
 
           const nextActivities =
             activitiesRes.error || !activitiesRes.data?.length
               ? import.meta.env.DEV ? activities : []
-              : (activitiesRes.data as DbActivityRow[]).map((activity) => ({
-                id: activity.id,
-                title: activity.title,
-                description: activity.description,
-                duration: activity.duration,
-                xpReward: activity.xp_reward,
-                cachetReward: activity.cachet_reward,
-                difficulty: activity.difficulty as Activity['difficulty'],
-              }));
+              : (activitiesRes.data as DbActivityRow[]).map(mapDbActivityRow);
 
           if (!isMounted) return;
           setCatalog({
@@ -1850,62 +1823,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           if (!isMounted) return;
 
           const remoteTurns = Array.isArray(turnsRes.data)
-            ? (turnsRes.data as DbTurnRow[]).map((turn) => ({
-              id: turn.id,
-              eventId: turn.event_id ?? '',
-              eventName: normalizeText(turn.event_name),
-              theatre: normalizeText(turn.theatre),
-              date: normalizeText(turn.event_date),
-              time: normalizeText(turn.event_time),
-              roleId: isRoleId(turn.role_id) ? turn.role_id : 'attore',
-              rewards: {
-                xp: Number(turn.rewards?.xp ?? 0),
-                reputation: Number(turn.rewards?.reputation ?? 0),
-                cachet: Number(turn.rewards?.cachet ?? 0),
-              },
-              createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
-            }))
+            ? (turnsRes.data as DbTurnRow[]).map(mapDbTurnRow)
             : [];
 
           if (profileRow) {
             const user = userRes.data?.user;
-            const parsedLastActivityAt = profileRow.last_activity_at ? new Date(profileRow.last_activity_at).getTime() : NaN;
             setState((prev: GameState) => ({
-              profile: {
-                ...prev.profile,
-                name: resolveDisplayName({
-                  name: profileRow.name,
-                  metadata: user?.user_metadata,
-                  email: profileRow.email ?? user?.email ?? prev.profile.email,
-                  fallback: prev.profile.name,
-                }),
-                email: profileRow.email ?? prev.profile.email,
-                roleId: isRoleId(profileRow.role_id) ? profileRow.role_id : prev.profile.roleId,
-                level: profileRow.level ?? prev.profile.level,
-                xp: profileRow.xp ?? prev.profile.xp,
-                xpToNextLevel: profileRow.xp_to_next_level ?? prev.profile.xpToNextLevel,
-                xpTotal: profileRow.xp_total ?? prev.profile.xpTotal,
-                xpField: profileRow.xp_field ?? prev.profile.xpField,
-                reputation: profileRow.reputation ?? prev.profile.reputation,
-                cachet: profileRow.cachet ?? prev.profile.cachet,
-                tokenAtcl: profileRow.token_atcl ?? prev.profile.tokenAtcl,
-                extraActivitySlots:
-                  profileRow.extra_activity_slots ?? prev.profile.extraActivitySlots,
-                profileImage: profileRow.profile_image ?? prev.profile.profileImage,
-                lastActivityAt: Number.isFinite(parsedLastActivityAt)
-                  ? parsedLastActivityAt
-                  : prev.profile.lastActivityAt,
-                leaderboardVisible: profileRow.leaderboard_visible ?? prev.profile.leaderboardVisible,
-                onboardingCompletedAt: profileRow.onboarding_completed_at ?? prev.profile.onboardingCompletedAt,
-                onboardingVariant: (profileRow.onboarding_variant === 'full' || profileRow.onboarding_variant === 'skipped_qr' || profileRow.onboarding_variant === 'skipped_manual')
-                  ? profileRow.onboarding_variant
-                  : prev.profile.onboardingVariant,
-                // Course state — Issue #327. Prefer remote values when present; fall
-                // back to local (localStorage) so offline mutations are not lost.
-                skills: profileRow.skills ?? prev.profile.skills,
-                activeCourses: profileRow.active_courses ?? prev.profile.activeCourses,
-                completedCourses: profileRow.completed_courses ?? prev.profile.completedCourses,
-              },
+              profile: mergeHydratedProfileRow(prev.profile, profileRow, user),
               eventPlans: prev.eventPlans,
               turns: remoteTurns.slice(0, MAX_TURNS),
             }));
@@ -1963,22 +1887,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !authUserId) return;
 
-    const mapTurnRow = (turn: DbTurnRow): TurnRecord => ({
-      id: turn.id,
-      eventId: turn.event_id ?? '',
-      eventName: normalizeText(turn.event_name),
-      theatre: normalizeText(turn.theatre),
-      date: normalizeText(turn.event_date),
-      time: normalizeText(turn.event_time),
-      roleId: isRoleId(turn.role_id) ? turn.role_id : 'attore',
-      rewards: {
-        xp: Number(turn.rewards?.xp ?? 0),
-        reputation: Number(turn.rewards?.reputation ?? 0),
-        cachet: Number(turn.rewards?.cachet ?? 0),
-      },
-      createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
-    });
-
     const channel = supabase
       .channel(`tdp-mobile-${authUserId}`)
       .on(
@@ -1989,39 +1897,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           const profile = payload.new as DbProfileRow;
           setState((prev: GameState) => ({
             ...prev,
-            profile: {
-              ...prev.profile,
-              name: resolveDisplayName({
-                name: profile.name,
-                email: profile.email ?? prev.profile.email,
-                fallback: prev.profile.name,
-              }),
-              email: profile.email ?? prev.profile.email,
-              roleId: isRoleId(profile.role_id) ? profile.role_id : prev.profile.roleId,
-              level: profile.level ?? prev.profile.level,
-              xp: profile.xp ?? prev.profile.xp,
-              xpToNextLevel: profile.xp_to_next_level ?? prev.profile.xpToNextLevel,
-              xpTotal: profile.xp_total ?? prev.profile.xpTotal,
-              xpField: profile.xp_field ?? prev.profile.xpField,
-              reputation: profile.reputation ?? prev.profile.reputation,
-              cachet: profile.cachet ?? prev.profile.cachet,
-              tokenAtcl: profile.token_atcl ?? prev.profile.tokenAtcl,
-              extraActivitySlots:
-                profile.extra_activity_slots ?? prev.profile.extraActivitySlots,
-              profileImage: profile.profile_image ?? prev.profile.profileImage,
-              lastActivityAt: profile.last_activity_at ? new Date(profile.last_activity_at).getTime() : prev.profile.lastActivityAt,
-              leaderboardVisible:
-                profile.leaderboard_visible != null
-                  ? profile.leaderboard_visible
-                  : prev.profile.leaderboardVisible,
-              onboardingCompletedAt: profile.onboarding_completed_at ?? prev.profile.onboardingCompletedAt,
-              onboardingVariant: (profile.onboarding_variant === 'full' || profile.onboarding_variant === 'skipped_qr' || profile.onboarding_variant === 'skipped_manual')
-                ? profile.onboarding_variant
-                : prev.profile.onboardingVariant,
-              skills: profile.skills ?? prev.profile.skills,
-              activeCourses: profile.active_courses ?? prev.profile.activeCourses,
-              completedCourses: profile.completed_courses ?? prev.profile.completedCourses,
-            },
+            profile: mergeRealtimeProfileRow(prev.profile, profile),
           }));
           setHasHydratedRemote(true);
         }
@@ -2031,7 +1907,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         { event: '*', schema: 'public', table: 'turns', filter: `user_id=eq.${authUserId}` },
         (payload) => {
           if (payload.eventType === 'INSERT' && payload.new) {
-            const nextTurn = mapTurnRow(payload.new as DbTurnRow);
+            const nextTurn = mapDbTurnRow(payload.new as DbTurnRow);
             setState((prev: GameState) => {
               if (prev.turns.some((turn: TurnRecord) => turn.id === nextTurn.id)) {
                 return prev;
@@ -2042,7 +1918,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           }
 
           if (payload.eventType === 'UPDATE' && payload.new) {
-            const nextTurn = mapTurnRow(payload.new as DbTurnRow);
+            const nextTurn = mapDbTurnRow(payload.new as DbTurnRow);
             setState((prev: GameState) => ({
               ...prev,
               turns: prev.turns
@@ -3452,21 +3328,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`exportUserData: query failed for tables: ${tables}`);
       }
       if (Array.isArray(turnsData)) {
-        allTurns = (turnsData as DbTurnRow[]).map((turn) => ({
-          id: turn.id,
-          eventId: turn.event_id ?? '',
-          eventName: normalizeText(turn.event_name),
-          theatre: normalizeText(turn.theatre),
-          date: normalizeText(turn.event_date),
-          time: normalizeText(turn.event_time),
-          roleId: isRoleId(turn.role_id) ? turn.role_id : 'attore',
-          rewards: {
-            xp: Number(turn.rewards?.xp ?? 0),
-            reputation: Number(turn.rewards?.reputation ?? 0),
-            cachet: Number(turn.rewards?.cachet ?? 0),
-          },
-          createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
-        }));
+        allTurns = (turnsData as DbTurnRow[]).map(mapDbTurnRow);
       }
       if (Array.isArray(activityData)) {
         activityCompletions = activityData;
