@@ -38,6 +38,13 @@ import {
   buildActivitySlotsFromCompletion,
   buildShopPurchaseResult,
 } from './game-actions';
+import {
+  applyLocalTurn,
+  buildPendingTurnFeedback,
+  buildPendingTurnResult,
+  computeLocalTurnOutcome,
+  upsertPendingTurn,
+} from './turn-registration';
 import { executeQueuedMutation, type QueueExecutionResult } from './offline-sync-executor';
 import { useAuthSession } from './hooks/use-auth-session';
 import { useOfflineSyncRetryLoop } from './hooks/use-offline-sync-retry-loop';
@@ -1816,24 +1823,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         // state.profile is safe to read here: in demo/local mode there is no
         // server sync, so tokenAtcl cannot change concurrently. state.profile
         // is added to the useCallback deps so the closure is always fresh.
-        let boostApplied = false;
-        let boostRejectionReason: string | null = null;
-        let rewards = computeTurnRewards(event, roleId);
-        let nextTokenAtcl = state.profile.tokenAtcl;
-        if (boostRequested) {
-          if (nextTokenAtcl > 0) {
-            boostApplied = true;
-            nextTokenAtcl -= 1;
-            rewards = {
-              ...rewards,
-              xp: Math.ceil(rewards.xp * 1.1),
-              cachet: Math.ceil(rewards.cachet * 1.1),
-            };
-          } else {
-            boostRejectionReason = 'insufficient_token_balance';
-          }
-        }
-        const localSyncStatus: TurnSyncStatus = boostRequested && !boostApplied ? 'failed_boost_fallback' : 'synced';
+        const localOutcome = computeLocalTurnOutcome(event, roleId, boostRequested, state.profile.tokenAtcl);
+        const { rewards, boostApplied, boostRejectionReason, nextTokenAtcl, syncStatus: localSyncStatus } = localOutcome;
         const localTurnRecord: TurnRecord = buildTurnRecordFromPayload(
           turnRegisterPayload,
           rewards,
@@ -1842,17 +1833,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           boostRejectionReason
         );
 
-        setState((prev: GameState) => {
-          const rewardedProfile = applyRewards(prev.profile, rewards, 'turn');
-          return {
-            profile: {
-              ...rewardedProfile,
-              tokenAtcl: nextTokenAtcl,
-            },
-            eventPlans: prev.eventPlans,
-            turns: [localTurnRecord, ...prev.turns].slice(0, MAX_TURNS),
-          };
-        });
+        setState((prev: GameState) => applyLocalTurn(prev, localOutcome, localTurnRecord));
 
         setTurnSyncFeedback({
           syncStatus: localSyncStatus,
@@ -1892,33 +1873,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         // Mirror the online-RPC-failure path: add the pending turn to local
         // state immediately so it appears in history while the device is
         // offline, before the queue flushes (closes #1528).
-        setState((prev: GameState) => {
-          const alreadyPresent = prev.turns.some((t) => t.id === pendingTurnRecord.id);
-          const nextTurns = (alreadyPresent
-            ? prev.turns.map((t) => (t.id === pendingTurnRecord.id ? { ...t, ...pendingTurnRecord } : t))
-            : [pendingTurnRecord, ...prev.turns]
-          ).slice(0, MAX_TURNS);
-          return { ...prev, turns: nextTurns };
-        });
-        setTurnSyncFeedback({
-          syncStatus: 'pending',
-          boostRequested,
-          boostApplied: false,
-          boostRejectionReason: null,
-          eventName: event.name,
-          createdAt: Date.now(),
-          geolocationAvailable: Boolean(geolocationSnapshot),
-        });
-        return {
-          ok: true,
-          syncStatus: 'pending',
-          boostRequested,
-          boostApplied: false,
-          boostRejectionReason: null,
-          rewards: pendingTurnRecord.rewards,
-          tokenBalanceAfter: null,
-          turn: pendingTurnRecord,
-        };
+        setState((prev: GameState) => ({ ...prev, turns: upsertPendingTurn(prev.turns, pendingTurnRecord) }));
+        setTurnSyncFeedback(
+          buildPendingTurnFeedback(event.name, boostRequested, Boolean(geolocationSnapshot), Date.now())
+        );
+        return buildPendingTurnResult(pendingTurnRecord, boostRequested);
       }
 
       try {
@@ -1997,33 +1956,11 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         // shows the turn while waiting for the offline sync flush to complete.
         // applyTurnRegistrationResult handles duplicates by ID (merge), so
         // adding the record here is safe and idempotent.
-        setState((prev: GameState) => {
-          const alreadyPresent = prev.turns.some((t) => t.id === pendingTurnRecord.id);
-          const nextTurns = (alreadyPresent
-            ? prev.turns.map((t) => (t.id === pendingTurnRecord.id ? { ...t, ...pendingTurnRecord } : t))
-            : [pendingTurnRecord, ...prev.turns]
-          ).slice(0, MAX_TURNS);
-          return { ...prev, turns: nextTurns };
-        });
-        setTurnSyncFeedback({
-          syncStatus: 'pending',
-          boostRequested,
-          boostApplied: false,
-          boostRejectionReason: null,
-          eventName: event.name,
-          createdAt: Date.now(),
-          geolocationAvailable: Boolean(geolocationSnapshot),
-        });
-        return {
-          ok: true,
-          syncStatus: 'pending',
-          boostRequested,
-          boostApplied: false,
-          boostRejectionReason: null,
-          rewards: pendingTurnRecord.rewards,
-          tokenBalanceAfter: null,
-          turn: pendingTurnRecord,
-        };
+        setState((prev: GameState) => ({ ...prev, turns: upsertPendingTurn(prev.turns, pendingTurnRecord) }));
+        setTurnSyncFeedback(
+          buildPendingTurnFeedback(event.name, boostRequested, Boolean(geolocationSnapshot), Date.now())
+        );
+        return buildPendingTurnResult(pendingTurnRecord, boostRequested);
       }
     },
     [
