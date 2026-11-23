@@ -31,6 +31,13 @@ import {
   readEnvFeatureFlagOverrides,
 } from '../services/feature-flags';
 import { withSuppressSignedInNavigation } from './auth-navigation';
+import {
+  applyActivityCompletionToProfile,
+  applyShopPurchaseToProfile,
+  buildActivityCompletionResult,
+  buildActivitySlotsFromCompletion,
+  buildShopPurchaseResult,
+} from './game-actions';
 import { executeQueuedMutation, type QueueExecutionResult } from './offline-sync-executor';
 import { useAuthSession } from './hooks/use-auth-session';
 import { useOfflineSyncRetryLoop } from './hooks/use-offline-sync-retry-loop';
@@ -2078,41 +2085,12 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           }
         );
 
-        if (!rpcResponse.purchase_applied) {
-          // Distinguish server-side errors (transient, retryable) from business-rule
-          // rejections (role mismatch, insufficient balance, etc.) so the UI can
-          // present the correct message and allow retry when appropriate (closes #1355).
-          if (rpcResponse.status === 'error') {
-            return {
-              ok: false,
-              status: 'error',
-              error: rpcResponse.rejection_reason ?? 'Errore server durante l\'acquisto.',
-            };
-          }
-          return {
-            ok: false,
-            status: 'rejected',
-            error: 'Acquisto non applicato.',
-            rejectionReason: rpcResponse.rejection_reason,
-          };
-        }
+        const result = buildShopPurchaseResult(rpcResponse);
+        if (!result.ok) return result;
 
         setState((prev: GameState) => {
-          if (rpcResponse.status === 'duplicate') {
-            // Duplicate: purchase already counted — do not overwrite local
-            // cachet/reputation/extraActivitySlots with potentially-stale
-            // server balances that reflect pre-purchase state.
-            return prev;
-          }
-          return {
-            ...prev,
-            profile: {
-              ...prev.profile,
-              cachet: rpcResponse.cachet_balance_after,
-              reputation: rpcResponse.profile_reputation_after,
-              extraActivitySlots: rpcResponse.extra_slots_after,
-            },
-          };
+          const nextProfile = applyShopPurchaseToProfile(prev.profile, rpcResponse);
+          return nextProfile === prev.profile ? prev : { ...prev, profile: nextProfile };
         });
 
         refreshActivitySlotsStatus().catch(() => {});
@@ -2120,16 +2098,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           refreshTheatreReputation().catch(() => {});
         }
 
-        return {
-          ok: true,
-          status: rpcResponse.status === 'duplicate' ? 'duplicate' : 'applied',
-          cachetBalanceAfter: rpcResponse.cachet_balance_after,
-          reputationAfter: rpcResponse.profile_reputation_after,
-          extraSlotsAfter: rpcResponse.extra_slots_after,
-          theatre: rpcResponse.theatre,
-          theatreReputationAfter: rpcResponse.theatre_reputation_after,
-          effect: rpcResponse.effect,
-        };
+        return result;
       } catch (error) {
         const errorMessage = formatSyncError(error);
         return {
@@ -2193,60 +2162,20 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           }
         );
 
-        const slotsUsedToday = Number.isFinite(rpcResponse.slots_used_today)
-          ? rpcResponse.slots_used_today
-          : 0;
-        const slotsTotal = Number.isFinite(rpcResponse.slots_total)
-          ? rpcResponse.slots_total
-          : 3;
+        const slots = buildActivitySlotsFromCompletion(rpcResponse);
+        setActivitySlotsStatus(slots.status);
 
-        setActivitySlotsStatus({
-          usedToday: slotsUsedToday,
-          totalSlots: slotsTotal,
-          remainingSlots: Math.max(0, slotsTotal - slotsUsedToday),
-        });
+        const result = buildActivityCompletionResult(rpcResponse, activity, slots);
+        if (!result.ok) return result;
 
-        if (!rpcResponse.activity_registered) {
-          return {
-            ok: false,
-            error: 'Limite giornaliero attività raggiunto.',
-            rejectionReason: rpcResponse.rejection_reason,
-            slotsUsedToday,
-            slotsTotal,
-          };
-        }
-
-        const rewards = rpcResponse.rewards_applied;
         setState((prev: GameState) => {
-          if (rpcResponse.status === 'duplicate') {
-            // Duplicate: rewards already counted — do not overwrite local
-            // cachet/reputation with potentially-stale server balances that
-            // may not reflect concurrent mutations (e.g. a shop purchase).
-            return prev;
-          }
-          const profileAfterRewards = applyRewards(prev.profile, rewards, 'activity');
-          return {
-            ...prev,
-            profile: {
-              ...profileAfterRewards,
-              cachet: rpcResponse.cachet_balance_after,
-              reputation: rpcResponse.reputation_after,
-            },
-          };
+          const nextProfile = applyActivityCompletionToProfile(prev.profile, rpcResponse);
+          return nextProfile === prev.profile ? prev : { ...prev, profile: nextProfile };
         });
 
         refreshBadges().catch(() => {});
 
-        return {
-          ok: true,
-          activity,
-          rewards,
-          slotsUsedToday,
-          slotsTotal,
-          cachetBalanceAfter: rpcResponse.cachet_balance_after,
-          reputationAfter: rpcResponse.reputation_after,
-          isDuplicate: rpcResponse.status === 'duplicate',
-        };
+        return result;
       } catch (error) {
         const errorMessage = formatSyncError(error);
         return {
