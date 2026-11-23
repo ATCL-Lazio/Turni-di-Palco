@@ -186,7 +186,7 @@ export function parseTurnRegistrationRpcRow(data: unknown): TurnRegistrationRpcR
   };
 }
 
-type ActivityCompletionRpcRow = {
+export type ActivityCompletionRpcRow = {
   activity_registered: boolean;
   status: string;
   rejection_reason: string | null;
@@ -231,7 +231,7 @@ export function parseActivitySlotsRpcRow(data: unknown): ActivitySlotsRpcRow | n
   };
 }
 
-type ShopPurchaseRpcRow = {
+export type ShopPurchaseRpcRow = {
   purchase_applied: boolean;
   status: string;
   rejection_reason: string | null;
