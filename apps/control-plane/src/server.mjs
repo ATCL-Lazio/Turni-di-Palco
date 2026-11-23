@@ -2482,6 +2482,14 @@ function applyMatchFilter(query, match) {
   return query;
 }
 
+function hasUsableMatch(match) {
+  // Every key must be a valid column: applyMatchFilter silently drops invalid ones, so a match made only
+  // of invalid keys would otherwise reach PostgREST with no filter at all and hit the whole table.
+  if (!isPlainObject(match)) return false;
+  const columns = Object.keys(match);
+  return columns.length > 0 && columns.every((column) => VALID_COLUMN_NAME.test(column));
+}
+
 async function executeDbMutation({ table, action, values, match, returning }) {
   let query = supabaseDbClient.from(table);
 
@@ -2504,7 +2512,7 @@ async function executeDbMutation({ table, action, values, match, returning }) {
       if (!isPlainObject(values)) {
         throw createHttpError(400, "values oggetto obbligatorio per update.");
       }
-      if (!isPlainObject(match) || Object.keys(match).length === 0) {
+      if (!hasUsableMatch(match)) {
         throw createHttpError(400, "match obbligatorio per update.");
       }
       query = query.update(values);
@@ -2512,7 +2520,7 @@ async function executeDbMutation({ table, action, values, match, returning }) {
       break;
 
     case "delete":
-      if (!isPlainObject(match) || Object.keys(match).length === 0) {
+      if (!hasUsableMatch(match)) {
         throw createHttpError(400, "match obbligatorio per delete.");
       }
       query = query.delete();
