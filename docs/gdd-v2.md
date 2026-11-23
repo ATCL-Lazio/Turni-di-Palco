@@ -388,7 +388,7 @@ Per gli scenari narrativi teatro-specifici (sblocchi basati su reputazione teatr
 
 | File | Contenuto |
 |---|---|
-| `vercel.json` | Config Vercel — build mobile, output dir |
+| `apps/pwa/vercel.json` | Config Vercel (progetto con Root Directory `apps/pwa`) — build mobile+PWA, rewrite `/api/*` |
 | `render.yaml` | Config Render — 4 servizi (app, Maxwell AI, control-plane, badges Docker) |
 | `apps/mobile/public/manifest.webmanifest` | Manifest PWA — icone, theme color `#05070d`, start URL `/mobile/`, shortcuts |
 | `apps/pwa/public/sw.js` | Service Worker — cache versioning |

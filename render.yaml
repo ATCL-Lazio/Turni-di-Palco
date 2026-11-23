@@ -4,7 +4,7 @@ services:
 - type: web
   name: Turni-di-Palco
   runtime: node
-  repo: https://github.com/Heartran/Turni-di-Palco
+  repo: https://github.com/ATCL-Lazio/Turni-di-Palco
   branch: render/preview
   plan: free
   envVars:
@@ -27,7 +27,7 @@ services:
 - type: web
   name: Turni-di-Palco-Control-Plane
   runtime: node
-  repo: https://github.com/Heartran/Turni-di-Palco
+  repo: https://github.com/ATCL-Lazio/Turni-di-Palco
   branch: render/preview
   plan: free
   envVars:
@@ -58,7 +58,7 @@ services:
 - type: web
   name: Turni-di-Palco-Badges
   runtime: docker
-  repo: https://github.com/Heartran/Turni-di-Palco
+  repo: https://github.com/ATCL-Lazio/Turni-di-Palco
   branch: render/preview
   plan: free
   envVars:

@@ -26,8 +26,6 @@ exclude:
   - SECURITY.md
   - supabase/
   - render.yaml
-  - vercel.json
-  - api/
   - development/
   - package.json
   - package-lock.json
