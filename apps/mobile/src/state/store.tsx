@@ -9,13 +9,15 @@ import {
 import { resolveDisplayName } from '../lib/profile-utils';
 import { COOKIE_CONSENT_KEY, GEO_CONSENT_KEY } from '../constants/privacy';
 import { clearLocalActivationStores } from '../services/ticket-activation';
+import type { CourseSkill } from '../gameplay/courses';
 import {
-  COURSES_CATALOG,
-  COURSE_COMPLETION_XP,
-  COURSE_COOLDOWN_MS,
-  type CourseSkill,
-} from '../gameplay/courses';
-import { withMobileWatchdog, WatchdogTimeoutError } from '../services/mobile-watchdog';
+  applyCourseCompletion,
+  applyCourseStart,
+  checkCourseCompletion,
+  checkCourseStart,
+  getCourseCompletionReward,
+} from './course-progress';
+import { withMobileWatchdog } from '../services/mobile-watchdog';
 import {
   applyMobileFeatureFlagOverrides,
   MOBILE_FEATURE_FLAGS_DEFAULTS,
@@ -29,6 +31,9 @@ import {
   readEnvFeatureFlagOverrides,
 } from '../services/feature-flags';
 import { withSuppressSignedInNavigation } from './auth-navigation';
+import { useAuthSession } from './hooks/use-auth-session';
+import { useOfflineSyncRetryLoop } from './hooks/use-offline-sync-retry-loop';
+import { useServerLogMirror } from './hooks/use-server-log-mirror';
 import type {
   RoleId,
   Rewards,
@@ -36,7 +41,6 @@ import type {
   Role,
   GameEvent,
   EventPlanning,
-  Activity,
   ShopCatalogItem,
   ActivitySlotsStatus,
   ActivityTelemetryInput,
@@ -60,7 +64,7 @@ import type {
 import type { GameContextValue } from './game-context-types';
 import { roles, events, activities, DEFAULT_SHOP_CATALOG } from './catalog';
 import { MAX_TURNS, MOBILE_WATCHDOG_TIMEOUTS } from './constants';
-import { normalizeText, isRoleId, normalizeRoleProfile } from './normalizers';
+import { normalizeText, isRoleId } from './normalizers';
 import {
   resolveEventPlanningStatus,
   resolveEventPlanningRoleId,
@@ -70,19 +74,10 @@ import {
 } from './event-planning';
 import {
   OFFLINE_SYNC_SERVER_LOG_QUEUE_KEY,
-  OFFLINE_SYNC_SERVER_LOG_BATCH_SIZE,
-  OFFLINE_SYNC_SERVER_LOG_RETRY_INTERVAL_MS,
-  OFFLINE_SYNC_SERVER_LOG_FUNCTION,
-  OFFLINE_SYNC_LOG_PREFIX,
-  readMirroredClientLogs,
-  writeMirroredClientLogs,
   logOfflineSync,
-  shouldMirrorOfflineSyncLogsToServer,
 } from './offline-sync-log';
 import {
   OFFLINE_SYNC_QUEUE_KEY,
-  OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS,
-  getOfflineSyncRetryDelayMs,
   OFFLINE_SYNC_MAX_ATTEMPTS,
   isNavigatorOffline,
   readTurnGeolocationSnapshot,
@@ -113,6 +108,12 @@ import {
   parseShopPurchaseRpcRow,
   parseShopCatalogRows,
   buildTurnRecordFromPayload,
+  mapDbRoleRow,
+  mapDbEventRow,
+  mapDbActivityRow,
+  mapDbTurnRow,
+  mergeHydratedProfileRow,
+  mergeRealtimeProfileRow,
 } from './supabase-mappers';
 import type {
   DbEventRow,
@@ -127,6 +128,14 @@ import type {
 } from './supabase-mappers';
 import { applyRewards, computeTurnRewards } from './rewards';
 import {
+  EMPTY_REMOTE_EXPORT_DATA,
+  buildUserDataExport,
+  buildUserDataExportFileName,
+  collectMaxwellChatHistory,
+  downloadJson,
+  fetchRemoteExportData,
+} from './user-data-export';
+import {
   computeTurnStatsFromTurns,
   computeTheatreReputationFromTurns,
   computeFallbackBadges,
@@ -136,8 +145,6 @@ import {
   TUTORIAL_ANON_ID,
   readTutorialCompleted,
   writeTutorialCompleted,
-  readStoredSession,
-  persistStoredSession,
   createDefaultState,
   loadState,
   saveState,
@@ -201,8 +208,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     events,
     activities,
   }));
-  const [authUserId, setAuthUserId] = useState<string | null>(null);
-  const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
+  const { authUserId, authReady } = useAuthSession();
   const [hasHydratedRemote, setHasHydratedRemote] = useState(false);
   const localTurnStats = useMemo(() => computeTurnStatsFromTurns(state.turns), [state.turns]);
   const localTheatreReputation = useMemo(
@@ -247,7 +253,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   }, [state.profile.extraActivitySlots]);
   const [turnSyncFeedback, setTurnSyncFeedback] = useState<TurnSyncFeedback | null>(null);
   const offlineSyncInFlightRef = useRef(false);
-  const offlineServerLogSyncInFlightRef = useRef(false);
   const eventPlansRef = useRef(state.eventPlans);
   // Tracks narrative choice IDs whose rewards have already been applied locally
   // in this session. Guards completeNarrativeChoice against double-credit on
@@ -470,60 +475,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       }
     );
   }, []);
-
-  const flushMirroredClientLogsToServer = useCallback(async () => {
-    if (!isSupabaseConfigured || !supabase || !shouldMirrorOfflineSyncLogsToServer()) return;
-    if (!authUserId) return;
-    if (offlineServerLogSyncInFlightRef.current) return;
-    if (isNavigatorOffline()) return;
-
-    const queue = readMirroredClientLogs();
-    if (!queue.length) return;
-
-    const batch = queue.slice(0, OFFLINE_SYNC_SERVER_LOG_BATCH_SIZE);
-    offlineServerLogSyncInFlightRef.current = true;
-    if (import.meta.env.DEV) console.info(`${OFFLINE_SYNC_LOG_PREFIX} Mirroring log batch to server`, {
-      batchSize: batch.length,
-      queueSize: queue.length,
-      duplicatePolicy: 'include',
-    });
-
-    try {
-      const { data, error } = await supabase.functions.invoke(OFFLINE_SYNC_SERVER_LOG_FUNCTION, {
-        body: {
-          action: 'ingest_logs',
-          source: 'mobile-offline-sync',
-          duplicatePolicy: 'include',
-          clientUserId: authUserId ?? null,
-          logs: batch,
-        },
-      });
-
-      if (error) {
-        console.warn(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror failed`, {
-          message: error.message,
-          batchSize: batch.length,
-        });
-        return;
-      }
-
-      const acknowledgedIds = Array.isArray((data as { acceptedLogIds?: unknown })?.acceptedLogIds)
-        ? ((data as { acceptedLogIds?: unknown[] }).acceptedLogIds ?? [])
-          .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-        : batch.map((entry) => entry.id);
-      const acknowledgedSet = new Set(acknowledgedIds);
-      const remaining = readMirroredClientLogs().filter((entry) => !acknowledgedSet.has(entry.id));
-      writeMirroredClientLogs(remaining);
-      if (import.meta.env.DEV) console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror ack`, {
-        acknowledged: acknowledgedSet.size,
-        remaining: remaining.length,
-      });
-    } catch (error) {
-      console.warn(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror exception`, error);
-    } finally {
-      offlineServerLogSyncInFlightRef.current = false;
-    }
-  }, [authUserId]);
 
   const refreshPendingBoostRequests = useCallback(
     (queueOverride?: QueuedSupabaseMutation[]) => {
@@ -975,101 +926,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     });
   }, [authUserId, enqueueSupabaseMutation, refreshBadges]);
 
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return;
-    let isMounted = true;
-
-    const restoreSession = async () => {
-      await withMobileWatchdog(
-        async () => {
-          const stored = readStoredSession();
-          if (stored) {
-            // Legacy duplicate token copy (already removed from storage by
-            // readStoredSession): use it only if supabase-js has no session.
-            const { data: existing } = await supabase!.auth.getSession();
-            if (!existing.session) {
-              const { data: restoredData, error: restoreError } = await supabase!.auth.setSession({
-                access_token: stored.access_token,
-                refresh_token: stored.refresh_token,
-              });
-              if (restoreError || !restoredData.session) {
-                persistStoredSession(null);
-                await supabase!.auth.signOut();
-              }
-            }
-          }
-
-          const { data } = await supabase!.auth.getSession();
-          if (!isMounted) return;
-
-          let stableSession = data.session ?? null;
-          if (stableSession?.access_token) {
-            const { error: userError } = await supabase!.auth.getUser(stableSession.access_token);
-            if (userError) {
-              stableSession = null;
-              persistStoredSession(null);
-              await supabase!.auth.signOut();
-            }
-          }
-
-          // Guard again after the async getUser/signOut calls — the component
-          // may have unmounted (e.g. StrictMode double-mount) while they were in
-          // flight (closes #1354).
-          if (!isMounted) return;
-
-          persistStoredSession(stableSession);
-          setAuthUserId(stableSession?.user.id ?? null);
-          setAuthReady(true);
-        },
-        {
-          operation: 'restoreSession',
-          timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.restoreSession,
-          title: 'Ripristino sessione lento',
-          message: 'Il ripristino della sessione mobile sta impiegando troppo tempo.',
-        }
-      );
-    };
-
-    let authReadyFallbackId: number | null = null;
-
-    restoreSession().catch((err) => {
-      console.error('[restoreSession] unexpected error', err);
-      // For WatchdogTimeoutError: withMobileWatchdog already showed the error
-      // overlay; the in-flight Supabase call continues and will trigger
-      // onAuthStateChange (below) which sets both authUserId and authReady
-      // correctly — setting authReady=true here without authUserId would
-      // produce a phantom logged-out state window (closes #1527).
-      if (isMounted && !(err instanceof WatchdogTimeoutError)) {
-        setAuthReady(true);
-      }
-      // Safety net: on total network failure the in-flight Supabase call never
-      // completes, so onAuthStateChange never fires and authReady stays false
-      // forever. Fall back to ready after an additional wait so the app
-      // eventually becomes usable even without connectivity (closes #1587).
-      if (err instanceof WatchdogTimeoutError) {
-        authReadyFallbackId = window.setTimeout(() => {
-          if (isMounted) setAuthReady(true);
-        }, 30_000);
-      }
-    });
-
-    const { data: authListener } = supabase!.auth.onAuthStateChange((_event, session) => {
-      if (authReadyFallbackId !== null) {
-        window.clearTimeout(authReadyFallbackId);
-        authReadyFallbackId = null;
-      }
-      persistStoredSession(session ?? null);
-      if (!isMounted) return;
-      setAuthUserId(session?.user.id ?? null);
-      setAuthReady(true);
-    });
-
-    return () => {
-      isMounted = false;
-      if (authReadyFallbackId !== null) window.clearTimeout(authReadyFallbackId);
-      authListener?.subscription.unsubscribe();
-    };
-  }, []);
 
   useEffect(() => {
     setHasHydratedRemote(false);
@@ -1080,96 +936,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     refreshPendingBoostRequests();
   }, [authUserId, refreshPendingBoostRequests]);
 
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !authUserId) return;
-    logOfflineSync('Auth session ready: checking queued mutations', { authUserId });
-    void flushQueuedSupabaseMutations();
-  }, [authUserId, flushQueuedSupabaseMutations]);
+  useOfflineSyncRetryLoop(authUserId, flushQueuedSupabaseMutations);
 
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !authUserId) return;
-    if (typeof window === 'undefined') return;
-    logOfflineSync('Online/offline sync listeners started', {
-      authUserId,
-      baseRetryIntervalMs: OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS,
-    });
-
-    const handleOnline = () => {
-      logOfflineSync('Browser online event: retrying queued mutations', { authUserId });
-      void flushQueuedSupabaseMutations();
-    };
-
-    window.addEventListener('online', handleOnline);
-
-    // Use a setTimeout-based loop so the delay between retries scales with the
-    // number of attempts already made (exponential backoff via getOfflineSyncRetryDelayMs),
-    // instead of always waiting the fixed OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS.
-    let timeoutId: number | null = null;
-    let cancelled = false;
-
-    const scheduleNextTick = () => {
-      if (cancelled) return;
-      const queuedForUser = readQueuedSupabaseMutations().filter(
-        (entry) => entry.userId === authUserId
-      );
-      const maxAttempts = queuedForUser.reduce(
-        (max, entry) => Math.max(max, entry.attempts ?? 0),
-        0
-      );
-      const delay = getOfflineSyncRetryDelayMs(maxAttempts);
-      timeoutId = window.setTimeout(() => {
-        if (cancelled) return;
-        const hasQueuedForUser = readQueuedSupabaseMutations().some(
-          (entry) => entry.userId === authUserId
-        );
-        if (hasQueuedForUser) {
-          logOfflineSync('Periodic retry tick: queued mutations detected', { authUserId, delay });
-          void flushQueuedSupabaseMutations();
-        }
-        scheduleNextTick();
-      }, delay);
-    };
-
-    scheduleNextTick();
-
-    return () => {
-      cancelled = true;
-      window.removeEventListener('online', handleOnline);
-      if (timeoutId !== null) window.clearTimeout(timeoutId);
-      logOfflineSync('Online/offline sync listeners stopped', { authUserId });
-    };
-  }, [authUserId, flushQueuedSupabaseMutations]);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !shouldMirrorOfflineSyncLogsToServer()) return;
-    void flushMirroredClientLogsToServer();
-  }, [authUserId, authReady, flushMirroredClientLogsToServer]);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !shouldMirrorOfflineSyncLogsToServer()) return;
-    if (typeof window === 'undefined') return;
-    if (import.meta.env.DEV) console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror listeners started`, {
-      retryIntervalMs: OFFLINE_SYNC_SERVER_LOG_RETRY_INTERVAL_MS,
-      batchSize: OFFLINE_SYNC_SERVER_LOG_BATCH_SIZE,
-    });
-
-    const handleOnline = () => {
-      if (import.meta.env.DEV) console.info(`${OFFLINE_SYNC_LOG_PREFIX} Browser online: retrying server log mirror`);
-      void flushMirroredClientLogsToServer();
-    };
-
-    window.addEventListener('online', handleOnline);
-    const intervalId = window.setInterval(
-      () => void flushMirroredClientLogsToServer(),
-      OFFLINE_SYNC_SERVER_LOG_RETRY_INTERVAL_MS
-    );
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.clearInterval(intervalId);
-      if (import.meta.env.DEV) console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror listeners stopped`);
-    };
-  }, [flushMirroredClientLogsToServer]);
+  useServerLogMirror(authUserId, authReady);
 
   const refreshEventPlanning = useCallback(
     async (catalogEvents: GameEvent[]) => {
@@ -1697,49 +1466,17 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           const nextRoles =
             rolesRes.error || !rolesRes.data?.length
               ? roles
-              : (rolesRes.data as DbRoleRow[]).map((role) => ({
-                id: isRoleId(role.id) ? role.id : 'attore',
-                name: role.name,
-                focus: role.focus,
-                stats: {
-                  presence: Number(role.stats?.presence ?? 0),
-                  precision: Number(role.stats?.precision ?? 0),
-                  leadership: Number(role.stats?.leadership ?? 0),
-                  creativity: Number(role.stats?.creativity ?? 0),
-                },
-                profile: normalizeRoleProfile(role.role_profile),
-              }));
+              : (rolesRes.data as DbRoleRow[]).map(mapDbRoleRow);
 
           const nextEvents =
             eventsRes.error || !eventsRes.data?.length
               ? (isSupabaseConfigured ? [] : import.meta.env.DEV ? events : [])
-              : (eventsRes.data as DbEventRow[]).map((event) => ({
-                id: event.id,
-                name: normalizeText(event.name),
-                theatre: normalizeText(event.theatre),
-                date: normalizeText(event.event_date),
-                time: normalizeText(event.event_time),
-                genre: normalizeText(event.genre),
-                baseRewards: {
-                  xp: Number(event.base_rewards?.xp ?? 0),
-                  reputation: Number(event.base_rewards?.reputation ?? 0),
-                  cachet: Number(event.base_rewards?.cachet ?? 0),
-                },
-                focusRole: (event.focus_role ?? undefined) as RoleId | undefined,
-              }));
+              : (eventsRes.data as DbEventRow[]).map(mapDbEventRow);
 
           const nextActivities =
             activitiesRes.error || !activitiesRes.data?.length
               ? import.meta.env.DEV ? activities : []
-              : (activitiesRes.data as DbActivityRow[]).map((activity) => ({
-                id: activity.id,
-                title: activity.title,
-                description: activity.description,
-                duration: activity.duration,
-                xpReward: activity.xp_reward,
-                cachetReward: activity.cachet_reward,
-                difficulty: activity.difficulty as Activity['difficulty'],
-              }));
+              : (activitiesRes.data as DbActivityRow[]).map(mapDbActivityRow);
 
           if (!isMounted) return;
           setCatalog({
@@ -1850,62 +1587,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           if (!isMounted) return;
 
           const remoteTurns = Array.isArray(turnsRes.data)
-            ? (turnsRes.data as DbTurnRow[]).map((turn) => ({
-              id: turn.id,
-              eventId: turn.event_id ?? '',
-              eventName: normalizeText(turn.event_name),
-              theatre: normalizeText(turn.theatre),
-              date: normalizeText(turn.event_date),
-              time: normalizeText(turn.event_time),
-              roleId: isRoleId(turn.role_id) ? turn.role_id : 'attore',
-              rewards: {
-                xp: Number(turn.rewards?.xp ?? 0),
-                reputation: Number(turn.rewards?.reputation ?? 0),
-                cachet: Number(turn.rewards?.cachet ?? 0),
-              },
-              createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
-            }))
+            ? (turnsRes.data as DbTurnRow[]).map(mapDbTurnRow)
             : [];
 
           if (profileRow) {
             const user = userRes.data?.user;
-            const parsedLastActivityAt = profileRow.last_activity_at ? new Date(profileRow.last_activity_at).getTime() : NaN;
             setState((prev: GameState) => ({
-              profile: {
-                ...prev.profile,
-                name: resolveDisplayName({
-                  name: profileRow.name,
-                  metadata: user?.user_metadata,
-                  email: profileRow.email ?? user?.email ?? prev.profile.email,
-                  fallback: prev.profile.name,
-                }),
-                email: profileRow.email ?? prev.profile.email,
-                roleId: isRoleId(profileRow.role_id) ? profileRow.role_id : prev.profile.roleId,
-                level: profileRow.level ?? prev.profile.level,
-                xp: profileRow.xp ?? prev.profile.xp,
-                xpToNextLevel: profileRow.xp_to_next_level ?? prev.profile.xpToNextLevel,
-                xpTotal: profileRow.xp_total ?? prev.profile.xpTotal,
-                xpField: profileRow.xp_field ?? prev.profile.xpField,
-                reputation: profileRow.reputation ?? prev.profile.reputation,
-                cachet: profileRow.cachet ?? prev.profile.cachet,
-                tokenAtcl: profileRow.token_atcl ?? prev.profile.tokenAtcl,
-                extraActivitySlots:
-                  profileRow.extra_activity_slots ?? prev.profile.extraActivitySlots,
-                profileImage: profileRow.profile_image ?? prev.profile.profileImage,
-                lastActivityAt: Number.isFinite(parsedLastActivityAt)
-                  ? parsedLastActivityAt
-                  : prev.profile.lastActivityAt,
-                leaderboardVisible: profileRow.leaderboard_visible ?? prev.profile.leaderboardVisible,
-                onboardingCompletedAt: profileRow.onboarding_completed_at ?? prev.profile.onboardingCompletedAt,
-                onboardingVariant: (profileRow.onboarding_variant === 'full' || profileRow.onboarding_variant === 'skipped_qr' || profileRow.onboarding_variant === 'skipped_manual')
-                  ? profileRow.onboarding_variant
-                  : prev.profile.onboardingVariant,
-                // Course state — Issue #327. Prefer remote values when present; fall
-                // back to local (localStorage) so offline mutations are not lost.
-                skills: profileRow.skills ?? prev.profile.skills,
-                activeCourses: profileRow.active_courses ?? prev.profile.activeCourses,
-                completedCourses: profileRow.completed_courses ?? prev.profile.completedCourses,
-              },
+              profile: mergeHydratedProfileRow(prev.profile, profileRow, user),
               eventPlans: prev.eventPlans,
               turns: remoteTurns.slice(0, MAX_TURNS),
             }));
@@ -1963,22 +1651,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !authUserId) return;
 
-    const mapTurnRow = (turn: DbTurnRow): TurnRecord => ({
-      id: turn.id,
-      eventId: turn.event_id ?? '',
-      eventName: normalizeText(turn.event_name),
-      theatre: normalizeText(turn.theatre),
-      date: normalizeText(turn.event_date),
-      time: normalizeText(turn.event_time),
-      roleId: isRoleId(turn.role_id) ? turn.role_id : 'attore',
-      rewards: {
-        xp: Number(turn.rewards?.xp ?? 0),
-        reputation: Number(turn.rewards?.reputation ?? 0),
-        cachet: Number(turn.rewards?.cachet ?? 0),
-      },
-      createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
-    });
-
     const channel = supabase
       .channel(`tdp-mobile-${authUserId}`)
       .on(
@@ -1989,39 +1661,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           const profile = payload.new as DbProfileRow;
           setState((prev: GameState) => ({
             ...prev,
-            profile: {
-              ...prev.profile,
-              name: resolveDisplayName({
-                name: profile.name,
-                email: profile.email ?? prev.profile.email,
-                fallback: prev.profile.name,
-              }),
-              email: profile.email ?? prev.profile.email,
-              roleId: isRoleId(profile.role_id) ? profile.role_id : prev.profile.roleId,
-              level: profile.level ?? prev.profile.level,
-              xp: profile.xp ?? prev.profile.xp,
-              xpToNextLevel: profile.xp_to_next_level ?? prev.profile.xpToNextLevel,
-              xpTotal: profile.xp_total ?? prev.profile.xpTotal,
-              xpField: profile.xp_field ?? prev.profile.xpField,
-              reputation: profile.reputation ?? prev.profile.reputation,
-              cachet: profile.cachet ?? prev.profile.cachet,
-              tokenAtcl: profile.token_atcl ?? prev.profile.tokenAtcl,
-              extraActivitySlots:
-                profile.extra_activity_slots ?? prev.profile.extraActivitySlots,
-              profileImage: profile.profile_image ?? prev.profile.profileImage,
-              lastActivityAt: profile.last_activity_at ? new Date(profile.last_activity_at).getTime() : prev.profile.lastActivityAt,
-              leaderboardVisible:
-                profile.leaderboard_visible != null
-                  ? profile.leaderboard_visible
-                  : prev.profile.leaderboardVisible,
-              onboardingCompletedAt: profile.onboarding_completed_at ?? prev.profile.onboardingCompletedAt,
-              onboardingVariant: (profile.onboarding_variant === 'full' || profile.onboarding_variant === 'skipped_qr' || profile.onboarding_variant === 'skipped_manual')
-                ? profile.onboarding_variant
-                : prev.profile.onboardingVariant,
-              skills: profile.skills ?? prev.profile.skills,
-              activeCourses: profile.active_courses ?? prev.profile.activeCourses,
-              completedCourses: profile.completed_courses ?? prev.profile.completedCourses,
-            },
+            profile: mergeRealtimeProfileRow(prev.profile, profile),
           }));
           setHasHydratedRemote(true);
         }
@@ -2031,7 +1671,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         { event: '*', schema: 'public', table: 'turns', filter: `user_id=eq.${authUserId}` },
         (payload) => {
           if (payload.eventType === 'INSERT' && payload.new) {
-            const nextTurn = mapTurnRow(payload.new as DbTurnRow);
+            const nextTurn = mapDbTurnRow(payload.new as DbTurnRow);
             setState((prev: GameState) => {
               if (prev.turns.some((turn: TurnRecord) => turn.id === nextTurn.id)) {
                 return prev;
@@ -2042,7 +1682,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           }
 
           if (payload.eventType === 'UPDATE' && payload.new) {
-            const nextTurn = mapTurnRow(payload.new as DbTurnRow);
+            const nextTurn = mapDbTurnRow(payload.new as DbTurnRow);
             setState((prev: GameState) => ({
               ...prev,
               turns: prev.turns
@@ -3093,45 +2733,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   // Issue #327 — Avvia un corso formativo.
   const startCourse = useCallback(
     (courseId: string): { ok: true } | { ok: false; error: string } => {
-      const course = COURSES_CATALOG.find((c) => c.id === courseId);
-      if (!course) return { ok: false, error: 'Corso non trovato.' };
-
       // Perform guard checks synchronously against the current state snapshot
       // BEFORE calling setState, so that the updater only contains the happy-path
       // state transition. This avoids mutating external variables inside the
       // setState updater — which React StrictMode double-invokes and could produce
       // incorrect results under future React versions (closes #1361).
-      const profile = state.profile;
-      const skills = profile.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
-      const completedCourses = profile.completedCourses ?? {};
-      const activeCourses = profile.activeCourses ?? {};
-
-      // Controlla se il corso è già attivo
-      if (activeCourses[courseId]) {
-        return { ok: false, error: 'Corso già in corso.' };
-      }
-
-      // Controlla cooldown
-      const lastCompleted = completedCourses[courseId];
-      if (lastCompleted) {
-        const elapsed = Date.now() - new Date(lastCompleted).getTime();
-        if (elapsed < COURSE_COOLDOWN_MS) {
-          const remainingMs = COURSE_COOLDOWN_MS - elapsed;
-          const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
-          return {
-            ok: false,
-            error: `Corso in cooldown. Disponibile tra ${remainingHours} ore.`,
-          };
-        }
-      }
-
-      // Controlla cachet sufficiente
-      if (profile.cachet < course.costCachet) {
-        return {
-          ok: false,
-          error: `Cachet insufficiente. Necessari: ${course.costCachet}, disponibili: ${profile.cachet}.`,
-        };
-      }
+      const check = checkCourseStart(state.profile, courseId, Date.now());
+      if (!check.ok) return check;
 
       // Compute nextProfile inside the setState updater using prev.profile so
       // concurrent profile mutations (e.g. a Realtime subscription firing during
@@ -3140,25 +2748,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       // since they gate on game-logic invariants rather than numeric values that
       // could race. The state transition itself uses prev.profile.
       const startedAt = new Date().toISOString();
-      const computeStartedProfile = (p: PlayerProfile): PlayerProfile => {
-        const pSkills = p.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
-        const pActiveCourses = p.activeCourses ?? {};
-        const pCompletedCourses = p.completedCourses ?? {};
-        return {
-          ...p,
-          // Clamp to 0: the guard above uses the render-time snapshot, so a
-          // concurrent mutation could reduce prev.cachet below costCachet before
-          // this updater runs, causing a negative balance (closes #1410).
-          cachet: Math.max(0, p.cachet - course.costCachet),
-          skills: pSkills,
-          completedCourses: pCompletedCourses,
-          activeCourses: { ...pActiveCourses, [courseId]: startedAt },
-        };
-      };
       // Persist synchronously from render-time snapshot; re-derive from prev
       // inside setState so concurrent mutations are not clobbered (closes #1547).
-      persistProfile(computeStartedProfile(state.profile));
-      setState((prev) => ({ ...prev, profile: computeStartedProfile(prev.profile) }));
+      persistProfile(applyCourseStart(state.profile, check.course, startedAt));
+      setState((prev) => ({ ...prev, profile: applyCourseStart(prev.profile, check.course, startedAt) }));
 
       return { ok: true };
     },
@@ -3172,72 +2765,20 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     ):
       | { ok: true; xpGained: number; skillGained: CourseSkill; pointsGained: number }
       | { ok: false; error: string } => {
-      const course = COURSES_CATALOG.find((c) => c.id === courseId);
-      if (!course) return { ok: false, error: 'Corso non trovato.' };
-
       // Perform guard checks synchronously against the current state snapshot
       // BEFORE calling setState — same rationale as startCourse (closes #1361).
-      const profile = state.profile;
-      const skills = profile.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
-      const completedCourses = profile.completedCourses ?? {};
-      const activeCourses = profile.activeCourses ?? {};
-
-      const startedAt = activeCourses[courseId];
-      if (!startedAt) {
-        return { ok: false, error: 'Corso non avviato.' };
-      }
-
-      // In DEV il tempo minimo è 10 secondi, in produzione durationMinutes completi.
-      const requiredMs = import.meta.env.DEV
-        ? 10 * 1000
-        : course.durationMinutes * 60 * 1000;
-
-      const elapsed = Date.now() - new Date(startedAt).getTime();
-      if (elapsed < requiredMs) {
-        const remainingSec = Math.ceil((requiredMs - elapsed) / 1000);
-        return {
-          ok: false,
-          error: `Corso non ancora completato. Tempo rimanente: ${remainingSec} secondi.`,
-        };
-      }
-
-      const xpGained = COURSE_COMPLETION_XP;
-      const skillGained: CourseSkill = course.skill;
-      const pointsGained = course.skillPoints;
+      const check = checkCourseCompletion(state.profile, courseId, Date.now(), import.meta.env.DEV);
+      if (!check.ok) return check;
 
       // Compute nextProfile inside the setState updater using prev.profile so
       // concurrent profile mutations are not silently clobbered (closes #1378).
       const completedAt = new Date().toISOString();
-      const courseRewards: Rewards = { xp: xpGained, cachet: 0, reputation: 0 };
-      const computeCompletedProfile = (p: PlayerProfile): PlayerProfile => {
-        const pSkills = p.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
-        const pActiveCourses = p.activeCourses ?? {};
-        const pCompletedCourses = p.completedCourses ?? {};
-
-        // Applica XP tramite lo stesso helper usato dalle attività.
-        const profileWithXp = applyRewards(p, courseRewards, 'activity');
-
-        const updatedSkills = {
-          ...pSkills,
-          [skillGained]: (pSkills[skillGained] ?? 0) + pointsGained,
-        };
-
-        // Rimuovi dai corsi attivi e aggiungi ai completati.
-        const { [courseId]: _removed, ...remainingActive } = pActiveCourses;
-
-        return {
-          ...profileWithXp,
-          skills: updatedSkills,
-          completedCourses: { ...pCompletedCourses, [courseId]: completedAt },
-          activeCourses: remainingActive,
-        };
-      };
       // Persist synchronously from render-time snapshot; re-derive from prev
       // inside setState so concurrent mutations are not clobbered (closes #1547).
-      persistProfile(computeCompletedProfile(state.profile));
-      setState((prev) => ({ ...prev, profile: computeCompletedProfile(prev.profile) }));
+      persistProfile(applyCourseCompletion(state.profile, check.course, completedAt));
+      setState((prev) => ({ ...prev, profile: applyCourseCompletion(prev.profile, check.course, completedAt) }));
 
-      return { ok: true, xpGained, skillGained, pointsGained };
+      return { ok: true, ...getCourseCompletionReward(check.course) };
     },
     [persistProfile, state.profile],
   );
@@ -3346,202 +2887,24 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   // GDPR Art. 15/20 – Diritto di accesso e portabilità: scarica tutti i dati in formato JSON.
   const exportUserData = useCallback(async () => {
-    // Collect chat history from localStorage (tdp-maxwell-history:* keys)
-    const chatHistory: Record<string, unknown> = {};
-    if (typeof window !== 'undefined') {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('tdp-maxwell-history:')) {
-          try {
-            chatHistory[key] = JSON.parse(localStorage.getItem(key) || '[]');
-          } catch {
-            chatHistory[key] = localStorage.getItem(key);
-          }
-        }
-      }
-    }
+    const chatHistory = collectMaxwellChatHistory(typeof window !== 'undefined' ? localStorage : undefined);
 
-    // Fix #1229: fetch ALL turns directly from Supabase at export time so the
-    // GDPR export is complete regardless of the MAX_TURNS=20 in-memory cap.
-    // Fix #1231: also fetch activity_completions, narrative_history, and
-    // shop_purchases in parallel — all tables deleted by delete-my-account must
-    // be present in the Art. 15/20 export.
-    // Fix #1407: include ticket_activations — deleted by delete-my-account under
-    // both activated_by and reserved_by, so it qualifies as personal data and
-    // must be exportable under Art. 15/20 symmetrically with deletion (Art. 17).
     // Fall back to state.turns only when Supabase is unavailable (e.g. offline).
-    let allTurns: TurnRecord[] = state.turns;
-    let activityCompletions: unknown[] = [];
-    let narrativeHistory: unknown[] = [];
-    let shopPurchases: unknown[] = [];
-    let ticketActivationsActivated: unknown[] = [];
-    let ticketActivationsReserved: unknown[] = [];
-    let ticketActivationsAttendee: unknown[] = [];
-    if (isSupabaseConfigured && supabase && authUserId) {
-      const [
-        { data: turnsData, error: turnsError },
-        { data: activityData, error: activityError },
-        { data: narrativeData, error: narrativeError },
-        { data: shopData, error: shopError },
-        { data: ticketActivatedData, error: ticketActivatedError },
-        { data: ticketReservedData, error: ticketReservedError },
-        { data: ticketAttendeeData, error: ticketAttendeeError },
-      ] = await Promise.all([
-        supabase
-          .from('turns')
-          .select('*')
-          .eq('user_id', authUserId)
-          .order('created_at', { ascending: false })
-          .limit(10000),
-        supabase
-          .from('activity_completions')
-          .select('*')
-          .eq('user_id', authUserId)
-          .order('created_at', { ascending: false })
-          .limit(10000),
-        supabase
-          .from('narrative_history')
-          .select('*')
-          .eq('user_id', authUserId)
-          .order('created_at', { ascending: false })
-          .limit(10000),
-        supabase
-          .from('shop_purchases')
-          .select('*')
-          .eq('user_id', authUserId)
-          .order('created_at', { ascending: false })
-          .limit(10000),
-        // Tickets this user activated by scanning a QR code.
-        supabase
-          .from('ticket_activations')
-          .select('*')
-          .eq('activated_by', authUserId)
-          .order('activated_at', { ascending: false })
-          .limit(10000),
-        // Tickets this user generated as an admin (reserved_by), including
-        // unactivated ones (activated_by IS NULL). Mirrors the reserved_by
-        // deletion in delete-my-account (GDPR Art. 17 ↔ Art. 15/20 symmetry).
-        supabase
-          .from('ticket_activations')
-          .select('*')
-          .eq('reserved_by', authUserId)
-          .order('created_at', { ascending: false })
-          .limit(10000),
-        // Tickets assigned to this user as a named attendee (attendee_id).
-        // Deleted by delete-my-account under attendee_id but previously missing
-        // from the Art. 15/20 export — restores GDPR symmetry (closes #1595).
-        supabase
-          .from('ticket_activations')
-          .select('*')
-          .eq('attendee_id', authUserId)
-          .order('created_at', { ascending: false })
-          .limit(10000),
-      ]);
-      // Fail loudly if any query errors so the user is not shown a silently
-      // incomplete GDPR export (fixes #1253).
-      const queryErrors: { table: string; error: unknown }[] = [];
-      if (turnsError) queryErrors.push({ table: 'turns', error: turnsError });
-      if (activityError) queryErrors.push({ table: 'activity_completions', error: activityError });
-      if (narrativeError) queryErrors.push({ table: 'narrative_history', error: narrativeError });
-      if (shopError) queryErrors.push({ table: 'shop_purchases', error: shopError });
-      if (ticketActivatedError) queryErrors.push({ table: 'ticket_activations(activated_by)', error: ticketActivatedError });
-      if (ticketReservedError) queryErrors.push({ table: 'ticket_activations(reserved_by)', error: ticketReservedError });
-      if (ticketAttendeeError) queryErrors.push({ table: 'ticket_activations(attendee_id)', error: ticketAttendeeError });
-      if (queryErrors.length > 0) {
-        const tables = queryErrors.map((e) => e.table).join(', ');
-        notifyCriticalError(
-          `Esportazione dati incompleta: impossibile recuperare i dati dalle tabelle: ${tables}. Riprova più tardi.`,
-          queryErrors.map((e) => e.error),
-        );
-        throw new Error(`exportUserData: query failed for tables: ${tables}`);
-      }
-      if (Array.isArray(turnsData)) {
-        allTurns = (turnsData as DbTurnRow[]).map((turn) => ({
-          id: turn.id,
-          eventId: turn.event_id ?? '',
-          eventName: normalizeText(turn.event_name),
-          theatre: normalizeText(turn.theatre),
-          date: normalizeText(turn.event_date),
-          time: normalizeText(turn.event_time),
-          roleId: isRoleId(turn.role_id) ? turn.role_id : 'attore',
-          rewards: {
-            xp: Number(turn.rewards?.xp ?? 0),
-            reputation: Number(turn.rewards?.reputation ?? 0),
-            cachet: Number(turn.rewards?.cachet ?? 0),
-          },
-          createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
-        }));
-      }
-      if (Array.isArray(activityData)) {
-        activityCompletions = activityData;
-      }
-      if (Array.isArray(narrativeData)) {
-        narrativeHistory = narrativeData;
-      }
-      if (Array.isArray(shopData)) {
-        shopPurchases = shopData;
-      }
-      if (Array.isArray(ticketActivatedData)) {
-        ticketActivationsActivated = ticketActivatedData;
-      }
-      if (Array.isArray(ticketReservedData)) {
-        ticketActivationsReserved = ticketReservedData;
-      }
-      if (Array.isArray(ticketAttendeeData)) {
-        ticketActivationsAttendee = ticketAttendeeData;
-      }
-    }
+    const remote = isSupabaseConfigured && supabase && authUserId
+      ? await fetchRemoteExportData(supabase, authUserId)
+      : EMPTY_REMOTE_EXPORT_DATA;
 
-    const data = {
-      exportDate: new Date().toISOString(),
-      profile: {
-        name: state.profile.name,
-        email: state.profile.email,
-        roleId: state.profile.roleId,
-        xp: state.profile.xp,
-        xpTotal: state.profile.xpTotal,
-        xpField: state.profile.xpField,
-        reputation: state.profile.reputation,
-        cachet: state.profile.cachet,
-        tokenAtcl: state.profile.tokenAtcl,
-        lastActivityAt: new Date(state.profile.lastActivityAt).toISOString(),
-        leaderboardVisible: state.profile.leaderboardVisible,
-        level: state.profile.level,
-        xpToNextLevel: state.profile.xpToNextLevel,
-        extraActivitySlots: state.profile.extraActivitySlots,
-        profileImage: state.profile.profileImage ?? null,
-        skills: state.profile.skills,
-        activeCourses: state.profile.activeCourses,
-        completedCourses: state.profile.completedCourses,
-        onboardingCompletedAt: state.profile.onboardingCompletedAt ?? null,
-        onboardingVariant: state.profile.onboardingVariant ?? null,
-      },
-      turns: allTurns,
-      activityCompletions,
-      narrativeHistory,
-      shopPurchases,
-      ticketActivationsActivated,
-      ticketActivationsReserved,
-      ticketActivationsAttendee,
+    const data = buildUserDataExport({
+      profile: state.profile,
+      turns: remote.turns ?? state.turns,
+      remote,
       badges,
       theatreReputation,
       plannedEvents: eventPlans,
       chatHistory,
-    };
-    if (typeof window === 'undefined' || typeof document === 'undefined') return;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const safeName = state.profile.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'profilo';
-    a.download = `turni-di-palco-${safeName}-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    // Delay revoking the object URL to give the browser time to start the download.
-    // Calling revokeObjectURL synchronously after a.click() can silently abort the
-    // download on Firefox and slow devices before the fetch begins (closes #1235).
-    window.setTimeout(() => URL.revokeObjectURL(url), 100);
+      exportDate: new Date(),
+    });
+    downloadJson(data, buildUserDataExportFileName(state.profile.name, Date.now()));
   }, [state.profile, state.turns, authUserId, badges, theatreReputation, eventPlans]);
 
   const value = useMemo<GameContextValue>(

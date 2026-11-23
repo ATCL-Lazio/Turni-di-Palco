@@ -1,7 +1,18 @@
 import { COOKIE_CONSENT_KEY } from '../constants/privacy';
-import type { Rewards, TurnSyncStatus, ShopCatalogItem, TurnRecord, PlayerProfile } from './types';
+import type {
+  Activity,
+  GameEvent,
+  PlayerProfile,
+  Rewards,
+  Role,
+  RoleId,
+  ShopCatalogItem,
+  TurnRecord,
+  TurnSyncStatus,
+} from './types';
 import { DEFAULT_SHOP_CATALOG } from './catalog';
-import { isRecord } from './normalizers';
+import { isRecord, isRoleId, normalizeRoleProfile, normalizeText } from './normalizers';
+import { resolveDisplayName } from '../lib/profile-utils';
 import { sanitizeProfileImageUrl } from '../lib/profile-image-url';
 import type { ProfileUpsertPayload, TurnRegisterPayload } from './offline-sync-queue';
 
@@ -294,5 +305,158 @@ export function buildTurnRecordFromPayload(
     boostRequested: payload.boost_requested,
     boostApplied,
     boostRejectionReason,
+  };
+}
+
+// ─── DB row → domain mappers ─────────────────────────────────────────────────
+
+export function mapDbRoleRow(role: DbRoleRow): Role {
+  return {
+    id: isRoleId(role.id) ? role.id : 'attore',
+    name: role.name,
+    focus: role.focus,
+    stats: {
+      presence: Number(role.stats?.presence ?? 0),
+      precision: Number(role.stats?.precision ?? 0),
+      leadership: Number(role.stats?.leadership ?? 0),
+      creativity: Number(role.stats?.creativity ?? 0),
+    },
+    profile: normalizeRoleProfile(role.role_profile),
+  };
+}
+
+export function mapDbEventRow(event: DbEventRow): GameEvent {
+  return {
+    id: event.id,
+    name: normalizeText(event.name),
+    theatre: normalizeText(event.theatre),
+    date: normalizeText(event.event_date),
+    time: normalizeText(event.event_time),
+    genre: normalizeText(event.genre),
+    baseRewards: {
+      xp: Number(event.base_rewards?.xp ?? 0),
+      reputation: Number(event.base_rewards?.reputation ?? 0),
+      cachet: Number(event.base_rewards?.cachet ?? 0),
+    },
+    focusRole: (event.focus_role ?? undefined) as RoleId | undefined,
+  };
+}
+
+export function mapDbActivityRow(activity: DbActivityRow): Activity {
+  return {
+    id: activity.id,
+    title: activity.title,
+    description: activity.description,
+    duration: activity.duration,
+    xpReward: activity.xp_reward,
+    cachetReward: activity.cachet_reward,
+    difficulty: activity.difficulty as Activity['difficulty'],
+  };
+}
+
+export function mapDbTurnRow(turn: DbTurnRow): TurnRecord {
+  return {
+    id: turn.id,
+    eventId: turn.event_id ?? '',
+    eventName: normalizeText(turn.event_name),
+    theatre: normalizeText(turn.theatre),
+    date: normalizeText(turn.event_date),
+    time: normalizeText(turn.event_time),
+    roleId: isRoleId(turn.role_id) ? turn.role_id : 'attore',
+    rewards: {
+      xp: Number(turn.rewards?.xp ?? 0),
+      reputation: Number(turn.rewards?.reputation ?? 0),
+      cachet: Number(turn.rewards?.cachet ?? 0),
+    },
+    createdAt: turn.created_at ? new Date(turn.created_at).getTime() : Date.now(),
+  };
+}
+
+function resolveOnboardingVariant(
+  value: string | null | undefined,
+  fallback: PlayerProfile['onboardingVariant'],
+): PlayerProfile['onboardingVariant'] {
+  return value === 'full' || value === 'skipped_qr' || value === 'skipped_manual' ? value : fallback;
+}
+
+type AuthUserLike = {
+  email?: string | null;
+  user_metadata?: Record<string, unknown> | null;
+} | null | undefined;
+
+/**
+ * Merges the profile row loaded at startup (loadRemoteState) into the local
+ * profile. Remote values win when present; local values are kept otherwise so
+ * offline mutations are not lost.
+ */
+export function mergeHydratedProfileRow(
+  prev: PlayerProfile,
+  profileRow: DbProfileRow,
+  user: AuthUserLike,
+): PlayerProfile {
+  const parsedLastActivityAt = profileRow.last_activity_at ? new Date(profileRow.last_activity_at).getTime() : NaN;
+  return {
+    ...prev,
+    name: resolveDisplayName({
+      name: profileRow.name,
+      metadata: user?.user_metadata,
+      email: profileRow.email ?? user?.email ?? prev.email,
+      fallback: prev.name,
+    }),
+    email: profileRow.email ?? prev.email,
+    roleId: isRoleId(profileRow.role_id) ? profileRow.role_id : prev.roleId,
+    level: profileRow.level ?? prev.level,
+    xp: profileRow.xp ?? prev.xp,
+    xpToNextLevel: profileRow.xp_to_next_level ?? prev.xpToNextLevel,
+    xpTotal: profileRow.xp_total ?? prev.xpTotal,
+    xpField: profileRow.xp_field ?? prev.xpField,
+    reputation: profileRow.reputation ?? prev.reputation,
+    cachet: profileRow.cachet ?? prev.cachet,
+    tokenAtcl: profileRow.token_atcl ?? prev.tokenAtcl,
+    extraActivitySlots: profileRow.extra_activity_slots ?? prev.extraActivitySlots,
+    profileImage: profileRow.profile_image ?? prev.profileImage,
+    lastActivityAt: Number.isFinite(parsedLastActivityAt) ? parsedLastActivityAt : prev.lastActivityAt,
+    leaderboardVisible: profileRow.leaderboard_visible ?? prev.leaderboardVisible,
+    onboardingCompletedAt: profileRow.onboarding_completed_at ?? prev.onboardingCompletedAt,
+    onboardingVariant: resolveOnboardingVariant(profileRow.onboarding_variant, prev.onboardingVariant),
+    // Course state — Issue #327. Prefer remote values when present; fall
+    // back to local (localStorage) so offline mutations are not lost.
+    skills: profileRow.skills ?? prev.skills,
+    activeCourses: profileRow.active_courses ?? prev.activeCourses,
+    completedCourses: profileRow.completed_courses ?? prev.completedCourses,
+  };
+}
+
+/**
+ * Merges a profile row received from the Supabase Realtime channel into the
+ * local profile. Unlike the startup merge it has no auth user metadata.
+ */
+export function mergeRealtimeProfileRow(prev: PlayerProfile, profile: DbProfileRow): PlayerProfile {
+  return {
+    ...prev,
+    name: resolveDisplayName({
+      name: profile.name,
+      email: profile.email ?? prev.email,
+      fallback: prev.name,
+    }),
+    email: profile.email ?? prev.email,
+    roleId: isRoleId(profile.role_id) ? profile.role_id : prev.roleId,
+    level: profile.level ?? prev.level,
+    xp: profile.xp ?? prev.xp,
+    xpToNextLevel: profile.xp_to_next_level ?? prev.xpToNextLevel,
+    xpTotal: profile.xp_total ?? prev.xpTotal,
+    xpField: profile.xp_field ?? prev.xpField,
+    reputation: profile.reputation ?? prev.reputation,
+    cachet: profile.cachet ?? prev.cachet,
+    tokenAtcl: profile.token_atcl ?? prev.tokenAtcl,
+    extraActivitySlots: profile.extra_activity_slots ?? prev.extraActivitySlots,
+    profileImage: profile.profile_image ?? prev.profileImage,
+    lastActivityAt: profile.last_activity_at ? new Date(profile.last_activity_at).getTime() : prev.lastActivityAt,
+    leaderboardVisible: profile.leaderboard_visible != null ? profile.leaderboard_visible : prev.leaderboardVisible,
+    onboardingCompletedAt: profile.onboarding_completed_at ?? prev.onboardingCompletedAt,
+    onboardingVariant: resolveOnboardingVariant(profile.onboarding_variant, prev.onboardingVariant),
+    skills: profile.skills ?? prev.skills,
+    activeCourses: profile.active_courses ?? prev.activeCourses,
+    completedCourses: profile.completed_courses ?? prev.completedCourses,
   };
 }
