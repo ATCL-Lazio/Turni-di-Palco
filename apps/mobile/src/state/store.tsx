@@ -134,6 +134,14 @@ import type {
 } from './supabase-mappers';
 import { applyRewards, computeTurnRewards } from './rewards';
 import {
+  EMPTY_REMOTE_EXPORT_DATA,
+  buildUserDataExport,
+  buildUserDataExportFileName,
+  collectMaxwellChatHistory,
+  downloadJson,
+  fetchRemoteExportData,
+} from './user-data-export';
+import {
   computeTurnStatsFromTurns,
   computeTheatreReputationFromTurns,
   computeFallbackBadges,
@@ -3125,188 +3133,24 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
   // GDPR Art. 15/20 – Diritto di accesso e portabilità: scarica tutti i dati in formato JSON.
   const exportUserData = useCallback(async () => {
-    // Collect chat history from localStorage (tdp-maxwell-history:* keys)
-    const chatHistory: Record<string, unknown> = {};
-    if (typeof window !== 'undefined') {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('tdp-maxwell-history:')) {
-          try {
-            chatHistory[key] = JSON.parse(localStorage.getItem(key) || '[]');
-          } catch {
-            chatHistory[key] = localStorage.getItem(key);
-          }
-        }
-      }
-    }
+    const chatHistory = collectMaxwellChatHistory(typeof window !== 'undefined' ? localStorage : undefined);
 
-    // Fix #1229: fetch ALL turns directly from Supabase at export time so the
-    // GDPR export is complete regardless of the MAX_TURNS=20 in-memory cap.
-    // Fix #1231: also fetch activity_completions, narrative_history, and
-    // shop_purchases in parallel — all tables deleted by delete-my-account must
-    // be present in the Art. 15/20 export.
-    // Fix #1407: include ticket_activations — deleted by delete-my-account under
-    // both activated_by and reserved_by, so it qualifies as personal data and
-    // must be exportable under Art. 15/20 symmetrically with deletion (Art. 17).
     // Fall back to state.turns only when Supabase is unavailable (e.g. offline).
-    let allTurns: TurnRecord[] = state.turns;
-    let activityCompletions: unknown[] = [];
-    let narrativeHistory: unknown[] = [];
-    let shopPurchases: unknown[] = [];
-    let ticketActivationsActivated: unknown[] = [];
-    let ticketActivationsReserved: unknown[] = [];
-    let ticketActivationsAttendee: unknown[] = [];
-    if (isSupabaseConfigured && supabase && authUserId) {
-      const [
-        { data: turnsData, error: turnsError },
-        { data: activityData, error: activityError },
-        { data: narrativeData, error: narrativeError },
-        { data: shopData, error: shopError },
-        { data: ticketActivatedData, error: ticketActivatedError },
-        { data: ticketReservedData, error: ticketReservedError },
-        { data: ticketAttendeeData, error: ticketAttendeeError },
-      ] = await Promise.all([
-        supabase
-          .from('turns')
-          .select('*')
-          .eq('user_id', authUserId)
-          .order('created_at', { ascending: false })
-          .limit(10000),
-        supabase
-          .from('activity_completions')
-          .select('*')
-          .eq('user_id', authUserId)
-          .order('created_at', { ascending: false })
-          .limit(10000),
-        supabase
-          .from('narrative_history')
-          .select('*')
-          .eq('user_id', authUserId)
-          .order('created_at', { ascending: false })
-          .limit(10000),
-        supabase
-          .from('shop_purchases')
-          .select('*')
-          .eq('user_id', authUserId)
-          .order('created_at', { ascending: false })
-          .limit(10000),
-        // Tickets this user activated by scanning a QR code.
-        supabase
-          .from('ticket_activations')
-          .select('*')
-          .eq('activated_by', authUserId)
-          .order('activated_at', { ascending: false })
-          .limit(10000),
-        // Tickets this user generated as an admin (reserved_by), including
-        // unactivated ones (activated_by IS NULL). Mirrors the reserved_by
-        // deletion in delete-my-account (GDPR Art. 17 ↔ Art. 15/20 symmetry).
-        supabase
-          .from('ticket_activations')
-          .select('*')
-          .eq('reserved_by', authUserId)
-          .order('created_at', { ascending: false })
-          .limit(10000),
-        // Tickets assigned to this user as a named attendee (attendee_id).
-        // Deleted by delete-my-account under attendee_id but previously missing
-        // from the Art. 15/20 export — restores GDPR symmetry (closes #1595).
-        supabase
-          .from('ticket_activations')
-          .select('*')
-          .eq('attendee_id', authUserId)
-          .order('created_at', { ascending: false })
-          .limit(10000),
-      ]);
-      // Fail loudly if any query errors so the user is not shown a silently
-      // incomplete GDPR export (fixes #1253).
-      const queryErrors: { table: string; error: unknown }[] = [];
-      if (turnsError) queryErrors.push({ table: 'turns', error: turnsError });
-      if (activityError) queryErrors.push({ table: 'activity_completions', error: activityError });
-      if (narrativeError) queryErrors.push({ table: 'narrative_history', error: narrativeError });
-      if (shopError) queryErrors.push({ table: 'shop_purchases', error: shopError });
-      if (ticketActivatedError) queryErrors.push({ table: 'ticket_activations(activated_by)', error: ticketActivatedError });
-      if (ticketReservedError) queryErrors.push({ table: 'ticket_activations(reserved_by)', error: ticketReservedError });
-      if (ticketAttendeeError) queryErrors.push({ table: 'ticket_activations(attendee_id)', error: ticketAttendeeError });
-      if (queryErrors.length > 0) {
-        const tables = queryErrors.map((e) => e.table).join(', ');
-        notifyCriticalError(
-          `Esportazione dati incompleta: impossibile recuperare i dati dalle tabelle: ${tables}. Riprova più tardi.`,
-          queryErrors.map((e) => e.error),
-        );
-        throw new Error(`exportUserData: query failed for tables: ${tables}`);
-      }
-      if (Array.isArray(turnsData)) {
-        allTurns = (turnsData as DbTurnRow[]).map(mapDbTurnRow);
-      }
-      if (Array.isArray(activityData)) {
-        activityCompletions = activityData;
-      }
-      if (Array.isArray(narrativeData)) {
-        narrativeHistory = narrativeData;
-      }
-      if (Array.isArray(shopData)) {
-        shopPurchases = shopData;
-      }
-      if (Array.isArray(ticketActivatedData)) {
-        ticketActivationsActivated = ticketActivatedData;
-      }
-      if (Array.isArray(ticketReservedData)) {
-        ticketActivationsReserved = ticketReservedData;
-      }
-      if (Array.isArray(ticketAttendeeData)) {
-        ticketActivationsAttendee = ticketAttendeeData;
-      }
-    }
+    const remote = isSupabaseConfigured && supabase && authUserId
+      ? await fetchRemoteExportData(supabase, authUserId)
+      : EMPTY_REMOTE_EXPORT_DATA;
 
-    const data = {
-      exportDate: new Date().toISOString(),
-      profile: {
-        name: state.profile.name,
-        email: state.profile.email,
-        roleId: state.profile.roleId,
-        xp: state.profile.xp,
-        xpTotal: state.profile.xpTotal,
-        xpField: state.profile.xpField,
-        reputation: state.profile.reputation,
-        cachet: state.profile.cachet,
-        tokenAtcl: state.profile.tokenAtcl,
-        lastActivityAt: new Date(state.profile.lastActivityAt).toISOString(),
-        leaderboardVisible: state.profile.leaderboardVisible,
-        level: state.profile.level,
-        xpToNextLevel: state.profile.xpToNextLevel,
-        extraActivitySlots: state.profile.extraActivitySlots,
-        profileImage: state.profile.profileImage ?? null,
-        skills: state.profile.skills,
-        activeCourses: state.profile.activeCourses,
-        completedCourses: state.profile.completedCourses,
-        onboardingCompletedAt: state.profile.onboardingCompletedAt ?? null,
-        onboardingVariant: state.profile.onboardingVariant ?? null,
-      },
-      turns: allTurns,
-      activityCompletions,
-      narrativeHistory,
-      shopPurchases,
-      ticketActivationsActivated,
-      ticketActivationsReserved,
-      ticketActivationsAttendee,
+    const data = buildUserDataExport({
+      profile: state.profile,
+      turns: remote.turns ?? state.turns,
+      remote,
       badges,
       theatreReputation,
       plannedEvents: eventPlans,
       chatHistory,
-    };
-    if (typeof window === 'undefined' || typeof document === 'undefined') return;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const safeName = state.profile.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'profilo';
-    a.download = `turni-di-palco-${safeName}-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    // Delay revoking the object URL to give the browser time to start the download.
-    // Calling revokeObjectURL synchronously after a.click() can silently abort the
-    // download on Firefox and slow devices before the fetch begins (closes #1235).
-    window.setTimeout(() => URL.revokeObjectURL(url), 100);
+      exportDate: new Date(),
+    });
+    downloadJson(data, buildUserDataExportFileName(state.profile.name, Date.now()));
   }, [state.profile, state.turns, authUserId, badges, theatreReputation, eventPlans]);
 
   const value = useMemo<GameContextValue>(
