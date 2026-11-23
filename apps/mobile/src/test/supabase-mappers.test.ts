@@ -16,6 +16,7 @@ import {
   mergeHydratedProfileRow,
   mergeRealtimeProfileRow,
 } from '../state/supabase-mappers';
+import { mapPlannedParticipationEvents, mapPlannedParticipationPlans } from '../state/event-planning';
 import type { PlayerProfile } from '../state/types';
 
 function baseProfile(overrides: Partial<PlayerProfile> = {}): PlayerProfile {
@@ -228,5 +229,42 @@ describe('mapDbLeaderboardRow', () => {
       profileImage: undefined,
       lastActivityAt: undefined,
     });
+  });
+});
+
+describe('mapPlannedParticipation*', () => {
+  const rows = [
+    { event_id: 'e1', role_id: 'fonico', status: 'confirmed', updated_at: '2026-11-23T10:00:00.000Z' },
+    { event_id: 'e2', event_name: 'Fuori catalogo', theatre: 'T', role_id: null, status: 'boh' },
+    { event_id: '', event_name: 'Scartato' },
+  ];
+
+  it('mappa i piani con ruolo e stato di fallback', () => {
+    const plans = mapPlannedParticipationPlans(rows, 'luci');
+    expect(plans).toHaveLength(2);
+    expect(plans[0]).toEqual({
+      eventId: 'e1',
+      roleId: 'fonico',
+      status: 'confirmed',
+      updatedAt: Date.parse('2026-11-23T10:00:00.000Z'),
+    });
+    expect(plans[1].roleId).toBe('luci');
+    expect(plans[1].status).toBe('planned');
+  });
+
+  it('preferisce l\'evento del catalogo e costruisce quelli mancanti', () => {
+    const catalogEvent = {
+      id: 'e1',
+      name: 'Amleto',
+      theatre: 'Argentina',
+      date: '2026-12-01',
+      time: '21:00',
+      genre: 'Prosa',
+      baseRewards: { xp: 1, reputation: 1, cachet: 1 },
+    };
+    const events = mapPlannedParticipationEvents(rows, [catalogEvent]);
+    expect(events).toHaveLength(2);
+    expect(events[0]).toBe(catalogEvent);
+    expect(events[1]).toMatchObject({ id: 'e2', name: 'Fuori catalogo', genre: 'Evento' });
   });
 });

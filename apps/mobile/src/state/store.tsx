@@ -63,13 +63,12 @@ import type {
 import type { GameContextValue } from './game-context-types';
 import { roles, events, activities, DEFAULT_SHOP_CATALOG } from './catalog';
 import { MAX_TURNS, MOBILE_WATCHDOG_TIMEOUTS } from './constants';
-import { normalizeText } from './normalizers';
 import {
-  resolveEventPlanningStatus,
-  resolveEventPlanningRoleId,
   sortEventsForPlanning,
   upsertEventPlan,
   removeEventPlan,
+  mapPlannedParticipationPlans,
+  mapPlannedParticipationEvents,
 } from './event-planning';
 import {
   OFFLINE_SYNC_SERVER_LOG_QUEUE_KEY,
@@ -903,42 +902,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             const { data, error } = await supabase!.rpc('get_my_planned_participations');
             if (!error && data) {
               const rows = data as PlannedParticipationRpcRow[];
-              const mappedPlans = rows
-                .map((row) => {
-                  const roleId = resolveEventPlanningRoleId(
-                    row.role_id,
-                    profileRoleIdRef.current
-                  );
-                  const updatedAt = row.updated_at ? new Date(row.updated_at).getTime() : Date.now();
-                  return {
-                    eventId: row.event_id,
-                    roleId,
-                    status: resolveEventPlanningStatus(row.status),
-                    updatedAt: Number.isFinite(updatedAt) ? updatedAt : Date.now(),
-                  };
-                })
-                .filter((plan) => plan.eventId);
-
-              const mappedEvents = rows
-                .map((row) => {
-                  const catalogEvent = catalogEvents.find((event) => event.id === row.event_id);
-                  if (catalogEvent) return catalogEvent;
-
-                  return {
-                    id: row.event_id,
-                    name: normalizeText(row.event_name),
-                    theatre: normalizeText(row.theatre),
-                    date: normalizeText(row.event_date),
-                    time: normalizeText(row.event_time),
-                    genre: 'Evento',
-                    baseRewards: {
-                      xp: 0,
-                      reputation: 0,
-                      cachet: 0,
-                    },
-                  } as GameEvent;
-                })
-                .filter((event) => Boolean(event.id && event.name));
+              const mappedPlans = mapPlannedParticipationPlans(rows, profileRoleIdRef.current);
+              const mappedEvents = mapPlannedParticipationEvents(rows, catalogEvents);
 
               setState((prev) => ({
                 ...prev,

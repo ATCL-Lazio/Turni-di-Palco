@@ -1,6 +1,7 @@
 import { EVENT_PLANNING_STATUSES } from './types';
 import type { RoleId, GameEvent, EventPlanningStatus, EventPlanning } from './types';
-import { isRoleId } from './normalizers';
+import { isRoleId, normalizeText } from './normalizers';
+import type { PlannedParticipationRpcRow } from './supabase-mappers';
 
 function isEventPlanningStatus(value: unknown): value is EventPlanningStatus {
   return typeof value === 'string'
@@ -55,4 +56,53 @@ export function upsertEventPlan(plans: EventPlanning[], nextPlan: EventPlanning)
 
 export function removeEventPlan(plans: EventPlanning[], eventId: string) {
   return plans.filter((plan) => plan.eventId !== eventId);
+}
+
+/** Piani evento dalle righe di get_my_planned_participations. */
+export function mapPlannedParticipationPlans(
+  rows: PlannedParticipationRpcRow[],
+  fallbackRoleId: RoleId,
+): EventPlanning[] {
+  return rows
+    .map((row) => {
+      const roleId = resolveEventPlanningRoleId(row.role_id, fallbackRoleId);
+      const updatedAt = row.updated_at ? new Date(row.updated_at).getTime() : Date.now();
+      return {
+        eventId: row.event_id,
+        roleId,
+        status: resolveEventPlanningStatus(row.status),
+        updatedAt: Number.isFinite(updatedAt) ? updatedAt : Date.now(),
+      };
+    })
+    .filter((plan) => plan.eventId);
+}
+
+/**
+ * Eventi seguiti dalle righe di get_my_planned_participations: usa l'evento
+ * del catalogo se c'è, altrimenti ne costruisce uno minimo dai campi della riga.
+ */
+export function mapPlannedParticipationEvents(
+  rows: PlannedParticipationRpcRow[],
+  catalogEvents: GameEvent[],
+): GameEvent[] {
+  return rows
+    .map((row) => {
+      const catalogEvent = catalogEvents.find((event) => event.id === row.event_id);
+      if (catalogEvent) return catalogEvent;
+
+      return {
+        id: row.event_id,
+        name: normalizeText(row.event_name),
+        theatre: normalizeText(row.theatre),
+        date: normalizeText(row.event_date),
+        time: normalizeText(row.event_time),
+        genre: 'Evento',
+        baseRewards: {
+          xp: 0,
+          reputation: 0,
+          cachet: 0,
+        },
+      } as GameEvent;
+    })
+    .filter((event) => Boolean(event.id && event.name));
 }
