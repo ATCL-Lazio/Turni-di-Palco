@@ -83,7 +83,7 @@ export function Home({
   xpToNextLevel,
   reputation,
   cachet,
-  tokenAtcl,
+  tokenAtcl: _tokenAtcl,
   pendingBoostRequests = 0,
   turnSyncFeedback = null,
   onDismissTurnSyncFeedback,

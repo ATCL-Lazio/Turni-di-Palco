@@ -3102,7 +3102,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       // setState updater — which React StrictMode double-invokes and could produce
       // incorrect results under future React versions (closes #1361).
       const profile = state.profile;
-      const skills = profile.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
       const completedCourses = profile.completedCourses ?? {};
       const activeCourses = profile.activeCourses ?? {};
 
@@ -3177,10 +3176,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
 
       // Perform guard checks synchronously against the current state snapshot
       // BEFORE calling setState — same rationale as startCourse (closes #1361).
-      const profile = state.profile;
-      const skills = profile.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
-      const completedCourses = profile.completedCourses ?? {};
-      const activeCourses = profile.activeCourses ?? {};
+      const activeCourses = state.profile.activeCourses ?? {};
 
       const startedAt = activeCourses[courseId];
       if (!startedAt) {
