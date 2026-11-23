@@ -78,3 +78,6 @@ tools/ticket_qr_generator/__pycache__/
 audit-report.json
 **/audit-report.json
 tmp_audit_mobile/
+
+# Control-plane runtime state (pending confirmations)
+apps/control-plane/data/

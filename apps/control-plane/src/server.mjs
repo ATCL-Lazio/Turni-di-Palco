@@ -184,12 +184,9 @@ const rateLimitState = new Map();
 const pendingByCommandId = new Map();
 const pendingByTokenHash = new Map();
 
-const PENDING_STORE_PATH = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "data",
-  "pending-confirmations.json"
-);
+const PENDING_STORE_PATH =
+  asString(process.env.CONTROL_PLANE_PENDING_STORE_PATH) ||
+  path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "pending-confirmations.json");
 
 function savePendingToDisk() {
   try {
