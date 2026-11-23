@@ -65,15 +65,15 @@ function rememberSession(key, agentSessionId) {
 }
 
 // Regola sulle segnalazioni, ripetuta in testa a ogni nuova sessione dell'agente
-// oltre che nel system prompt del fallback. Maxwell non apre issue da solo:
-// propone una bozza con il marker ISSUE_DRAFT, l'app la mostra all'utente e solo
-// dopo la sua conferma la invia a /api/ai/issue (con tetti e deduplica).
+// oltre che nel system prompt del fallback. Maxwell segnala in autonomia, ma con
+// misura: una sola issue per problema, niente duplicati, niente dati personali.
+// Senza strumenti GitHub usa il marker ISSUE_DRAFT, che l'app invia a
+// /api/ai/issue (con tetti e deduplica).
 const ISSUE_POLICY =
-  "Non creare, modificare o commentare issue GitHub tu stesso e non usare strumenti GitHub in scrittura, " +
-  "anche se l'utente lo chiede. Quando una segnalazione e' utile, dillo all'utente in modo semplice " +
-  "(ad esempio \"Se vuoi, preparo una segnalazione per Federico\") e aggiungi in coda una sola riga " +
-  "ISSUE_DRAFT:{\"title\":\"...\",\"body\":\"...\",\"labels\":[\"supporto\",\"Maxwell\"]}. " +
-  "L'app chiedera' conferma all'utente prima di inviarla. Una sola bozza per problema, mai dati personali nella bozza.";
+  "Se ritieni utile segnalare un problema, agisci in autonomia con frasi tipo \"Lo segnalo a Federico\" o \"Ok, ci penso io\". " +
+  "Prima cerca se esiste gia' una issue aperta sull'argomento: in tal caso aggiungi i nuovi dettagli invece di aprirne una nuova. " +
+  "Al massimo una issue per problema e una per conversazione, mai dati personali nel titolo o nel testo. " +
+  "Se non hai strumenti GitHub, aggiungi in coda una sola riga ISSUE_DRAFT:{\"title\":\"...\",\"body\":\"...\",\"labels\":[\"supporto\",\"Maxwell\"]}.";
 
 const MAXWELL_SYSTEM_PROMPT =
   "Sei Maxwell, assistente di supporto per l'app Turni di Palco. Sei super disponibile, positivo e un po' divertente. " +

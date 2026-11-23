@@ -13,15 +13,14 @@ const MAXWELL_ISSUE_URL = process.env.MAXWELL_ISSUE_ENDPOINT;
 const UPSTREAM_TIMEOUT_MS = 22000;
 
 const ISSUE_FOOTER =
-  '\n\n---\n_Segnalazione preparata da Maxwell e confermata dall\'utente nell\'app._';
+  '\n\n---\n_Segnalazione aperta automaticamente da Maxwell._';
 
-// Una segnalazione diventa una issue su un repository pubblico, quindi:
-//  1. serve la conferma esplicita dell'utente (confirmed: true), che l'app
-//     chiede con un pulsante: Maxwell non apre issue da solo;
-//  2. la prenotazione passa da Postgres (ai_issue_reserve), che applica il tetto
+// Maxwell apre le segnalazioni in autonomia (comportamento voluto), ma una issue
+// finisce su un repository pubblico, quindi:
+//  1. la prenotazione passa da Postgres (ai_issue_reserve), che applica il tetto
 //     per utente e quello globale e restituisce la issue esistente se lo stesso
 //     problema e' gia' stato segnalato di recente;
-//  3. se Postgres non risponde non si apre nulla (fail closed).
+//  2. se Postgres non risponde non si apre nulla (fail closed).
 export async function createIssueHandler(req, res, deps = {}) {
   const fetchImpl = deps.fetchImpl ?? fetch;
   const githubToken = deps.githubToken ?? GITHUB_TOKEN;
@@ -43,11 +42,6 @@ export async function createIssueHandler(req, res, deps = {}) {
   if (!user) return;
 
   const raw = req.body ?? {};
-  if (raw.confirmed !== true) {
-    res.status(400).json({ ok: false, error: 'Conferma dell\'utente richiesta' });
-    return;
-  }
-
   const title = typeof raw.title === 'string' ? raw.title.trim().slice(0, MAX_TITLE_CHARS) : '';
   const body = typeof raw.body === 'string' ? raw.body.trim().slice(0, MAX_BODY_CHARS) : '';
   if (title.length < MIN_TITLE_CHARS) {

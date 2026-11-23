@@ -55,7 +55,7 @@ function fakeFetch(handlers) {
 const okUser = async () => USER;
 const isGithubApi = (url) => new URL(url).hostname === 'api.github.com';
 const isRpc = (url, fn) => new URL(url).pathname === `/rest/v1/rpc/${fn}`;
-const confirmedBody = { confirmed: true, title: 'La mappa non si carica', body: 'Dettagli', labels: ['bug', 'admin'] };
+const confirmedBody = { title: 'La mappa non si carica', body: 'Dettagli', labels: ['bug', 'admin'] };
 
 test('issueFingerprint normalizza maiuscole, accenti e punteggiatura', () => {
   const a = guard.issueFingerprint('La mappa NON si carica!!');
@@ -84,18 +84,6 @@ test('persistentRateLimit: fail open solo se richiesto', async () => {
   const opts = { scope: 'chat_day', max: 5, windowSeconds: 86400 };
   assert.equal(await guard.persistentRateLimit(USER, { ...opts, failOpen: true }, { fetchImpl }), true);
   assert.equal(await guard.persistentRateLimit(USER, opts, { fetchImpl }), null);
-});
-
-test('issue: senza conferma esplicita non chiama nulla', async () => {
-  const fetchImpl = fakeFetch({});
-  const res = fakeRes();
-  await createIssueHandler(
-    { method: 'POST', body: { ...confirmedBody, confirmed: 'yes' } },
-    res,
-    { fetchImpl, requireUser: okUser, githubToken: 'gh' },
-  );
-  assert.equal(res.statusCode, 400);
-  assert.equal(fetchImpl.calls.length, 0);
 });
 
 test('issue: duplicato restituisce la issue esistente senza crearne una nuova', async () => {
@@ -139,7 +127,7 @@ test('issue: prenotata, creata su GitHub e chiusa nel registro', async () => {
   assert.equal(res.statusCode, 201);
   const gh = fetchImpl.calls.find((c) => isGithubApi(c.url));
   assert.deepEqual(gh.body.labels.sort(), ['Maxwell', 'bug', 'supporto']);
-  assert.match(gh.body.body, /confermata dall'utente/);
+  assert.match(gh.body.body, /aperta automaticamente da Maxwell/);
   const finish = fetchImpl.calls.find((c) => isRpc(c.url, 'ai_issue_finish'));
   assert.deepEqual(finish.body, { p_id: 7, p_issue_number: 99, p_issue_url: 'https://github.com/o/r/issues/99' });
 });

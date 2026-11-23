@@ -50,9 +50,6 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCreatingIssue, setIsCreatingIssue] = useState(false);
-  // Bozza proposta da Maxwell in attesa della conferma dell'utente: nessuna
-  // segnalazione parte senza un tocco esplicito su "Invia segnalazione".
-  const [pendingDraft, setPendingDraft] = useState<IssueDraft | null>(null);
   // EU AI Act Art. 50: la prima interazione con un sistema di IA deve essere
   // accompagnata da un'informativa chiara. La mostriamo finche' l'utente non
   // l'ha presa visione (persistita in localStorage).
@@ -157,10 +154,11 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
     [chatSessions, activeSessionId],
   );
 
-  const handleIssueDraft = (draft: IssueDraft) => {
+  const handleIssueDraft = async (draft: IssueDraft) => {
+    if (isCreatingIssue) return;
     // La segnalazione diventa una issue GitHub pubblica: redige email, telefoni,
     // codice fiscale e il nome dell'utente (potenzialmente un minore) dal draft
-    // generato dall'IA prima di mostrarlo e inviarlo (tutela minori + GDPR Art. 32).
+    // generato dall'IA prima di inviarlo (tutela minori + GDPR Art. 32).
     const safeDraft: IssueDraft = {
       ...draft,
       title: redactPII(draft.title, [displayName]),
@@ -168,32 +166,17 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
     };
     const signature = `${safeDraft.title}::${safeDraft.body}`;
     if (issueTrackerRef.current.has(signature)) return;
-    setPendingDraft(safeDraft);
-  };
-
-  const handleConfirmIssue = async () => {
-    const draft = pendingDraft;
-    if (!draft || isCreatingIssue) return;
-    issueTrackerRef.current.add(`${draft.title}::${draft.body}`);
+    issueTrackerRef.current.add(signature);
     setIsCreatingIssue(true);
     try {
-      const result = await requestAiIssue({ payload: draft });
-      setPendingDraft(null);
-      setMessages(prev => [...prev, buildSupportMessage('assistant', result?.existing
-        ? "Questo problema era già stato segnalato: l'ho fatto presente di nuovo a Federico. Grazie!"
-        : 'Fatto, ho inviato la segnalazione a Federico. Grazie!')]);
+      await requestAiIssue({ payload: safeDraft });
     } catch (error) {
+      // Log the error to aid debugging and optionally surface a non-blocking message to the user.
       console.error('Failed to create support issue from AI draft:', error);
-      setPendingDraft(null);
-      setErrorMessage(prev => prev ?? readIssueError(error));
+      setErrorMessage(prev => prev ?? "Non sono riuscito a creare automaticamente la segnalazione. Puoi riprovare piu' tardi oppure creare la segnalazione manualmente.");
     } finally {
       setIsCreatingIssue(false);
     }
-  };
-
-  const handleDismissIssue = () => {
-    if (pendingDraft) issueTrackerRef.current.add(`${pendingDraft.title}::${pendingDraft.body}`);
-    setPendingDraft(null);
   };
 
   const handleSend = async () => {
@@ -224,8 +207,8 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
       });
       if (controller.signal.aborted || requestIdRef.current !== requestId || activeSessionIdRef.current !== requestSessionId) return;
       const { text, draft } = extractIssueDraft(reply);
-      if (draft) handleIssueDraft(draft);
-      setMessages(prev => [...prev, buildSupportMessage('assistant', text || (draft ? 'Ho preparato una segnalazione: dai un\'occhiata qui sotto.' : reply))]);
+      if (draft) void handleIssueDraft(draft);
+      setMessages(prev => [...prev, buildSupportMessage('assistant', text || (draft ? 'Ok, ci penso io!' : reply))]);
     } catch {
       if (controller.signal.aborted || requestIdRef.current !== requestId || activeSessionIdRef.current !== requestSessionId) return;
       const fallback = "Il supporto automatizzato non è disponibile in questo momento. Riprova tra poco.";
@@ -245,7 +228,6 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
     activeSessionIdRef.current = session.id;
     setActiveSessionId(session.id);
     setMessages(session.messages);
-    setPendingDraft(null);
     setIsHistoryOpen(false);
   };
 
@@ -259,7 +241,6 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
     activeSessionIdRef.current = sessionId;
     setActiveSessionId(sessionId);
     setMessages(session.messages);
-    setPendingDraft(null);
     setIsHistoryOpen(false);
   };
 
@@ -289,15 +270,6 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
             scrollRef={scrollRef}
           />
 
-          {pendingDraft && (
-            <IssueConfirmCard
-              draft={pendingDraft}
-              isSending={isCreatingIssue}
-              onConfirm={handleConfirmIssue}
-              onDismiss={handleDismissIssue}
-            />
-          )}
-
           <ChatInputBar
             input={input}
             onInputChange={setInput}
@@ -321,32 +293,6 @@ export function SupportChat({ userName, userId, onBack }: SupportChatProps) {
 }
 
 // === Sub-components ===
-
-function IssueConfirmCard({ draft, isSending, onConfirm, onDismiss }: {
-  draft: IssueDraft; isSending: boolean; onConfirm: () => void; onDismiss: () => void;
-}) {
-  return (
-    <Card role="region" aria-label="Conferma segnalazione" className="border border-[#3b3436] bg-surface p-4">
-      <p className="text-[13px] font-semibold leading-[18px] text-fg-primary">Inviare questa segnalazione a Federico?</p>
-      <p className="mt-1 text-[12px] leading-[18px] text-fg-secondary">
-        La segnalazione sarà visibile pubblicamente: controlla che non contenga dati personali.
-      </p>
-      <div className="mt-3 space-y-1 rounded-xl border border-border bg-page px-3 py-2">
-        <p className="text-[13px] font-medium leading-[18px] text-fg-primary">{draft.title}</p>
-        {draft.body && <p className="line-clamp-4 whitespace-pre-wrap text-[12px] leading-[18px] text-fg-secondary">{draft.body}</p>}
-      </div>
-      <div className="mt-3 flex gap-2">
-        <Button type="button" size="sm" onClick={onConfirm} disabled={isSending} className="h-[40px] flex-1 rounded-xl">
-          {isSending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} Invia segnalazione
-        </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={onDismiss} disabled={isSending}
-          className="h-[40px] flex-1 rounded-xl border border-[#3b3436] text-accent">
-          Non ora
-        </Button>
-      </div>
-    </Card>
-  );
-}
 
 function ChatHeader({ onBack, sessionCount, isLoading, isCreatingIssue, onOpenHistory }: {
   onBack: () => void; sessionCount: number; isLoading: boolean; isCreatingIssue: boolean; onOpenHistory: () => void;
@@ -379,7 +325,7 @@ function ChatHeader({ onBack, sessionCount, isLoading, isCreatingIssue, onOpenHi
             {isCreatingIssue && <Badge variant="outline" size="sm"><Clock3 size={12} /> Segnalazione in preparazione</Badge>}
           </div>
           <p className="text-[13px] leading-[19px] text-fg-tertiary">
-            Maxwell è un assistente basato su intelligenza artificiale: descrivi il problema con parole semplici e, se serve, prepara una segnalazione che invii solo con il tuo ok.
+            Maxwell è un assistente basato su intelligenza artificiale: descrivi il problema con parole semplici e, se serve, prepara automaticamente una segnalazione.
           </p>
         </div>
       </div>
@@ -738,17 +684,6 @@ function buildMemorySnippet(sessions: ChatSession[], activeSessionId: string) {
 function buildChatPayload(messages: SupportMessage[]): AiChatMessage[] {
   const base: AiChatMessage = { role: 'system', content: "Supporto Maxwell per utenti finali. Linguaggio semplice, umano e positivo. Evita dettagli tecnici se non richiesti." };
   return [base, ...messages.map(m => ({ role: m.role, content: m.content }))];
-}
-
-function readIssueError(error: unknown) {
-  const fallback = "Non sono riuscito a inviare la segnalazione. Puoi riprovare più tardi.";
-  if (!(error instanceof Error)) return fallback;
-  try {
-    const parsed = JSON.parse(error.message);
-    return typeof parsed?.error === 'string' && parsed.error ? parsed.error : fallback;
-  } catch {
-    return fallback;
-  }
 }
 
 function extractIssueDraft(reply: string) {
