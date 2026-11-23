@@ -191,7 +191,8 @@ export async function startFakeSupabase({ users = {}, tables = {}, functions = {
 
       return send(res, 404, { message: "not found" });
     } catch (error) {
-      return send(res, 500, { message: String(error?.message || error) });
+      console.error("[fake-supabase]", error);
+      return send(res, 500, { message: "fake supabase error" });
     }
   });
 
