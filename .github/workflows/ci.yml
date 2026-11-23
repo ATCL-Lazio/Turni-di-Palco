@@ -49,8 +49,25 @@ jobs:
       - name: Run tests (Mobile)
         run: npm run test:mobile
 
+      - name: Run tests (Control-plane)
+        run: npm run test:control-plane
+
       - name: Build mobile bundle
         run: npm run build:mobile
+
+  edge-functions-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run Supabase edge function tests
+        run: deno test --config supabase/functions/deno.json supabase/functions/
 
   italian-proofreading:
     runs-on: ubuntu-latest
