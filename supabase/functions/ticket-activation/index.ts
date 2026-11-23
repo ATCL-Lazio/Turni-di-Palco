@@ -480,7 +480,9 @@ serve(async (req: Request) => {
         }
 
         if (tickets.length > 1) {
-          return jsonResponse({ ok: false, error: 'Ticket number non univoco. Specifica Circuito o Evento.' }, 200);
+          // 409: the request cannot be resolved as sent (the client must add circuit or
+          // eventID). The client reads `error` from the body of non-2xx responses too.
+          return jsonResponse({ ok: false, error: 'Ticket number non univoco. Specifica Circuito o Evento.' }, 409);
         }
 
         // IDOR check: verify the ticket was reserved by the authenticated user (closes #1565).
