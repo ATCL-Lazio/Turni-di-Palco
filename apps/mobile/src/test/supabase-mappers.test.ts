@@ -6,6 +6,10 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultState } from '../state/persistence';
 import {
   mapDbActivityRow,
+  mapDbBadgeRow,
+  mapDbLeaderboardRow,
+  mapDbTheatreReputationRows,
+  mapDbTurnStatsRow,
   mapDbEventRow,
   mapDbRoleRow,
   mapDbTurnRow,
@@ -150,5 +154,79 @@ describe('mergeRealtimeProfileRow', () => {
     expect(merged.tokenAtcl).toBe(7);
     expect(merged.onboardingVariant).toBe('skipped_qr');
     expect(merged.email).toBe('locale@example.com');
+  });
+});
+
+describe('mapDbTurnStatsRow', () => {
+  it('converte i contatori e usa 0 per i null', () => {
+    expect(mapDbTurnStatsRow({ total_turns: 4, turns_this_month: null })).toEqual({
+      totalTurns: 4,
+      turnsThisMonth: 0,
+      uniqueTheatres: 0,
+    });
+  });
+});
+
+describe('mapDbTheatreReputationRows', () => {
+  it('scarta i teatri vuoti e ordina per reputazione, turni e nome', () => {
+    const rows = mapDbTheatreReputationRows([
+      { theatre: 'B', reputation: 5, total_turns: 1 },
+      { theatre: '', reputation: 99, total_turns: 9 },
+      { theatre: 'A', reputation: 5, total_turns: 1 },
+      { theatre: 'C', reputation: 5, total_turns: 3 },
+      { theatre: 'D', reputation: 8, total_turns: 0 },
+    ]);
+    expect(rows.map((r) => r.theatre)).toEqual(['D', 'C', 'A', 'B']);
+  });
+});
+
+describe('mapDbBadgeRow', () => {
+  it('applica i default e converte le date', () => {
+    const badge = mapDbBadgeRow({
+      id: 'b1',
+      title: 'Primo turno',
+      threshold: 1,
+      unlocked: true,
+      unlocked_at: '2026-11-23T10:00:00.000Z',
+    });
+    expect(badge).toEqual({
+      id: 'b1',
+      title: 'Primo turno',
+      description: null,
+      icon: 'Award',
+      metric: null,
+      threshold: 1,
+      isHidden: false,
+      unlocked: true,
+      unlockedAt: Date.parse('2026-11-23T10:00:00.000Z'),
+      seenAt: null,
+    });
+  });
+});
+
+describe('mapDbLeaderboardRow', () => {
+  it('ripiega su default sicuri', () => {
+    const entry = mapDbLeaderboardRow({
+      id: 'u1',
+      name: null,
+      role_id: 'boh',
+      xp_total: null,
+      cachet: 3,
+      reputation: null,
+      profile_image: null,
+      last_activity_at: null,
+      turns_count: 2,
+    });
+    expect(entry).toEqual({
+      id: 'u1',
+      name: 'Player',
+      roleId: 'attore',
+      xpTotal: 0,
+      cachet: 3,
+      reputation: 0,
+      turnsCount: 2,
+      profileImage: undefined,
+      lastActivityAt: undefined,
+    });
   });
 });

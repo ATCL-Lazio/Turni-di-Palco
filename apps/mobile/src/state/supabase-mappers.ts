@@ -1,13 +1,18 @@
 import { COOKIE_CONSENT_KEY } from '../constants/privacy';
 import type {
   Activity,
+  Badge,
+  BadgeMetric,
   GameEvent,
+  LeaderboardEntry,
   PlayerProfile,
   Rewards,
   Role,
   RoleId,
   ShopCatalogItem,
+  TheatreReputation,
   TurnRecord,
+  TurnStats,
   TurnSyncStatus,
 } from './types';
 import { DEFAULT_SHOP_CATALOG } from './catalog';
@@ -458,5 +463,82 @@ export function mergeRealtimeProfileRow(prev: PlayerProfile, profile: DbProfileR
     skills: profile.skills ?? prev.skills,
     activeCourses: profile.active_courses ?? prev.activeCourses,
     completedCourses: profile.completed_courses ?? prev.completedCourses,
+  };
+}
+
+// ─── Remote stats, reputation, badges and leaderboard ────────────────────────
+
+export type DbTurnStatsRow = {
+  total_turns?: number | null;
+  turns_this_month?: number | null;
+  unique_theatres?: number | null;
+};
+
+export function mapDbTurnStatsRow(row: DbTurnStatsRow): TurnStats {
+  return {
+    totalTurns: Number(row.total_turns ?? 0),
+    turnsThisMonth: Number(row.turns_this_month ?? 0),
+    uniqueTheatres: Number(row.unique_theatres ?? 0),
+  };
+}
+
+/** Mappa le righe di my_theatre_reputation, scarta i teatri vuoti e ordina per reputazione. */
+export function mapDbTheatreReputationRows(rows: DbTheatreReputationRow[]): TheatreReputation[] {
+  return rows
+    .map((row) => ({
+      theatre: (row.theatre ?? '').toString(),
+      reputation: Number(row.reputation ?? 0),
+      totalTurns: Number(row.total_turns ?? 0),
+    }))
+    .filter((entry) => entry.theatre)
+    .sort(
+      (a, b) =>
+        b.reputation - a.reputation ||
+        b.totalTurns - a.totalTurns ||
+        a.theatre.localeCompare(b.theatre)
+    );
+}
+
+export function mapDbBadgeRow(row: DbBadgeRow): Badge {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description ?? null,
+    icon: row.icon ?? 'Award',
+    metric: (row.metric as BadgeMetric | null) ?? null,
+    threshold: row.threshold != null ? Number(row.threshold) : null,
+    isHidden: Boolean(row.is_hidden),
+    unlocked: Boolean(row.unlocked),
+    unlockedAt: row.unlocked_at ? new Date(row.unlocked_at).getTime() : null,
+    seenAt: row.seen_at ? new Date(row.seen_at).getTime() : null,
+  };
+}
+
+export type DbLeaderboardRow = {
+  id: string;
+  name: string | null;
+  role_id: string | null;
+  xp_total: number | null;
+  cachet: number | null;
+  reputation: number | null;
+  profile_image: string | null;
+  last_activity_at: string | null;
+  turns_count: number | null;
+};
+
+export function mapDbLeaderboardRow(row: DbLeaderboardRow): LeaderboardEntry {
+  const roleCandidate = row.role_id ?? 'attore';
+  const roleId: RoleId = isRoleId(roleCandidate) ? roleCandidate : 'attore';
+  const lastActivityAt = row.last_activity_at ? new Date(row.last_activity_at).getTime() : undefined;
+  return {
+    id: row.id,
+    name: row.name ?? 'Player',
+    roleId,
+    xpTotal: row.xp_total ?? 0,
+    cachet: row.cachet ?? 0,
+    reputation: row.reputation ?? 0,
+    turnsCount: row.turns_count ?? 0,
+    profileImage: row.profile_image ?? undefined,
+    lastActivityAt,
   };
 }
