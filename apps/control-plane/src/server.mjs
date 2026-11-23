@@ -1019,7 +1019,8 @@ async function fetchMobileAppVersion() {
     };
   }
 
-  const authKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+  // app-version is a public, read-only function: never hand it the service role key.
+  const authKey = SUPABASE_ANON_KEY;
   const headers = {
     "content-type": "application/json",
     "x-control-plane-source": "mobile-version-badge",
