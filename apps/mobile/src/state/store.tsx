@@ -57,20 +57,18 @@ import type {
   TurnStats,
   TheatreReputation,
   LeaderboardEntry,
-  BadgeMetric,
   Badge,
   CatalogState,
 } from './types';
 import type { GameContextValue } from './game-context-types';
 import { roles, events, activities, DEFAULT_SHOP_CATALOG } from './catalog';
 import { MAX_TURNS, MOBILE_WATCHDOG_TIMEOUTS } from './constants';
-import { normalizeText, isRoleId } from './normalizers';
 import {
-  resolveEventPlanningStatus,
-  resolveEventPlanningRoleId,
   sortEventsForPlanning,
   upsertEventPlan,
   removeEventPlan,
+  mapPlannedParticipationPlans,
+  mapPlannedParticipationEvents,
 } from './event-planning';
 import {
   OFFLINE_SYNC_SERVER_LOG_QUEUE_KEY,
@@ -114,6 +112,10 @@ import {
   mapDbTurnRow,
   mergeHydratedProfileRow,
   mergeRealtimeProfileRow,
+  mapDbTurnStatsRow,
+  mapDbTheatreReputationRows,
+  mapDbBadgeRow,
+  mapDbLeaderboardRow,
 } from './supabase-mappers';
 import type {
   DbEventRow,
@@ -123,6 +125,7 @@ import type {
   DbProfileRow,
   DbBadgeRow,
   DbTheatreReputationRow,
+  DbLeaderboardRow,
   PlannedParticipationRpcRow,
   TurnRegistrationRpcRow,
 } from './supabase-mappers';
@@ -320,11 +323,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             .select('total_turns,turns_this_month,unique_theatres')
             .single();
           if (!error && data) {
-            setRemoteTurnStats({
-              totalTurns: Number(data.total_turns ?? 0),
-              turnsThisMonth: Number(data.turns_this_month ?? 0),
-              uniqueTheatres: Number(data.unique_theatres ?? 0),
-            });
+            setRemoteTurnStats(mapDbTurnStatsRow(data));
           }
         } finally {
           setStatsLoading(false);
@@ -349,20 +348,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             .from('my_theatre_reputation')
             .select('theatre,reputation,total_turns');
           if (!error && data) {
-            const nextReputation: TheatreReputation[] = (data as DbTheatreReputationRow[])
-              .map((row) => ({
-                theatre: (row.theatre ?? '').toString(),
-                reputation: Number(row.reputation ?? 0),
-                totalTurns: Number(row.total_turns ?? 0),
-              }))
-              .filter((entry) => entry.theatre)
-              .sort(
-                (a, b) =>
-                  b.reputation - a.reputation ||
-                  b.totalTurns - a.totalTurns ||
-                  a.theatre.localeCompare(b.theatre)
-              );
-            setRemoteTheatreReputation(nextReputation);
+            setRemoteTheatreReputation(mapDbTheatreReputationRows(data as DbTheatreReputationRow[]));
           }
         } finally {
           setTheatreReputationLoading(false);
@@ -394,19 +380,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             .order('unlocked_at', { ascending: false, nullsFirst: false })
             .limit(500);
           if (!error && data) {
-            const nextBadges: Badge[] = (data as DbBadgeRow[]).map((row) => ({
-              id: row.id,
-              title: row.title,
-              description: row.description ?? null,
-              icon: row.icon ?? 'Award',
-              metric: (row.metric as BadgeMetric | null) ?? null,
-              threshold: row.threshold != null ? Number(row.threshold) : null,
-              isHidden: Boolean(row.is_hidden),
-              unlocked: Boolean(row.unlocked),
-              unlockedAt: row.unlocked_at ? new Date(row.unlocked_at).getTime() : null,
-              seenAt: row.seen_at ? new Date(row.seen_at).getTime() : null,
-            }));
-            setRemoteBadges(nextBadges);
+            setRemoteBadges((data as DbBadgeRow[]).map(mapDbBadgeRow));
           }
         } finally {
           setBadgesLoading(false);
@@ -421,18 +395,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     );
   }, [authUserId]);
 
-  type LeaderboardRow = {
-    id: string;
-    name: string | null;
-    role_id: string | null;
-    xp_total: number | null;
-    cachet: number | null;
-    reputation: number | null;
-    profile_image: string | null;
-    last_activity_at: string | null;
-    turns_count: number | null;
-  };
-
   const refreshLeaderboard = useCallback(async () => {
     if (!supabase) return;
     await withMobileWatchdog(
@@ -443,24 +405,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
           const { data, error } = await supabase!.rpc('get_leaderboard', { p_limit: 50 });
           if (error) throw error;
 
-          const rows = (data as LeaderboardRow[]) ?? [];
-          const nextLeaderboard: LeaderboardEntry[] = rows.map((row) => {
-            const roleCandidate = row.role_id ?? 'attore';
-            const roleId: RoleId = isRoleId(roleCandidate) ? roleCandidate : 'attore';
-            const lastActivityAt = row.last_activity_at ? new Date(row.last_activity_at).getTime() : undefined;
-            return {
-              id: row.id,
-              name: row.name ?? 'Player',
-              roleId,
-              xpTotal: row.xp_total ?? 0,
-              cachet: row.cachet ?? 0,
-              reputation: row.reputation ?? 0,
-              turnsCount: row.turns_count ?? 0,
-              profileImage: row.profile_image ?? undefined,
-              lastActivityAt,
-            };
-          });
-          setLeaderboard(nextLeaderboard);
+          const rows = (data as DbLeaderboardRow[]) ?? [];
+          setLeaderboard(rows.map(mapDbLeaderboardRow));
         } catch (error) {
           console.warn('Supabase leaderboard fetch failed', error);
         } finally {
@@ -956,42 +902,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
             const { data, error } = await supabase!.rpc('get_my_planned_participations');
             if (!error && data) {
               const rows = data as PlannedParticipationRpcRow[];
-              const mappedPlans = rows
-                .map((row) => {
-                  const roleId = resolveEventPlanningRoleId(
-                    row.role_id,
-                    profileRoleIdRef.current
-                  );
-                  const updatedAt = row.updated_at ? new Date(row.updated_at).getTime() : Date.now();
-                  return {
-                    eventId: row.event_id,
-                    roleId,
-                    status: resolveEventPlanningStatus(row.status),
-                    updatedAt: Number.isFinite(updatedAt) ? updatedAt : Date.now(),
-                  };
-                })
-                .filter((plan) => plan.eventId);
-
-              const mappedEvents = rows
-                .map((row) => {
-                  const catalogEvent = catalogEvents.find((event) => event.id === row.event_id);
-                  if (catalogEvent) return catalogEvent;
-
-                  return {
-                    id: row.event_id,
-                    name: normalizeText(row.event_name),
-                    theatre: normalizeText(row.theatre),
-                    date: normalizeText(row.event_date),
-                    time: normalizeText(row.event_time),
-                    genre: 'Evento',
-                    baseRewards: {
-                      xp: 0,
-                      reputation: 0,
-                      cachet: 0,
-                    },
-                  } as GameEvent;
-                })
-                .filter((event) => Boolean(event.id && event.name));
+              const mappedPlans = mapPlannedParticipationPlans(rows, profileRoleIdRef.current);
+              const mappedEvents = mapPlannedParticipationEvents(rows, catalogEvents);
 
               setState((prev) => ({
                 ...prev,
