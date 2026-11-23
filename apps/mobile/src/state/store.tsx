@@ -17,7 +17,7 @@ import {
   checkCourseStart,
   getCourseCompletionReward,
 } from './course-progress';
-import { withMobileWatchdog, WatchdogTimeoutError } from '../services/mobile-watchdog';
+import { withMobileWatchdog } from '../services/mobile-watchdog';
 import {
   applyMobileFeatureFlagOverrides,
   MOBILE_FEATURE_FLAGS_DEFAULTS,
@@ -31,6 +31,9 @@ import {
   readEnvFeatureFlagOverrides,
 } from '../services/feature-flags';
 import { withSuppressSignedInNavigation } from './auth-navigation';
+import { useAuthSession } from './hooks/use-auth-session';
+import { useOfflineSyncRetryLoop } from './hooks/use-offline-sync-retry-loop';
+import { useServerLogMirror } from './hooks/use-server-log-mirror';
 import type {
   RoleId,
   Rewards,
@@ -71,19 +74,10 @@ import {
 } from './event-planning';
 import {
   OFFLINE_SYNC_SERVER_LOG_QUEUE_KEY,
-  OFFLINE_SYNC_SERVER_LOG_BATCH_SIZE,
-  OFFLINE_SYNC_SERVER_LOG_RETRY_INTERVAL_MS,
-  OFFLINE_SYNC_SERVER_LOG_FUNCTION,
-  OFFLINE_SYNC_LOG_PREFIX,
-  readMirroredClientLogs,
-  writeMirroredClientLogs,
   logOfflineSync,
-  shouldMirrorOfflineSyncLogsToServer,
 } from './offline-sync-log';
 import {
   OFFLINE_SYNC_QUEUE_KEY,
-  OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS,
-  getOfflineSyncRetryDelayMs,
   OFFLINE_SYNC_MAX_ATTEMPTS,
   isNavigatorOffline,
   readTurnGeolocationSnapshot,
@@ -151,8 +145,6 @@ import {
   TUTORIAL_ANON_ID,
   readTutorialCompleted,
   writeTutorialCompleted,
-  readStoredSession,
-  persistStoredSession,
   createDefaultState,
   loadState,
   saveState,
@@ -216,8 +208,7 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     events,
     activities,
   }));
-  const [authUserId, setAuthUserId] = useState<string | null>(null);
-  const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
+  const { authUserId, authReady } = useAuthSession();
   const [hasHydratedRemote, setHasHydratedRemote] = useState(false);
   const localTurnStats = useMemo(() => computeTurnStatsFromTurns(state.turns), [state.turns]);
   const localTheatreReputation = useMemo(
@@ -262,7 +253,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   }, [state.profile.extraActivitySlots]);
   const [turnSyncFeedback, setTurnSyncFeedback] = useState<TurnSyncFeedback | null>(null);
   const offlineSyncInFlightRef = useRef(false);
-  const offlineServerLogSyncInFlightRef = useRef(false);
   const eventPlansRef = useRef(state.eventPlans);
   // Tracks narrative choice IDs whose rewards have already been applied locally
   // in this session. Guards completeNarrativeChoice against double-credit on
@@ -485,60 +475,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       }
     );
   }, []);
-
-  const flushMirroredClientLogsToServer = useCallback(async () => {
-    if (!isSupabaseConfigured || !supabase || !shouldMirrorOfflineSyncLogsToServer()) return;
-    if (!authUserId) return;
-    if (offlineServerLogSyncInFlightRef.current) return;
-    if (isNavigatorOffline()) return;
-
-    const queue = readMirroredClientLogs();
-    if (!queue.length) return;
-
-    const batch = queue.slice(0, OFFLINE_SYNC_SERVER_LOG_BATCH_SIZE);
-    offlineServerLogSyncInFlightRef.current = true;
-    if (import.meta.env.DEV) console.info(`${OFFLINE_SYNC_LOG_PREFIX} Mirroring log batch to server`, {
-      batchSize: batch.length,
-      queueSize: queue.length,
-      duplicatePolicy: 'include',
-    });
-
-    try {
-      const { data, error } = await supabase.functions.invoke(OFFLINE_SYNC_SERVER_LOG_FUNCTION, {
-        body: {
-          action: 'ingest_logs',
-          source: 'mobile-offline-sync',
-          duplicatePolicy: 'include',
-          clientUserId: authUserId ?? null,
-          logs: batch,
-        },
-      });
-
-      if (error) {
-        console.warn(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror failed`, {
-          message: error.message,
-          batchSize: batch.length,
-        });
-        return;
-      }
-
-      const acknowledgedIds = Array.isArray((data as { acceptedLogIds?: unknown })?.acceptedLogIds)
-        ? ((data as { acceptedLogIds?: unknown[] }).acceptedLogIds ?? [])
-          .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-        : batch.map((entry) => entry.id);
-      const acknowledgedSet = new Set(acknowledgedIds);
-      const remaining = readMirroredClientLogs().filter((entry) => !acknowledgedSet.has(entry.id));
-      writeMirroredClientLogs(remaining);
-      if (import.meta.env.DEV) console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror ack`, {
-        acknowledged: acknowledgedSet.size,
-        remaining: remaining.length,
-      });
-    } catch (error) {
-      console.warn(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror exception`, error);
-    } finally {
-      offlineServerLogSyncInFlightRef.current = false;
-    }
-  }, [authUserId]);
 
   const refreshPendingBoostRequests = useCallback(
     (queueOverride?: QueuedSupabaseMutation[]) => {
@@ -990,101 +926,6 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     });
   }, [authUserId, enqueueSupabaseMutation, refreshBadges]);
 
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return;
-    let isMounted = true;
-
-    const restoreSession = async () => {
-      await withMobileWatchdog(
-        async () => {
-          const stored = readStoredSession();
-          if (stored) {
-            // Legacy duplicate token copy (already removed from storage by
-            // readStoredSession): use it only if supabase-js has no session.
-            const { data: existing } = await supabase!.auth.getSession();
-            if (!existing.session) {
-              const { data: restoredData, error: restoreError } = await supabase!.auth.setSession({
-                access_token: stored.access_token,
-                refresh_token: stored.refresh_token,
-              });
-              if (restoreError || !restoredData.session) {
-                persistStoredSession(null);
-                await supabase!.auth.signOut();
-              }
-            }
-          }
-
-          const { data } = await supabase!.auth.getSession();
-          if (!isMounted) return;
-
-          let stableSession = data.session ?? null;
-          if (stableSession?.access_token) {
-            const { error: userError } = await supabase!.auth.getUser(stableSession.access_token);
-            if (userError) {
-              stableSession = null;
-              persistStoredSession(null);
-              await supabase!.auth.signOut();
-            }
-          }
-
-          // Guard again after the async getUser/signOut calls — the component
-          // may have unmounted (e.g. StrictMode double-mount) while they were in
-          // flight (closes #1354).
-          if (!isMounted) return;
-
-          persistStoredSession(stableSession);
-          setAuthUserId(stableSession?.user.id ?? null);
-          setAuthReady(true);
-        },
-        {
-          operation: 'restoreSession',
-          timeoutMs: MOBILE_WATCHDOG_TIMEOUTS.restoreSession,
-          title: 'Ripristino sessione lento',
-          message: 'Il ripristino della sessione mobile sta impiegando troppo tempo.',
-        }
-      );
-    };
-
-    let authReadyFallbackId: number | null = null;
-
-    restoreSession().catch((err) => {
-      console.error('[restoreSession] unexpected error', err);
-      // For WatchdogTimeoutError: withMobileWatchdog already showed the error
-      // overlay; the in-flight Supabase call continues and will trigger
-      // onAuthStateChange (below) which sets both authUserId and authReady
-      // correctly — setting authReady=true here without authUserId would
-      // produce a phantom logged-out state window (closes #1527).
-      if (isMounted && !(err instanceof WatchdogTimeoutError)) {
-        setAuthReady(true);
-      }
-      // Safety net: on total network failure the in-flight Supabase call never
-      // completes, so onAuthStateChange never fires and authReady stays false
-      // forever. Fall back to ready after an additional wait so the app
-      // eventually becomes usable even without connectivity (closes #1587).
-      if (err instanceof WatchdogTimeoutError) {
-        authReadyFallbackId = window.setTimeout(() => {
-          if (isMounted) setAuthReady(true);
-        }, 30_000);
-      }
-    });
-
-    const { data: authListener } = supabase!.auth.onAuthStateChange((_event, session) => {
-      if (authReadyFallbackId !== null) {
-        window.clearTimeout(authReadyFallbackId);
-        authReadyFallbackId = null;
-      }
-      persistStoredSession(session ?? null);
-      if (!isMounted) return;
-      setAuthUserId(session?.user.id ?? null);
-      setAuthReady(true);
-    });
-
-    return () => {
-      isMounted = false;
-      if (authReadyFallbackId !== null) window.clearTimeout(authReadyFallbackId);
-      authListener?.subscription.unsubscribe();
-    };
-  }, []);
 
   useEffect(() => {
     setHasHydratedRemote(false);
@@ -1095,96 +936,9 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     refreshPendingBoostRequests();
   }, [authUserId, refreshPendingBoostRequests]);
 
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !authUserId) return;
-    logOfflineSync('Auth session ready: checking queued mutations', { authUserId });
-    void flushQueuedSupabaseMutations();
-  }, [authUserId, flushQueuedSupabaseMutations]);
+  useOfflineSyncRetryLoop(authUserId, flushQueuedSupabaseMutations);
 
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !authUserId) return;
-    if (typeof window === 'undefined') return;
-    logOfflineSync('Online/offline sync listeners started', {
-      authUserId,
-      baseRetryIntervalMs: OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS,
-    });
-
-    const handleOnline = () => {
-      logOfflineSync('Browser online event: retrying queued mutations', { authUserId });
-      void flushQueuedSupabaseMutations();
-    };
-
-    window.addEventListener('online', handleOnline);
-
-    // Use a setTimeout-based loop so the delay between retries scales with the
-    // number of attempts already made (exponential backoff via getOfflineSyncRetryDelayMs),
-    // instead of always waiting the fixed OFFLINE_SYNC_BASE_RETRY_INTERVAL_MS.
-    let timeoutId: number | null = null;
-    let cancelled = false;
-
-    const scheduleNextTick = () => {
-      if (cancelled) return;
-      const queuedForUser = readQueuedSupabaseMutations().filter(
-        (entry) => entry.userId === authUserId
-      );
-      const maxAttempts = queuedForUser.reduce(
-        (max, entry) => Math.max(max, entry.attempts ?? 0),
-        0
-      );
-      const delay = getOfflineSyncRetryDelayMs(maxAttempts);
-      timeoutId = window.setTimeout(() => {
-        if (cancelled) return;
-        const hasQueuedForUser = readQueuedSupabaseMutations().some(
-          (entry) => entry.userId === authUserId
-        );
-        if (hasQueuedForUser) {
-          logOfflineSync('Periodic retry tick: queued mutations detected', { authUserId, delay });
-          void flushQueuedSupabaseMutations();
-        }
-        scheduleNextTick();
-      }, delay);
-    };
-
-    scheduleNextTick();
-
-    return () => {
-      cancelled = true;
-      window.removeEventListener('online', handleOnline);
-      if (timeoutId !== null) window.clearTimeout(timeoutId);
-      logOfflineSync('Online/offline sync listeners stopped', { authUserId });
-    };
-  }, [authUserId, flushQueuedSupabaseMutations]);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !shouldMirrorOfflineSyncLogsToServer()) return;
-    void flushMirroredClientLogsToServer();
-  }, [authUserId, authReady, flushMirroredClientLogsToServer]);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !shouldMirrorOfflineSyncLogsToServer()) return;
-    if (typeof window === 'undefined') return;
-    if (import.meta.env.DEV) console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror listeners started`, {
-      retryIntervalMs: OFFLINE_SYNC_SERVER_LOG_RETRY_INTERVAL_MS,
-      batchSize: OFFLINE_SYNC_SERVER_LOG_BATCH_SIZE,
-    });
-
-    const handleOnline = () => {
-      if (import.meta.env.DEV) console.info(`${OFFLINE_SYNC_LOG_PREFIX} Browser online: retrying server log mirror`);
-      void flushMirroredClientLogsToServer();
-    };
-
-    window.addEventListener('online', handleOnline);
-    const intervalId = window.setInterval(
-      () => void flushMirroredClientLogsToServer(),
-      OFFLINE_SYNC_SERVER_LOG_RETRY_INTERVAL_MS
-    );
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.clearInterval(intervalId);
-      if (import.meta.env.DEV) console.info(`${OFFLINE_SYNC_LOG_PREFIX} Server log mirror listeners stopped`);
-    };
-  }, [flushMirroredClientLogsToServer]);
+  useServerLogMirror(authUserId, authReady);
 
   const refreshEventPlanning = useCallback(
     async (catalogEvents: GameEvent[]) => {
