@@ -60,8 +60,6 @@ const SUPPORT_PROMPT =
   "Non citare il marker o il JSON nel testo per l'utente: lascia la spiegazione sopra al marker. " +
   "Non ripetere il saluto iniziale se e' gia' presente nella chat.";
 
-const FALLBACK_PORT = '8787';
-const DEFAULT_PORT = import.meta.env.VITE_AI_SUPPORT_PORT ?? FALLBACK_PORT;
 // On non-localhost deployments always route through the same-origin Vercel proxy
 // (/api/ai/chat) to avoid CORS issues, regardless of VITE_AI_SUPPORT_ENDPOINT.
 const DEFAULT_ENDPOINT = (() => {
@@ -110,13 +108,9 @@ function buildDefaultEndpoint(path: string) {
   }
   const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
   const host = window.location.hostname || 'localhost';
-  // Only append the dev port on loopback hosts. On a deployed origin the
-  // Maxwell server lives on a separate host, and appending :8787 to a
-  // managed-platform domain (e.g. *.onrender.com) makes the request
-  // unreachable. Callers must set VITE_AI_SUPPORT_ENDPOINT in production.
-  if (isLocalHost(host) && DEFAULT_PORT) {
-    return `${protocol}//${host}:${DEFAULT_PORT}${path}`;
-  }
+  // The AI endpoints are served same-origin (Vercel /api/ai/*). There is no local
+  // AI server any more, so in local development the chat is simply unavailable
+  // unless VITE_AI_SUPPORT_ENDPOINT points somewhere reachable.
   return `${protocol}//${host}${path}`;
 }
 
@@ -143,9 +137,6 @@ function normalizeEndpoint(endpoint: string) {
       if (window.location.protocol === 'https:') {
         url.protocol = 'https:';
       }
-    }
-    if (!url.port && DEFAULT_PORT && isLocalHost(url.hostname)) {
-      url.port = DEFAULT_PORT;
     }
     return url.toString();
   } catch {

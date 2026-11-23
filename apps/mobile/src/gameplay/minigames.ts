@@ -189,7 +189,7 @@ export function getMinigameConfig(activityId: string, roleId?: RoleId | null, ro
   return withRandomTargets(base);
 }
 
-export function computeRoundScore(target: number, hit: number, tolerance: number) {
+export function computeRoundScore(target: number, hit: number, _tolerance: number) {
   const delta = Math.abs(target - hit);
   const score = Math.round(Math.max(0, 100 - delta * 2));
   // Derive the per-round label from the same score thresholds used by

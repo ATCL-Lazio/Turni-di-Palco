@@ -8,7 +8,6 @@ const MAX_BODY_CHARS = 8000;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
 const GITHUB_REPO =
   process.env.AI_SUPPORT_GH_REPO ?? 'ATCL-Lazio/Turni-di-Palco';
-const MAXWELL_ISSUE_URL = process.env.MAXWELL_ISSUE_ENDPOINT;
 
 const UPSTREAM_TIMEOUT_MS = 22000;
 
@@ -24,7 +23,6 @@ const ISSUE_FOOTER =
 export async function createIssueHandler(req, res, deps = {}) {
   const fetchImpl = deps.fetchImpl ?? fetch;
   const githubToken = deps.githubToken ?? GITHUB_TOKEN;
-  const legacyUrl = deps.legacyUrl ?? MAXWELL_ISSUE_URL;
   const authenticate = deps.requireUser ?? requireUser;
 
   if (req.method === 'OPTIONS') {
@@ -53,7 +51,7 @@ export async function createIssueHandler(req, res, deps = {}) {
     : [];
   const labels = [...new Set([...requestedLabels, 'supporto', 'Maxwell'])];
 
-  if (!githubToken && !legacyUrl) {
+  if (!githubToken) {
     res.status(503).json({ ok: false, error: 'Segnalazioni non configurate' });
     return;
   }
@@ -138,26 +136,6 @@ export async function createIssueHandler(req, res, deps = {}) {
       res.status(201).json({ ok: true, url: ghData.html_url, number: ghData.number });
       return;
     }
-
-    // Proxy legacy (Render): stessa prenotazione, payload ricostruito lato server.
-    const upstream = await fetchImpl(legacyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, body: body + ISSUE_FOOTER, labels }),
-      signal: controller.signal,
-    });
-    const payload = await upstream.text();
-    let parsed = null;
-    try { parsed = JSON.parse(payload); } catch { /* risposta non JSON */ }
-    if (upstream.ok && typeof parsed?.url === 'string') {
-      await finish(Number(parsed.number) || 0, parsed.url);
-    } else if (!upstream.ok) {
-      await finish(null, null);
-    }
-    res
-      .status(upstream.status)
-      .setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json')
-      .send(payload);
   } catch (error) {
     await finish(null, null);
     if (error.name === 'AbortError') {

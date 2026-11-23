@@ -113,6 +113,20 @@ describe('activateTicketByDetails', () => {
     const result = await activateTicketByDetails('evt-4', '111', USER, 'ABCDE-12345');
     expect(result).toEqual({ ok: false, error: 'Ticket non trovato.' });
   });
+
+  it('surfaces the body message of a non-2xx response (e.g. 409)', async () => {
+    const body = { ok: false, error: 'Ticket number non univoco. Specifica Circuito o Evento.' };
+    const response = new Response(JSON.stringify(body), {
+      status: 409,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    invoke.mockResolvedValue({
+      data: null,
+      error: Object.assign(new Error('Edge Function returned a non-2xx status code'), { context: response }),
+    });
+    const result = await activateTicketByDetails('evt-5', '222', USER);
+    expect(result).toEqual({ ok: false, error: body.error });
+  });
 });
 
 describe('redeem code and manual scan helpers', () => {
