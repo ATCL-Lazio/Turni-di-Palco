@@ -41,8 +41,10 @@ function fakeFetch(handlers) {
   const calls = [];
   const impl = async (url, init) => {
     calls.push({ url, init, body: init?.body ? JSON.parse(init.body) : undefined });
+    const { hostname, pathname } = new URL(url);
     for (const [match, handler] of Object.entries(handlers)) {
-      if (url.includes(match)) return handler(url, init);
+      const hit = match.startsWith('/') ? pathname.includes(match) : hostname === match;
+      if (hit) return handler(url, init);
     }
     throw new Error(`fetch inatteso: ${url}`);
   };
@@ -51,6 +53,8 @@ function fakeFetch(handlers) {
 }
 
 const okUser = async () => USER;
+const isGithubApi = (url) => new URL(url).hostname === 'api.github.com';
+const isRpc = (url, fn) => new URL(url).pathname === `/rest/v1/rpc/${fn}`;
 const confirmedBody = { confirmed: true, title: 'La mappa non si carica', body: 'Dettagli', labels: ['bug', 'admin'] };
 
 test('issueFingerprint normalizza maiuscole, accenti e punteggiatura', () => {
@@ -103,7 +107,7 @@ test('issue: duplicato restituisce la issue esistente senza crearne una nuova', 
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.existing, true);
   assert.equal(res.body.number, 42);
-  assert.ok(!fetchImpl.calls.some((c) => c.url.includes('api.github.com')));
+  assert.ok(!fetchImpl.calls.some((c) => isGithubApi(c.url)));
 });
 
 test('issue: tetto raggiunto risponde 429', async () => {
@@ -112,7 +116,7 @@ test('issue: tetto raggiunto risponde 429', async () => {
     const res = fakeRes();
     await createIssueHandler({ method: 'POST', body: confirmedBody }, res, { fetchImpl, requireUser: okUser, githubToken: 'gh' });
     assert.equal(res.statusCode, 429);
-    assert.ok(!fetchImpl.calls.some((c) => c.url.includes('api.github.com')));
+    assert.ok(!fetchImpl.calls.some((c) => isGithubApi(c.url)));
   }
 });
 
@@ -121,7 +125,7 @@ test('issue: database non raggiungibile = nessuna issue (fail closed)', async ()
   const res = fakeRes();
   await createIssueHandler({ method: 'POST', body: confirmedBody }, res, { fetchImpl, requireUser: okUser, githubToken: 'gh' });
   assert.equal(res.statusCode, 503);
-  assert.ok(!fetchImpl.calls.some((c) => c.url.includes('api.github.com')));
+  assert.ok(!fetchImpl.calls.some((c) => isGithubApi(c.url)));
 });
 
 test('issue: prenotata, creata su GitHub e chiusa nel registro', async () => {
@@ -133,10 +137,10 @@ test('issue: prenotata, creata su GitHub e chiusa nel registro', async () => {
   const res = fakeRes();
   await createIssueHandler({ method: 'POST', body: confirmedBody }, res, { fetchImpl, requireUser: okUser, githubToken: 'gh' });
   assert.equal(res.statusCode, 201);
-  const gh = fetchImpl.calls.find((c) => c.url.includes('api.github.com'));
+  const gh = fetchImpl.calls.find((c) => isGithubApi(c.url));
   assert.deepEqual(gh.body.labels.sort(), ['Maxwell', 'bug', 'supporto']);
   assert.match(gh.body.body, /confermata dall'utente/);
-  const finish = fetchImpl.calls.find((c) => c.url.includes('ai_issue_finish'));
+  const finish = fetchImpl.calls.find((c) => isRpc(c.url, 'ai_issue_finish'));
   assert.deepEqual(finish.body, { p_id: 7, p_issue_number: 99, p_issue_url: 'https://github.com/o/r/issues/99' });
 });
 
@@ -149,6 +153,6 @@ test('issue: errore GitHub libera la prenotazione', async () => {
   const res = fakeRes();
   await createIssueHandler({ method: 'POST', body: confirmedBody }, res, { fetchImpl, requireUser: okUser, githubToken: 'gh' });
   assert.equal(res.statusCode, 502);
-  const finish = fetchImpl.calls.find((c) => c.url.includes('ai_issue_finish'));
+  const finish = fetchImpl.calls.find((c) => isRpc(c.url, 'ai_issue_finish'));
   assert.deepEqual(finish.body, { p_id: 8, p_issue_number: null, p_issue_url: null });
 });
