@@ -9,12 +9,14 @@ import {
 import { resolveDisplayName } from '../lib/profile-utils';
 import { COOKIE_CONSENT_KEY, GEO_CONSENT_KEY } from '../constants/privacy';
 import { clearLocalActivationStores } from '../services/ticket-activation';
+import type { CourseSkill } from '../gameplay/courses';
 import {
-  COURSES_CATALOG,
-  COURSE_COMPLETION_XP,
-  COURSE_COOLDOWN_MS,
-  type CourseSkill,
-} from '../gameplay/courses';
+  applyCourseCompletion,
+  applyCourseStart,
+  checkCourseCompletion,
+  checkCourseStart,
+  getCourseCompletionReward,
+} from './course-progress';
 import { withMobileWatchdog, WatchdogTimeoutError } from '../services/mobile-watchdog';
 import {
   applyMobileFeatureFlagOverrides,
@@ -2969,44 +2971,13 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   // Issue #327 — Avvia un corso formativo.
   const startCourse = useCallback(
     (courseId: string): { ok: true } | { ok: false; error: string } => {
-      const course = COURSES_CATALOG.find((c) => c.id === courseId);
-      if (!course) return { ok: false, error: 'Corso non trovato.' };
-
       // Perform guard checks synchronously against the current state snapshot
       // BEFORE calling setState, so that the updater only contains the happy-path
       // state transition. This avoids mutating external variables inside the
       // setState updater — which React StrictMode double-invokes and could produce
       // incorrect results under future React versions (closes #1361).
-      const profile = state.profile;
-      const completedCourses = profile.completedCourses ?? {};
-      const activeCourses = profile.activeCourses ?? {};
-
-      // Controlla se il corso è già attivo
-      if (activeCourses[courseId]) {
-        return { ok: false, error: 'Corso già in corso.' };
-      }
-
-      // Controlla cooldown
-      const lastCompleted = completedCourses[courseId];
-      if (lastCompleted) {
-        const elapsed = Date.now() - new Date(lastCompleted).getTime();
-        if (elapsed < COURSE_COOLDOWN_MS) {
-          const remainingMs = COURSE_COOLDOWN_MS - elapsed;
-          const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
-          return {
-            ok: false,
-            error: `Corso in cooldown. Disponibile tra ${remainingHours} ore.`,
-          };
-        }
-      }
-
-      // Controlla cachet sufficiente
-      if (profile.cachet < course.costCachet) {
-        return {
-          ok: false,
-          error: `Cachet insufficiente. Necessari: ${course.costCachet}, disponibili: ${profile.cachet}.`,
-        };
-      }
+      const check = checkCourseStart(state.profile, courseId, Date.now());
+      if (!check.ok) return check;
 
       // Compute nextProfile inside the setState updater using prev.profile so
       // concurrent profile mutations (e.g. a Realtime subscription firing during
@@ -3015,25 +2986,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       // since they gate on game-logic invariants rather than numeric values that
       // could race. The state transition itself uses prev.profile.
       const startedAt = new Date().toISOString();
-      const computeStartedProfile = (p: PlayerProfile): PlayerProfile => {
-        const pSkills = p.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
-        const pActiveCourses = p.activeCourses ?? {};
-        const pCompletedCourses = p.completedCourses ?? {};
-        return {
-          ...p,
-          // Clamp to 0: the guard above uses the render-time snapshot, so a
-          // concurrent mutation could reduce prev.cachet below costCachet before
-          // this updater runs, causing a negative balance (closes #1410).
-          cachet: Math.max(0, p.cachet - course.costCachet),
-          skills: pSkills,
-          completedCourses: pCompletedCourses,
-          activeCourses: { ...pActiveCourses, [courseId]: startedAt },
-        };
-      };
       // Persist synchronously from render-time snapshot; re-derive from prev
       // inside setState so concurrent mutations are not clobbered (closes #1547).
-      persistProfile(computeStartedProfile(state.profile));
-      setState((prev) => ({ ...prev, profile: computeStartedProfile(prev.profile) }));
+      persistProfile(applyCourseStart(state.profile, check.course, startedAt));
+      setState((prev) => ({ ...prev, profile: applyCourseStart(prev.profile, check.course, startedAt) }));
 
       return { ok: true };
     },
@@ -3047,69 +3003,20 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
     ):
       | { ok: true; xpGained: number; skillGained: CourseSkill; pointsGained: number }
       | { ok: false; error: string } => {
-      const course = COURSES_CATALOG.find((c) => c.id === courseId);
-      if (!course) return { ok: false, error: 'Corso non trovato.' };
-
       // Perform guard checks synchronously against the current state snapshot
       // BEFORE calling setState — same rationale as startCourse (closes #1361).
-      const activeCourses = state.profile.activeCourses ?? {};
-
-      const startedAt = activeCourses[courseId];
-      if (!startedAt) {
-        return { ok: false, error: 'Corso non avviato.' };
-      }
-
-      // In DEV il tempo minimo è 10 secondi, in produzione durationMinutes completi.
-      const requiredMs = import.meta.env.DEV
-        ? 10 * 1000
-        : course.durationMinutes * 60 * 1000;
-
-      const elapsed = Date.now() - new Date(startedAt).getTime();
-      if (elapsed < requiredMs) {
-        const remainingSec = Math.ceil((requiredMs - elapsed) / 1000);
-        return {
-          ok: false,
-          error: `Corso non ancora completato. Tempo rimanente: ${remainingSec} secondi.`,
-        };
-      }
-
-      const xpGained = COURSE_COMPLETION_XP;
-      const skillGained: CourseSkill = course.skill;
-      const pointsGained = course.skillPoints;
+      const check = checkCourseCompletion(state.profile, courseId, Date.now(), import.meta.env.DEV);
+      if (!check.ok) return check;
 
       // Compute nextProfile inside the setState updater using prev.profile so
       // concurrent profile mutations are not silently clobbered (closes #1378).
       const completedAt = new Date().toISOString();
-      const courseRewards: Rewards = { xp: xpGained, cachet: 0, reputation: 0 };
-      const computeCompletedProfile = (p: PlayerProfile): PlayerProfile => {
-        const pSkills = p.skills ?? { precision: 0, presence: 0, creativity: 0, leadership: 0 };
-        const pActiveCourses = p.activeCourses ?? {};
-        const pCompletedCourses = p.completedCourses ?? {};
-
-        // Applica XP tramite lo stesso helper usato dalle attività.
-        const profileWithXp = applyRewards(p, courseRewards, 'activity');
-
-        const updatedSkills = {
-          ...pSkills,
-          [skillGained]: (pSkills[skillGained] ?? 0) + pointsGained,
-        };
-
-        // Rimuovi dai corsi attivi e aggiungi ai completati.
-        const { [courseId]: _removed, ...remainingActive } = pActiveCourses;
-
-        return {
-          ...profileWithXp,
-          skills: updatedSkills,
-          completedCourses: { ...pCompletedCourses, [courseId]: completedAt },
-          activeCourses: remainingActive,
-        };
-      };
       // Persist synchronously from render-time snapshot; re-derive from prev
       // inside setState so concurrent mutations are not clobbered (closes #1547).
-      persistProfile(computeCompletedProfile(state.profile));
-      setState((prev) => ({ ...prev, profile: computeCompletedProfile(prev.profile) }));
+      persistProfile(applyCourseCompletion(state.profile, check.course, completedAt));
+      setState((prev) => ({ ...prev, profile: applyCourseCompletion(prev.profile, check.course, completedAt) }));
 
-      return { ok: true, xpGained, skillGained, pointsGained };
+      return { ok: true, ...getCourseCompletionReward(check.course) };
     },
     [persistProfile, state.profile],
   );
