@@ -30,7 +30,9 @@ type AiSupportIssuePayload = {
 };
 
 type AiSupportIssueResponse = {
+  ok?: boolean;
   url?: string | null;
+  number?: number | null;
   output?: string;
   existing?: boolean;
   action?: string;

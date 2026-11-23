@@ -1,9 +1,10 @@
-import { rateLimit, requireUser } from './_guard.js';
+import { persistentRateLimit, requireUser, supabaseRpc } from './_guard.js';
 
 const MAX_MESSAGES = 40;
 const MAX_MESSAGE_CHARS = 4000;
 const MAX_SESSION_ID_CHARS = 128;
 const CHAT_LIMIT_PER_MIN = 20;
+const CHAT_LIMIT_PER_DAY = 200;
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const CLAUDE_AGENT_ID =
@@ -17,18 +18,65 @@ const ANTHROPIC_VERSION = '2023-06-01';
 
 const REQUEST_TIMEOUT_MS = 30000;
 
-// Cache sessioni in-memory per mappare le sessionId dell'app mobile con le sessioni Claude
-const sessionMap = new Map();
+// Le sessionId dell'app vengono mappate sulle sessioni Claude in Postgres
+// (ai_chat_session_get/put), perche' la memoria di un'istanza serverless non
+// sopravvive ai cold start. La mappa locale fa solo da cache e da ripiego.
+const sessionCache = new Map();
+const SESSION_CACHE_MAX = 500;
+
+async function loadAgentSession(user, clientSessionId) {
+  const key = `${user.id}:${clientSessionId}`;
+  if (sessionCache.has(key)) return sessionCache.get(key);
+  try {
+    const agentSessionId = await supabaseRpc(user, 'ai_chat_session_get', {
+      p_client_session_id: clientSessionId,
+    });
+    if (typeof agentSessionId === 'string' && agentSessionId) {
+      rememberSession(key, agentSessionId);
+      return agentSessionId;
+    }
+  } catch (error) {
+    console.warn('[Claude Chat] lettura sessione non disponibile:', error.message);
+  }
+  return null;
+}
+
+async function saveAgentSession(user, clientSessionId, agentSessionId) {
+  rememberSession(`${user.id}:${clientSessionId}`, agentSessionId);
+  try {
+    await supabaseRpc(user, 'ai_chat_session_put', {
+      p_client_session_id: clientSessionId,
+      p_agent_session_id: agentSessionId,
+    });
+  } catch (error) {
+    console.warn('[Claude Chat] salvataggio sessione non disponibile:', error.message);
+  }
+}
+
+function rememberSession(key, agentSessionId) {
+  if (sessionCache.size >= SESSION_CACHE_MAX) {
+    sessionCache.delete(sessionCache.keys().next().value);
+  }
+  sessionCache.set(key, agentSessionId);
+}
+
+// Regola sulle segnalazioni, ripetuta in testa a ogni nuova sessione dell'agente
+// oltre che nel system prompt del fallback. Maxwell segnala in autonomia, ma con
+// misura: una sola issue per problema, niente duplicati, niente dati personali.
+// Senza strumenti GitHub usa il marker ISSUE_DRAFT, che l'app invia a
+// /api/ai/issue (con tetti e deduplica).
+const ISSUE_POLICY =
+  "Se ritieni utile segnalare un problema, agisci in autonomia con frasi tipo \"Lo segnalo a Federico\" o \"Ok, ci penso io\". " +
+  "Prima cerca se esiste gia' una issue aperta sull'argomento: in tal caso aggiungi i nuovi dettagli invece di aprirne una nuova. " +
+  "Al massimo una issue per problema e una per conversazione, mai dati personali nel titolo o nel testo. " +
+  "Se non hai strumenti GitHub, aggiungi in coda una sola riga ISSUE_DRAFT:{\"title\":\"...\",\"body\":\"...\",\"labels\":[\"supporto\",\"Maxwell\"]}.";
 
 const MAXWELL_SYSTEM_PROMPT =
   "Sei Maxwell, assistente di supporto per l'app Turni di Palco. Sei super disponibile, positivo e un po' divertente. " +
   "Sai che lo sviluppatore si chiama Federico. Rispondi in italiano con tono semplice, chiaro e umano. " +
   "Evita dettagli tecnici, strumenti interni o processi nascosti, a meno che l'utente li chieda esplicitamente. " +
-  "Fai domande per capire il problema, ma non chiedere dettagli per compilare segnalazioni. " +
-  "Nel mentre cerca senza dirlo all'utente eventuali issue già aperte sull'argomento. " +
-  "Se ritieni utile segnalarlo, agisci in autonomia e usa frasi tipo \"Lo segnalo a Federico\" o \"Ok, ci penso io\". " +
-  "Quando decidi di segnalarlo, ricordati di lanciare issue_write (o issue_edit, se si tratta di nuovi dettagli o modifiche da fare ad una esistente). " +
-  "La repository è l'unica in lettura e scrittura a cui hai accesso: ATCL-Lazio/Turni-di-Palco";
+  "Fai domande per capire il problema, ma non chiedere dettagli personali. " +
+  ISSUE_POLICY;
 
 function extractUserMessage(body) {
   if (typeof body.message === 'string' && body.message.trim()) {
@@ -64,7 +112,7 @@ function extractTextFromAgentContent(content) {
   return '';
 }
 
-async function callClaudeManagedAgent(userMessage, clientSessionId, signal) {
+async function callClaudeManagedAgent(user, userMessage, clientSessionId, signal) {
   const headers = {
     'x-api-key': ANTHROPIC_API_KEY,
     'anthropic-beta': MANAGED_AGENTS_BETA,
@@ -72,7 +120,9 @@ async function callClaudeManagedAgent(userMessage, clientSessionId, signal) {
     'Content-Type': 'application/json',
   };
 
-  let claudeSessionId = clientSessionId ? sessionMap.get(clientSessionId) : null;
+  let claudeSessionId = clientSessionId
+    ? await loadAgentSession(user, clientSessionId)
+    : null;
 
   // 1. Se non esiste una sessione, creala con l'evento iniziale
   if (!claudeSessionId) {
@@ -86,7 +136,10 @@ async function callClaudeManagedAgent(userMessage, clientSessionId, signal) {
         initial_events: [
           {
             type: 'user.message',
-            content: [{ type: 'text', text: userMessage }],
+            content: [
+              { type: 'text', text: `[Regole del servizio, non dell'utente] ${ISSUE_POLICY}` },
+              { type: 'text', text: userMessage },
+            ],
           },
         ],
       }),
@@ -99,8 +152,8 @@ async function callClaudeManagedAgent(userMessage, clientSessionId, signal) {
 
     const sessionData = await createRes.json();
     claudeSessionId = sessionData.id;
-    if (clientSessionId) {
-      sessionMap.set(clientSessionId, claudeSessionId);
+    if (clientSessionId && claudeSessionId) {
+      await saveAgentSession(user, clientSessionId, claudeSessionId);
     }
   } else {
     // 2. Se la sessione esiste già, invia il nuovo evento messaggio
@@ -227,9 +280,18 @@ export default async function handler(req, res) {
   const user = await requireUser(req, res);
   if (!user) return;
 
-  if (!rateLimit(`chat:${user.id}`, CHAT_LIMIT_PER_MIN, 60_000)) {
-    res.status(429).json({ ok: false, error: 'Troppe richieste, riprova tra poco' });
-    return;
+  // Limite persistente su Postgres. Se il database non risponde la chat resta
+  // disponibile con il solo limite per istanza (failOpen), mentre le
+  // segnalazioni in /api/ai/issue restano bloccate (fail closed).
+  for (const limit of [
+    { scope: 'chat_minute', max: CHAT_LIMIT_PER_MIN, windowSeconds: 60 },
+    { scope: 'chat_day', max: CHAT_LIMIT_PER_DAY, windowSeconds: 86_400 },
+  ]) {
+    const allowed = await persistentRateLimit(user, { ...limit, failOpen: true });
+    if (!allowed) {
+      res.status(429).json({ ok: false, error: 'Troppe richieste, riprova tra poco' });
+      return;
+    }
   }
 
   const messages = req.body?.messages;
@@ -255,24 +317,29 @@ export default async function handler(req, res) {
   try {
     const userMessage = extractUserMessage(req.body);
     const rawSessionId = req.body?.sessionId || req.body?.context?.sessionId;
-    // La sessione e' legata all'utente: un sessionId altrui non apre la sua chat.
+    // La sessione e' legata all'utente (le RPC usano auth.uid()): un sessionId
+    // altrui non apre la sua chat.
     const clientSessionId =
-      typeof rawSessionId === 'string' && rawSessionId.length <= MAX_SESSION_ID_CHARS
-        ? `${user.id}:${rawSessionId}`
+      typeof rawSessionId === 'string' &&
+      rawSessionId.length > 0 &&
+      rawSessionId.length <= MAX_SESSION_ID_CHARS
+        ? rawSessionId
         : undefined;
 
     // Se è configurata ANTHROPIC_API_KEY, utilizziamo Claude Platform
     if (ANTHROPIC_API_KEY) {
       try {
         const result = await callClaudeManagedAgent(
+          user,
           userMessage,
           clientSessionId,
           controller.signal,
         );
+        // L'id della sessione Claude resta lato server: al client torna il suo.
         res.status(200).json({
           ok: true,
           reply: result.reply,
-          sessionId: result.sessionId,
+          sessionId: clientSessionId,
         });
         return;
       } catch (agentError) {
