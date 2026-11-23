@@ -65,6 +65,7 @@ npm run dev:pwa:https
 npm run dev:control-plane
 npm run dev:control-plane:https
 npm run start:control-plane
+npm run test:control-plane   # avvia il server reale contro un Supabase finto in memoria (node:test, nessuna rete)
 npm run build:pwa
 npm run test:pwa
 ```

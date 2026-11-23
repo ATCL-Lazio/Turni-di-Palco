@@ -184,12 +184,9 @@ const rateLimitState = new Map();
 const pendingByCommandId = new Map();
 const pendingByTokenHash = new Map();
 
-const PENDING_STORE_PATH = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "data",
-  "pending-confirmations.json"
-);
+const PENDING_STORE_PATH =
+  asString(process.env.CONTROL_PLANE_PENDING_STORE_PATH) ||
+  path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "pending-confirmations.json");
 
 function savePendingToDisk() {
   try {
@@ -1019,7 +1016,8 @@ async function fetchMobileAppVersion() {
     };
   }
 
-  const authKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+  // app-version is a public, read-only function: never hand it the service role key.
+  const authKey = SUPABASE_ANON_KEY;
   const headers = {
     "content-type": "application/json",
     "x-control-plane-source": "mobile-version-badge",
@@ -1352,21 +1350,12 @@ function resolvePending({ commandId, confirmationToken }) {
   const normalizedCommandId = asString(commandId);
   const normalizedToken = asString(confirmationToken);
 
+  // The confirmation token is the only proof of the prepare step: look the entry up by its hash
+  // and never fall back to commandId alone, or any non-empty token would unlock a known commandId.
   let entry = null;
-
   if (normalizedToken) {
-    const tokenHash = hashToken(normalizedToken);
-    const mappedCommandId = pendingByTokenHash.get(tokenHash);
-    if (mappedCommandId) {
-      entry = pendingByCommandId.get(mappedCommandId) || null;
-      if (entry && entry.tokenHash !== tokenHash) {
-        return { entry: null, error: "Token conferma non valido." };
-      }
-    }
-  }
-
-  if (!entry && normalizedCommandId) {
-    entry = pendingByCommandId.get(normalizedCommandId) || null;
+    const mappedCommandId = pendingByTokenHash.get(hashToken(normalizedToken));
+    entry = mappedCommandId ? pendingByCommandId.get(mappedCommandId) || null : null;
   }
 
   if (!entry) {
@@ -2490,6 +2479,14 @@ function applyMatchFilter(query, match) {
   return query;
 }
 
+function hasUsableMatch(match) {
+  // Every key must be a valid column: applyMatchFilter silently drops invalid ones, so a match made only
+  // of invalid keys would otherwise reach PostgREST with no filter at all and hit the whole table.
+  if (!isPlainObject(match)) return false;
+  const columns = Object.keys(match);
+  return columns.length > 0 && columns.every((column) => VALID_COLUMN_NAME.test(column));
+}
+
 async function executeDbMutation({ table, action, values, match, returning }) {
   let query = supabaseDbClient.from(table);
 
@@ -2512,7 +2509,7 @@ async function executeDbMutation({ table, action, values, match, returning }) {
       if (!isPlainObject(values)) {
         throw createHttpError(400, "values oggetto obbligatorio per update.");
       }
-      if (!isPlainObject(match) || Object.keys(match).length === 0) {
+      if (!hasUsableMatch(match)) {
         throw createHttpError(400, "match obbligatorio per update.");
       }
       query = query.update(values);
@@ -2520,7 +2517,7 @@ async function executeDbMutation({ table, action, values, match, returning }) {
       break;
 
     case "delete":
-      if (!isPlainObject(match) || Object.keys(match).length === 0) {
+      if (!hasUsableMatch(match)) {
         throw createHttpError(400, "match obbligatorio per delete.");
       }
       query = query.delete();
