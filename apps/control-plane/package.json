@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node src/server.mjs",
     "start": "node src/server.mjs",
-    "test": "node --test \"test/**/*.test.mjs\""
+    "test": "node --test test/auth.test.mjs test/commands.test.mjs test/direct-routes.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",
