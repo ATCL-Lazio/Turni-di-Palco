@@ -30,7 +30,9 @@ type AiSupportIssuePayload = {
 };
 
 type AiSupportIssueResponse = {
+  ok?: boolean;
   url?: string | null;
+  number?: number | null;
   output?: string;
   existing?: boolean;
   action?: string;
@@ -53,8 +55,9 @@ const SUPPORT_PROMPT =
   "Rispondi in italiano con tono semplice, chiaro e umano. " +
   "Evita dettagli tecnici, strumenti interni o processi nascosti, a meno che l'utente li chieda esplicitamente. " +
   "Fai domande per capire il problema, ma non chiedere dettagli per compilare segnalazioni. " +
-  "Se ritieni utile segnalarlo, agisci in autonomia e usa frasi tipo \"Lo segnalo a Federico\" o \"Ok, ci penso io\". " +
-  "Quando decidi di segnalarlo, aggiungi in coda una riga con ISSUE_DRAFT:{\"title\":\"...\",\"body\":\"...\",\"labels\":[\"supporto\",\"Maxwell\"]}. " +
+  "Non aprire issue da solo: se ritieni utile una segnalazione, proponila con frasi tipo \"Se vuoi, preparo una segnalazione per Federico\" " +
+  "e aggiungi in coda una riga con ISSUE_DRAFT:{\"title\":\"...\",\"body\":\"...\",\"labels\":[\"supporto\",\"Maxwell\"]}. " +
+  "L'app chiedera' conferma all'utente prima di inviarla. " +
   "Non citare il marker o il JSON nel testo per l'utente: lascia la spiegazione sopra al marker. " +
   "Non ripetere il saluto iniziale se e' gia' presente nella chat.";
 
@@ -345,10 +348,13 @@ export async function requestAiIssue({
 }) {
   // Rete di sicurezza: redige PII dal draft indipendentemente dal chiamante,
   // prima che diventi una issue pubblica.
-  const safePayload: AiSupportIssuePayload = {
+  // confirmed: l'endpoint rifiuta le segnalazioni che l'utente non ha
+  // confermato esplicitamente dal pulsante in chat.
+  const safePayload: AiSupportIssuePayload & { confirmed: true } = {
     ...payload,
     title: redactPII(payload.title),
     body: redactPII(payload.body),
+    confirmed: true,
   };
   // Use a single AbortController driven by withMobileWatchdog's timeout.
   // A redundant window.setTimeout at the same interval would create a race
